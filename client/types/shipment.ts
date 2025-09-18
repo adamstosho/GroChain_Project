@@ -13,6 +13,8 @@ export interface ShipmentItem {
   price: number
 }
 
+
+
 export interface ShipmentLocation {
   address: string
   city: string
@@ -188,3 +190,4 @@ export interface ShipmentFilters {
   sortOrder?: 'asc' | 'desc'
 }
 
+//no changes

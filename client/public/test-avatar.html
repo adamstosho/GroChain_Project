@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Avatar Display</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ccc;
+        }
+        .test-cases {
+            margin-top: 20px;
+        }
+        .test-case {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Avatar Display</h1>
+
+    <div class="test-cases">
+        <div class="test-case">
+            <h3>Test Case 1: Direct avatar URL</h3>
+            <img src="http://localhost:5000/uploads/avatars/avatar-1756732683652-686021863.JPG"
+                 alt="Direct URL" class="avatar"
+                 onload="console.log('✅ Direct URL loaded successfully')"
+                 onerror="console.error('❌ Direct URL failed:', this.src)">
+            <p>Status: <span id="direct-status">Loading...</span></p>
+        </div>
+
+        <div class="test-case">
+            <h3>Test Case 2: With cache busting</h3>
+            <img src="http://localhost:5000/uploads/avatars/avatar-1756732683652-686021863.JPG?t=123456789"
+                 alt="With cache busting" class="avatar"
+                 onload="console.log('✅ Cache busting URL loaded successfully')"
+                 onerror="console.error('❌ Cache busting URL failed:', this.src)">
+            <p>Status: <span id="cache-status">Loading...</span></p>
+        </div>
+
+        <div class="test-case">
+            <h3>Test Case 3: Check if backend is running</h3>
+            <button onclick="testHealth()">Test Health Check</button>
+            <div id="health-result"></div>
+        </div>
+    </div>
+
+    <script>
+        function testHealth() {
+            fetch('http://localhost:5000/api/health')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('health-result').innerHTML =
+                        '<p style="color: green;">✅ Backend is running: ' + JSON.stringify(data) + '</p>';
+                })
+                .catch(error => {
+                    document.getElementById('health-result').innerHTML =
+                        '<p style="color: red;">❌ Backend not accessible: ' + error.message + '</p>';
+                });
+        }
+
+        // Auto-test health on page load
+        testHealth();
+    </script>
+</body>
+</html>

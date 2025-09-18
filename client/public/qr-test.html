@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Codes Test</title>
+</head>
+<body>
+    <h1>QR Codes API Test</h1>
+    <div id="results"></div>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+
+        function log(message) {
+            console.log(message);
+            resultsDiv.innerHTML += '<p>' + message + '</p>';
+        }
+
+        async function testQRCodes() {
+            log('🧪 Testing QR Codes Integration...');
+
+            // Check authentication
+            const token = localStorage.getItem('grochain_auth_token');
+            log('🔑 Auth token exists: ' + !!token);
+
+            if (!token) {
+                log('❌ No auth token found! User might not be logged in.');
+                return;
+            }
+
+            // Test QR codes API
+            try {
+                log('🌐 Testing QR codes API...');
+
+                const response = await fetch('http://localhost:5000/api/qr-codes', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                log('📡 QR API Response Status: ' + response.status);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✅ QR API Response: ' + JSON.stringify(data, null, 2));
+
+                    if (data.status === 'success' && data.data && data.data.length > 0) {
+                        log('🎉 QR codes found: ' + data.data.length);
+                        data.data.forEach((qr, i) => {
+                            log(`${i + 1}. ${qr.code} - ${qr.cropType} - Status: ${qr.status}`);
+                        });
+                    } else {
+                        log('ℹ️ No QR codes in response');
+                    }
+                } else {
+                    const errorText = await response.text();
+                    log('❌ QR API Error: ' + response.status + ' - ' + errorText);
+                }
+            } catch (error) {
+                log('❌ QR API Connection Error: ' + error.message);
+            }
+
+            // Test QR stats API
+            try {
+                log('📊 Testing QR stats API...');
+
+                const response = await fetch('http://localhost:5000/api/qr-codes/stats', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                log('📡 QR Stats Response Status: ' + response.status);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✅ QR Stats Response: ' + JSON.stringify(data, null, 2));
+                } else {
+                    const errorText = await response.text();
+                    log('❌ QR Stats Error: ' + response.status + ' - ' + errorText);
+                }
+            } catch (error) {
+                log('❌ QR Stats Connection Error: ' + error.message);
+            }
+        }
+
+        // Run test when page loads
+        testQRCodes();
+    </script>
+</body>
+</html>
+
