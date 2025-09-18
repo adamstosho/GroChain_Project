@@ -1,0 +1,440 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "GroChain Backend API",
+    "description": "Comprehensive agricultural supply chain management platform API",
+    "version": "1.0.0",
+    "contact": {
+      "name": "GroChain Support",
+      "email": "support@grochain.ng"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Development server"
+    },
+    {
+      "url": "https://api.grochain.ng",
+      "description": "Production server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "phone": { "type": "string" },
+          "role": { "type": "string", "enum": ["farmer", "partner", "admin", "buyer"] },
+          "status": { "type": "string", "enum": ["active", "inactive", "suspended"] },
+          "location": { "type": "string" },
+          "emailVerified": { "type": "boolean" },
+          "phoneVerified": { "type": "boolean" }
+        }
+      },
+      "Harvest": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "farmer": { "type": "string" },
+          "cropType": { "type": "string" },
+          "quantity": { "type": "number" },
+          "unit": { "type": "string" },
+          "status": { "type": "string", "enum": ["pending", "verified", "approved", "rejected"] },
+          "batchId": { "type": "string" },
+          "location": { "type": "string" }
+        }
+      },
+      "Listing": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "farmer": { "type": "string" },
+          "cropName": { "type": "string" },
+          "basePrice": { "type": "number" },
+          "quantity": { "type": "number" },
+          "status": { "type": "string", "enum": ["draft", "active", "inactive", "sold_out"] }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "buyer": { "type": "string" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "listing": { "type": "string" },
+                "quantity": { "type": "number" },
+                "price": { "type": "number" }
+              }
+            }
+          },
+          "total": { "type": "number" },
+          "status": { "type": "string", "enum": ["pending", "paid", "delivered", "cancelled"] }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Health check endpoint",
+        "description": "Check if the API is running",
+        "responses": {
+          "200": {
+            "description": "API is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "message": { "type": "string" },
+                    "timestamp": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "summary": "User registration",
+        "description": "Register a new user account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "phone", "password", "role"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "email": { "type": "string" },
+                  "phone": { "type": "string" },
+                  "password": { "type": "string" },
+                  "role": { "type": "string", "enum": ["farmer", "partner", "buyer"] },
+                  "location": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "data": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "User login",
+        "description": "Authenticate user and get access token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user": { "$ref": "#/components/schemas/User" },
+                        "accessToken": { "type": "string" },
+                        "refreshToken": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/harvests": {
+      "get": {
+        "summary": "Get harvests",
+        "description": "Retrieve harvests with optional filtering",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number",
+            "schema": { "type": "integer", "default": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Items per page",
+            "schema": { "type": "integer", "default": 10 }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by status",
+            "schema": { "type": "string", "enum": ["pending", "verified", "approved", "rejected"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Harvests retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Harvest" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create harvest",
+        "description": "Create a new harvest record",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["cropType", "quantity", "unit", "location"],
+                "properties": {
+                  "cropType": { "type": "string" },
+                  "quantity": { "type": "number" },
+                  "unit": { "type": "string" },
+                  "location": { "type": "string" },
+                  "description": { "type": "string" },
+                  "images": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Harvest created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "data": { "$ref": "#/components/schemas/Harvest" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/marketplace/listings": {
+      "get": {
+        "summary": "Get marketplace listings",
+        "description": "Retrieve product listings with optional filtering",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number",
+            "schema": { "type": "integer", "default": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Items per page",
+            "schema": { "type": "integer", "default": 20 }
+          },
+          {
+            "name": "cropName",
+            "in": "query",
+            "description": "Filter by crop name",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "description": "Filter by location",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Listings retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Listing" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/dashboard": {
+      "get": {
+        "summary": "Get dashboard metrics",
+        "description": "Retrieve platform-wide analytics and metrics",
+        "responses": {
+          "200": {
+            "description": "Dashboard metrics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "totalUsers": { "type": "number" },
+                        "totalHarvests": { "type": "number" },
+                        "totalListings": { "type": "number" },
+                        "totalOrders": { "type": "number" },
+                        "totalRevenue": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/weather/current": {
+      "get": {
+        "summary": "Get current weather",
+        "description": "Retrieve current weather data for a location",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "description": "Latitude",
+            "schema": { "type": "number" }
+          },
+          {
+            "name": "lng",
+            "in": "query",
+            "required": true,
+            "description": "Longitude",
+            "schema": { "type": "number" }
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "required": true,
+            "description": "City name",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "description": "State name",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "required": true,
+            "description": "Country name",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Weather data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "temperature": { "type": "number" },
+                        "description": { "type": "string" },
+                        "humidity": { "type": "number" },
+                        "windSpeed": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

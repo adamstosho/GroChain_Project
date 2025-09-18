@@ -1,0 +1,23 @@
+ {
+  "name": "grochain-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "client",
+    "backend"
+  ],
+  "scripts": {
+    "build": "cd client && npm run build",
+    "dev": "cd client && npm run dev",
+    "start": "cd client && npm run start",
+    "install:client": "cd client && npm install",
+    "install:backend": "cd backend && npm install",
+    "install:all": "npm run install:client && npm run install:backend"
+  },
+  "dependencies": {
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.2",
+    "node-fetch": "^3.3.2",
+    "socket.io-client": "^4.8.1"
+  }
+}

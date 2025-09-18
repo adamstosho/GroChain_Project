@@ -1,0 +1,307 @@
+@import "tailwindcss";
+
+:root {
+  /* Updated color palette for agricultural theme */
+  --background: oklch(0.99 0.005 120);
+  --foreground: oklch(0.15 0.02 120);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.02 120);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.02 120);
+  --primary: oklch(0.35 0.15 140); /* Deep Green */
+  --primary-foreground: oklch(0.98 0.01 120);
+  --secondary: oklch(0.75 0.12 85); /* Golden Yellow */
+  --secondary-foreground: oklch(0.15 0.02 120);
+  --muted: oklch(0.96 0.01 120);
+  --muted-foreground: oklch(0.35 0.05 120);
+  --accent: oklch(0.5 0.1 45); /* Earth Brown - More visible */
+  --accent-foreground: oklch(0.95 0.02 120);
+  --destructive: oklch(0.55 0.25 25);
+  --destructive-foreground: oklch(0.98 0.01 120);
+  --border: oklch(0.9 0.01 120);
+  --input: oklch(0.95 0.01 120);
+  --ring: oklch(0.35 0.15 140);
+  --success: oklch(0.55 0.15 140); /* Emerald Green */
+  --warning: oklch(0.7 0.15 85); /* Amber */
+  --chart-1: oklch(0.35 0.15 140);
+  --chart-2: oklch(0.75 0.12 85);
+  --chart-3: oklch(0.4 0.08 45);
+  --chart-4: oklch(0.55 0.15 140);
+  --chart-5: oklch(0.7 0.15 85);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.98 0.01 120);
+  --sidebar-foreground: oklch(0.15 0.02 120);
+  --sidebar-primary: oklch(0.35 0.15 140);
+  --sidebar-primary-foreground: oklch(0.98 0.01 120);
+  --sidebar-accent: oklch(0.96 0.01 120);
+  --sidebar-accent-foreground: oklch(0.15 0.02 120);
+  --sidebar-border: oklch(0.9 0.01 120);
+  --sidebar-ring: oklch(0.35 0.15 140);
+}
+
+.dark {
+  --background: oklch(0.08 0.02 120);
+  --foreground: oklch(0.95 0.01 120);
+  --card: oklch(0.1 0.02 120);
+  --card-foreground: oklch(0.95 0.01 120);
+  --popover: oklch(0.1 0.02 120);
+  --popover-foreground: oklch(0.95 0.01 120);
+  --primary: oklch(0.55 0.15 140);
+  --primary-foreground: oklch(0.08 0.02 120);
+  --secondary: oklch(0.65 0.12 85);
+  --secondary-foreground: oklch(0.08 0.02 120);
+  --muted: oklch(0.15 0.02 120);
+  --muted-foreground: oklch(0.7 0.05 120);
+  --accent: oklch(0.55 0.1 45); /* Earth Brown - More visible */
+  --accent-foreground: oklch(0.9 0.02 120);
+  --destructive: oklch(0.45 0.25 25);
+  --destructive-foreground: oklch(0.95 0.01 120);
+  --border: oklch(0.2 0.02 120);
+  --input: oklch(0.15 0.02 120);
+  --ring: oklch(0.55 0.15 140);
+  --success: oklch(0.45 0.15 140);
+  --warning: oklch(0.6 0.15 85);
+  --chart-1: oklch(0.55 0.15 140);
+  --chart-2: oklch(0.65 0.12 85);
+  --chart-3: oklch(0.5 0.08 45);
+  --chart-4: oklch(0.45 0.15 140);
+  --chart-5: oklch(0.6 0.15 85);
+  --sidebar: oklch(0.1 0.02 120);
+  --sidebar-foreground: oklch(0.95 0.01 120);
+  --sidebar-primary: oklch(0.55 0.15 140);
+  --sidebar-primary-foreground: oklch(0.08 0.02 120);
+  --sidebar-accent: oklch(0.15 0.02 120);
+  --sidebar-accent-foreground: oklch(0.95 0.01 120);
+  --sidebar-border: oklch(0.2 0.02 120);
+  --sidebar-ring: oklch(0.55 0.15 140);
+}
+
+@theme inline {
+  --font-sans: var(--font-dm-sans);
+  --font-serif: var(--font-nunito);
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Improve button hover visibility */
+  button:hover {
+    color: hsl(var(--primary-foreground)) !important;
+  }
+
+  /* Fix outline button hover states */
+  button[data-variant="outline"]:hover {
+    background-color: hsl(var(--accent)) !important;
+    color: hsl(var(--accent-foreground)) !important;
+    border-color: hsl(var(--accent)) !important;
+  }
+
+  /* Fix ghost button hover states */
+  button[data-variant="ghost"]:hover {
+    background-color: hsl(var(--accent)) !important;
+    color: hsl(var(--accent-foreground)) !important;
+  }
+
+  /* Ensure all button text remains visible on hover */
+  .inline-flex:hover {
+    color: hsl(var(--primary-foreground)) !important;
+  }
+
+  /* Fix link hover states */
+  a:hover {
+    color: hsl(var(--primary)) !important;
+  }
+
+  /* Ensure navigation links have proper hover contrast */
+  nav a:hover {
+    color: hsl(var(--primary)) !important;
+    background-color: transparent !important;
+  }
+
+  /* Fix any text that becomes invisible on hover */
+  [class*="hover:text-"]:hover {
+    color: hsl(var(--primary)) !important;
+  }
+
+  /* Ensure all interactive elements maintain visibility */
+  button, a, [role="button"] {
+    transition: all 0.2s ease-in-out;
+  }
+
+  button:hover, a:hover, [role="button"]:hover {
+    opacity: 1 !important;
+  }
+
+  /* Fix specific component hover issues */
+  [class*="notification-bell"] button:hover {
+    background-color: hsl(var(--muted)) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+
+  /* Ensure dropdown items remain visible */
+  [role="menuitem"]:hover {
+    background-color: hsl(var(--accent)) !important;
+    color: hsl(var(--accent-foreground)) !important;
+  }
+
+  /* Fix any remaining invisible text issues */
+  *:hover {
+    color: inherit;
+  }
+
+  /* Added custom scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+}
+
+/* Added agricultural pattern background */
+/* .agricultural-pattern {
+  background-image: radial-gradient(circle at 25% 25%, rgba(22, 163, 74, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(255, 215, 0, 0.05) 0%, transparent 50%);
+  background-size: 100px 100px;
+  background-position: 0 0, 50px 50px;
+} */
+
+.agricultural-pattern {
+  background-image: radial-gradient(circle at 25% 25%, rgba(22, 163, 74, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(255, 215, 0, 0.05) 0%, transparent 50%);
+  background-size: 100px 100px;
+  background-position: 0 0, 50px 50px;
+  animation: movePattern 20s linear infinite alternate;
+}
+
+@keyframes movePattern {
+  0% {
+    background-position: 0 0, 50px 50px;
+  }
+  50% {
+    background-position: 25px 25px, 75px 75px;
+  }
+  100% {
+    background-position: 0 50px, 50px 100px;
+  }
+}
+
+/* Added glass morphism utility classes */
+.glass {
+  @apply bg-white/10 backdrop-blur-md border border-white/20;
+}
+
+.glass-dark {
+  @apply bg-black/10 backdrop-blur-md border border-black/20;
+}
+
+/* Added animation utilities */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+/* Enhanced shimmer animations for skeleton loading */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes shimmer-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+  background-size: 200% 100%;
+}
+
+.animate-shimmer-slide {
+  animation: shimmer-slide 2s ease-in-out infinite;
+}

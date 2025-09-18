@@ -1,0 +1,410 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { useToast } from "@/hooks/use-toast"
+import { useShipments, useShipmentStats } from "@/hooks/use-shipments"
+import { ShipmentCard } from "@/components/shipment/shipment-card"
+import { 
+  Package, 
+  Search, 
+  Filter, 
+  Plus,
+  RefreshCw,
+  TrendingUp,
+  Clock,
+  AlertTriangle,
+  CheckCircle
+} from "lucide-react"
+import { ShipmentFilters } from "@/types/shipment"
+import Link from "next/link"
+
+export default function ShipmentsPage() {
+  const [filters, setFilters] = useState<ShipmentFilters>({
+    page: 1,
+    limit: 20,
+    sortBy: 'createdAt',
+    sortOrder: 'desc'
+  })
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  
+  const { toast } = useToast()
+  const { shipments, loading, error, pagination, refreshShipments } = useShipments(filters)
+  const { stats, loading: statsLoading, error: statsError, refreshStats } = useShipmentStats()
+
+  // Refresh stats when shipments change
+  useEffect(() => {
+    if (shipments.length > 0) {
+      refreshStats()
+    }
+  }, [shipments.length, refreshStats])
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await Promise.all([
+      refreshShipments(),
+      refreshStats()
+    ])
+    setIsRefreshing(false)
+  }
+
+  const handleFilterChange = (key: keyof ShipmentFilters, value: any) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value,
+      page: 1 // Reset to first page when filters change
+    }))
+  }
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
+    // Implement search functionality if needed
+  }
+
+  const getStatusCount = (status: string) => {
+    return stats?.statusBreakdown?.find(s => s._id === status)?.count || 0
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800'
+      case 'confirmed': return 'bg-blue-100 text-blue-800'
+      case 'in_transit': return 'bg-purple-100 text-purple-800'
+      case 'out_for_delivery': return 'bg-orange-100 text-orange-800'
+      case 'delivered': return 'bg-green-100 text-green-800'
+      case 'failed': return 'bg-red-100 text-red-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Shipments</h1>
+            <p className="text-muted-foreground">
+              Manage and track all shipments
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button asChild>
+              <Link href="/dashboard/shipments/create">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Shipment
+              </Link>
+            </Button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        {statsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                    </div>
+                    <div className="ml-4">
+                      <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                      <div className="h-6 bg-gray-200 rounded w-12"></div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : statsError ? (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Stats</h3>
+              <p className="text-gray-600 mb-4">{statsError}</p>
+              <Button onClick={refreshStats}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        ) : stats ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <Package className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Total Shipments</p>
+                    <p className="text-2xl font-semibold text-gray-900">{stats.totalShipments}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <TrendingUp className="h-8 w-8 text-green-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Delivered</p>
+                    <p className="text-2xl font-semibold text-gray-900">{getStatusCount('delivered')}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <Clock className="h-8 w-8 text-orange-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">In Transit</p>
+                    <p className="text-2xl font-semibold text-gray-900">{getStatusCount('in_transit')}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <AlertTriangle className="h-8 w-8 text-red-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Delayed</p>
+                    <p className="text-2xl font-semibold text-gray-900">{stats.delayedShipments}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Stats Available</h3>
+              <p className="text-gray-600 mb-4">Unable to load shipment statistics</p>
+              <Button onClick={refreshStats}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Stats
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filters
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search shipments..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Status</label>
+                <Select
+                  value={filters.status || "all"}
+                  onValueChange={(value) => handleFilterChange('status', value === "all" ? undefined : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="in_transit">In Transit</SelectItem>
+                    <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="returned">Returned</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Shipping Method</label>
+                <Select
+                  value={filters.shippingMethod || "all"}
+                  onValueChange={(value) => handleFilterChange('shippingMethod', value === "all" ? undefined : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All methods" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All methods</SelectItem>
+                    <SelectItem value="road">Road</SelectItem>
+                    <SelectItem value="rail">Rail</SelectItem>
+                    <SelectItem value="air">Air</SelectItem>
+                    <SelectItem value="sea">Sea</SelectItem>
+                    <SelectItem value="courier">Courier</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Sort By</label>
+                <Select
+                  value={`${filters.sortBy}-${filters.sortOrder}`}
+                  onValueChange={(value) => {
+                    const [sortBy, sortOrder] = value.split('-')
+                    handleFilterChange('sortBy', sortBy)
+                    handleFilterChange('sortOrder', sortOrder as 'asc' | 'desc')
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="createdAt-desc">Newest First</SelectItem>
+                    <SelectItem value="createdAt-asc">Oldest First</SelectItem>
+                    <SelectItem value="estimatedDelivery-asc">Delivery Date (Earliest)</SelectItem>
+                    <SelectItem value="estimatedDelivery-desc">Delivery Date (Latest)</SelectItem>
+                    <SelectItem value="totalCost-desc">Cost (Highest)</SelectItem>
+                    <SelectItem value="totalCost-asc">Cost (Lowest)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Shipments List */}
+        <div className="space-y-4">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-6">
+                    <div className="space-y-3">
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : error ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Shipments</h3>
+                <p className="text-gray-600 mb-4">{error}</p>
+                <Button onClick={handleRefresh}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again
+                </Button>
+              </CardContent>
+            </Card>
+          ) : shipments.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Shipments Found</h3>
+                <p className="text-gray-600 mb-4">
+                  {Object.keys(filters).some(key => filters[key as keyof ShipmentFilters]) 
+                    ? "No shipments match your current filters."
+                    : "You haven't created any shipments yet."
+                  }
+                </p>
+                <Button asChild>
+                  <Link href="/dashboard/shipments/create">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Your First Shipment
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {shipments.map((shipment) => (
+                  <ShipmentCard
+                    key={shipment._id}
+                    shipment={shipment}
+                    onViewDetails={(id) => {
+                      // Navigate to shipment details
+                      window.location.href = `/dashboard/shipments/${id}`
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-700">
+                    Showing {((pagination.currentPage - 1) * pagination.itemsPerPage) + 1} to{' '}
+                    {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} of{' '}
+                    {pagination.totalItems} shipments
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleFilterChange('page', pagination.currentPage - 1)}
+                      disabled={pagination.currentPage <= 1}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm text-gray-700">
+                      Page {pagination.currentPage} of {pagination.totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleFilterChange('page', pagination.currentPage + 1)}
+                      disabled={pagination.currentPage >= pagination.totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </DashboardLayout>
+  )
+}
