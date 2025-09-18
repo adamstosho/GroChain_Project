@@ -1,95 +1,62 @@
-import type React from "react"
 import type { Metadata } from "next"
-import { DM_Sans, Nunito } from "next/font/google"
+import { Inter } from "next/font/google"
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import { DatadogSuppressor } from "@/components/datadog-suppressor"
-import { NotificationProvider } from "@/components/notifications/notification-provider"
-import { NotificationContainer } from "@/components/notifications/notification-toast"
-import { OfflineIndicator, OfflineBanner, OfflineToast } from "@/components/ui/offline-indicator"
-import { PWAInstallPrompt, PWAStatusIndicator } from "@/components/ui/pwa-install-prompt"
-import { TokenRefreshProvider } from "@/components/auth/token-refresh-provider"
-import "@/lib/sw-register"
+import { OfflineIndicator } from "@/components/ui/offline-indicator"
 
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-dm-sans",
-})
-
-const nunito = Nunito({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-nunito",
-})
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "GroChain - Building Trust in Nigeria's Food Chain",
-  description:
-    "Digital agricultural platform connecting farmers, buyers, and agencies through transparent supply chain management with QR code traceability.",
-  generator: "GroChain Platform",
-  keywords: ["agriculture", "farming", "supply chain", "Nigeria", "food security", "traceability"],
+  title: "GroChain - Agricultural Supply Chain Platform",
+  description: "Revolutionizing Nigeria's agriculture value chain with transparency, digital identities, and fintech services for smallholder farmers.",
+  keywords: ["agriculture", "supply chain", "Nigeria", "farmers", "blockchain", "fintech"],
   authors: [{ name: "GroChain Team" }],
+  viewport: "width=device-width, initial-scale=1",
+  themeColor: "#16a34a",
+  manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
   },
-  manifest: "/manifest.json",
   openGraph: {
-    title: "GroChain - Digital Agriculture Platform",
-    description: "Building trust in Nigeria's food chain through transparent digital platform",
+    title: "GroChain - Agricultural Supply Chain Platform",
+    description: "Revolutionizing Nigeria's agriculture value chain with transparency, digital identities, and fintech services for smallholder farmers.",
     type: "website",
-    locale: "en_US",
+    locale: "en_NG",
+    siteName: "GroChain",
   },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "GroChain",
+  twitter: {
+    card: "summary_large_image",
+    title: "GroChain - Agricultural Supply Chain Platform",
+    description: "Revolutionizing Nigeria's agriculture value chain with transparency, digital identities, and fintech services for smallholder farmers.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 }
 
-export const viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  themeColor: "#16a34a",
-}
+// Force dynamic rendering for all pages
+export const dynamic = 'force-dynamic'
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* Paystack Payment Script */}
-        <script src="https://js.paystack.co/v1/inline.js"></script>
-      </head>
-      <body className={`font-sans ${dmSans.variable} ${nunito.variable} antialiased`}>
-        <DatadogSuppressor />
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <TokenRefreshProvider>
-            <NotificationProvider>
-              <NotificationContainer>
-                {process.env.NODE_ENV === 'production' && <OfflineBanner />}
-                {children}
-              </NotificationContainer>
-            </NotificationProvider>
-          </TokenRefreshProvider>
-          <Toaster />
-          {process.env.NODE_ENV === 'production' && (
-            <>
-              <OfflineIndicator />
-              <PWAInstallPrompt />
-              <PWAStatusIndicator />
-              <OfflineToast />
-            </>
-          )}
-        </ThemeProvider>
+      <body className={inter.className}>
+        {children}
+        <Toaster />
+        <OfflineIndicator />
       </body>
     </html>
   )
