@@ -166,7 +166,7 @@ export interface Transaction {
   orderId?: string
   paymentProvider: string
   paymentProviderReference: string
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
   processedAt: Date
   createdAt: Date
   updatedAt: Date
@@ -198,7 +198,7 @@ export interface WeatherData {
   }
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success?: boolean
   status?: 'success' | 'error'
   message?: string
@@ -229,7 +229,7 @@ export interface Activity {
   description: string
   user: string
   timestamp: Date
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface CreditScore {

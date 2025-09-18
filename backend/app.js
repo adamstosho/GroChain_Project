@@ -284,12 +284,27 @@ const initializeApp = async () => {
 
     // Root endpoint
     app.get('/', (req, res) => {
+      const isVercel = process.env.VERCEL === '1';
+      const deploymentUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `${req.protocol}://${req.get('host')}`;
+      
       res.json({ 
         status: 'success', 
         message: 'Welcome to GroChain Backend API',
         version: '1.0.0',
-        documentation: '/api/health',
-        environment: process.env.NODE_ENV || 'development'
+        deployment: {
+          platform: isVercel ? 'Vercel' : 'Local Development',
+          url: deploymentUrl,
+          environment: process.env.NODE_ENV || 'development',
+          timestamp: new Date().toISOString()
+        },
+        endpoints: {
+          health: '/api/health',
+          documentation: '/swagger.json',
+          websocket: '/notifications',
+          metrics: '/metrics'
+        },
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        uptime: process.uptime()
       })
     });
     
@@ -325,13 +340,36 @@ const initializeApp = async () => {
     
     // Start the server only after everything is set up
     const PORT = process.env.PORT || 5000;
+    const isVercel = process.env.VERCEL === '1';
+    const deploymentUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://localhost:${PORT}`;
+    
     server.listen(PORT, () => {
-      console.log(`🚀 GroChain Backend server listening on port ${PORT}`);
-      console.log(`🌐 Health check: http://localhost:${PORT}/api/health`);
-      console.log(`📚 API Documentation: http://localhost:${PORT}/swagger.json`);
-      console.log(`🔌 WebSocket server initialized`);
-      console.log(`🔔 Notifications WebSocket endpoint: ws://localhost:${PORT}/notifications`);
-      console.log(`🧹 Inventory cleanup service started`);
+      console.log('='.repeat(60));
+      console.log('🚀 GROCHAIN BACKEND API DEPLOYED SUCCESSFULLY! 🚀');
+      console.log('='.repeat(60));
+      
+      if (isVercel) {
+        console.log(`🌍 DEPLOYMENT: Vercel Production Environment`);
+        console.log(`🔗 API URL: ${deploymentUrl}`);
+        console.log(`🏥 Health Check: ${deploymentUrl}/api/health`);
+        console.log(`📚 API Documentation: ${deploymentUrl}/swagger.json`);
+        console.log(`🔌 WebSocket: ${deploymentUrl.replace('https://', 'wss://')}/notifications`);
+      } else {
+        console.log(`🏠 LOCAL DEVELOPMENT ENVIRONMENT`);
+        console.log(`🔗 API URL: ${deploymentUrl}`);
+        console.log(`🏥 Health Check: ${deploymentUrl}/api/health`);
+        console.log(`📚 API Documentation: ${deploymentUrl}/swagger.json`);
+        console.log(`🔌 WebSocket: ${deploymentUrl.replace('http://', 'ws://')}/notifications`);
+      }
+      
+      console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🗄️ Database: ${mongoose.connection.readyState === 1 ? '✅ Connected' : '❌ Disconnected'}`);
+      console.log(`🧹 Inventory Cleanup: ✅ Active`);
+      console.log(`📦 Shipping Updates: ✅ Active`);
+      console.log(`🔔 Notifications: ✅ WebSocket Ready`);
+      console.log('='.repeat(60));
+      console.log('🎉 GroChain Backend is ready to serve requests!');
+      console.log('='.repeat(60));
     });
     
   } catch (error) {

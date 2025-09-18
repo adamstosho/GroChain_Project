@@ -1,0 +1,121 @@
+{
+  "version": 2,
+  "name": "grochain-backend",
+  "builds": [
+    {
+      "src": "app.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "controllers/**",
+          "middlewares/**",
+          "models/**",
+          "routes/**",
+          "services/**",
+          "utils/**",
+          "uploads/**",
+          "package.json",
+          "package-lock.json"
+        ]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/uploads/(.*)",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/metrics",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/health",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/",
+      "dest": "/app.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "app.js": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["iad1"],
+  "framework": null,
+  "buildCommand": "npm install",
+  "outputDirectory": ".",
+  "installCommand": "npm install --production",
+  "devCommand": "npm run dev",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/app.js"
+    },
+    {
+      "source": "/uploads/(.*)",
+      "destination": "/app.js"
+    },
+    {
+      "source": "/metrics",
+      "destination": "/app.js"
+    },
+    {
+      "source": "/health",
+      "destination": "/app.js"
+    },
+    {
+      "source": "/",
+      "destination": "/app.js"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+        },
+        {
+          "key": "Access-Control-Allow-Credentials",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "source": "/uploads/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, OPTIONS"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}

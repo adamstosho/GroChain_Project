@@ -19,15 +19,12 @@ import {
   CheckCircle, 
   XCircle, 
   Download,
-  Filter,
-  Calendar,
   BarChart3,
   Wallet,
   RefreshCw,
   Search,
   MoreHorizontal,
-  Eye,
-  Edit
+  Eye
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { CommissionDetailsDialog } from "@/components/dialogs/commission-details-dialog"
@@ -60,7 +57,7 @@ interface Commission {
   paidAt?: Date
   withdrawalId?: string
   notes?: string
-  metadata?: any
+  metadata?: Record<string, unknown>
   createdAt: Date
   updatedAt: Date
 }
@@ -84,14 +81,9 @@ export default function CommissionsPage() {
     isLoading,
     isRefreshing,
     refreshData,
-    processPayout,
     updateCommissionStatus,
     pendingCommissions,
-    approvedCommissions,
-    paidCommissions,
-    totalPendingAmount,
-    totalPaidAmount,
-    updateFilters
+    totalPendingAmount
   } = useCommission()
 
   const [activeTab, setActiveTab] = useState("overview")
@@ -100,7 +92,7 @@ export default function CommissionsPage() {
   const [dateFilter, setDateFilter] = useState("all")
   const [showDetailsDialog, setShowDetailsDialog] = useState(false)
   const [showPayoutDialog, setShowPayoutDialog] = useState(false)
-  const [selectedCommission, setSelectedCommission] = useState<any>(null)
+  const [selectedCommission, setSelectedCommission] = useState<Commission | null>(null)
   const { toast } = useToast()
   const exportService = useExportService()
 
@@ -140,7 +132,7 @@ export default function CommissionsPage() {
     setShowPayoutDialog(true)
   }
 
-  const handleViewDetails = (commission: any) => {
+  const handleViewDetails = (commission: Commission) => {
     setSelectedCommission(commission)
     setShowDetailsDialog(true)
   }
@@ -152,10 +144,10 @@ export default function CommissionsPage() {
         title: "Status updated",
         description: `Commission status updated to ${newStatus}`,
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Update failed",
-        description: error.message || "Failed to update commission status",
+        description: error instanceof Error ? error.message : "Failed to update commission status",
         variant: "destructive",
       })
     }

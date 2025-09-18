@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -30,9 +30,10 @@ interface Order {
     phone: string
   }
   seller: {
+    _id: string
     name: string
-    email: string
-    phone: string
+    email?: string
+    phone?: string
   }
   items: Array<{
     listing: {
@@ -46,11 +47,32 @@ interface Order {
     total: number
   }>
   total: number
+  subtotal?: number
+  shipping?: number
+  shippingMethod?: string
+  discount?: number
   status: string
+  paymentStatus?: string
+  paymentMethod?: string
+  shippingAddress?: {
+    street: string
+    city: string
+    state: string
+    country: string
+    postalCode: string
+    phone: string
+  }
+  deliveryInstructions?: string
+  estimatedDelivery?: string
+  actualDelivery?: string
+  trackingNumber?: string
+  notes?: string
+  orderDate?: string
   createdAt: string
+  updatedAt?: string
 }
 
-export default function CreateShipmentPage() {
+function CreateShipmentContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -91,12 +113,12 @@ export default function CreateShipmentPage() {
       const response = await apiService.getFarmerOrders()
       console.log("📋 Farmer Orders API Response:", response)
       
-      if (response?.status === 'success' && (response.data as any)?.orders) {
-        const ordersData = (response.data as any).orders
+      if (response?.status === 'success' && response.data?.orders) {
+        const ordersData = response.data.orders
         console.log("✅ Farmer orders data:", ordersData)
         
         // Process and format farmer's orders
-        const processedOrders = ordersData.map((order: any) => ({
+        const processedOrders = ordersData.map((order: Record<string, unknown>) => ({
           _id: order._id,
           orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
           buyer: {
@@ -105,7 +127,7 @@ export default function CreateShipmentPage() {
             phone: order.customer?.phone || ''
           },
           seller: { _id: '', name: 'You' },
-          items: order.products?.map((product: any) => ({
+          items: order.products?.map((product: Record<string, unknown>) => ({
             listing: { 
               _id: product.listingId || '', 
               cropName: product.cropName || 'Unknown Product', 
@@ -143,24 +165,24 @@ export default function CreateShipmentPage() {
         }))
         
         // Filter orders that are confirmed/paid and ready for shipment creation
-        const eligibleOrders = processedOrders.filter((order: any) => 
+        const eligibleOrders = processedOrders.filter((order: Order) => 
           ['confirmed', 'paid', 'processing'].includes(order.status) && 
           order.paymentStatus === 'paid'
         )
         
         console.log("📦 Total processed orders:", processedOrders.length)
         console.log("📦 Eligible orders for shipment:", eligibleOrders.length)
-        console.log("📦 Order statuses:", processedOrders.map((o: any) => ({ id: o._id, status: o.status, paymentStatus: o.paymentStatus })))
+        console.log("📦 Order statuses:", processedOrders.map((o: Order) => ({ id: o._id, status: o.status, paymentStatus: o.paymentStatus })))
         
         setOrders(eligibleOrders)
       } else {
         throw new Error(response?.message || 'Failed to fetch orders')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching orders:', error)
       toast({
         title: "Error",
-        description: error.message || "Failed to fetch orders",
+        description: error instanceof Error ? error.message : "Failed to fetch orders",
         variant: "destructive",
       })
     } finally {
@@ -168,7 +190,7 @@ export default function CreateShipmentPage() {
     }
   }
 
-  const handleShipmentCreated = (shipment: any) => {
+  const handleShipmentCreated = (shipment: Record<string, unknown>) => {
     console.log("✅ Shipment created successfully:", shipment)
     toast({
       title: "Success",
@@ -356,5 +378,29 @@ export default function CreateShipmentPage() {
         </div>
       </div>
     </DashboardLayout>
+  )
+}
+
+export default function CreateShipmentPage() {
+  return (
+    <Suspense fallback={
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold tracking-tight">Create Shipment</h1>
+              <p className="text-muted-foreground">Loading...</p>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-32 bg-muted rounded animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </DashboardLayout>
+    }>
+      <CreateShipmentContent />
+    </Suspense>
   )
 }

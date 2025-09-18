@@ -1,8 +1,28 @@
 // Paystack payment integration utilities
 
+interface PaystackPop {
+  setup: (options: PaystackOptions) => void
+}
+
+interface PaystackOptions {
+  key: string
+  email: string
+  amount: number
+  currency?: string
+  ref?: string
+  callback?: (response: PaystackResponse) => void
+  onClose?: () => void
+}
+
+interface PaystackResponse {
+  status: string
+  message: string
+  reference: string
+}
+
 declare global {
   interface Window {
-    PaystackPop: any
+    PaystackPop: PaystackPop
   }
 }
 
@@ -63,7 +83,7 @@ export interface PaymentData {
 export interface PaystackResponse {
   status: 'success' | 'failed' | 'cancelled'
   reference?: string
-  transaction?: any
+  transaction?: Record<string, unknown>
 }
 
 /**
@@ -93,7 +113,7 @@ export const initializePaystackPayment = async (
         amount: Math.round(paymentData.amount * 100), // Convert to kobo
         currency: 'NGN',
         ref: `GROCHAIN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        callback: (response: any) => {
+        callback: (response: PaystackResponse) => {
           console.log('✅ Paystack payment callback:', response)
           const result: PaystackResponse = {
             status: 'success',
@@ -219,7 +239,7 @@ export const processOrderPayment = async (
       }
     )
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Payment processing error:', error)
     throw error
   }
