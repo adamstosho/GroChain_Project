@@ -31,7 +31,11 @@ export const config = {
     '/marketplace/:path*', 
     '/profile/:path*', 
     '/settings/:path*',
-    '/auth/:path*'
+    '/auth/:path*',
+    '/finance/:path*',
+    '/harvests/:path*',
+    '/partners/:path*',
+    '/notifications/:path*'
   ],
 }
 
