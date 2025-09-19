@@ -4,7 +4,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://grochain-backend.vercel.app/api/$1"
+      "destination": "https://gro-back.vercel.app/api/$1"
     }
   ]
 }
