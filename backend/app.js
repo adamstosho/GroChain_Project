@@ -215,6 +215,52 @@ const connectDB = async () => {
   }
 };
 
+// Root endpoint (moved outside initializeApp to ensure it's always available)
+app.get('/', (req, res) => {
+  const isVercel = process.env.VERCEL === '1';
+  const deploymentUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `${req.protocol}://${req.get('host')}`;
+  
+  res.json({ 
+    status: 'success', 
+    message: 'Welcome to GroChain Backend API',
+    version: '1.0.0',
+    deployment: {
+      platform: isVercel ? 'Vercel' : 'Local Development',
+      url: deploymentUrl,
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString()
+    },
+    endpoints: {
+      health: '/api/health',
+      documentation: '/swagger.json',
+      websocket: '/notifications',
+      metrics: '/metrics'
+    },
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    uptime: process.uptime()
+  })
+});
+
+// Health check endpoint (moved outside initializeApp)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    websocket: {
+      enabled: false, // Will be updated when WebSocket is initialized
+      connections: 0
+    },
+    memory: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
+    }
+  })
+});
+
 // Initialize application
 const initializeApp = async () => {
   try {
@@ -262,7 +308,7 @@ const initializeApp = async () => {
     app.use('/api/price-alerts', require('./routes/price-alert.routes'));
     app.use('/api/onboarding', require('./routes/onboarding.routes'));
     
-    // Health check endpoint
+    // Update health check endpoint with WebSocket info
     app.get('/api/health', (req, res) => {
       res.status(200).json({
         status: 'healthy',
@@ -279,32 +325,6 @@ const initializeApp = async () => {
           used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
           total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
         }
-      })
-    });
-
-    // Root endpoint
-    app.get('/', (req, res) => {
-      const isVercel = process.env.VERCEL === '1';
-      const deploymentUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `${req.protocol}://${req.get('host')}`;
-      
-      res.json({ 
-        status: 'success', 
-        message: 'Welcome to GroChain Backend API',
-        version: '1.0.0',
-        deployment: {
-          platform: isVercel ? 'Vercel' : 'Local Development',
-          url: deploymentUrl,
-          environment: process.env.NODE_ENV || 'development',
-          timestamp: new Date().toISOString()
-        },
-        endpoints: {
-          health: '/api/health',
-          documentation: '/swagger.json',
-          websocket: '/notifications',
-          metrics: '/metrics'
-        },
-        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-        uptime: process.uptime()
       })
     });
     
