@@ -4,16 +4,16 @@ import { GroChainLogo } from "@/components/ui/grochain-logo"
 
 export function Footer() {
   const platformLinks = [
-    { name: "For Farmers", href: "/farmers" },
-    { name: "For Buyers", href: "/buyers" },
-    { name: "For Agencies", href: "/agencies" },
-    { name: "API Access", href: "/api" },
+    { name: "For Farmers", href: "/register?role=farmer" },
+    { name: "For Buyers", href: "/register?role=buyer" },
+    { name: "For Partners", href: "/register?role=partner" },
+    { name: "Marketplace", href: "/marketplace" },
   ]
 
   const supportLinks = [
-    { name: "Help Center", href: "/help" },
-    { name: "Training Videos", href: "/training" },
-    { name: "Contact Support", href: "/contact" },
+    { name: "Help Center", href: "/dashboard" },
+    { name: "Training Videos", href: "/dashboard" },
+    { name: "Contact Support", href: "/dashboard" },
     { name: "+234 800 GROCHAIN", href: "tel:+2348004762424" },
   ]
 
@@ -82,10 +82,10 @@ export function Footer() {
         <div className="mt-12 pt-8 border-t flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
           <p className="text-sm text-muted-foreground">© 2025 GroChain. All rights reserved.</p>
           <div className="flex space-x-6">
-            <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Terms of Service
             </Link>
           </div>
