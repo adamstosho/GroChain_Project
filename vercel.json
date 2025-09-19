@@ -3,10 +3,7 @@
   "builds": [
     {
       "src": "client/package.json",
-      "use": "@vercel/next",
-      "config": {
-        "distDir": ".next"
-      }
+      "use": "@vercel/next"
     }
   ],
   "routes": [
