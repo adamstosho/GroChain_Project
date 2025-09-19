@@ -40,7 +40,8 @@ const corsOptions = {
         'http://127.0.0.1:3001',
         'http://127.0.0.1:3002',
         'http://127.0.0.1:4000',
-        'http://127.0.0.1:5000'
+        'http://127.0.0.1:5000',
+        "https://gro-chain.vercel.app"
       ]
     
     // Allow requests with no origin (mobile apps, Postman, etc.)
@@ -241,7 +242,6 @@ app.get('/', (req, res) => {
   })
 });
 
-// Health check endpoint (moved outside initializeApp)
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'healthy',
@@ -251,7 +251,7 @@ app.get('/api/health', (req, res) => {
     version: '1.0.0',
     database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
     websocket: {
-      enabled: false, // Will be updated when WebSocket is initialized
+      enabled: false, 
       connections: 0
     },
     memory: {
