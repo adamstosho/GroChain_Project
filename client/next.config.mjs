@@ -17,7 +17,7 @@ const nextConfig = {
     unoptimized: true,
   },
   // Silence the warning about multiple lockfiles in monorepo
-  outputFileTracingRoot: path.join(__dirname, '../../'),
+  outputFileTracingRoot: path.join(__dirname, '../'),
   // Webpack configuration for better module resolution
   webpack: (config, { isServer }) => {
     // Add path resolution for @ alias
@@ -43,8 +43,8 @@ const pwaConfig = withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development', // Disable in development
-  buildExcludes: [/middleware-manifest\.json$/],
+  disable: process.env.NODE_ENV === 'development' || process.env.VERCEL === '1', // Disable in development and Vercel
+  buildExcludes: [/middleware-manifest\.json$/, /routes-manifest\.json$/],
   fallbacks: {
     document: '/offline',
   },
