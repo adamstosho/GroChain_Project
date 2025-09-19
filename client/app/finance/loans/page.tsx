@@ -1,8 +1,5 @@
 "use client"
 
-// Force dynamic rendering to prevent prerendering issues
-export const dynamic = 'force-dynamic'
-
 import { useState, useEffect } from "react"
 import { Plus, Search, Calendar, Banknote, Clock, CheckCircle, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"

@@ -2,9 +2,6 @@
 
 import type React from "react"
 
-// Force dynamic rendering to prevent prerendering issues
-export const dynamic = 'force-dynamic'
-
 import { useState } from "react"
 import { ArrowLeft, Banknote, FileText, Calculator } from "lucide-react"
 import { Button } from "@/components/ui/button"

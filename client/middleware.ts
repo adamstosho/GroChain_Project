@@ -22,18 +22,16 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
   
-  // Force dynamic rendering for all pages to prevent prerendering issues
-  const response = NextResponse.next()
-  response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-  response.headers.set('Pragma', 'no-cache')
-  response.headers.set('Expires', '0')
-  
-  return response
+  return NextResponse.next()
 }
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/dashboard/:path*', 
+    '/marketplace/:path*', 
+    '/profile/:path*', 
+    '/settings/:path*',
+    '/auth/:path*'
   ],
 }
 

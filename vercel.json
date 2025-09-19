@@ -4,59 +4,12 @@
     {
       "src": "client/package.json",
       "use": "@vercel/next"
-    },
-    {
-      "src": "backend/app.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": [
-          "backend/controllers/**",
-          "backend/middlewares/**",
-          "backend/models/**",
-          "backend/routes/**",
-          "backend/services/**",
-          "backend/utils/**",
-          "backend/uploads/**",
-          "backend/package.json",
-          "backend/package-lock.json"
-        ]
-      }
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/backend/app.js"
-    },
-    {
-      "src": "/uploads/(.*)",
-      "dest": "/backend/app.js"
-    },
-    {
-      "src": "/metrics",
-      "dest": "/backend/app.js"
-    },
-    {
-      "src": "/health",
-      "dest": "/backend/app.js"
-    },
-    {
       "src": "/(.*)",
       "dest": "/client/$1"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "functions": {
-    "backend/app.js": {
-      "maxDuration": 30
-    }
-  },
-  "regions": ["iad1"],
-  "framework": null,
-  "buildCommand": "npm run install:all && npm run build",
-  "outputDirectory": "client/.next",
-  "installCommand": "npm run install:all",
-  "devCommand": "npm run dev"
+  ]
 }

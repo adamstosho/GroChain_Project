@@ -1,8 +1,5 @@
 "use client"
 
-// Force dynamic rendering to prevent prerendering issues
-export const dynamic = 'force-dynamic'
-
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { useBuyerStore, useCartInitialization } from "@/hooks/use-buyer-store"
 import { Button } from "@/components/ui/button"

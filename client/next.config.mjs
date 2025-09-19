@@ -13,11 +13,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true, // Temporarily disable TypeScript checks for deployment
   },
-  // Disable static generation to prevent prerendering issues
-  trailingSlash: true,
-  generateBuildId: async () => {
-    return 'build-' + Date.now()
-  },
   images: {
     unoptimized: true,
   },
