@@ -345,7 +345,6 @@ const initializeApp = async () => {
       app.use('/api/commissions', require('./routes/commission.routes'));
       app.use('/api/shipments', require('./routes/shipment.routes'));
       app.use('/api/shipping-update', require('./routes/shipping-update.routes'));
-      app.use('/api/test-auth', require('./routes/test-auth.routes'));
       app.use('/api/export-import', require('./routes/exportImport.routes'));
       app.use('/api/auth/google', require('./routes/googleAuth.routes'));
       app.use('/api/admin', require('./routes/admin'));
