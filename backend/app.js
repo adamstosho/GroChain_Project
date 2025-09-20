@@ -282,8 +282,8 @@ app.get('/api/health', (req, res) => {
 
 // Simplified approach - remove middleware for now
 
-// Debug endpoint for database connection issues (set up before database connection)
-app.get('/api/debug/database', async (req, res) => {
+// Simplified debug endpoint for database connection issues
+app.get('/api/debug/database', (req, res) => {
   try {
     const debugInfo = {
       environment: process.env.NODE_ENV || 'development',
@@ -295,46 +295,6 @@ app.get('/api/debug/database', async (req, res) => {
       mongooseName: mongoose.connection.name,
       timestamp: new Date().toISOString()
     };
-
-    // Test connection if not connected
-    if (mongoose.connection.readyState !== 1) {
-      debugInfo.connectionTest = 'Attempting connection test...';
-      
-      const uri = process.env.MONGODB_URI || process.env.MONGODB_URI_PROD || 'mongodb+srv://omoridoh111:Allahu009@cluster1.evqfycs.mongodb.net/Grochain_App';
-      
-      try {
-        await mongoose.connect(uri, {
-          serverSelectionTimeoutMS: 10000,
-          socketTimeoutMS: 45000,
-          maxPoolSize: 1,
-          minPoolSize: 0,
-          maxIdleTimeMS: 10000,
-          retryWrites: true,
-          w: 'majority'
-        });
-        
-        // Wait for connection to be fully established
-        let attempts = 0;
-        while (mongoose.connection.readyState !== 1 && attempts < 10) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          attempts++;
-        }
-        
-        debugInfo.connectionTest = mongoose.connection.readyState === 1 ? 'Connection successful!' : 'Connection timeout';
-        debugInfo.newReadyState = mongoose.connection.readyState;
-        debugInfo.newHost = mongoose.connection.host;
-        debugInfo.newPort = mongoose.connection.port;
-        debugInfo.newName = mongoose.connection.name;
-        
-      } catch (connectionError) {
-        debugInfo.connectionTest = 'Connection failed';
-        debugInfo.connectionError = {
-          name: connectionError.name,
-          message: connectionError.message,
-          code: connectionError.code
-        };
-      }
-    }
 
     res.json(debugInfo);
   } catch (error) {
