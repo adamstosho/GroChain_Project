@@ -196,11 +196,20 @@ const connectDB = async () => {
     console.log('🔄 Attempting MongoDB connection...');
     await mongoose.connect(process.env.MONGODB_URI, options);
     
-    // Wait a bit for connection to stabilize
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait for connection to be fully established
+    let attempts = 0;
+    while (mongoose.connection.readyState !== 1 && attempts < 10) {
+      console.log(`⏳ Waiting for connection... (attempt ${attempts + 1}, state: ${mongoose.connection.readyState})`);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      attempts++;
+    }
     
-    console.log('✅ MongoDB connected successfully');
-    console.log('Connection state:', mongoose.connection.readyState);
+    if (mongoose.connection.readyState === 1) {
+      console.log('✅ MongoDB connected successfully');
+      console.log('Connection state:', mongoose.connection.readyState);
+    } else {
+      console.log('⚠️ MongoDB connection timeout - state:', mongoose.connection.readyState);
+    }
     // Don't log sensitive connection string in production
     if (process.env.NODE_ENV !== 'production') {
       console.log("MONGODB_URI:", process.env.MONGODB_URI);
@@ -293,7 +302,7 @@ app.get('/api/debug/database', async (req, res) => {
       
       try {
         await mongoose.connect(uri, {
-          serverSelectionTimeoutMS: 5000,
+          serverSelectionTimeoutMS: 10000,
           socketTimeoutMS: 45000,
           maxPoolSize: 1,
           minPoolSize: 0,
@@ -302,7 +311,14 @@ app.get('/api/debug/database', async (req, res) => {
           w: 'majority'
         });
         
-        debugInfo.connectionTest = 'Connection successful!';
+        // Wait for connection to be fully established
+        let attempts = 0;
+        while (mongoose.connection.readyState !== 1 && attempts < 10) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          attempts++;
+        }
+        
+        debugInfo.connectionTest = mongoose.connection.readyState === 1 ? 'Connection successful!' : 'Connection timeout';
         debugInfo.newReadyState = mongoose.connection.readyState;
         debugInfo.newHost = mongoose.connection.host;
         debugInfo.newPort = mongoose.connection.port;
