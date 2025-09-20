@@ -1,12 +1,15 @@
 'use client';
 
-// Service Worker Registration for Production Only
+// Service Worker Registration for Production Only (excluding Vercel)
 export function registerServiceWorker() {
   if (typeof window === 'undefined') return;
   
-  // Only register in production
-  if (process.env.NODE_ENV !== 'production') {
-    // Unregister any existing service workers in development
+  // Check if we're on Vercel
+  const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+  
+  // Only register in production and not on Vercel
+  if (process.env.NODE_ENV !== 'production' || isVercel) {
+    // Unregister any existing service workers in development or Vercel
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(registrations => {
         registrations.forEach(registration => {

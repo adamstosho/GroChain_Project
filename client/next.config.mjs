@@ -38,17 +38,22 @@ const nextConfig = {
   },
 }
 
-// PWA Configuration
+// PWA Configuration - Only enable in production and non-Vercel environments
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV
+const isDevelopment = process.env.NODE_ENV === 'development'
+
 const pwaConfig = withPWA({
   dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development' || process.env.VERCEL === '1', // Disable in development and Vercel
-  buildExcludes: [/middleware-manifest\.json$/, /routes-manifest\.json$/],
+  register: !isVercel && !isDevelopment,
+  skipWaiting: !isVercel && !isDevelopment,
+  disable: isDevelopment || isVercel, // Disable in development and Vercel
+  buildExcludes: [/middleware-manifest\.json$/, /routes-manifest\.json$/, /app-build-manifest\.json$/],
   fallbacks: {
     document: '/offline',
   },
   publicExcludes: ['!robots.txt', '!sitemap.xml'],
+  // Add additional excludes to prevent precaching issues
+  additionalPrecacheEntries: [],
   runtimeCaching: [
     {
       urlPattern: /^https?:\/\/.*\/api\/.*/i,

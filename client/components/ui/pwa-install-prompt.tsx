@@ -21,6 +21,12 @@ export function PWAInstallPrompt() {
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
+    // Disable PWA features on Vercel
+    const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+    if (isVercel) {
+      return;
+    }
+
     // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
@@ -141,6 +147,12 @@ export function PWAStatusIndicator() {
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
+    // Disable PWA features on Vercel
+    const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+    if (isVercel) {
+      return;
+    }
+    
     setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
   }, []);
 
