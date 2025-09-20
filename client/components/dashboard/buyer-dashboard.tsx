@@ -118,6 +118,7 @@ export function BuyerDashboard() {
       if (dashboardResponse.status === 'fulfilled') {
         dashboardData = dashboardResponse.value?.data || dashboardResponse.value || {}
         console.log('✅ Dashboard data received:', dashboardData)
+        console.log('📊 Dashboard recent orders:', (dashboardData as any)?.recentOrders)
       } else {
         console.error('❌ Dashboard data failed:', dashboardResponse.reason)
       }
@@ -140,9 +141,11 @@ export function BuyerDashboard() {
       let ordersData = []
       if (ordersResponse.status === 'fulfilled') {
         const response = ordersResponse.value
+        console.log('📋 Orders API response:', response)
         ordersData = Array.isArray(response?.data) ? response.data : 
                    Array.isArray(response) ? response : []
         console.log('✅ Orders data received:', ordersData.length, 'orders')
+        console.log('📋 Orders data:', ordersData)
       } else {
         console.error('❌ Orders data failed:', ordersResponse.reason)
         // If orders API fails, try to get orders from dashboard data
@@ -151,6 +154,7 @@ export function BuyerDashboard() {
           console.log('📋 Using orders from dashboard data:', ordersData.length, 'orders')
         }
       }
+      console.log('🎯 Final orders data being set:', ordersData)
       setRecentOrders(Array.isArray(ordersData) ? ordersData.slice(0, 5) : [])
 
       // Process featured products
