@@ -185,8 +185,7 @@ const connectDB = async () => {
       maxIdleTimeMS: 10000,  // Reduced from 30000
       retryWrites: true,
       w: 'majority',
-      bufferCommands: false,  // Disable mongoose buffering
-      bufferMaxEntries: 0  // Disable mongoose buffering
+      bufferCommands: false  // Disable mongoose buffering
     };
 
     
@@ -292,8 +291,7 @@ app.get('/api/debug/database', async (req, res) => {
           maxIdleTimeMS: 10000,
           retryWrites: true,
           w: 'majority',
-          bufferCommands: false,
-          bufferMaxEntries: 0
+          bufferCommands: false
         });
         
         debugInfo.connectionTest = 'Connection successful!';
