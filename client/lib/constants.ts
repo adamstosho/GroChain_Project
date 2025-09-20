@@ -4,7 +4,7 @@ export const APP_CONFIG = {
   version: "1.0.0",
   api: {
     // Use environment variable for API base URL
-    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000",
+    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "https://grochain-project.onrender.com",
     wsUrl: process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:5000",
   },
   auth: {
