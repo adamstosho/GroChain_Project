@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: grochain-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        fromDatabase:
+          name: grochain-mongodb
+          property: connectionString
+      - key: CORS_ORIGIN
+        value: https://gro-chain.vercel.app
+      - key: FRONTEND_URL
+        value: https://gro-chain.vercel.app

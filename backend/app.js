@@ -184,11 +184,11 @@ const connectDB = async () => {
     }
 
     const options = {
-      serverSelectionTimeoutMS: 10000,  // Increased to 10s for serverless
+      serverSelectionTimeoutMS: 30000,  // Restored for Render
       socketTimeoutMS: 45000,
-      maxPoolSize: 1,  // Reduced from 10 for serverless
-      minPoolSize: 0,  // Reduced from 1 for serverless
-      maxIdleTimeMS: 10000,  // Reduced from 30000
+      maxPoolSize: 10,  // Restored for Render
+      minPoolSize: 1,   // Restored for Render
+      maxIdleTimeMS: 30000,  // Restored for Render
       retryWrites: true,
       w: 'majority'
     };
@@ -196,20 +196,11 @@ const connectDB = async () => {
     console.log('🔄 Attempting MongoDB connection...');
     await mongoose.connect(process.env.MONGODB_URI, options);
     
-    // Wait for connection to be fully established
-    let attempts = 0;
-    while (mongoose.connection.readyState !== 1 && attempts < 10) {
-      console.log(`⏳ Waiting for connection... (attempt ${attempts + 1}, state: ${mongoose.connection.readyState})`);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      attempts++;
-    }
+    // Simple wait for connection (Render doesn't need complex polling)
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    if (mongoose.connection.readyState === 1) {
-      console.log('✅ MongoDB connected successfully');
-      console.log('Connection state:', mongoose.connection.readyState);
-    } else {
-      console.log('⚠️ MongoDB connection timeout - state:', mongoose.connection.readyState);
-    }
+    console.log('✅ MongoDB connected successfully');
+    console.log('Connection state:', mongoose.connection.readyState);
     // Don't log sensitive connection string in production
     if (process.env.NODE_ENV !== 'production') {
       console.log("MONGODB_URI:", process.env.MONGODB_URI);
