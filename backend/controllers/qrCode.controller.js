@@ -139,8 +139,9 @@ const qrCodeController = {
         ...customData
       }
 
-      // Generate QR code image
-      const qrImage = await QRCodeLib.toDataURL(JSON.stringify(qrData))
+      // Generate QR code image with only the verification URL
+      const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify/${harvest.batchId}`
+      const qrImage = await QRCodeLib.toDataURL(verificationUrl)
 
       // Create QR code record
       // Parse location string - handle various formats

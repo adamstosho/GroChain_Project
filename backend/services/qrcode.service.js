@@ -23,7 +23,9 @@ class QRCodeService {
         signature: this.generateSignature(harvestId, harvestData.batchId)
       }
 
-      const qrString = JSON.stringify(qrData)
+      // Generate QR code with verification URL instead of JSON data
+      const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify/${harvestData.batchId}`
+      const qrString = verificationUrl
       const qrCodeBuffer = await QRCode.toBuffer(qrString, {
         errorCorrectionLevel: 'H',
         type: 'image/png',
@@ -73,7 +75,9 @@ class QRCodeService {
         signature: this.generateSignature(listingId, listingData.cropName)
       }
 
-      const qrString = JSON.stringify(qrData)
+      // Generate QR code with verification URL instead of JSON data
+      const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify/${listingData.batchId || listingId}`
+      const qrString = verificationUrl
       const qrCodeBuffer = await QRCode.toBuffer(qrString, {
         errorCorrectionLevel: 'H',
         type: 'image/png',

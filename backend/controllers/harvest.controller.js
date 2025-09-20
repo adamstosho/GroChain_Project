@@ -160,7 +160,9 @@ exports.createHarvest = async (req, res) => {
         timestamp: new Date().toISOString()
       }
 
-      const qrCodeImage = await QRCode.toDataURL(JSON.stringify(qrData))
+      // Generate QR code with only the verification URL
+      const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify/${harvest.batchId}`
+      const qrCodeImage = await QRCode.toDataURL(verificationUrl)
 
       // Update harvest with QR code
       harvest.qrCode = qrCodeImage
