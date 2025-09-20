@@ -280,37 +280,7 @@ app.get('/api/health', (req, res) => {
   })
 });
 
-// Middleware to ensure database connection for API routes
-const ensureDBConnection = async (req, res, next) => {
-  if (mongoose.connection.readyState !== 1) {
-    console.log('🔄 Database not connected, attempting connection...');
-    try {
-      await connectDB();
-      if (mongoose.connection.readyState === 1) {
-        console.log('✅ Database connected via middleware');
-        next();
-      } else {
-        console.log('❌ Database connection failed in middleware');
-        res.status(503).json({
-          status: 'error',
-          message: 'Service temporarily unavailable - Database connection failed',
-          error: 'DATABASE_CONNECTION_FAILED',
-          timestamp: new Date().toISOString()
-        });
-      }
-    } catch (error) {
-      console.error('❌ Database connection error in middleware:', error);
-      res.status(503).json({
-        status: 'error',
-        message: 'Service temporarily unavailable - Database connection failed',
-        error: 'DATABASE_CONNECTION_FAILED',
-        timestamp: new Date().toISOString()
-      });
-    }
-  } else {
-    next();
-  }
-};
+// Simplified approach - remove middleware for now
 
 // Debug endpoint for database connection issues (set up before database connection)
 app.get('/api/debug/database', async (req, res) => {
@@ -402,35 +372,49 @@ const initializeApp = async () => {
     inventoryService.startCleanupService(30) // Clean up every 30 minutes
     console.log('🧹 Inventory cleanup service started')
     
-    // Setup routes with database connection middleware
-    console.log('📡 Setting up API routes...');
-    app.use('/api/auth', ensureDBConnection, require('./routes/auth.routes'));
-    app.use('/api/users', ensureDBConnection, require('./routes/user.routes'));
-    app.use('/api/partners', ensureDBConnection, require('./routes/partner.routes'));
-    app.use('/api/farmers', ensureDBConnection, require('./routes/farmer.routes'));
-    app.use('/api/harvests', ensureDBConnection, require('./routes/harvest.routes'));
-    app.use('/api/harvest-approval', ensureDBConnection, require('./routes/harvest-approval.routes'));
-    app.use('/api/marketplace', ensureDBConnection, require('./routes/marketplace.routes'));
-    app.use('/api/upload', ensureDBConnection, require('./routes/upload.routes'));
-    app.use('/api/fintech', ensureDBConnection, require('./routes/fintech.routes'));
-    app.use('/api/weather', ensureDBConnection, require('./routes/weather.routes'));
-    app.use('/api/analytics', ensureDBConnection, require('./routes/analytics.routes'));
-    app.use('/api/notifications', ensureDBConnection, require('./routes/notification.routes'));
-    app.use('/api/payments', ensureDBConnection, require('./routes/payment.routes'));
-    app.use('/api/qr-codes', ensureDBConnection, require('./routes/qrCode.routes'));
-    app.use('/api/verify', ensureDBConnection, require('./routes/verify.routes'));
-    app.use('/api/referrals', ensureDBConnection, require('./routes/referral.routes'));
-    app.use('/api/commissions', ensureDBConnection, require('./routes/commission.routes'));
-    app.use('/api/shipments', ensureDBConnection, require('./routes/shipment.routes'));
-    app.use('/api/shipping-update', ensureDBConnection, require('./routes/shipping-update.routes'));
-    app.use('/api/test-auth', ensureDBConnection, require('./routes/test-auth.routes'));
-    app.use('/api/export-import', ensureDBConnection, require('./routes/exportImport.routes'));
-    app.use('/api/auth/google', ensureDBConnection, require('./routes/googleAuth.routes'));
-    app.use('/api/admin', ensureDBConnection, require('./routes/admin'));
-    app.use('/api/inventory', ensureDBConnection, require('./routes/inventory.routes'));
-    app.use('/api/reviews', ensureDBConnection, require('./routes/review.routes'));
-    app.use('/api/price-alerts', ensureDBConnection, require('./routes/price-alert.routes'));
-    app.use('/api/onboarding', ensureDBConnection, require('./routes/onboarding.routes'));
+    // Setup routes only after database connection
+    if (dbConnected) {
+      console.log('📡 Setting up API routes...');
+      app.use('/api/auth', require('./routes/auth.routes'));
+      app.use('/api/users', require('./routes/user.routes'));
+      app.use('/api/partners', require('./routes/partner.routes'));
+      app.use('/api/farmers', require('./routes/farmer.routes'));
+      app.use('/api/harvests', require('./routes/harvest.routes'));
+      app.use('/api/harvest-approval', require('./routes/harvest-approval.routes'));
+      app.use('/api/marketplace', require('./routes/marketplace.routes'));
+      app.use('/api/upload', require('./routes/upload.routes'));
+      app.use('/api/fintech', require('./routes/fintech.routes'));
+      app.use('/api/weather', require('./routes/weather.routes'));
+      app.use('/api/analytics', require('./routes/analytics.routes'));
+      app.use('/api/notifications', require('./routes/notification.routes'));
+      app.use('/api/payments', require('./routes/payment.routes'));
+      app.use('/api/qr-codes', require('./routes/qrCode.routes'));
+      app.use('/api/verify', require('./routes/verify.routes'));
+      app.use('/api/referrals', require('./routes/referral.routes'));
+      app.use('/api/commissions', require('./routes/commission.routes'));
+      app.use('/api/shipments', require('./routes/shipment.routes'));
+      app.use('/api/shipping-update', require('./routes/shipping-update.routes'));
+      app.use('/api/test-auth', require('./routes/test-auth.routes'));
+      app.use('/api/export-import', require('./routes/exportImport.routes'));
+      app.use('/api/auth/google', require('./routes/googleAuth.routes'));
+      app.use('/api/admin', require('./routes/admin'));
+      app.use('/api/inventory', require('./routes/inventory.routes'));
+      app.use('/api/reviews', require('./routes/review.routes'));
+      app.use('/api/price-alerts', require('./routes/price-alert.routes'));
+      app.use('/api/onboarding', require('./routes/onboarding.routes'));
+    } else {
+      console.log('⚠️ Skipping route setup due to database connection failure');
+      
+      // Add a fallback route for database-dependent endpoints
+      app.use('/api/*', (req, res) => {
+        res.status(503).json({
+          status: 'error',
+          message: 'Service temporarily unavailable - Database connection failed',
+          error: 'DATABASE_CONNECTION_FAILED',
+          timestamp: new Date().toISOString()
+        });
+      });
+    }
     
     // Update health check endpoint with WebSocket info
     app.get('/api/health', (req, res) => {
