@@ -184,8 +184,7 @@ const connectDB = async () => {
       minPoolSize: 0,  // Reduced from 1 for serverless
       maxIdleTimeMS: 10000,  // Reduced from 30000
       retryWrites: true,
-      w: 'majority',
-      bufferCommands: false  // Disable mongoose buffering
+      w: 'majority'
     };
 
     
@@ -290,8 +289,7 @@ app.get('/api/debug/database', async (req, res) => {
           minPoolSize: 0,
           maxIdleTimeMS: 10000,
           retryWrites: true,
-          w: 'majority',
-          bufferCommands: false
+          w: 'majority'
         });
         
         debugInfo.connectionTest = 'Connection successful!';
