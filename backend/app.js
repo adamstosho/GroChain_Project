@@ -261,7 +261,7 @@ app.get('/api/health', (req, res) => {
   })
 });
 
-// Debug endpoint for database connection issues
+// Debug endpoint for database connection issues (set up before database connection)
 app.get('/api/debug/database', async (req, res) => {
   try {
     const debugInfo = {
