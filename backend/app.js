@@ -269,8 +269,8 @@ const initializeApp = async () => {
     const dbConnected = await connectDB();
     
     if (!dbConnected) {
-      console.error('❌ Failed to connect to database. Exiting...');
-      process.exit(1);
+      console.error('❌ Failed to connect to database. Continuing without database...');
+      // Don't exit in serverless environment - continue with basic functionality
     }
 
     // Initialize inventory cleanup service
@@ -279,8 +279,9 @@ const initializeApp = async () => {
     console.log('🧹 Inventory cleanup service started')
     
     // Setup routes only after database connection
-    console.log('📡 Setting up API routes...');
-    app.use('/api/auth', require('./routes/auth.routes'));
+    if (dbConnected) {
+      console.log('📡 Setting up API routes...');
+      app.use('/api/auth', require('./routes/auth.routes'));
     app.use('/api/users', require('./routes/user.routes'));
     app.use('/api/partners', require('./routes/partner.routes'));
     app.use('/api/farmers', require('./routes/farmer.routes'));
@@ -307,6 +308,19 @@ const initializeApp = async () => {
     app.use('/api/reviews', require('./routes/review.routes'));
     app.use('/api/price-alerts', require('./routes/price-alert.routes'));
     app.use('/api/onboarding', require('./routes/onboarding.routes'));
+    } else {
+      console.log('⚠️ Skipping route setup due to database connection failure');
+      
+      // Add a fallback route for database-dependent endpoints
+      app.use('/api/*', (req, res) => {
+        res.status(503).json({
+          status: 'error',
+          message: 'Service temporarily unavailable - Database connection failed',
+          error: 'DATABASE_CONNECTION_FAILED',
+          timestamp: new Date().toISOString()
+        });
+      });
+    }
     
     // Update health check endpoint with WebSocket info
     app.get('/api/health', (req, res) => {
