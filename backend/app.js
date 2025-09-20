@@ -261,6 +261,63 @@ app.get('/api/health', (req, res) => {
   })
 });
 
+// Debug endpoint for database connection issues
+app.get('/api/debug/database', async (req, res) => {
+  try {
+    const debugInfo = {
+      environment: process.env.NODE_ENV || 'development',
+      mongodbUriExists: !!process.env.MONGODB_URI,
+      mongodbUriProdExists: !!process.env.MONGODB_URI_PROD,
+      mongooseReadyState: mongoose.connection.readyState,
+      mongooseHost: mongoose.connection.host,
+      mongoosePort: mongoose.connection.port,
+      mongooseName: mongoose.connection.name,
+      timestamp: new Date().toISOString()
+    };
+
+    // Test connection if not connected
+    if (mongoose.connection.readyState !== 1) {
+      debugInfo.connectionTest = 'Attempting connection test...';
+      
+      const uri = process.env.MONGODB_URI || process.env.MONGODB_URI_PROD || 'mongodb+srv://omoridoh111:Allahu009@cluster1.evqfycs.mongodb.net/Grochain_App';
+      
+      try {
+        await mongoose.connect(uri, {
+          serverSelectionTimeoutMS: 5000,
+          socketTimeoutMS: 45000,
+          maxPoolSize: 10,
+          minPoolSize: 1,
+          maxIdleTimeMS: 30000,
+          retryWrites: true,
+          w: 'majority'
+        });
+        
+        debugInfo.connectionTest = 'Connection successful!';
+        debugInfo.newReadyState = mongoose.connection.readyState;
+        debugInfo.newHost = mongoose.connection.host;
+        debugInfo.newPort = mongoose.connection.port;
+        debugInfo.newName = mongoose.connection.name;
+        
+      } catch (connectionError) {
+        debugInfo.connectionTest = 'Connection failed';
+        debugInfo.connectionError = {
+          name: connectionError.name,
+          message: connectionError.message,
+          code: connectionError.code
+        };
+      }
+    }
+
+    res.json(debugInfo);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Debug endpoint failed',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Initialize application
 const initializeApp = async () => {
   try {
