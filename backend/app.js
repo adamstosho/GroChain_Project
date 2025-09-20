@@ -178,13 +178,15 @@ if (process.env.NODE_ENV === 'development') {
 const connectDB = async () => {
   try {
     const options = {
-      serverSelectionTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 5000,  // Reduced from 30000
       socketTimeoutMS: 45000,
-      maxPoolSize: 10,
-      minPoolSize: 1,
-      maxIdleTimeMS: 30000,
+      maxPoolSize: 1,  // Reduced from 10 for serverless
+      minPoolSize: 0,  // Reduced from 1 for serverless
+      maxIdleTimeMS: 10000,  // Reduced from 30000
       retryWrites: true,
-      w: 'majority'
+      w: 'majority',
+      bufferCommands: false,  // Disable mongoose buffering
+      bufferMaxEntries: 0  // Disable mongoose buffering
     };
 
     
@@ -285,11 +287,13 @@ app.get('/api/debug/database', async (req, res) => {
         await mongoose.connect(uri, {
           serverSelectionTimeoutMS: 5000,
           socketTimeoutMS: 45000,
-          maxPoolSize: 10,
-          minPoolSize: 1,
-          maxIdleTimeMS: 30000,
+          maxPoolSize: 1,
+          minPoolSize: 0,
+          maxIdleTimeMS: 10000,
           retryWrites: true,
-          w: 'majority'
+          w: 'majority',
+          bufferCommands: false,
+          bufferMaxEntries: 0
         });
         
         debugInfo.connectionTest = 'Connection successful!';
