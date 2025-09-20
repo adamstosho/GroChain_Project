@@ -177,8 +177,14 @@ if (process.env.NODE_ENV === 'development') {
 // Database connection
 const connectDB = async () => {
   try {
+    // If already connected, return true
+    if (mongoose.connection.readyState === 1) {
+      console.log('✅ MongoDB already connected');
+      return true;
+    }
+
     const options = {
-      serverSelectionTimeoutMS: 5000,  // Reduced from 30000
+      serverSelectionTimeoutMS: 10000,  // Increased to 10s for serverless
       socketTimeoutMS: 45000,
       maxPoolSize: 1,  // Reduced from 10 for serverless
       minPoolSize: 0,  // Reduced from 1 for serverless
@@ -187,10 +193,14 @@ const connectDB = async () => {
       w: 'majority'
     };
 
-    
-
+    console.log('🔄 Attempting MongoDB connection...');
     await mongoose.connect(process.env.MONGODB_URI, options);
+    
+    // Wait a bit for connection to stabilize
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     console.log('✅ MongoDB connected successfully');
+    console.log('Connection state:', mongoose.connection.readyState);
     // Don't log sensitive connection string in production
     if (process.env.NODE_ENV !== 'production') {
       console.log("MONGODB_URI:", process.env.MONGODB_URI);
