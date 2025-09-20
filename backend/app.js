@@ -333,11 +333,20 @@ const initializeApp = async () => {
   try {
     // Connect to database first
     console.log('🚀 Initializing GroChain Backend...');
-    const dbConnected = await connectDB();
+    let dbConnected = await connectDB();
+    
+    // If first attempt fails, try again with a delay
+    if (!dbConnected) {
+      console.log('🔄 First connection attempt failed, retrying...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      dbConnected = await connectDB();
+    }
     
     if (!dbConnected) {
-      console.error('❌ Failed to connect to database. Continuing without database...');
+      console.error('❌ Failed to connect to database after retry. Continuing without database...');
       // Don't exit in serverless environment - continue with basic functionality
+    } else {
+      console.log('✅ Database connection established successfully');
     }
 
     // Initialize inventory cleanup service
