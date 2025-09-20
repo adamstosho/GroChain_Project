@@ -139,11 +139,17 @@ export function BuyerDashboard() {
       // Process recent orders
       let ordersData = []
       if (ordersResponse.status === 'fulfilled') {
-        ordersData = Array.isArray(ordersResponse.value?.data) ? ordersResponse.value.data : 
-                   Array.isArray(ordersResponse.value) ? ordersResponse.value : []
+        const response = ordersResponse.value
+        ordersData = Array.isArray(response?.data) ? response.data : 
+                   Array.isArray(response) ? response : []
         console.log('✅ Orders data received:', ordersData.length, 'orders')
       } else {
         console.error('❌ Orders data failed:', ordersResponse.reason)
+        // If orders API fails, try to get orders from dashboard data
+        if (dashboardData && (dashboardData as any)?.recentOrders) {
+          ordersData = (dashboardData as any).recentOrders
+          console.log('📋 Using orders from dashboard data:', ordersData.length, 'orders')
+        }
       }
       setRecentOrders(Array.isArray(ordersData) ? ordersData.slice(0, 5) : [])
 

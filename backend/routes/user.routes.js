@@ -277,11 +277,27 @@ router.get('/dashboard', authenticate, authorize('admin','partner','farmer','buy
         lastOrderDate: null
       }
 
-      // Get last order date
+      // Get last order date and recent orders
       const lastOrder = await Order.findOne({ buyer: userId }).sort({ createdAt: -1 })
       if (lastOrder) {
         dashboardData.lastOrderDate = lastOrder.createdAt
       }
+
+      // Get recent orders for dashboard
+      const recentOrders = await Order.find({ buyer: userId })
+        .populate({
+          path: 'items.listing',
+          select: 'cropName images farmer category unit',
+          populate: {
+            path: 'farmer',
+            select: 'name email phone location profile.phone profile.farmName'
+          }
+        })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('status total paymentStatus createdAt orderNumber items')
+
+      dashboardData.recentOrders = recentOrders
     }
     
     // Get admin data
