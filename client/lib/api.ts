@@ -127,7 +127,13 @@ class ApiService {
       if (!response.ok) {
         // Handle 401 Unauthorized - try to refresh token
         if (response.status === 401 && endpoint !== '/api/auth/refresh' && endpoint !== '/api/auth/login') {
-          console.log('🔄 Token expired, attempting refresh...')
+          console.log('🔄 401 Error on endpoint:', endpoint, 'attempting refresh...')
+          
+          // Don't redirect for public endpoints that might be called with invalid tokens
+          const publicEndpoints = ['/api/marketplace/listings']
+          const isPublicEndpoint = publicEndpoints.some(publicEndpoint => endpoint.includes(publicEndpoint))
+          
+          console.log('🔍 Endpoint check:', { endpoint, isPublicEndpoint, publicEndpoints })
           
           const refreshSuccess = await this.refreshTokenIfNeeded()
           if (refreshSuccess) {
@@ -135,16 +141,22 @@ class ApiService {
             // Retry the original request with new token
             return this.request(endpoint, options)
           } else {
-            console.log('❌ Token refresh failed, redirecting to login...')
-            // Clear all auth data and redirect to login
+            console.log('❌ Token refresh failed for endpoint:', endpoint)
+            // Clear all auth data
             this.clearToken()
-            if (typeof window !== 'undefined') {
+            
+            // Only redirect to login for non-public endpoints
+            if (!isPublicEndpoint && typeof window !== 'undefined') {
+              console.log('🚨 REDIRECTING TO LOGIN for protected endpoint:', endpoint)
               // Import useAuthStore dynamically to avoid circular dependency
               import('./auth').then(({ useAuthStore }) => {
                 useAuthStore.getState().logout()
               })
               // Redirect to login page
               window.location.href = '/login'
+            } else if (isPublicEndpoint) {
+              console.log('⚠️ Public endpoint failed with 401, not redirecting:', endpoint)
+              // For public endpoints, just throw the error without redirecting
             }
           }
         }

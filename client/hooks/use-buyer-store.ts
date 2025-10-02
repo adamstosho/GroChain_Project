@@ -97,6 +97,17 @@ export const useBuyerStore = create<BuyerState>((set, get) => ({
   },
 
   fetchFavorites: async () => {
+    // Safety check: Don't make authenticated calls if we're on marketplace page
+    // and don't have a proper token to prevent 401 redirects
+    if (typeof window !== 'undefined' && window.location.pathname === '/marketplace') {
+      const token = localStorage.getItem('grochain_auth_token')
+      if (!token || token === 'undefined' || token === 'null' || token.length < 10) {
+        console.log('🛡️ Marketplace safety: Skipping favorites fetch due to invalid token')
+        set({ favorites: [], isLoading: false, error: null })
+        return
+      }
+    }
+
     set({ isLoading: true, error: null })
     try {
       // First try to get user ID from profile
@@ -115,6 +126,9 @@ export const useBuyerStore = create<BuyerState>((set, get) => ({
           userId = get().profile?._id
         } catch (profileError) {
           console.error('Failed to fetch profile:', profileError)
+          // If profile fetch fails, don't continue with favorites
+          set({ favorites: [], isLoading: false })
+          return
         }
       }
       
@@ -129,7 +143,10 @@ export const useBuyerStore = create<BuyerState>((set, get) => ({
       set({ favorites, isLoading: false })
     } catch (error: any) {
       console.error('Failed to fetch favorites:', error)
-      set({ error: error.message || 'Failed to load favorites', isLoading: false })
+      // Set empty favorites instead of error state to prevent UI issues
+      set({ favorites: [], isLoading: false, error: null })
+      // Re-throw error so calling code can handle it
+      throw error
     }
   },
 

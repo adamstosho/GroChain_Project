@@ -35,18 +35,43 @@ export default function MarketplacePage() {
 
   const { addToCart, fetchFavorites, cart } = useBuyerStore()
   const { toast } = useToast()
-  const { user, isAuthenticated } = useAuthStore()
+  const { user, isAuthenticated, hasHydrated } = useAuthStore()
   const router = useRouter()
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 Marketplace Debug - Auth State:', {
+      hasHydrated,
+      isAuthenticated,
+      hasUser: !!user,
+      token: typeof window !== 'undefined' ? localStorage.getItem('grochain_auth_token') : null
+    })
+  }, [hasHydrated, isAuthenticated, user])
 
   // Initialize cart from localStorage
   useCartInitialization()
 
-  // Load favorites on component mount
+  // Load favorites on component mount - with error handling to prevent redirects
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchFavorites()
+    // Only fetch favorites if we're absolutely sure the user is authenticated
+    // and we have a valid token to prevent any 401 errors that could cause redirects
+    if (hasHydrated && isAuthenticated && user) {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('grochain_auth_token') : null
+      console.log('🔍 Favorites check:', { hasHydrated, isAuthenticated, hasUser: !!user, hasToken: !!token })
+      
+      if (token && token !== 'undefined' && token !== 'null' && token.length > 10) {
+        console.log('✅ Valid token found, fetching favorites')
+        fetchFavorites().catch((error) => {
+          console.log('❌ Failed to fetch favorites (non-critical):', error.message)
+          // Don't redirect or show error - favorites are optional for marketplace browsing
+        })
+      } else {
+        console.log('⚠️ No valid token found, skipping favorites fetch')
+      }
+    } else {
+      console.log('⚠️ Not authenticated or not hydrated, skipping favorites')
     }
-  }, [isAuthenticated, fetchFavorites])
+  }, [hasHydrated, isAuthenticated, user, fetchFavorites])
 
   // Check for refresh flag and update products if needed
   useEffect(() => {

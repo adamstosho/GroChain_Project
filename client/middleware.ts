@@ -5,8 +5,12 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value
   
   // Protected routes that require authentication
-  const protectedRoutes = ['/dashboard', '/marketplace', '/profile', '/settings']
+  const protectedRoutes = ['/dashboard', '/profile', '/settings']
+  const protectedMarketplaceRoutes = ['/marketplace/checkout', '/marketplace/order-success']
+  
   const isProtectedRoute = protectedRoutes.some(route => 
+    request.nextUrl.pathname.startsWith(route)
+  ) || protectedMarketplaceRoutes.some(route => 
     request.nextUrl.pathname.startsWith(route)
   )
   
@@ -28,7 +32,8 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/dashboard/:path*', 
-    '/marketplace/:path*', 
+    '/marketplace/checkout/:path*',
+    '/marketplace/order-success/:path*',
     '/profile/:path*', 
     '/settings/:path*',
     '/auth/:path*',
