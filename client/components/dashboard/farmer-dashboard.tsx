@@ -12,7 +12,7 @@ import { HarvestCard, type HarvestData } from "@/components/agricultural"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useDashboardRefresh } from "@/hooks/use-dashboard-refresh"
-import { Leaf, Package, TrendingUp, Banknote, Plus, Eye, QrCode, BarChart3, RefreshCw } from "lucide-react"
+import { Leaf, Package, TrendingUp, Banknote, Plus, Eye, QrCode, BarChart3, RefreshCw, Store } from "lucide-react"
 import Link from "next/link"
 
 // Helper function to determine credit score status
@@ -169,13 +169,13 @@ export function FarmerDashboard() {
       href: "/dashboard/harvests/new",
       color: "bg-primary/10 text-primary",
     },
-    // {
-    //   title: "View QR Codes",
-    //   description: "Manage your QR codes",
-    //   icon: QrCode,
-    //   href: "/dashboard/qr-codes",
-    //   color: "bg-secondary/10 text-secondary",
-    // },
+    {
+      title: "Browse Marketplace",
+      description: "Explore products from other farmers",
+      icon: Store,
+      href: "/marketplace",
+      color: "bg-blue/10 text-blue",
+    },
     {
       title: "Check Analytics",
       description: "View your performance",
@@ -184,8 +184,8 @@ export function FarmerDashboard() {
       color: "bg-accent/10 text-accent",
     },
     {
-      title: "Browse Marketplace",
-      description: "See your listings",
+      title: "View Listings",
+      description: "Manage your listings",
       icon: Eye,
       href: "/dashboard/marketplace",
       color: "bg-success/10 text-success",

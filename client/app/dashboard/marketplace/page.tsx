@@ -230,7 +230,7 @@ export default function MarketplacePage() {
       console.error("❌ Failed to fetch marketplace data:", error)
       toast({
         title: "Error",
-        description: "Failed to load marketplace data. Please try again.",
+        description: "Failed to load listings data. Please try again.",
         variant: "destructive"
       })
 
@@ -258,7 +258,7 @@ export default function MarketplacePage() {
       await fetchMarketplaceData()
       toast({
         title: "Refreshed",
-        description: "Marketplace data has been updated",
+        description: "Listings data has been updated",
       })
     } catch (error) {
       console.error("Refresh failed:", error)
@@ -397,42 +397,53 @@ export default function MarketplacePage() {
   }
 
   return (
-    <DashboardLayout pageTitle="Marketplace">
+    <DashboardLayout pageTitle="Listings">
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-gray-900">Marketplace</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">Listings</h1>
             <p className="text-gray-600">
               Manage your product listings, track orders, and monitor sales performance
             </p>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={handleRefresh}
               disabled={loading || refreshing}
+              className="w-full sm:w-auto"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Refreshing...' : 'Refresh'}
+              <span className="hidden sm:inline">Refresh</span>
+              <span className="sm:hidden">Refresh</span>
             </Button>
-            <Button variant="outline" asChild>
-              <Link href="/dashboard/marketplace/analytics">
-                <TrendingUp className="h-4 w-4 mr-2" />
-                View Analytics
+            <Button variant="outline" asChild className="w-full sm:w-auto border-blue-200 hover:bg-blue-50">
+              <Link href="/marketplace">
+                <Store className="h-4 w-4 mr-2 text-blue-600" />
+                <span className="hidden sm:inline">Browse Marketplace</span>
+                <span className="sm:hidden">Marketplace</span>
               </Link>
             </Button>
-            <Button asChild>
+            <Button variant="outline" asChild className="w-full sm:w-auto">
+              <Link href="/dashboard/marketplace/analytics">
+                <TrendingUp className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">View Analytics</span>
+                <span className="sm:hidden">Analytics</span>
+              </Link>
+            </Button>
+            <Button asChild className="w-full sm:w-auto">
               <Link href="/dashboard/marketplace/new">
                 <Plus className="h-4 w-4 mr-2" />
-                Create Listing
+                <span className="hidden sm:inline">Create Listing</span>
+                <span className="sm:hidden">Create</span>
               </Link>
             </Button>
           </div>
         </div>
 
-        {/* Marketplace Stats */}
+        {/* Listings Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="border border-gray-200">
             <CardHeader className="pb-2">
@@ -592,15 +603,21 @@ export default function MarketplacePage() {
               <CardHeader>
                 <CardTitle className="text-base font-medium">Quick Actions</CardTitle>
                 <CardDescription>
-                  Common marketplace tasks
+                  Common listing management tasks
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <Button variant="outline" className="h-20 flex-col gap-2" asChild>
                     <Link href="/dashboard/marketplace/new">
                       <Plus className="h-6 w-6" />
                       Create New Listing
+                    </Link>
+                  </Button>
+                  <Button variant="outline" className="h-20 flex-col gap-2 border-blue-200 hover:bg-blue-50" asChild>
+                    <Link href="/marketplace">
+                      <Store className="h-6 w-6 text-blue-600" />
+                      Browse Marketplace
                     </Link>
                   </Button>
                   <Button variant="outline" className="h-20 flex-col gap-2" asChild>

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -26,8 +26,16 @@ export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const needsVerification = searchParams.get("verify") === "1"
+  const emailFromUrl = searchParams.get("email") || ""
   const { toast } = useToast()
   const { login } = useAuthStore()
+
+  // Pre-fill email from URL parameter
+  useEffect(() => {
+    if (emailFromUrl) {
+      setFormData(prev => ({ ...prev, email: emailFromUrl }))
+    }
+  }, [emailFromUrl])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -81,9 +89,29 @@ export function LoginForm() {
   return (
     <div className="space-y-6">
       {needsVerification && (
-        <div className="p-3 rounded-md border border-yellow-200 bg-yellow-50 text-sm text-yellow-900">
-          Please verify your email. We sent you a verification link. If you didn’t receive it, visit the Verify Email page.
-          <Link href="/verify-email" className="ml-1 underline">Verify Email</Link>
+        <div className="p-4 rounded-md border border-blue-200 bg-blue-50 text-sm text-blue-900">
+          <div className="flex items-start space-x-2">
+            <div className="flex-shrink-0">
+              <Mail className="h-5 w-5 text-blue-600 mt-0.5" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-medium text-blue-900 mb-1">Check your email!</h4>
+              <p className="text-blue-800 mb-2">
+                We've sent a verification link to {emailFromUrl ? <strong>{emailFromUrl}</strong> : "your email address"}. 
+                Please click the link to verify your account before signing in.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Link 
+                  href={`/verify-email${emailFromUrl ? `?email=${encodeURIComponent(emailFromUrl)}` : ''}`} 
+                  className="text-blue-600 hover:text-blue-800 underline text-sm font-medium"
+                >
+                  Resend verification email
+                </Link>
+                <span className="text-blue-600 text-sm">•</span>
+                <span className="text-blue-700 text-sm">Check your spam folder if you don't see it</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
       <form onSubmit={handleSubmit} className="space-y-4">

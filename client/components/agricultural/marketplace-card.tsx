@@ -14,7 +14,6 @@ import {
   Leaf,
   Scale,
   Calendar,
-  Truck,
   Shield,
   Eye,
   MessageCircle,
@@ -243,9 +242,9 @@ export function MarketplaceCard({
   }
 
   return (
-    <Card className={cn("hover:shadow-md transition-all duration-200 group overflow-hidden", className)}>
+    <Card className={cn("hover:shadow-md transition-all duration-200 group overflow-hidden w-full", className)}>
       {/* Product Image */}
-      <div className="relative aspect-[3/2] overflow-hidden">
+      <div className="relative aspect-[5/3] sm:aspect-[4/3] overflow-hidden">
         <img
           src={product.images[0]}
           alt={product.name}
@@ -279,50 +278,50 @@ export function MarketplaceCard({
         </div>
       </div>
 
-      <div className="p-4 space-y-3">
+      <div className="p-1.5 sm:p-2 space-y-1 sm:space-y-1.5 overflow-hidden">
         {/* Product Info */}
-        <div className="space-y-1">
-          <h3 className="font-semibold text-sm line-clamp-1">{product.name}</h3>
-          <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
+        <div className="space-y-0.5">
+          <h3 className="font-semibold text-xs sm:text-sm line-clamp-1">{product.name}</h3>
+          <p className="text-xs text-muted-foreground line-clamp-1 hidden sm:block">{product.description}</p>
         </div>
 
         {/* Price */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <span className="text-lg font-bold text-primary">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 min-w-0 flex-1">
+            <span className="text-sm sm:text-base font-bold text-primary truncate">
               ₦{product.price.toLocaleString()}
             </span>
-            <span className="text-xs text-muted-foreground">/{product.unit}</span>
+            <span className="text-xs text-muted-foreground flex-shrink-0">/{product.unit}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
             <span className="text-xs text-muted-foreground">{product.rating.toFixed(1)}</span>
           </div>
         </div>
 
         {/* Key Details */}
-        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Scale className="h-3 w-3" />
+        <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground hidden sm:grid">
+          <div className="flex items-center gap-1 min-w-0">
+            <Scale className="h-3 w-3 flex-shrink-0" />
             <span className="truncate">{product.availableQuantity} {product.unit}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 min-w-0">
             <MapPin className="h-3 w-3 flex-shrink-0" />
             <span className="truncate">{typeof product.location === 'string' ? product.location : `${(product.location as any)?.city || 'Unknown'}`}</span>
           </div>
         </div>
 
         {/* Farmer Info */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Avatar className="h-6 w-6">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <Avatar className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0">
               <AvatarFallback className="bg-primary/10 text-primary text-xs">
                 {typeof product.farmer.name === 'string' ? product.farmer.name.charAt(0) : 'U'}
               </AvatarFallback>
             </Avatar>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1">
-                <span className="text-xs font-medium truncate">
+                <span className="text-xs font-medium truncate block">
                   {typeof product.farmer.name === 'string' ? product.farmer.name : 'Unknown Farmer'}
                 </span>
                 {product.farmer.verified && typeof product.farmer.verified === 'boolean' && (
@@ -331,39 +330,30 @@ export function MarketplaceCard({
               </div>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={handleContact}>
-            Contact
+          <Button variant="outline" size="sm" className="h-5 sm:h-6 px-1.5 sm:px-2 text-xs flex-shrink-0" onClick={handleContact}>
+            <span className="hidden sm:inline">Contact</span>
+            <span className="sm:hidden">Call</span>
           </Button>
         </div>
 
-        {/* Shipping */}
-        {product.shipping.available && (
-          <div className="flex items-center justify-between p-2 bg-blue-50 rounded text-xs">
-            <div className="flex items-center gap-1 text-blue-600">
-              <Truck className="h-3 w-3" />
-              <span>Shipping</span>
-            </div>
-            <span className="text-blue-600 font-medium">
-              ₦{product.shipping.cost} • {product.shipping.estimatedDays}d
-            </span>
-          </div>
-        )}
 
         {/* Actions */}
-        <div className="flex gap-2 pt-2 border-t">
-          <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={handleView}>
-            <Eye className="h-3 w-3 mr-1" />
-            View
+        <div className="flex gap-1 pt-1 border-t overflow-hidden">
+          <Button variant="outline" size="sm" className="flex-1 h-5 sm:h-6 text-xs min-w-0" onClick={handleView}>
+            <Eye className="h-3 w-3 mr-1 flex-shrink-0" />
+            <span className="truncate">View</span>
           </Button>
           {product.availableQuantity <= 0 ? (
-            <Button size="sm" className="flex-1 h-8 text-xs bg-gray-500" disabled>
-              <ShoppingCart className="h-3 w-3 mr-1" />
-              Out of Stock
+            <Button size="sm" className="flex-1 h-5 sm:h-6 text-xs bg-gray-500 min-w-0" disabled>
+              <ShoppingCart className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="truncate hidden sm:inline">Sold Out</span>
+              <span className="truncate sm:hidden">Out</span>
             </Button>
           ) : (
-            <Button size="sm" className="flex-1 h-8 text-xs bg-primary hover:bg-primary/90" onClick={handleAddToCart}>
-              <ShoppingCart className="h-3 w-3 mr-1" />
-              Add to Cart
+            <Button size="sm" className="flex-1 h-5 sm:h-6 text-xs bg-primary hover:bg-primary/90 min-w-0" onClick={handleAddToCart}>
+              <ShoppingCart className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="truncate hidden sm:inline">Add to Cart</span>
+              <span className="truncate sm:hidden">Add</span>
             </Button>
           )}
         </div>

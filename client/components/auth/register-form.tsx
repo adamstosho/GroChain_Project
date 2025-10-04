@@ -140,13 +140,24 @@ export function RegisterForm() {
         location: formData.location,
       })
 
+      console.log("[v0] Registration successful, showing verification message")
+      
       toast({
-        title: "Verify your email",
-        description: "We sent you a verification link. Please verify to sign in.",
+        title: "Registration successful! 🎉",
+        description: "Please check your email for a verification link to complete your account setup.",
+        duration: 6000,
       })
-      router.push("/login?verify=1")
+      
+      // Redirect to login with verification message and email pre-filled
+      router.push(`/login?verify=1&email=${encodeURIComponent(formData.email)}`)
     } catch (error: any) {
       console.error("[v0] Registration error:", error)
+      console.error("[v0] Error details:", {
+        message: error.message,
+        status: error.status,
+        payload: error.payload,
+        endpoint: error.endpoint
+      })
 
       let errorMessage = "Registration failed. Please try again."
 

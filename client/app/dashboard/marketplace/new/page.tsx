@@ -252,7 +252,7 @@ function CreateListingPage() {
 
         toast({
           title: "Harvest Listed Successfully! 🎉",
-          description: "Your approved harvest is now live on the marketplace.",
+          description: "Your approved harvest is now live in your listings.",
           variant: "default"
         })
 
@@ -280,7 +280,7 @@ function CreateListingPage() {
 
         toast({
           title: "Listing Created Successfully! 🎉",
-          description: "Your product is now live on the marketplace.",
+          description: "Your product is now live in your listings.",
           variant: "default"
         })
       }
@@ -349,7 +349,7 @@ function CreateListingPage() {
               <Button variant="ghost" asChild className="text-gray-600 hover:text-gray-900">
                 <Link href="/dashboard/marketplace" className="flex items-center gap-2">
                   <ArrowLeft className="h-4 w-4" />
-                  Back to Marketplace
+                  Back to Listings
                 </Link>
               </Button>
             </div>
@@ -358,8 +358,8 @@ function CreateListingPage() {
             </h1>
             <p className="text-gray-600">
               {harvestId
-                ? 'Set a price and list your approved harvest on the marketplace'
-                : 'List your agricultural products on the marketplace to reach more customers'
+                ? 'Set a price and list your approved harvest in your listings'
+                : 'List your agricultural products in your listings to reach more customers'
               }
             </p>
           </div>

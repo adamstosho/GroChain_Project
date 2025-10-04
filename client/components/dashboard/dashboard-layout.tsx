@@ -146,6 +146,7 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
           ...baseItems.slice(0, 1),
           { name: "Harvests", href: "/dashboard/harvests", icon: Leaf },
           { name: "Listings", href: "/dashboard/marketplace", icon: Package },
+          { name: "Browse Marketplace", href: "/marketplace", icon: Store },
           { name: "Shipments", href: "/dashboard/shipments", icon: Package },
           { name: "Reviews", href: "/dashboard/reviews", icon: MessageCircle },
           // { name: "QR Codes", href: "/dashboard/qr-codes", icon: QrCode },
