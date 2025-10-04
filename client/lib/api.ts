@@ -199,8 +199,10 @@ class ApiService {
         throw err
       }
 
+      console.log("[API] Request successful:", { endpoint, status: response.status, data })
       return data
     } catch (error) {
+      console.log("[API] Request failed:", { endpoint, error: error.message })
 
       // Handle timeout/abort errors
       if (error instanceof Error) {
@@ -321,7 +323,15 @@ class ApiService {
     role: string
     location?: string
   }) {
-    return this.request<{ user: User; token: string; refreshToken: string }>("/api/auth/register", {
+    console.log("[API] Register request to:", `${this.baseUrl}/api/auth/register`)
+    console.log("[API] Register data:", userData)
+    
+    return this.request<{ 
+      status: string
+      message: string
+      requiresVerification: boolean
+      user: User
+    }>("/api/auth/register", {
       method: "POST",
       body: JSON.stringify(userData),
     })

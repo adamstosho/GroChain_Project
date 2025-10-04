@@ -6,14 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
 import { api } from "@/lib/api"
 import { CheckCircle, Mail, AlertCircle } from "lucide-react"
 
 function VerifyEmailForm() {
   const router = useRouter()
   const params = useSearchParams()
-  const { toast } = useToast()
   const [token, setToken] = useState("")
   const [email, setEmail] = useState("")
   const [submitting, setSubmitting] = useState(false)
@@ -21,6 +19,7 @@ function VerifyEmailForm() {
   const [verified, setVerified] = useState(false)
   const [verificationError, setVerificationError] = useState("")
   const [isLoading, setIsLoading] = useState(true)
+  const [successMessage, setSuccessMessage] = useState("")
 
   useEffect(() => {
     try {
@@ -37,25 +36,16 @@ function VerifyEmailForm() {
       // Handle redirect from GET endpoint
       if (success === "true") {
         setVerified(true)
-        toast({ 
-          title: "Email verified successfully!", 
-          description: "You can now sign in to your account.",
-          variant: "default"
-        })
+        setSuccessMessage("Email verified successfully! You can now sign in to your account.")
         
-        // Redirect to login after 2 seconds
+        // Redirect to login after 3 seconds
         setTimeout(() => {
           router.push("/login")
-        }, 2000)
+        }, 3000)
       }
       
       if (error === "verification_failed") {
         setVerificationError(message || "Verification failed. Please try again.")
-        toast({
-          title: "Verification failed",
-          description: message || "Verification failed. Please try again.",
-          variant: "destructive",
-        })
       }
       
       setIsLoading(false)
@@ -64,7 +54,7 @@ function VerifyEmailForm() {
       setVerificationError("Invalid verification link format")
       setIsLoading(false)
     }
-  }, [params, toast, router])
+  }, [params, router])
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -75,24 +65,15 @@ function VerifyEmailForm() {
     try {
       const response = await api.verifyEmail(token)
       setVerified(true)
-      toast({ 
-        title: "Email verified successfully!", 
-        description: "You can now sign in to your account.",
-        variant: "default"
-      })
+      setSuccessMessage("Email verified successfully! You can now sign in to your account.")
       
-      // Redirect to login after 2 seconds
+      // Redirect to login after 3 seconds
       setTimeout(() => {
         router.push("/login")
-      }, 2000)
+      }, 3000)
     } catch (err: any) {
       const errorMessage = err?.message || "Invalid or expired verification link."
       setVerificationError(errorMessage)
-      toast({
-        title: "Verification failed",
-        description: errorMessage,
-        variant: "destructive",
-      })
     } finally {
       setSubmitting(false)
     }
@@ -104,17 +85,9 @@ function VerifyEmailForm() {
     setResending(true)
     try {
       await api.resendVerification(email)
-      toast({ 
-        title: "Verification email sent", 
-        description: "Check your inbox for a new verification link.",
-        variant: "default"
-      })
+      setSuccessMessage("Verification email sent! Check your inbox for a new verification link.")
     } catch (err: any) {
-      toast({
-        title: "Failed to resend verification",
-        description: err?.message || "Please try again later.",
-        variant: "destructive",
-      })
+      setVerificationError(err?.message || "Please try again later.")
     } finally {
       setResending(false)
     }
@@ -178,6 +151,12 @@ function VerifyEmailForm() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {successMessage && (
+            <div className="flex items-center space-x-2 p-3 bg-green-50 border border-green-200 rounded-md">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <p className="text-sm text-green-700">{successMessage}</p>
+            </div>
+          )}
           {token && (
             <form onSubmit={handleVerify} className="space-y-4">
               <div className="space-y-2">
@@ -216,7 +195,13 @@ function VerifyEmailForm() {
                 onChange={(e) => setEmail(e.target.value)} 
                 placeholder="you@example.com" 
                 required
+                disabled={!!params?.get("email")} // Disable if email is pre-filled from URL
               />
+              {params?.get("email") && (
+                <p className="text-xs text-muted-foreground">
+                  Email pre-filled from registration. You can change it if needed.
+                </p>
+              )}
             </div>
             
             <Button type="submit" variant="outline" disabled={!email || resending} className="w-full">

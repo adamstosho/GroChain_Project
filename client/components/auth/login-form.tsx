@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
-import { useToast } from "@/hooks/use-toast"
 import { useAuthStore } from "@/lib/auth"
 import { Eye, EyeOff, Mail, Lock } from "lucide-react"
 
@@ -22,17 +21,17 @@ export function LoginForm() {
     rememberMe: false,
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string>("")
 
   const router = useRouter()
   const searchParams = useSearchParams()
   const needsVerification = searchParams.get("verify") === "1"
-  const emailFromUrl = searchParams.get("email") || ""
-  const { toast } = useToast()
+  const emailFromUrl = searchParams.get("email")
   const { login } = useAuthStore()
 
-  // Pre-fill email from URL parameter
+  // Pre-fill email if provided in URL
   useEffect(() => {
-    if (emailFromUrl) {
+    if (emailFromUrl && !formData.email) {
       setFormData(prev => ({ ...prev, email: emailFromUrl }))
     }
   }, [emailFromUrl])
@@ -43,10 +42,6 @@ export function LoginForm() {
 
     try {
       await login(formData.email, formData.password)
-      toast({
-        title: "Welcome back!",
-        description: "You have been successfully signed in.",
-      })
 
       // Check for redirect URL in query parameters
       const redirectUrl = searchParams.get('redirect') || "/dashboard"
@@ -55,17 +50,10 @@ export function LoginForm() {
       const requiresVerification = error?.payload?.requiresVerification || false
       const email = formData.email
       if (requiresVerification && email) {
-        toast({
-          title: "Verify your email",
-          description: "Please verify your email before logging in.",
-        })
         router.push(`/verify-email?email=${encodeURIComponent(email)}`)
       } else {
-        toast({
-          title: "Sign in failed",
-          description: error.message || "Please check your credentials and try again.",
-          variant: "destructive",
-        })
+        // Set error state for display in UI
+        setError(error.message || "Please check your credentials and try again.")
       }
     } finally {
       setIsLoading(false)
@@ -88,27 +76,42 @@ export function LoginForm() {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="flex items-center space-x-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+          <svg className="h-4 w-4 text-destructive" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          <p className="text-sm text-destructive">{error}</p>
+        </div>
+      )}
       {needsVerification && (
-        <div className="p-4 rounded-md border border-blue-200 bg-blue-50 text-sm text-blue-900">
-          <div className="flex items-start space-x-2">
+        <div className="p-4 rounded-lg border border-blue-200 bg-blue-50 text-sm">
+          <div className="flex items-start space-x-3">
             <div className="flex-shrink-0">
-              <Mail className="h-5 w-5 text-blue-600 mt-0.5" />
+              <svg className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
             </div>
             <div className="flex-1">
-              <h4 className="font-medium text-blue-900 mb-1">Check your email!</h4>
-              <p className="text-blue-800 mb-2">
-                We've sent a verification link to {emailFromUrl ? <strong>{emailFromUrl}</strong> : "your email address"}. 
-                Please click the link to verify your account before signing in.
+              <h3 className="text-sm font-medium text-blue-800 mb-1">
+                Email Verification Required
+              </h3>
+              <p className="text-blue-700 mb-2">
+                We've sent a verification link to your email address. Please check your inbox and click the verification link to activate your account.
               </p>
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex space-x-2">
                 <Link 
-                  href={`/verify-email${emailFromUrl ? `?email=${encodeURIComponent(emailFromUrl)}` : ''}`} 
-                  className="text-blue-600 hover:text-blue-800 underline text-sm font-medium"
+                  href="/verify-email" 
+                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
                 >
-                  Resend verification email
+                  Verify Email
                 </Link>
-                <span className="text-blue-600 text-sm">•</span>
-                <span className="text-blue-700 text-sm">Check your spam folder if you don't see it</span>
+                <Link 
+                  href="/verify-email" 
+                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  Resend Link
+                </Link>
               </div>
             </div>
           </div>

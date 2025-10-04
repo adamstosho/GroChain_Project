@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/hooks/use-toast"
 import { useAuthStore } from "@/lib/auth"
 import { Leaf, ShoppingCart, Users, Eye, EyeOff, Mail, User, Phone, Lock, MapPin, AlertCircle } from "lucide-react"
 
@@ -32,7 +31,6 @@ export function RegisterForm() {
   const [error, setError] = useState<string>("")
 
   const router = useRouter()
-  const { toast } = useToast()
   const { register } = useAuthStore()
 
   const roles = [
@@ -70,11 +68,7 @@ export function RegisterForm() {
 
   const handleNext = () => {
     if (step === 1 && !selectedRole) {
-      toast({
-        title: "Please select a role",
-        description: "Choose your role to continue with registration.",
-        variant: "destructive",
-      })
+      setError("Please select a role to continue")
       return
     }
 
@@ -107,11 +101,6 @@ export function RegisterForm() {
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords don't match")
-      toast({
-        title: "Passwords don't match",
-        description: "Please make sure your passwords match.",
-        variant: "destructive",
-      })
       return
     }
 
@@ -123,7 +112,7 @@ export function RegisterForm() {
     setIsLoading(true)
 
     try {
-      console.log("[v0] Attempting registration with data:", {
+      console.log("[REGISTRATION] Starting registration with data:", {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
@@ -131,7 +120,7 @@ export function RegisterForm() {
         location: formData.location,
       })
 
-      await register({
+      const result = await register({
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
@@ -140,31 +129,18 @@ export function RegisterForm() {
         location: formData.location,
       })
 
-      console.log("[v0] Registration successful, showing verification message")
-      
-      toast({
-        title: "Registration successful! 🎉",
-        description: "Please check your email for a verification link to complete your account setup.",
-        duration: 6000,
-      })
-      
-      // Redirect to login with verification message and email pre-filled
-      router.push(`/login?verify=1&email=${encodeURIComponent(formData.email)}`)
+      console.log("[REGISTRATION] Registration successful:", result)
+
+      // Direct redirect to login with verification notice - no toasts
+      router.replace("/login?verify=1&email=" + encodeURIComponent(formData.email))
     } catch (error: any) {
-      console.error("[v0] Registration error:", error)
-      console.error("[v0] Error details:", {
-        message: error.message,
-        status: error.status,
-        payload: error.payload,
-        endpoint: error.endpoint
-      })
+      console.error("[REGISTRATION] Registration error:", error)
 
       let errorMessage = "Registration failed. Please try again."
 
       if (error.message) {
         if (error.message.includes("Network error")) {
-          errorMessage =
-            "Unable to connect to server. Please check your internet connection and ensure the backend server is running."
+          errorMessage = "Unable to connect to server. Please check your internet connection and ensure the backend server is running."
         } else if (error.message.includes("email already exists") || error.message.includes("already registered")) {
           errorMessage = "An account with this email already exists. Please try logging in instead."
         } else {
@@ -172,12 +148,8 @@ export function RegisterForm() {
         }
       }
 
+      console.error("[REGISTRATION] Final error message:", errorMessage)
       setError(errorMessage)
-      toast({
-        title: "Registration failed",
-        description: errorMessage,
-        variant: "destructive",
-      })
     } finally {
       setIsLoading(false)
     }

@@ -125,32 +125,19 @@ export const useAuthStore = create<AuthState>()(
       register: async (userData: any) => {
         set({ isLoading: true })
         try {
-          console.log('[Auth] Starting registration for:', userData.email)
           const response = await apiService.register(userData)
-          console.log('[Auth] Registration response:', response)
           
-          // Backend requires email verification before login; do not set tokens here
-          const envelope: any = (response as any) || {}
-          const requiresVerification = envelope.requiresVerification === true || envelope.data?.requiresVerification === true
-          const rawUser = envelope.user || envelope.data?.user
-
-          console.log('[Auth] Registration successful, requires verification:', requiresVerification)
-
-          // Store minimal user context if returned (optional), but do not authenticate
+          // Registration successful - user needs to verify email
           set({
-            user: rawUser ? (get() as any).normalizeUser(rawUser) : null,
+            user: null, // Don't store user until verified
             token: null,
             refreshToken: null,
             isAuthenticated: false,
             isLoading: false,
           })
 
-          if (!requiresVerification) {
-            // In case backend changes to auto-login in future; noop for now
-            console.log('[Auth] Registration completed without verification requirement')
-          }
+          return response
         } catch (error) {
-          console.error('[Auth] Registration failed:', error)
           set({ isLoading: false })
           throw error
         }
