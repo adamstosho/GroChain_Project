@@ -97,20 +97,20 @@ export function LoginForm() {
                 Email Verification Required
               </h3>
               <p className="text-blue-700 mb-2">
-                We've sent a verification link to your email address. Please check your inbox and click the verification link to activate your account.
+                We've sent a verification email to your address. Please check your inbox (and spam folder) for the verification token.
               </p>
               <div className="flex space-x-2">
                 <Link 
                   href="/verify-email" 
                   className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
                 >
-                  Verify Email
+                  Enter Token
                 </Link>
                 <Link 
                   href="/verify-email" 
                   className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
                 >
-                  Resend Link
+                  Resend Email
                 </Link>
               </div>
             </div>

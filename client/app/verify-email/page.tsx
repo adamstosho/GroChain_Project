@@ -146,7 +146,7 @@ function VerifyEmailForm() {
           <CardDescription>
             {token 
               ? "Click the button below to verify your email address."
-              : "Enter your verification token or request a new one."
+              : "Enter your verification token from the email we sent you."
             }
           </CardDescription>
         </CardHeader>
@@ -157,31 +157,35 @@ function VerifyEmailForm() {
               <p className="text-sm text-green-700">{successMessage}</p>
             </div>
           )}
-          {token && (
-            <form onSubmit={handleVerify} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="token">Verification Token</Label>
-                <Input 
-                  id="token" 
-                  value={token} 
-                  onChange={(e) => setToken(e.target.value)} 
-                  placeholder="Verification token from email"
-                  className="font-mono text-sm"
-                />
+          
+          {/* Always show verification form */}
+          <form onSubmit={handleVerify} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="token">Verification Token</Label>
+              <Input 
+                id="token" 
+                value={token} 
+                onChange={(e) => setToken(e.target.value)} 
+                placeholder="Paste verification token from your email here"
+                className="font-mono text-sm"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Copy the verification token from the email we sent you and paste it above.
+              </p>
+            </div>
+            
+            {verificationError && (
+              <div className="flex items-center space-x-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                <AlertCircle className="h-4 w-4" />
+                <span>{verificationError}</span>
               </div>
-              
-              {verificationError && (
-                <div className="flex items-center space-x-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>{verificationError}</span>
-                </div>
-              )}
-              
-              <Button type="submit" disabled={!token || submitting} className="w-full">
-                {submitting ? "Verifying..." : "Verify Email"}
-              </Button>
-            </form>
-          )}
+            )}
+            
+            <Button type="submit" disabled={!token || submitting} className="w-full">
+              {submitting ? "Verifying..." : "Verify Email"}
+            </Button>
+          </form>
 
           <div className="text-center text-sm text-muted-foreground">— or —</div>
 
@@ -210,10 +214,15 @@ function VerifyEmailForm() {
           </form>
 
           <div className="text-center text-xs text-muted-foreground space-y-2">
-            <p>Didn't receive the email? Check your spam folder.</p>
-            <p>Verification links expire in 1 hour.</p>
+            <p><strong>How to get your verification token:</strong></p>
+            <ol className="text-left space-y-1 ml-4">
+              <li>1. Check your email inbox (and spam folder)</li>
+              <li>2. Look for an email from GroChain</li>
+              <li>3. Copy the verification token from the email</li>
+              <li>4. Paste it in the field above and click "Verify Email"</li>
+            </ol>
             <p className="text-blue-600">
-              💡 <strong>Tip:</strong> If you're having issues, try opening this link in the same browser where you registered.
+              💡 <strong>Tip:</strong> Verification links expire in 1 hour. If you don't see the email, try resending it above.
             </p>
           </div>
         </CardContent>
