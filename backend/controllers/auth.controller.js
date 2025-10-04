@@ -481,12 +481,102 @@ exports.logout = async (req, res) => {
 }
 
 exports.forgotPassword = async (req, res) => {
-  // Stubbed - integrate later
-  return res.json({ status: 'success', message: 'If account exists, email sent' })
+  try {
+    const { email } = req.body
+    if (!email) return res.status(400).json({ status: 'error', message: 'Email required' })
+    
+    // Check if user exists
+    const user = await User.findOne({ email })
+    if (!user) {
+      // Don't reveal if email exists or not for security
+      return res.json({ status: 'success', message: 'If account exists, password reset email sent' })
+    }
+    
+    // Generate reset token
+    const resetToken = require('crypto').randomBytes(32).toString('hex')
+    tempTokens.set(resetToken, { 
+      id: user._id, 
+      email: user.email, 
+      type: 'password_reset',
+      exp: Date.now() + 1000 * 60 * 60 // 1 hour
+    })
+    
+    // Send reset email
+    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2563eb;">Password Reset Request</h2>
+        <p>Hi ${user.name},</p>
+        <p>You requested a password reset for your GroChain account. Click the button below to reset your password:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetLink}" 
+             style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            Reset Password
+          </a>
+        </div>
+        <p>Or copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; color: #6b7280;">${resetLink}</p>
+        <p>This link will expire in 1 hour.</p>
+        <p>If you didn't request this password reset, please ignore this email.</p>
+        <p>Best regards,<br>The GroChain Team</p>
+      </div>
+    `
+    
+    try {
+      await sendEmail(user.email, 'Reset your GroChain password', emailHtml)
+    } catch (emailError) {
+      console.error('Password reset: email send failed:', emailError && emailError.message ? emailError.message : emailError)
+    }
+    
+    return res.json({ status: 'success', message: 'If account exists, password reset email sent' })
+  } catch (e) {
+    console.error('Forgot password error:', e)
+    return res.status(500).json({ status: 'error', message: 'Server error' })
+  }
 }
 
 exports.resetPassword = async (req, res) => {
-  // Stubbed - integrate later
-  return res.json({ status: 'success', message: 'Password reset' })
+  try {
+    const { token, password } = req.body
+    if (!token || !password) return res.status(400).json({ status: 'error', message: 'Token and password required' })
+    
+    // Validate password
+    if (password.length < 8) {
+      return res.status(400).json({ status: 'error', message: 'Password must be at least 8 characters long' })
+    }
+    
+    // Check token
+    const entry = tempTokens.get(token)
+    if (!entry) return res.status(400).json({ status: 'error', message: 'Invalid or expired token' })
+    
+    if (entry.exp < Date.now()) {
+      tempTokens.delete(token)
+      return res.status(400).json({ status: 'error', message: 'Token expired' })
+    }
+    
+    if (entry.type !== 'password_reset') {
+      return res.status(400).json({ status: 'error', message: 'Invalid token type' })
+    }
+    
+    // Update user password
+    const bcrypt = require('bcryptjs')
+    const hashedPassword = await bcrypt.hash(password, 10)
+    
+    const user = await User.findByIdAndUpdate(
+      entry.id, 
+      { password: hashedPassword }, 
+      { new: true }
+    )
+    
+    if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
+    
+    // Clean up token
+    tempTokens.delete(token)
+    
+    return res.json({ status: 'success', message: 'Password reset successfully' })
+  } catch (e) {
+    console.error('Reset password error:', e)
+    return res.status(500).json({ status: 'error', message: 'Server error' })
+  }
 }
 
