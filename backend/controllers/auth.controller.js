@@ -162,7 +162,42 @@ exports.register = async (req, res) => {
     
     // Check if user already exists
     const exists = await User.findOne({ email: value.email })
-    if (exists) return res.status(409).json({ status: 'error', message: 'Email already exists' })
+    if (exists) {
+      // If email exists but not verified, resend verification instead of blocking
+      if (!exists.emailVerified) {
+        try {
+          const token = require('crypto').randomBytes(32).toString('hex')
+          tempTokens.set(token, { id: exists._id, email: exists.email, exp: Date.now() + 1000 * 60 * 60 })
+          const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`
+          const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2563eb;">Complete your GroChain signup</h2>
+        <p>Hi ${exists.name || 'there'},</p>
+        <p>It looks like you tried to sign up before but didn\'t verify your email. Click below to verify and finish setting up your account:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${verificationLink}" 
+             style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            Verify Email Address
+          </a>
+        </div>
+        <p>Or copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; color: #6b7280;">${verificationLink}</p>
+        <p>This link will expire in 1 hour.</p>
+        <p>Best regards,<br>The GroChain Team</p>
+      </div>
+    `
+          try { await sendEmail(exists.email, 'Verify your GroChain account', emailHtml) } catch (emailError) { console.error('Resend on register failed:', emailError?.message || emailError) }
+        } catch (genErr) {
+          console.error('Token generation failed during re-register:', genErr)
+        }
+        return res.status(200).json({ 
+          status: 'success', 
+          message: 'Account exists but is not verified yet. We\'ve sent a new verification link to your email.',
+          requiresVerification: true
+        })
+      }
+      return res.status(409).json({ status: 'error', message: 'Email already exists' })
+    }
     
     const user = await User.create(value)
     const token = require('crypto').randomBytes(32).toString('hex')
@@ -189,11 +224,12 @@ exports.register = async (req, res) => {
       </div>
     `
     
-    // Try to send the verification email, but do not fail registration if email provider has issues
+    // Enqueue the verification email; do not block the request
     try {
-      await sendEmail(user.email, 'Verify your GroChain account', emailHtml)
+      const emailQueue = require('../services/email-queue.service')
+      emailQueue.enqueue({ to: user.email, subject: 'Verify your GroChain account', html: emailHtml })
     } catch (emailError) {
-      console.error('Registration: email send failed:', emailError && emailError.message ? emailError.message : emailError)
+      console.error('Registration: enqueue email failed:', emailError && emailError.message ? emailError.message : emailError)
     }
     
     return res.status(201).json({ 
@@ -320,8 +356,9 @@ exports.login = async (req, res) => {
       })
     }
     
-    // Check if email is verified (unless in development mode with DISABLE_EMAIL_VERIFICATION=true)
-    if (!user.emailVerified && process.env.DISABLE_EMAIL_VERIFICATION !== 'true') {
+    // Check if email is verified (allow bypass in relaxed mode)
+    const relaxedSecurity = process.env.RELAXED_SECURITY === 'true' || process.env.NODE_ENV !== 'production'
+    if (!user.emailVerified && !relaxedSecurity && process.env.DISABLE_EMAIL_VERIFICATION !== 'true') {
       return res.status(403).json({ 
         status: 'error', 
         message: 'Please verify your email address before logging in. Check your inbox for a verification link.',
@@ -409,9 +446,10 @@ exports.resendVerification = async (req, res) => {
     `
     
     try {
-      await sendEmail(user.email, 'Verify your GroChain account', emailHtml)
+      const emailQueue = require('../services/email-queue.service')
+      emailQueue.enqueue({ to: user.email, subject: 'Verify your GroChain account', html: emailHtml })
     } catch (emailError) {
-      console.error('Resend verification: email send failed:', emailError && emailError.message ? emailError.message : emailError)
+      console.error('Resend verification: enqueue email failed:', emailError && emailError.message ? emailError.message : emailError)
     }
     
     return res.json({ status: 'success', message: 'Verification email sent' })
@@ -501,7 +539,7 @@ exports.forgotPassword = async (req, res) => {
       exp: Date.now() + 1000 * 60 * 60 // 1 hour
     })
     
-    // Send reset email
+    // Send reset email (enqueue)
     const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -523,9 +561,10 @@ exports.forgotPassword = async (req, res) => {
     `
     
     try {
-      await sendEmail(user.email, 'Reset your GroChain password', emailHtml)
+      const emailQueue = require('../services/email-queue.service')
+      emailQueue.enqueue({ to: user.email, subject: 'Reset your GroChain password', html: emailHtml })
     } catch (emailError) {
-      console.error('Password reset: email send failed:', emailError && emailError.message ? emailError.message : emailError)
+      console.error('Password reset: enqueue email failed:', emailError && emailError.message ? emailError.message : emailError)
     }
     
     return res.json({ status: 'success', message: 'If account exists, password reset email sent' })

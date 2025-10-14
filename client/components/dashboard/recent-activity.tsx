@@ -130,42 +130,44 @@ export function RecentActivity() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Activity</CardTitle>
-        <CardDescription>Latest platform activities</CardDescription>
+        <CardTitle className="text-sm sm:text-base">Recent Activity</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">Latest platform activities</CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[300px]">
+        <ScrollArea className="h-[250px] sm:h-[300px]">
           {isLoading ? (
-            <div className="flex items-center justify-center h-[200px]">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center h-[150px] sm:h-[200px]">
+              <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-muted-foreground" />
             </div>
           ) : activities.length === 0 ? (
-            <div className="flex items-center justify-center h-[200px]">
+            <div className="flex items-center justify-center h-[150px] sm:h-[200px]">
               <div className="text-center text-muted-foreground">
-                <Leaf className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-sm">No recent activities</p>
+                <Leaf className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 opacity-50" />
+                <p className="text-xs sm:text-sm">No recent activities</p>
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {activities.map((activity) => {
                 const Icon = getActivityIcon(activity.type)
                 return (
-                  <div key={activity._id} className="flex items-start space-x-3">
+                  <div key={activity._id} className="flex items-start space-x-2 sm:space-x-3">
                     <div
-                      className={`h-8 w-8 rounded-lg flex items-center justify-center ${getActivityColor(activity.type)}`}
+                      className={`h-7 w-7 sm:h-8 sm:w-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getActivityColor(activity.type)}`}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
                     </div>
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm">{activity.description}</p>
-                      <div className="flex items-center space-x-2">
+                    <div className="flex-1 space-y-1 min-w-0">
+                      <p className="text-xs sm:text-sm leading-relaxed break-words">{activity.description}</p>
+                      <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
                         {activity.user && (
-                          <Badge variant="outline" className="text-xs">
-                            {typeof activity.user === 'string' ? activity.user : activity.user?.name || 'Unknown'}
+                          <Badge variant="outline" className="text-xs w-fit flex-shrink-0">
+                            <span className="truncate max-w-[80px] sm:max-w-none">
+                              {typeof activity.user === 'string' ? activity.user : activity.user?.name || 'Unknown'}
+                            </span>
                           </Badge>
                         )}
-                        <span className="text-xs text-muted-foreground">{formatTimeAgo(activity.timestamp)}</span>
+                        <span className="text-xs text-muted-foreground flex-shrink-0">{formatTimeAgo(activity.timestamp)}</span>
                       </div>
                     </div>
                   </div>

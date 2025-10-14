@@ -420,7 +420,7 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
   return (
     <div className="flex min-h-screen max-h-screen bg-background overflow-hidden">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex lg:w-72 lg:flex-col lg:border-r lg:overflow-hidden lg:shrink-0 lg:relative lg:z-20 bg-background">
+      <div className="hidden lg:flex lg:w-64 xl:w-72 lg:flex-col lg:border-r lg:overflow-hidden lg:shrink-0 lg:relative lg:z-20 bg-background">
         <SidebarContent />
       </div>
 
@@ -434,7 +434,7 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
       {/* Main Content */}
       <div className="flex flex-1 flex-col min-h-0 min-w-0 relative z-0">
         {/* Header */}
-        <header className="flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6 flex-shrink-0 relative z-10">
+        <header className="flex h-14 sm:h-16 items-center justify-between border-b bg-background px-3 sm:px-4 lg:px-6 flex-shrink-0 relative z-10">
           <div className="flex items-center space-x-4">
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetTrigger asChild>
@@ -445,7 +445,7 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
             </Sheet>
 
             <div className="min-w-0 flex-1">
-              <h1 className="text-base sm:text-lg font-semibold truncate">
+              <h1 className="text-sm sm:text-base lg:text-lg font-semibold truncate">
                 {pageTitle || (() => {
                   if (userData.role === "farmer") return "Farmer Dashboard"
                   if (userData.role === "buyer") return "Buyer Dashboard"
@@ -460,7 +460,7 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Cart Icon for Buyers */}
             {userData.role === "buyer" && (
               <Button variant="ghost" size="icon" className="relative" asChild>
@@ -522,7 +522,7 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-50/50 min-h-0">
-          <div className="container mx-auto px-4 py-6 lg:px-6 lg:py-8 max-w-7xl">
+          <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:px-6 lg:py-8 max-w-7xl">
             {children}
           </div>
         </main>

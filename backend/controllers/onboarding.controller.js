@@ -142,6 +142,9 @@ exports.getOnboardingById = async (req, res) => {
 // Create new onboarding
 exports.createOnboarding = async (req, res) => {
   try {
+    const mongoose = require('mongoose')
+    const session = await mongoose.startSession()
+    session.startTransaction()
     const {
       farmerId,
       assignedPartner,
@@ -153,7 +156,7 @@ exports.createOnboarding = async (req, res) => {
     } = req.body
 
     // Verify farmer exists and is a farmer
-    const farmer = await User.findById(farmerId)
+    const farmer = await User.findById(farmerId).session(session)
     if (!farmer || farmer.role !== 'farmer') {
       return res.status(400).json({
         status: 'error',
@@ -162,7 +165,7 @@ exports.createOnboarding = async (req, res) => {
     }
 
     // Verify partner exists
-    const partner = await Partner.findById(assignedPartner)
+    const partner = await Partner.findById(assignedPartner).session(session)
     if (!partner) {
       return res.status(400).json({
         status: 'error',
@@ -171,7 +174,7 @@ exports.createOnboarding = async (req, res) => {
     }
 
     // Check if onboarding already exists for this farmer
-    const existingOnboarding = await Onboarding.findOne({ farmer: farmerId })
+    const existingOnboarding = await Onboarding.findOne({ farmer: farmerId }).session(session)
     if (existingOnboarding) {
       return res.status(400).json({
         status: 'error',
@@ -193,12 +196,15 @@ exports.createOnboarding = async (req, res) => {
       }] : []
     })
 
-    await onboarding.save()
+    await onboarding.save({ session })
 
     const populatedOnboarding = await Onboarding.findById(onboarding._id)
       .populate('farmer', 'name email phone location')
       .populate('assignedPartner', 'name organization')
       .populate('assignedAgent', 'name email')
+
+    await session.commitTransaction()
+    session.endSession()
 
     res.status(201).json({
       status: 'success',
@@ -206,6 +212,7 @@ exports.createOnboarding = async (req, res) => {
       data: populatedOnboarding
     })
   } catch (error) {
+    try { if (session) { await session.abortTransaction(); session.endSession() } } catch (e) {}
     console.error('Error creating onboarding:', error)
     res.status(500).json({
       status: 'error',

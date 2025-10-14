@@ -19,26 +19,26 @@ export function QuickActions({ actions }: QuickActionsProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Quick Actions</CardTitle>
-        <CardDescription>Common tasks and shortcuts</CardDescription>
+        <CardTitle className="text-base sm:text-lg">Quick Actions</CardTitle>
+        <CardDescription className="text-sm">Common tasks and shortcuts</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
           {actions.map((action, index) => (
             <Button
               key={index}
               variant="outline"
-              className="h-auto p-4 justify-start bg-transparent hover:bg-primary/10"
+              className="h-auto p-3 sm:p-4 justify-start bg-transparent hover:bg-primary/10 text-left"
               asChild
             >
               <Link href={action.href}>
-                <div className="flex items-center space-x-3">
-                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${action.color}`}>
+                <div className="flex items-center space-x-3 w-full">
+                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 ${action.color}`}>
                     <action.icon className="h-4 w-4" />
                   </div>
-                  <div className="text-left">
-                    <p className="font-medium text-sm">{action.title}</p>
-                    <p className="text-xs text-muted-foreground">{action.description}</p>
+                  <div className="text-left min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{action.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{action.description}</p>
                   </div>
                 </div>
               </Link>

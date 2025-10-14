@@ -51,6 +51,9 @@ router.get('/reverse-geocode',
   weatherController.reverseGeocode
 )
 
+// IP-based location fallback endpoint
+router.get('/ip-location', weatherController.getIPLocation)
+
 // Regional statistics stub
 router.get('/statistics/:region', async (req, res) => {
   return res.json({ status: 'success', data: { region: req.params.region, stats: {}, message: 'Not yet implemented' } })

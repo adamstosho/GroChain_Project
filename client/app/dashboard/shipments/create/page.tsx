@@ -16,7 +16,7 @@ import {
   ShoppingCart,
   User,
   Calendar,
-  DollarSign,
+  Banknote,
   RefreshCw
 } from "lucide-react"
 import Link from "next/link"
@@ -220,15 +220,15 @@ function CreateShipmentContent() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" onClick={() => router.back()}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+            <Button variant="outline" size="sm" onClick={() => router.back()} className="w-full sm:w-auto">
+              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
               Back
             </Button>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Create Shipment</h1>
-              <p className="text-muted-foreground">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight truncate">Create Shipment</h1>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Create a new shipment for a paid order
               </p>
             </div>
@@ -238,26 +238,28 @@ function CreateShipmentContent() {
             size="sm" 
             onClick={fetchOrders}
             disabled={loadingOrders}
+            className="w-full sm:w-auto"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loadingOrders ? 'animate-spin' : ''}`} />
-            Refresh Orders
+            <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-2 ${loadingOrders ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh Orders</span>
+            <span className="sm:hidden">Refresh</span>
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
           {/* Order Selection */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5 text-blue-600" />
+          <div className="xl:col-span-1">
+            <Card className="border border-gray-200">
+              <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
+                <CardTitle className="text-sm sm:text-base font-medium flex items-center gap-2">
+                  <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                   Select Order
                 </CardTitle>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
                   Showing paid orders ready for shipment creation
                 </p>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
                 {loadingOrders ? (
                   <div className="space-y-3">
                     <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
@@ -265,21 +267,23 @@ function CreateShipmentContent() {
                     <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
                   </div>
                 ) : orders.length === 0 ? (
-                  <div className="text-center py-8">
-                    <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Orders Ready for Shipment</h3>
-                    <p className="text-gray-600 mb-4">
+                  <div className="text-center py-4 sm:py-6 lg:py-8">
+                    <ShoppingCart className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                    <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 mb-2">No Orders Ready for Shipment</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                       You don't have any paid orders that are ready for shipment creation yet. Orders need to be confirmed and paid before you can create shipments.
                     </p>
-                    <div className="space-y-2">
-                      <Button asChild variant="outline">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                      <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
                         <Link href="/dashboard/marketplace/orders">
-                          View All Orders
+                          <span className="hidden sm:inline">View All Orders</span>
+                          <span className="sm:hidden">View Orders</span>
                         </Link>
                       </Button>
-                      <Button asChild variant="outline">
+                      <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
                         <Link href="/dashboard/marketplace">
-                          Go to Marketplace
+                          <span className="hidden sm:inline">Go to Marketplace</span>
+                          <span className="sm:hidden">Marketplace</span>
                         </Link>
                       </Button>
                     </div>
@@ -287,15 +291,15 @@ function CreateShipmentContent() {
                 ) : (
                   <div className="space-y-3">
                     <Select value={selectedOrderId} onValueChange={setSelectedOrderId}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
                         <SelectValue placeholder="Select an order" />
                       </SelectTrigger>
                       <SelectContent>
                         {orders.map((order) => (
                           <SelectItem key={order._id} value={order._id}>
-                            <div className="flex items-center justify-between w-full">
-                              <span>{order.orderNumber}</span>
-                              <span className="text-sm text-gray-500 ml-2">
+                            <div className="flex items-center justify-between w-full min-w-0">
+                              <span className="truncate">{order.orderNumber}</span>
+                              <span className="text-xs sm:text-sm text-gray-500 ml-2 flex-shrink-0">
                                 {formatPrice(order.total)} • {order.status}
                               </span>
                             </div>
@@ -305,39 +309,39 @@ function CreateShipmentContent() {
                     </Select>
 
                     {selectedOrder && (
-                      <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-semibold text-gray-900">{selectedOrder.orderNumber}</h4>
-                          <span className="text-sm text-gray-600">{formatDate(selectedOrder.createdAt)}</span>
+                      <div className="mt-4 p-3 sm:p-4 bg-gray-50 rounded-lg space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <h4 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{selectedOrder.orderNumber}</h4>
+                          <span className="text-xs sm:text-sm text-gray-600">{formatDate(selectedOrder.createdAt)}</span>
                         </div>
                         
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-gray-500" />
-                            <span className="text-gray-600">Buyer:</span>
-                            <span className="font-medium text-gray-900">{selectedOrder.buyer.name}</span>
+                        <div className="space-y-2 text-xs sm:text-sm">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <User className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
+                            <span className="text-gray-600 flex-shrink-0">Buyer:</span>
+                            <span className="font-medium text-gray-900 truncate">{selectedOrder.buyer.name}</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Package className="h-4 w-4 text-gray-500" />
-                            <span className="text-gray-600">Items:</span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Package className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
+                            <span className="text-gray-600 flex-shrink-0">Items:</span>
                             <span className="font-medium text-gray-900">
                               {selectedOrder.items.length} item{selectedOrder.items.length !== 1 ? 's' : ''}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="h-4 w-4 text-gray-500" />
-                            <span className="text-gray-600">Total:</span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
+                            <span className="text-gray-600 flex-shrink-0">Total:</span>
                             <span className="font-medium text-gray-900">{formatPrice(selectedOrder.total)}</span>
                           </div>
                         </div>
 
                         <div className="pt-2 border-t border-gray-200">
-                          <h5 className="font-medium text-gray-900 mb-2">Order Items:</h5>
+                          <h5 className="font-medium text-gray-900 mb-2 text-xs sm:text-sm">Order Items:</h5>
                           <div className="space-y-2">
                             {selectedOrder.items.map((item, index) => (
-                              <div key={index} className="flex items-center justify-between text-sm">
-                                <span className="text-gray-600 truncate">{item.listing.cropName}</span>
-                                <span className="font-medium text-gray-900">
+                              <div key={index} className="flex items-center justify-between text-xs sm:text-sm">
+                                <span className="text-gray-600 truncate min-w-0 flex-1">{item.listing.cropName}</span>
+                                <span className="font-medium text-gray-900 flex-shrink-0 ml-2">
                                   {item.quantity} {item.unit}
                                 </span>
                               </div>
@@ -353,7 +357,7 @@ function CreateShipmentContent() {
           </div>
 
           {/* Shipment Creation Form */}
-          <div className="lg:col-span-2">
+          <div className="xl:col-span-2">
             {selectedOrderId ? (
               <div>
                 <ShipmentCreationForm
@@ -364,11 +368,11 @@ function CreateShipmentContent() {
                 />
               </div>
             ) : (
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Select an Order</h3>
-                  <p className="text-gray-600">
+              <Card className="border border-gray-200">
+                <CardContent className="p-4 sm:p-6 text-center">
+                  <Package className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 mb-2">Select an Order</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">
                     Please select an order from the list to create a shipment.
                   </p>
                 </CardContent>
@@ -385,17 +389,16 @@ export default function CreateShipmentPage() {
   return (
     <Suspense fallback={
       <DashboardLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h1 className="text-3xl font-bold tracking-tight">Create Shipment</h1>
-              <p className="text-muted-foreground">Loading...</p>
+        <div className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Create Shipment</h1>
+              <p className="text-sm sm:text-base text-muted-foreground">Loading...</p>
             </div>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-muted rounded animate-pulse" />
-            ))}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+            <div className="h-64 sm:h-72 lg:h-80 bg-muted rounded animate-pulse" />
+            <div className="xl:col-span-2 h-64 sm:h-72 lg:h-80 bg-muted rounded animate-pulse" />
           </div>
         </div>
       </DashboardLayout>

@@ -403,39 +403,39 @@ export function HarvestForm({
 
   return (
     <Card className="w-full max-w-6xl mx-auto shadow-sm">
-      <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
-        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-          <Leaf className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+      <CardHeader className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg lg:text-xl">
+          <Leaf className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-primary" />
           {mode === "create" ? "Log New Harvest" : "Edit Harvest"}
         </CardTitle>
-        <CardDescription className="text-sm sm:text-base">
+        <CardDescription className="text-xs sm:text-sm lg:text-base">
           Record your harvest details for transparency and traceability
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="px-4 sm:px-6 py-4 sm:py-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
+      <CardContent className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 sm:space-y-6">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3 sm:space-y-4 lg:space-y-6">
             {/* Basic Information */}
-            <div className="space-y-4">
-              <h3 className="text-base sm:text-lg font-semibold text-foreground">Basic Information</h3>
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-foreground">Basic Information</h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="cropType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Crop Type *</FormLabel>
+                      <FormLabel className="text-xs sm:text-sm">Crop Type *</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
                             <SelectValue placeholder="Select crop type" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           {cropTypes.map((crop) => (
-                            <SelectItem key={crop} value={crop}>
+                            <SelectItem key={crop} value={crop} className="text-xs sm:text-sm">
                               {crop}
                             </SelectItem>
                           ))}
@@ -451,9 +451,9 @@ export function HarvestForm({
                   name="variety"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Variety *</FormLabel>
+                      <FormLabel className="text-xs sm:text-sm">Variety *</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Basmati, Sweet Corn" {...field} />
+                        <Input placeholder="e.g., Basmati, Sweet Corn" className="h-8 sm:h-9 text-xs sm:text-sm" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -461,20 +461,20 @@ export function HarvestForm({
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 <FormField
                   control={form.control}
                   name="harvestDate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Harvest Date *</FormLabel>
+                      <FormLabel className="text-xs sm:text-sm">Harvest Date *</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
                               variant="outline"
                               className={cn(
-                                "w-full pl-3 text-left font-normal",
+                                "w-full pl-3 text-left font-normal h-8 sm:h-9 text-xs sm:text-sm",
                                 !field.value && "text-muted-foreground"
                               )}
                             >
@@ -483,7 +483,7 @@ export function HarvestForm({
                               ) : (
                                 <span>Pick a date</span>
                               )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              <CalendarIcon className="ml-auto h-3 w-3 sm:h-4 sm:w-4 opacity-50" />
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
@@ -509,12 +509,13 @@ export function HarvestForm({
                   name="quantity"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Quantity *</FormLabel>
+                      <FormLabel className="text-xs sm:text-sm">Quantity *</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           step="0.1"
                           placeholder="0.0"
+                          className="h-8 sm:h-9 text-xs sm:text-sm"
                           {...field}
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                         />
@@ -529,19 +530,19 @@ export function HarvestForm({
                   name="unit"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Unit *</FormLabel>
+                      <FormLabel className="text-xs sm:text-sm">Unit *</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="kg">Kilograms (kg)</SelectItem>
-                          <SelectItem value="tons">Tons</SelectItem>
-                          <SelectItem value="bags">Bags</SelectItem>
-                          <SelectItem value="pieces">Pieces</SelectItem>
-                          <SelectItem value="liters">Liters</SelectItem>
+                          <SelectItem value="kg" className="text-xs sm:text-sm">Kilograms (kg)</SelectItem>
+                          <SelectItem value="tons" className="text-xs sm:text-sm">Tons</SelectItem>
+                          <SelectItem value="bags" className="text-xs sm:text-sm">Bags</SelectItem>
+                          <SelectItem value="pieces" className="text-xs sm:text-sm">Pieces</SelectItem>
+                          <SelectItem value="liters" className="text-xs sm:text-sm">Liters</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -555,25 +556,25 @@ export function HarvestForm({
                 name="location"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2 text-sm sm:text-base">
+                    <FormLabel className="flex items-center gap-2 text-xs sm:text-sm">
                       Location *
-                      {locationStatus === 'success' && <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />}
-                      {locationStatus === 'detecting' && <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-blue-500" />}
-                      {locationStatus === 'error' && <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-red-500" />}
+                      {locationStatus === 'success' && <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />}
+                      {locationStatus === 'detecting' && <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-blue-500 flex-shrink-0" />}
+                      {locationStatus === 'error' && <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 flex-shrink-0" />}
                     </FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                         <Input
                           placeholder="Farm location, village, or coordinates"
-                          className="pl-10 pr-20 sm:pr-24 text-sm sm:text-base"
+                          className="pl-9 sm:pl-10 pr-16 sm:pr-20 lg:pr-24 h-8 sm:h-9 text-xs sm:text-sm"
                           {...field}
                         />
                         <Button
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="absolute right-1 top-1 h-8 px-2 sm:px-3"
+                          className="absolute right-1 top-1 h-6 sm:h-7 px-1 sm:px-2 lg:px-3 text-xs"
                           onClick={handleGetLocation}
                           disabled={locationStatus === 'detecting'}
                         >
@@ -582,7 +583,7 @@ export function HarvestForm({
                           ) : (
                             <Navigation className="h-3 w-3" />
                           )}
-                          <span className="ml-1 hidden sm:inline">
+                          <span className="ml-1 hidden sm:inline text-xs">
                             {locationStatus === 'success' ? 'Updated' :
                              locationStatus === 'detecting' ? 'Detecting...' :
                              'Auto-detect'}
@@ -590,10 +591,10 @@ export function HarvestForm({
                         </Button>
                       </div>
                     </FormControl>
-                    <FormDescription className="flex items-center justify-between">
-                      <span>Enter the specific location where the harvest took place</span>
+                    <FormDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">
+                      <span className="text-xs sm:text-sm">Enter the specific location where the harvest took place</span>
                       {locationStatus === 'success' && geoLocation && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs w-fit">
                           📍 {geoLocation.lat.toFixed(4)}, {geoLocation.lng.toFixed(4)}
                         </Badge>
                       )}
@@ -607,27 +608,27 @@ export function HarvestForm({
             <Separator />
 
             {/* Quality & Pricing */}
-            <div className="space-y-4">
-              <h3 className="text-base sm:text-lg font-semibold text-foreground">Quality & Pricing</h3>
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-foreground">Quality & Pricing</h3>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 <FormField
                   control={form.control}
                   name="quality"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Quality Grade *</FormLabel>
+                      <FormLabel className="text-xs sm:text-sm">Quality Grade *</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="excellent">Excellent</SelectItem>
-                          <SelectItem value="good">Good</SelectItem>
-                          <SelectItem value="fair">Fair</SelectItem>
-                          <SelectItem value="poor">Poor</SelectItem>
+                          <SelectItem value="excellent" className="text-xs sm:text-sm">Excellent</SelectItem>
+                          <SelectItem value="good" className="text-xs sm:text-sm">Good</SelectItem>
+                          <SelectItem value="fair" className="text-xs sm:text-sm">Fair</SelectItem>
+                          <SelectItem value="poor" className="text-xs sm:text-sm">Poor</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -640,17 +641,17 @@ export function HarvestForm({
                   name="grade"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Market Grade *</FormLabel>
+                      <FormLabel className="text-xs sm:text-sm">Market Grade *</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="A">Grade A (Premium)</SelectItem>
-                          <SelectItem value="B">Grade B (Standard)</SelectItem>
-                          <SelectItem value="C">Grade C (Economy)</SelectItem>
+                          <SelectItem value="A" className="text-xs sm:text-sm">Grade A (Premium)</SelectItem>
+                          <SelectItem value="B" className="text-xs sm:text-sm">Grade B (Standard)</SelectItem>
+                          <SelectItem value="C" className="text-xs sm:text-sm">Grade C (Economy)</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -663,12 +664,13 @@ export function HarvestForm({
                   name="price"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Price per Unit (₦) *</FormLabel>
+                      <FormLabel className="text-xs sm:text-sm">Price per Unit (₦) *</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           step="0.01"
                           placeholder="0.00"
+                          className="h-8 sm:h-9 text-xs sm:text-sm"
                           {...field}
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                         />
@@ -679,13 +681,13 @@ export function HarvestForm({
                 />
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <FormField
                   control={form.control}
                   name="moistureContent"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Moisture Content: {field.value}%</FormLabel>
+                      <FormLabel className="text-xs sm:text-sm">Moisture Content: {field.value}%</FormLabel>
                       <FormControl>
                         <Slider
                           value={[field.value]}
@@ -696,7 +698,7 @@ export function HarvestForm({
                           className="w-full"
                         />
                       </FormControl>
-                      <FormDescription>
+                      <FormDescription className="text-xs sm:text-sm">
                         Optimal range: 12-18% for grains, 8-12% for legumes
                       </FormDescription>
                       <FormMessage />
@@ -716,8 +718,8 @@ export function HarvestForm({
                         />
                       </FormControl>
                       <div className="space-y-1 leading-none">
-                        <FormLabel>Organic Certification</FormLabel>
-                        <FormDescription>
+                        <FormLabel className="text-xs sm:text-sm">Organic Certification</FormLabel>
+                        <FormDescription className="text-xs sm:text-sm">
                           Check if this harvest meets organic farming standards
                         </FormDescription>
                       </div>
@@ -730,34 +732,34 @@ export function HarvestForm({
             <Separator />
 
             {/* Advanced Options */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setShowAdvanced(!showAdvanced)}
-                className="w-full"
+                className="w-full h-8 sm:h-9 text-xs sm:text-sm"
               >
                 {showAdvanced ? "Hide" : "Show"} Advanced Options
               </Button>
 
               {showAdvanced && (
-                <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 border rounded-lg bg-muted/30">
+                  <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                     <FormField
                       control={form.control}
                       name="soilType"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Soil Type</FormLabel>
+                          <FormLabel className="text-xs sm:text-sm">Soil Type</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
                                 <SelectValue />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
                               {soilTypes.map((soil) => (
-                                <SelectItem key={soil.value} value={soil.value}>
+                                <SelectItem key={soil.value} value={soil.value} className="text-xs sm:text-sm">
                                   <div>
                                     <div className="font-medium">{soil.label}</div>
                                     <div className="text-xs text-muted-foreground">
@@ -778,16 +780,16 @@ export function HarvestForm({
                       name="irrigationType"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Irrigation Type</FormLabel>
+                          <FormLabel className="text-xs sm:text-sm">Irrigation Type</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
                                 <SelectValue />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
                               {irrigationTypes.map((irrigation) => (
-                                <SelectItem key={irrigation.value} value={irrigation.value}>
+                                <SelectItem key={irrigation.value} value={irrigation.value} className="text-xs sm:text-sm">
                                   <div>
                                     <div className="font-medium">{irrigation.label}</div>
                                     <div className="text-xs text-muted-foreground">
@@ -808,16 +810,16 @@ export function HarvestForm({
                       name="pestManagement"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Pest Management</FormLabel>
+                          <FormLabel className="text-xs sm:text-sm">Pest Management</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
                                 <SelectValue />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
                               {pestManagementTypes.map((method) => (
-                                <SelectItem key={method.value} value={method.value}>
+                                <SelectItem key={method.value} value={method.value} className="text-xs sm:text-sm">
                                   <div>
                                     <div className="font-medium">{method.label}</div>
                                     <div className="text-xs text-muted-foreground">
@@ -840,33 +842,33 @@ export function HarvestForm({
             <Separator />
 
             {/* Images & Notes */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-foreground">Images & Notes</h3>
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-foreground">Images & Notes</h3>
               
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div>
-                  <FormLabel>Harvest Images</FormLabel>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                  <FormLabel className="text-xs sm:text-sm">Harvest Images</FormLabel>
+                  <div className="grid gap-2 sm:gap-3 lg:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 mt-2">
                     {images.map((image, index) => (
                       <div key={index} className="relative group">
                         <img
                           src={image}
                           alt={`Harvest ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg border"
+                          className="w-full h-16 sm:h-20 lg:h-24 object-cover rounded-lg border"
                         />
                         <Button
                           type="button"
                           variant="destructive"
                           size="sm"
-                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 sm:h-6 sm:w-6 p-0"
                           onClick={() => removeImage(index)}
                         >
-                          <X className="h-3 w-3" />
+                          <X className="h-2 w-2 sm:h-3 sm:w-3" />
                         </Button>
                       </div>
                     ))}
-                    <label className="w-full h-20 sm:h-24 border-2 border-dashed border-muted-foreground/25 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-muted-foreground/50 transition-colors">
-                      <Upload className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground mb-1 sm:mb-2" />
+                    <label className="w-full h-16 sm:h-20 lg:h-24 border-2 border-dashed border-muted-foreground/25 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-muted-foreground/50 transition-colors">
+                      <Upload className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-muted-foreground mb-1" />
                       <span className="text-xs text-muted-foreground">Add Image</span>
                       <input
                         type="file"
@@ -884,11 +886,11 @@ export function HarvestForm({
                   name="notes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Additional Notes</FormLabel>
+                      <FormLabel className="text-xs sm:text-sm">Additional Notes</FormLabel>
                       <FormControl>
                         <Textarea
                           placeholder="Any additional information about this harvest..."
-                          className="min-h-[100px]"
+                          className="min-h-[80px] sm:min-h-[100px] text-xs sm:text-sm"
                           {...field}
                         />
                       </FormControl>
@@ -900,22 +902,22 @@ export function HarvestForm({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 sm:gap-4 pt-4 sm:pt-6">
+            <div className="flex flex-col xs:flex-row items-stretch xs:items-center justify-end gap-2 sm:gap-3 lg:gap-4 pt-3 sm:pt-4 lg:pt-6">
               {onCancel && (
-                <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
+                <Button type="button" variant="outline" onClick={onCancel} className="w-full xs:w-auto h-8 sm:h-9 text-xs sm:text-sm">
                   Cancel
                 </Button>
               )}
-              <Button type="submit" disabled={isLoading} className="w-full sm:w-auto min-w-[120px]">
+              <Button type="submit" disabled={isLoading} className="w-full xs:w-auto min-w-[120px] h-8 sm:h-9 text-xs sm:text-sm">
                 {isLoading ? (
                   <div className="flex items-center justify-center gap-2">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Saving...
+                    <div className="h-3 w-3 sm:h-4 sm:w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    <span className="text-xs sm:text-sm">Saving...</span>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2">
-                    <Save className="h-4 w-4" />
-                    {mode === "create" ? "Log Harvest" : "Update Harvest"}
+                    <Save className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="text-xs sm:text-sm">{mode === "create" ? "Log Harvest" : "Update Harvest"}</span>
                   </div>
                 )}
               </Button>

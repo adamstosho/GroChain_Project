@@ -360,6 +360,62 @@ const weatherController = {
     }
   },
 
+  // IP-based location fallback endpoint
+  async getIPLocation(req, res) {
+    try {
+      // Get client IP from request
+      const clientIP = req.ip || 
+                      req.connection.remoteAddress || 
+                      req.socket.remoteAddress ||
+                      (req.connection.socket ? req.connection.socket.remoteAddress : null) ||
+                      req.headers['x-forwarded-for']?.split(',')[0] ||
+                      req.headers['x-real-ip'] ||
+                      '127.0.0.1'
+
+      console.log('🌐 Getting IP-based location for:', clientIP)
+
+      // Use ipapi.co for IP geolocation (free tier)
+      const response = await fetch(`https://ipapi.co/${clientIP}/json/`, {
+        headers: {
+          'User-Agent': 'GroChain/1.0'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('IP geolocation failed')
+      }
+
+      const data = await response.json()
+
+      if (data.error) {
+        throw new Error(data.reason || 'IP geolocation failed')
+      }
+
+      const result = {
+        lat: parseFloat(data.latitude),
+        lng: parseFloat(data.longitude),
+        city: data.city || 'Current Location',
+        state: data.region || 'Unknown State',
+        country: data.country_name || 'Nigeria',
+        accuracy: 10000, // Low accuracy for IP-based location
+        source: 'ip'
+      }
+
+      console.log('🌐 IP-based location result:', result)
+
+      res.json({
+        status: 'success',
+        data: result
+      })
+    } catch (error) {
+      console.error('IP location error:', error)
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to get IP-based location'
+      })
+    }
+  },
+
   // Reverse geocoding endpoint
   async reverseGeocode(req, res) {
     try {

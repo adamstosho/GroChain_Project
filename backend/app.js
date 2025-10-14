@@ -164,10 +164,13 @@ app.get('/metrics', async (req, res) => {
 // Import rate limiting middleware
 const rateLimitMiddleware = require('./middlewares/rateLimit.middleware')
 
-// Apply rate limiting based on environment
-if (process.env.NODE_ENV === 'development') {
+// Apply rate limiting based on environment and flags
+const relaxedSecurity = process.env.RELAXED_SECURITY === 'true' || process.env.NODE_ENV !== 'production'
+if (process.env.RATE_LIMIT_ENABLED === 'false') {
+  console.log('🧪 Rate limiting disabled via RATE_LIMIT_ENABLED=false')
+} else if (relaxedSecurity) {
   app.use('/api', rateLimitMiddleware.rateLimit('api'))
-  console.log('🔧 Development mode: Using lenient rate limiting')
+  console.log('🔧 Relaxed mode: Using lenient API rate limiting; auth limits disabled if DISABLE_AUTH_RATE_LIMIT=true')
 } else {
   app.use('/api/auth', rateLimitMiddleware.rateLimit('auth'))
   app.use('/api', rateLimitMiddleware.rateLimit('api'))
@@ -399,6 +402,20 @@ const initializeApp = async () => {
     
     // Create HTTP server for Socket.IO
     const server = http.createServer(app);
+
+    // Configure server timeouts suitable for Render
+    try {
+      server.headersTimeout = Number(process.env.SERVER_HEADERS_TIMEOUT_MS || 65000)
+      server.requestTimeout = Number(process.env.SERVER_REQUEST_TIMEOUT_MS || 60000)
+      server.keepAliveTimeout = Number(process.env.SERVER_KEEPALIVE_TIMEOUT_MS || 60000)
+      console.log('⏱️ Server timeouts configured:', {
+        headersTimeout: server.headersTimeout,
+        requestTimeout: server.requestTimeout,
+        keepAliveTimeout: server.keepAliveTimeout
+      })
+    } catch (timeoutErr) {
+      console.warn('⏱️ Failed to apply custom server timeouts:', timeoutErr?.message || timeoutErr)
+    }
 
     // Initialize WebSocket service before starting the server
     const webSocketService = require('./services/websocket.service');

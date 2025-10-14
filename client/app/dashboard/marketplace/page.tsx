@@ -10,7 +10,6 @@ import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import {
   Store,
-  Plus,
   Package,
   TrendingUp,
   Eye,
@@ -377,16 +376,16 @@ export default function MarketplacePage() {
   if (loading) {
     return (
       <DashboardLayout pageTitle="Marketplace">
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
-                <CardHeader className="pb-2">
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              <Card key={i} className="animate-pulse border border-gray-200 h-full">
+                <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+                  <div className="h-3 sm:h-4 bg-gray-200 rounded w-1/2"></div>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-8 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+                  <div className="h-6 sm:h-8 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-2 sm:h-3 bg-gray-200 rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
@@ -398,152 +397,145 @@ export default function MarketplacePage() {
 
   return (
     <DashboardLayout pageTitle="Listings">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-gray-900">Listings</h1>
-            <p className="text-gray-600">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+          <div className="space-y-1 sm:space-y-2 min-w-0 flex-1">
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900">Listings</h1>
+            <p className="text-xs sm:text-sm lg:text-base text-gray-600">
               Manage your product listings, track orders, and monitor sales performance
             </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 flex-shrink-0">
             <Button
               variant="outline"
               onClick={handleRefresh}
               disabled={loading || refreshing}
-              className="w-full sm:w-auto"
+              className="w-full xs:w-auto h-8 sm:h-9 text-xs sm:text-sm"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Refresh</span>
               <span className="sm:hidden">Refresh</span>
             </Button>
-            <Button variant="outline" asChild className="w-full sm:w-auto border-blue-200 hover:bg-blue-50">
+            <Button variant="outline" asChild className="w-full xs:w-auto h-8 sm:h-9 text-xs sm:text-sm border-blue-200 hover:bg-blue-50">
               <Link href="/marketplace">
-                <Store className="h-4 w-4 mr-2 text-blue-600" />
+                <Store className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-blue-600" />
                 <span className="hidden sm:inline">Browse Marketplace</span>
                 <span className="sm:hidden">Marketplace</span>
               </Link>
             </Button>
-            <Button variant="outline" asChild className="w-full sm:w-auto">
+            <Button variant="outline" asChild className="w-full xs:w-auto h-8 sm:h-9 text-xs sm:text-sm">
               <Link href="/dashboard/marketplace/analytics">
-                <TrendingUp className="h-4 w-4 mr-2" />
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                 <span className="hidden sm:inline">View Analytics</span>
                 <span className="sm:hidden">Analytics</span>
-              </Link>
-            </Button>
-            <Button asChild className="w-full sm:w-auto">
-              <Link href="/dashboard/marketplace/new">
-                <Plus className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Create Listing</span>
-                <span className="sm:hidden">Create</span>
               </Link>
             </Button>
           </div>
         </div>
 
         {/* Listings Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border border-gray-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Store className="h-4 w-4 text-blue-500" />
-                Total Listings
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <Card className="border border-gray-200 h-full">
+            <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2">
+                <Store className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
+                <span className="truncate pr-2 min-w-0 flex-1">Total Listings</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.totalListings}</div>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{stats.totalListings}</div>
               <p className="text-xs text-gray-500">{stats.activeListings} active</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <ShoppingCart className="h-4 w-4 text-green-500" />
-                Total Orders
+          <Card className="border border-gray-200 h-full">
+            <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2">
+                <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
+                <span className="truncate pr-2 min-w-0 flex-1">Total Orders</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.totalOrders}</div>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{stats.totalOrders}</div>
               <p className="text-xs text-gray-500">{stats.pendingOrders} pending</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Banknote className="h-4 w-4 text-emerald-500" />
-                Total Revenue
+          <Card className="border border-gray-200 h-full">
+            <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2">
+                <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
+                <span className="truncate pr-2 min-w-0 flex-1">Total Revenue</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">₦{(stats.totalRevenue / 1000000).toFixed(1)}M</div>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">₦{(stats.totalRevenue / 1000000).toFixed(1)}M</div>
               <p className="text-xs text-gray-500">₦{(stats.monthlyRevenue / 1000).toFixed(0)}K this month</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Users className="h-4 w-4 text-purple-500" />
-                Customers
+          <Card className="border border-gray-200 h-full">
+            <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2">
+                <Users className="h-3 w-3 sm:h-4 sm:w-4 text-purple-500 flex-shrink-0" />
+                <span className="truncate pr-2 min-w-0 flex-1">Customers</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.totalCustomers}</div>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{stats.totalCustomers}</div>
               <p className="text-xs text-gray-500">⭐ {stats.averageRating} avg rating</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="listings">My Listings</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3 sm:space-y-4">
+          <TabsList className="grid w-full grid-cols-3 h-8 sm:h-9">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+            <TabsTrigger value="listings" className="text-xs sm:text-sm">My Listings</TabsTrigger>
+            <TabsTrigger value="orders" className="text-xs sm:text-sm">Orders</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TabsContent value="overview" className="space-y-4 sm:space-y-6">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
               {/* Recent Listings */}
-              <Card className="border border-gray-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base font-medium">
-                    <Package className="h-4 w-4 text-blue-500" />
+              <Card className="border border-gray-200 h-full">
+                <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
+                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
+                    <Package className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
                     Recent Listings
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">
                     Your latest product listings
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
+                <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+                  <div className="space-y-2 sm:space-y-3">
                     {listings.slice(0, 3).map((listing) => (
-                      <div key={listing._id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="text-2xl">{getCategoryIcon(listing.category)}</div>
-                          <div>
-                            <div className="font-medium text-gray-900">{listing.cropName}</div>
-                            <div className="text-sm text-gray-500">
+                      <div key={listing._id} className="flex items-center justify-between p-2 sm:p-3 border border-gray-100 rounded-lg">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                          <div className="text-lg sm:text-xl lg:text-2xl flex-shrink-0">{getCategoryIcon(listing.category)}</div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-gray-900 text-xs sm:text-sm truncate">{listing.cropName}</div>
+                            <div className="text-xs text-gray-500 truncate">
                               {listing.availableQuantity} {listing.unit} available
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-medium text-gray-900">₦{listing.basePrice.toLocaleString()}</div>
-                          <Badge className={getStatusColor(listing.status)}>
+                        <div className="text-right flex-shrink-0">
+                          <div className="font-medium text-gray-900 text-xs sm:text-sm">₦{listing.basePrice.toLocaleString()}</div>
+                          <Badge className={`${getStatusColor(listing.status)} text-xs`}>
                             {listing.status.replace('_', ' ')}
                           </Badge>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <div className="pt-3">
-                    <Button variant="outline" className="w-full" asChild>
+                  <div className="pt-2 sm:pt-3">
+                    <Button variant="outline" className="w-full h-8 sm:h-9 text-xs sm:text-sm" asChild>
                       <Link href="/dashboard/marketplace/listings">
                         View All Listings
                       </Link>
@@ -553,30 +545,30 @@ export default function MarketplacePage() {
               </Card>
 
               {/* Recent Orders */}
-              <Card className="border border-gray-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base font-medium">
-                    <ShoppingCart className="h-4 w-4 text-green-500" />
+              <Card className="border border-gray-200 h-full">
+                <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
+                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
+                    <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
                     Recent Orders
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">
                     Latest customer orders
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
+                <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+                  <div className="space-y-2 sm:space-y-3">
                     {orders.slice(0, 3).map((order) => (
-                      <div key={order._id} className="p-3 border border-gray-100 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="font-medium text-gray-900">{order.orderNumber}</div>
-                          <Badge className={getOrderStatusColor(order.status)}>
+                      <div key={order._id} className="p-2 sm:p-3 border border-gray-100 rounded-lg">
+                        <div className="flex items-center justify-between mb-1 sm:mb-2">
+                          <div className="font-medium text-gray-900 text-xs sm:text-sm truncate">{order.orderNumber}</div>
+                          <Badge className={`${getOrderStatusColor(order.status)} text-xs`}>
                             {order.status}
                           </Badge>
                         </div>
-                        <div className="text-sm text-gray-600 mb-2">
+                        <div className="text-xs text-gray-600 mb-1 sm:mb-2 truncate">
                           {order.customer.name} • {order.products.length} item(s)
                         </div>
-                        <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center justify-between text-xs">
                           <span className="text-gray-500">
                             {new Date(order.orderDate).toLocaleDateString()}
                           </span>
@@ -587,8 +579,8 @@ export default function MarketplacePage() {
                       </div>
                     ))}
                   </div>
-                  <div className="pt-3">
-                    <Button variant="outline" className="w-full" asChild>
+                  <div className="pt-2 sm:pt-3">
+                    <Button variant="outline" className="w-full h-8 sm:h-9 text-xs sm:text-sm" asChild>
                       <Link href="/dashboard/marketplace/orders">
                         View All Orders
                       </Link>
@@ -600,36 +592,30 @@ export default function MarketplacePage() {
 
             {/* Quick Actions */}
             <Card className="border border-gray-200">
-              <CardHeader>
-                <CardTitle className="text-base font-medium">Quick Actions</CardTitle>
-                <CardDescription>
+              <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
+                <CardTitle className="text-sm sm:text-base font-medium">Quick Actions</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   Common listing management tasks
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <Button variant="outline" className="h-20 flex-col gap-2" asChild>
-                    <Link href="/dashboard/marketplace/new">
-                      <Plus className="h-6 w-6" />
-                      Create New Listing
-                    </Link>
-                  </Button>
-                  <Button variant="outline" className="h-20 flex-col gap-2 border-blue-200 hover:bg-blue-50" asChild>
+              <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3">
+                  <Button variant="outline" className="h-16 sm:h-20 flex-col gap-1 sm:gap-2 text-xs sm:text-sm border-blue-200 hover:bg-blue-50" asChild>
                     <Link href="/marketplace">
-                      <Store className="h-6 w-6 text-blue-600" />
-                      Browse Marketplace
+                      <Store className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
+                      <span className="text-center">Browse Marketplace</span>
                     </Link>
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col gap-2" asChild>
+                  <Button variant="outline" className="h-16 sm:h-20 flex-col gap-1 sm:gap-2 text-xs sm:text-sm" asChild>
                     <Link href="/dashboard/marketplace/analytics">
-                      <TrendingUp className="h-6 w-6" />
-                      View Analytics
+                      <TrendingUp className="h-4 w-4 sm:h-6 sm:w-6" />
+                      <span className="text-center">View Analytics</span>
                     </Link>
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col gap-2" asChild>
+                  <Button variant="outline" className="h-16 sm:h-20 flex-col gap-1 sm:gap-2 text-xs sm:text-sm" asChild>
                     <Link href="/dashboard/marketplace/orders">
-                      <ShoppingCart className="h-6 w-6" />
-                      Manage Orders
+                      <ShoppingCart className="h-4 w-4 sm:h-6 sm:w-6" />
+                      <span className="text-center">Manage Orders</span>
                     </Link>
                   </Button>
                 </div>
@@ -638,28 +624,28 @@ export default function MarketplacePage() {
           </TabsContent>
 
           {/* Listings Tab */}
-          <TabsContent value="listings" className="space-y-4">
+          <TabsContent value="listings" className="space-y-3 sm:space-y-4">
             {/* Filters and Search */}
             <Card className="border border-gray-200">
-              <CardContent className="pt-6">
-                <div className="flex flex-col md:flex-row gap-4">
+              <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 sm:pb-4">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                   <div className="flex-1">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
                       <input
                         type="text"
                         placeholder="Search listings..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm h-8 sm:h-9"
                       />
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 sm:gap-3">
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm h-8 sm:h-9"
                     >
                       <option value="all">All Status</option>
                       <option value="active">Active</option>
@@ -670,7 +656,7 @@ export default function MarketplacePage() {
                     <select
                       value={categoryFilter}
                       onChange={(e) => setCategoryFilter(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm h-8 sm:h-9"
                     >
                       <option value="all">All Categories</option>
                       <option value="grains">Grains</option>
@@ -686,53 +672,53 @@ export default function MarketplacePage() {
             </Card>
 
             {/* Listings Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {filteredListings.map((listing) => (
-                <Card key={listing._id} className="border border-gray-200 hover:shadow-lg transition-shadow">
-                  <CardHeader className="pb-3">
+                <Card key={listing._id} className="border border-gray-200 hover:shadow-lg transition-shadow h-full">
+                  <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                     <div className="flex items-start justify-between">
-                      <div className="space-y-2">
+                      <div className="space-y-2 min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-2xl">{getCategoryIcon(listing.category)}</span>
-                          <Badge className={getStatusColor(listing.status)}>
+                          <span className="text-lg sm:text-xl lg:text-2xl flex-shrink-0">{getCategoryIcon(listing.category)}</span>
+                          <Badge className={`${getStatusColor(listing.status)} text-xs`}>
                             {listing.status.replace('_', ' ')}
                           </Badge>
                         </div>
-                        <CardTitle className="text-lg font-semibold">{listing.cropName}</CardTitle>
-                        <CardDescription className="text-sm line-clamp-2">
+                        <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold truncate">{listing.cropName}</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm line-clamp-2">
                           {listing.description}
                         </CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
+                  <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-4 pb-3 sm:pb-4">
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-gray-600">Price:</span>
                         <span className="font-medium">₦{listing.basePrice.toLocaleString()}/{listing.unit}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-gray-600">Available:</span>
                         <span className="font-medium">{listing.availableQuantity} {listing.unit}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-gray-600">Location:</span>
-                        <span className="font-medium">{typeof listing.location === 'string' ? listing.location : `${listing.location?.city || 'Unknown'}, ${listing.location?.state || 'Unknown State'}`}</span>
+                        <span className="font-medium truncate ml-2">{typeof listing.location === 'string' ? listing.location : `${listing.location?.city || 'Unknown'}, ${listing.location?.state || 'Unknown State'}`}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-sm text-gray-500">
+                    <div className="flex items-center justify-between text-xs text-gray-500">
                       <div className="flex items-center gap-1">
-                        <Eye className="h-3 w-3" />
+                        <Eye className="h-3 w-3 flex-shrink-0" />
                         <span>{listing.views} views</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <ShoppingCart className="h-3 w-3" />
+                        <ShoppingCart className="h-3 w-3 flex-shrink-0" />
                         <span>{listing.orders} orders</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Star className="h-3 w-3" />
+                        <Star className="h-3 w-3 flex-shrink-0" />
                         <span>{listing.rating}</span>
                       </div>
                     </div>
@@ -741,19 +727,19 @@ export default function MarketplacePage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 h-7 sm:h-8 text-xs"
                         onClick={() => handleViewListing(listing._id)}
                       >
-                        <Eye className="h-4 w-4 mr-1" />
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         View
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 h-7 sm:h-8 text-xs"
                         onClick={() => handleEditListing(listing._id)}
                       >
-                        <Edit className="h-4 w-4 mr-1" />
+                        <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         Edit
                       </Button>
                     </div>
@@ -763,107 +749,104 @@ export default function MarketplacePage() {
             </div>
 
             {filteredListings.length === 0 && (
-              <Card className="text-center py-12 border border-gray-200">
-                <div className="text-gray-400 mb-4">
-                  <Package className="h-16 w-16 mx-auto" />
+              <Card className="text-center py-8 sm:py-12 border border-gray-200">
+                <div className="text-gray-400 mb-3 sm:mb-4">
+                  <Package className="h-12 w-12 sm:h-16 sm:w-16 mx-auto" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Listings Found</h3>
-                <p className="text-gray-600 mb-4">
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Listings Found</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                   {searchQuery || statusFilter !== 'all' || categoryFilter !== 'all'
                     ? "Try adjusting your filters to find listings."
                     : "You haven't created any product listings yet."
                   }
                 </p>
-                <Button asChild>
-                  <Link href="/dashboard/marketplace/new">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Your First Listing
-                  </Link>
-                </Button>
               </Card>
             )}
           </TabsContent>
 
           {/* Orders Tab */}
-          <TabsContent value="orders" className="space-y-4">
+          <TabsContent value="orders" className="space-y-3 sm:space-y-4">
             <Card className="border border-gray-200">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base font-medium">
-                  <ShoppingCart className="h-4 w-4 text-green-500" />
+              <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
+                  <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
                   Customer Orders
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs sm:text-sm">
                   Manage incoming orders and track delivery status
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+              <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+                <div className="space-y-3 sm:space-y-4">
                   {orders.map((order) => (
-                    <div key={order._id} className="p-4 border border-gray-200 rounded-lg">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h4 className="font-medium text-gray-900">{order.orderNumber}</h4>
-                          <p className="text-sm text-gray-600">{order.customer.name}</p>
+                    <div key={order._id} className="p-3 sm:p-4 border border-gray-200 rounded-lg">
+                      <div className="flex items-start justify-between mb-2 sm:mb-3">
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-medium text-gray-900 text-xs sm:text-sm truncate">{order.orderNumber}</h4>
+                          <p className="text-xs text-gray-600 truncate">{order.customer.name}</p>
                         </div>
-                        <div className="text-right">
-                          <div className="font-medium text-gray-900">₦{order.totalAmount.toLocaleString()}</div>
-                          <div className="flex gap-2 mt-1">
-                            <Badge className={getOrderStatusColor(order.status)}>
+                        <div className="text-right flex-shrink-0">
+                          <div className="font-medium text-gray-900 text-xs sm:text-sm">₦{order.totalAmount.toLocaleString()}</div>
+                          <div className="flex gap-1 sm:gap-2 mt-1">
+                            <Badge className={`${getOrderStatusColor(order.status)} text-xs`}>
                               {order.status}
                             </Badge>
-                            <Badge className={getPaymentStatusColor(order.paymentStatus)}>
+                            <Badge className={`${getPaymentStatusColor(order.paymentStatus)} text-xs`}>
                               {order.paymentStatus}
                             </Badge>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="space-y-2 mb-3">
+                      <div className="space-y-1.5 sm:space-y-2 mb-2 sm:mb-3">
                         {order.products.map((product, index) => (
-                          <div key={index} className="flex justify-between text-sm">
-                            <span className="text-gray-600">
+                          <div key={index} className="flex justify-between text-xs sm:text-sm">
+                            <span className="text-gray-600 truncate mr-2">
                               {product.cropName} ({product.quantity} {product.unit})
                             </span>
-                            <span className="font-medium">₦{product.price.toLocaleString()}</span>
+                            <span className="font-medium flex-shrink-0">₦{product.price.toLocaleString()}</span>
                           </div>
                         ))}
                       </div>
 
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500 mb-2 sm:mb-3 gap-1 sm:gap-0">
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
+                          <Calendar className="h-3 w-3 flex-shrink-0" />
                           <span>Ordered: {new Date(order.orderDate).toLocaleDateString()}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
+                          <Calendar className="h-3 w-3 flex-shrink-0" />
                           <span>Expected: {new Date(order.expectedDelivery).toLocaleDateString()}</span>
                         </div>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex flex-col xs:flex-row gap-2">
                         <Button
                           variant="outline"
                           size="sm"
+                          className="h-7 sm:h-8 text-xs flex-1"
                           onClick={() => handleViewOrder(order._id)}
                         >
-                          <Eye className="h-4 w-4 mr-1" />
+                          <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                           View Details
                         </Button>
                         {order.status === 'pending' && (
                           <Button
                             size="sm"
+                            className="h-7 sm:h-8 text-xs flex-1"
                             onClick={() => handleUpdateOrderStatus(order._id, 'confirmed')}
                           >
-                            <Package className="h-4 w-4 mr-1" />
+                            <Package className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                             Confirm Order
                           </Button>
                         )}
                         {order.status === 'confirmed' && (
                           <Button
                             size="sm"
+                            className="h-7 sm:h-8 text-xs flex-1"
                             onClick={() => handleUpdateOrderStatus(order._id, 'shipped')}
                           >
-                            <Package className="h-4 w-4 mr-1" />
+                            <Package className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                             Mark Shipped
                           </Button>
                         )}
@@ -871,9 +854,10 @@ export default function MarketplacePage() {
                           <Button
                             size="sm"
                             variant="outline"
+                            className="h-7 sm:h-8 text-xs flex-1"
                             onClick={() => handleUpdateOrderStatus(order._id, 'delivered')}
                           >
-                            <Package className="h-4 w-4 mr-1" />
+                            <Package className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                             Mark Delivered
                           </Button>
                         )}
@@ -883,10 +867,10 @@ export default function MarketplacePage() {
                 </div>
 
                 {orders.length === 0 && (
-                  <div className="text-center py-8">
-                    <ShoppingCart className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Orders Yet</h3>
-                    <p className="text-gray-600">
+                  <div className="text-center py-6 sm:py-8">
+                    <ShoppingCart className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Orders Yet</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">
                       When customers place orders, they will appear here for you to manage.
                     </p>
                   </div>

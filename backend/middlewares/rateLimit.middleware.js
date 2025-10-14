@@ -19,11 +19,17 @@ class RateLimitMiddleware {
       skipFailedRequests: false
     }
 
-    // Specific endpoint limits
+    // Specific endpoint limits (with environment overrides)
+    const relaxedSecurity = process.env.RELAXED_SECURITY === 'true' || process.env.NODE_ENV !== 'production'
+    const authWindowMs = Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000)
+    const authMax = Number(process.env.AUTH_RATE_LIMIT_MAX || (relaxedSecurity ? 100 : 5))
+    const apiWindowMs = Number(process.env.API_RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000)
+    const apiMax = Number(process.env.API_RATE_LIMIT_MAX || (relaxedSecurity ? 5000 : 1000))
+
     this.endpointLimits = {
       auth: {
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 5, // 5 login attempts per 15 minutes
+        windowMs: authWindowMs,
+        max: authMax,
         message: 'Too many authentication attempts, please try again later.'
       },
       payment: {
@@ -37,8 +43,8 @@ class RateLimitMiddleware {
         message: 'Too many USSD requests, please try again later.'
       },
       api: {
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 1000, // 1000 API requests per 15 minutes
+        windowMs: apiWindowMs,
+        max: apiMax,
         message: 'API rate limit exceeded, please try again later.'
       },
       upload: {
@@ -120,6 +126,13 @@ class RateLimitMiddleware {
   rateLimit(endpoint = 'default') {
     return async (req, res, next) => {
       try {
+        // Allow disabling per-endpoint via environment flags
+        if (process.env.DISABLE_AUTH_RATE_LIMIT === 'true' && endpoint === 'auth') {
+          return next()
+        }
+        if (process.env.RATE_LIMIT_ENABLED === 'false') {
+          return next()
+        }
         const identifier = req.ip || req.connection.remoteAddress || 'unknown'
         const result = await this.checkRateLimit(identifier, endpoint)
         

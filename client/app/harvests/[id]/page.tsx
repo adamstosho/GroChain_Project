@@ -120,56 +120,56 @@ export default function HarvestDetailPage() {
   return (
     <>
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50">
-      <div className="container mx-auto px-4 py-8">
-        <Button variant="ghost" asChild className="mb-6">
-          <Link href="/harvests" className="flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" />
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <Button variant="ghost" asChild className="mb-4 sm:mb-6">
+          <Link href="/harvests" className="flex items-center gap-2 text-sm sm:text-base">
+            <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
             Back to Harvests
           </Link>
         </Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Header */}
             <Card>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">{harvest?.cropType}</h1>
-                    <p className="text-gray-600">Batch #{harvest?.batchId || harvest?.batchNumber}</p>
+              <CardHeader className="px-3 sm:px-4 pt-3 sm:pt-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2 truncate">{harvest?.cropType}</h1>
+                    <p className="text-sm sm:text-base text-gray-600 truncate">Batch #{harvest?.batchId || harvest?.batchNumber}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={getStatusColor(harvest?.status)}>{harvest?.status}</Badge>
-                    <Button variant="outline" size="sm" asChild>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Badge className={`${getStatusColor(harvest?.status)} text-xs sm:text-sm`}>{harvest?.status}</Badge>
+                    <Button variant="outline" size="sm" asChild className="h-7 sm:h-8">
                       <Link href={`/harvests/${harvest?._id || harvest?.id}/edit`}>
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Link>
                     </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="flex items-center gap-3">
-                    <Scale className="h-5 w-5 text-green-600" />
-                    <div>
-                      <p className="text-2xl font-bold text-green-600">{harvest?.quantity}</p>
-                      <p className="text-sm text-gray-500">{harvest?.unit}</p>
+              <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Scale className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 truncate">{harvest?.quantity}</p>
+                      <p className="text-xs sm:text-sm text-gray-500 truncate">{harvest?.unit}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <p className="font-semibold">{new Date(harvest.harvestDate).toLocaleDateString()}</p>
-                      <p className="text-sm text-gray-500">Harvest Date</p>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm sm:text-base truncate">{new Date(harvest.harvestDate).toLocaleDateString()}</p>
+                      <p className="text-xs sm:text-sm text-gray-500 truncate">Harvest Date</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <MapPin className="h-5 w-5 text-red-600" />
-                    <div>
-                      <p className="font-semibold">{typeof harvest?.location === 'string' ? harvest.location : harvest?.location ? `${harvest.location.city || 'Unknown'}, ${harvest.location.state || 'Unknown State'}` : 'Location not specified'}</p>
-                      <p className="text-sm text-gray-500">Location</p>
+                  <div className="flex items-center gap-2 sm:gap-3 sm:col-span-2 lg:col-span-1">
+                    <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm sm:text-base truncate">{typeof harvest?.location === 'string' ? harvest.location : harvest?.location ? `${harvest.location.city || 'Unknown'}, ${harvest.location.state || 'Unknown State'}` : 'Location not specified'}</p>
+                      <p className="text-xs sm:text-sm text-gray-500 truncate">Location</p>
                     </div>
                   </div>
                 </div>

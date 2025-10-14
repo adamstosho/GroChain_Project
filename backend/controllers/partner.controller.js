@@ -135,15 +135,18 @@ exports.getPartnerMetrics = async (req, res) => {
 
 exports.onboardFarmer = async (req, res) => {
   try {
+    const mongoose = require('mongoose')
+    const session = await mongoose.startSession()
+    session.startTransaction()
     const { farmerId } = req.body
     const partnerId = req.params.id
     
-    const partner = await Partner.findById(partnerId)
+    const partner = await Partner.findById(partnerId).session(session)
     if (!partner) {
       return res.status(404).json({ status: 'error', message: 'Partner not found' })
     }
     
-    const farmer = await User.findById(farmerId)
+    const farmer = await User.findById(farmerId).session(session)
     if (!farmer) {
       return res.status(404).json({ status: 'error', message: 'Farmer not found' })
     }
@@ -156,15 +159,19 @@ exports.onboardFarmer = async (req, res) => {
     if (!partner.farmers.includes(farmerId)) {
       partner.farmers.push(farmerId)
       partner.totalFarmers = partner.farmers.length
-      await partner.save()
+      await partner.save({ session })
     }
     
     // Update farmer's partner reference
     farmer.partner = partnerId
-    await farmer.save()
-    
+    await farmer.save({ session })
+
+    await session.commitTransaction()
+    session.endSession()
+
     return res.json({ status: 'success', message: 'Farmer onboarded successfully' })
   } catch (error) {
+    try { if (session) { await session.abortTransaction(); session.endSession() } } catch (e) {}
     return res.status(500).json({ status: 'error', message: 'Server error' })
   }
 }

@@ -429,7 +429,7 @@ export default function FarmerHarvestsPage() {
   const cropTypes = Array.from(new Set(harvests.map(h => h.cropType)))
 
   const HarvestCard = ({ harvest, variant = "default" }: { harvest: HarvestData; variant?: "default" | "detailed" }) => (
-    <Card className="group hover:shadow-lg transition-all duration-200 border border-gray-200">
+    <Card className="group hover:shadow-lg transition-all duration-200 border border-gray-200 h-full">
       <div className="relative">
         {harvest.images && harvest.images.length > 0 ? (
           <div className="aspect-video overflow-hidden rounded-t-lg">
@@ -443,97 +443,99 @@ export default function FarmerHarvestsPage() {
           </div>
         ) : (
           <div className="aspect-video bg-gradient-to-br from-gray-50 to-gray-100 rounded-t-lg flex items-center justify-center border-b">
-            <Leaf className="h-12 w-12 text-gray-400" />
+            <Leaf className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
           </div>
         )}
         
-        <div className="absolute top-3 right-3">
-          <Badge className={getStatusColor(harvest.status)}>
+        <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
+          <Badge className={`${getStatusColor(harvest.status)} text-xs`}>
             {harvest.status.charAt(0).toUpperCase() + harvest.status.slice(1)}
           </Badge>
         </div>
       </div>
 
-      <CardContent className="p-4">
-        <div className="space-y-3">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors">
+      <CardContent className="p-3 sm:p-4">
+        <div className="space-y-2 sm:space-y-3">
+          <div className="min-w-0">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 group-hover:text-primary transition-colors truncate">
               {harvest.cropType}
             </h3>
             {harvest.variety && (
-              <p className="text-sm text-gray-600">{harvest.variety}</p>
+              <p className="text-xs sm:text-sm text-gray-600 truncate">{harvest.variety}</p>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <Scale className="h-3 w-3" />
-                <span>Quantity</span>
+              <div className="flex items-center gap-1 sm:gap-2 text-xs text-gray-500">
+                <Scale className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">Quantity</span>
               </div>
-              <p className="font-medium text-gray-900">
+              <p className="font-medium text-gray-900 text-xs sm:text-sm truncate">
                 {harvest.quantity} {harvest.unit}
               </p>
             </div>
             
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <Calendar className="h-3 w-3" />
-                <span>Date</span>
+              <div className="flex items-center gap-1 sm:gap-2 text-xs text-gray-500">
+                <Calendar className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">Date</span>
               </div>
-              <p className="font-medium text-gray-900">
+              <p className="font-medium text-gray-900 text-xs sm:text-sm truncate">
                 {new Date(harvest.harvestDate).toLocaleDateString()}
               </p>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-3 w-3 text-gray-400" />
-              <span className="text-sm text-gray-600">{typeof harvest.location === 'string' ? harvest.location : `${harvest.location?.city || 'Unknown'}, ${harvest.location?.state || 'Unknown State'}`}</span>
+          <div className="space-y-1 sm:space-y-2">
+            <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+              <MapPin className="h-3 w-3 text-gray-400 flex-shrink-0" />
+              <span className="text-xs sm:text-sm text-gray-600 truncate min-w-0 flex-1">
+                {typeof harvest.location === 'string' ? harvest.location : `${harvest.location?.city || 'Unknown'}, ${harvest.location?.state || 'Unknown State'}`}
+              </span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Badge className={getQualityColor(harvest.quality)} variant="outline">
+            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+              <Badge className={`${getQualityColor(harvest.quality)} text-xs`} variant="outline">
                 Grade {harvest.qualityGrade}
               </Badge>
               {harvest.organic && (
-                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200" variant="outline">
-                  <Shield className="h-3 w-3 mr-1" />
+                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs" variant="outline">
+                  <Shield className="h-2 w-2 sm:h-3 sm:w-3 mr-1" />
                   Organic
                 </Badge>
               )}
             </div>
 
             {harvest.price && (
-              <div className="flex items-center gap-2 text-emerald-600 font-medium">
-                <Banknote className="h-3 w-3" />
-                ₦{harvest.price.toLocaleString()}
+              <div className="flex items-center gap-1 sm:gap-2 text-emerald-600 font-medium text-xs sm:text-sm">
+                <Banknote className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">₦{harvest.price.toLocaleString()}</span>
               </div>
             )}
           </div>
 
-          <div className="flex items-center justify-between pt-3 border-t">
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" asChild>
+          <div className="flex items-center justify-between pt-2 sm:pt-3 border-t">
+            <div className="flex gap-1 sm:gap-2 min-w-0 flex-1">
+              <Button size="sm" variant="outline" asChild className="text-xs h-7 sm:h-8 px-2 sm:px-3">
                 <Link href={`/dashboard/harvests/${harvest._id}`}>
                   <Eye className="h-3 w-3 mr-1" />
-                  View
+                  <span className="hidden sm:inline">View</span>
                 </Link>
               </Button>
-                             <Button size="sm" variant="outline" asChild>
+                             <Button size="sm" variant="outline" asChild className="text-xs h-7 sm:h-8 px-2 sm:px-3">
                  <Link href={`/dashboard/harvests/${harvest._id}/edit`}>
                    <Edit className="h-3 w-3 mr-1" />
-                   Edit
+                   <span className="hidden sm:inline">Edit</span>
                  </Link>
                </Button>
                
                {/* List on Marketplace Button - Only show for approved harvests */}
                {harvest.status === "approved" && (
-                 <Button size="sm" variant="outline" asChild>
+                 <Button size="sm" variant="outline" asChild className="text-xs h-7 sm:h-8 px-2 sm:px-3">
                    <Link href={`/dashboard/marketplace/new?harvestId=${harvest._id}`}>
                      <Banknote className="h-3 w-3 mr-1" />
-                     List
+                     <span className="hidden sm:inline">List</span>
                    </Link>
                  </Button>
                )}
@@ -541,8 +543,8 @@ export default function FarmerHarvestsPage() {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                  <MoreHorizontal className="h-4 w-4" />
+                <Button size="sm" variant="ghost" className="h-7 w-7 sm:h-8 sm:w-8 p-0 flex-shrink-0">
+                  <MoreHorizontal className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -600,129 +602,131 @@ export default function FarmerHarvestsPage() {
     <DashboardLayout pageTitle="Harvest Management">
       <div className="space-y-6">
         {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-gray-900">Harvest Management</h1>
-            <p className="text-gray-600">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="min-w-0 flex-1 space-y-1">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 truncate">Harvest Management</h1>
+            <p className="text-sm sm:text-base text-gray-600">
               Track and manage your agricultural harvests for better yields and market access
             </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button asChild>
+          <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 flex-shrink-0">
+            <Button asChild size="sm" className="w-full xs:w-auto">
               <Link href="/dashboard/harvests/new">
-                <Plus className="h-4 w-4 mr-2" />
-                Log New Harvest
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                <span className="hidden sm:inline">Log New Harvest</span>
+                <span className="sm:hidden">New Harvest</span>
               </Link>
             </Button>
-            <Button variant="outline" onClick={async () => {
+            <Button variant="outline" size="sm" onClick={async () => {
               await Promise.all([fetchHarvests(), fetchStats()])
-            }}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
+            }} className="w-full xs:w-auto">
+              <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+              <span className="hidden sm:inline">Refresh</span>
+              <span className="sm:hidden">Refresh</span>
             </Button>
           </div>
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          <Card className="border border-gray-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Package className="h-4 w-4 text-gray-500" />
-                Total Harvests
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <Card className="border border-gray-200 h-full">
+            <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
+                <Package className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
+                <span className="truncate">Total Harvests</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
               {statsLoading ? (
                 <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  <span className="text-sm text-gray-500">Loading...</span>
+                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
+                  <span className="text-xs sm:text-sm text-gray-500">Loading...</span>
                 </div>
               ) : (
-                <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">{stats.total}</div>
               )}
-              <p className="text-xs text-gray-500">All time harvests</p>
+              <p className="text-xs text-gray-500 truncate">All time harvests</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Clock className="h-4 w-4 text-amber-500" />
-                Pending
+          <Card className="border border-gray-200 h-full">
+            <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
+                <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500 flex-shrink-0" />
+                <span className="truncate">Pending</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
               {statsLoading ? (
                 <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  <span className="text-sm text-gray-500">Loading...</span>
+                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
+                  <span className="text-xs sm:text-sm text-gray-500">Loading...</span>
                 </div>
               ) : (
-                <div className="text-2xl font-bold text-gray-900">{stats.pending}</div>
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">{stats.pending}</div>
               )}
-              <p className="text-xs text-gray-500">Awaiting verification</p>
+              <p className="text-xs text-gray-500 truncate">Awaiting verification</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-500" />
-                Approved
+          <Card className="border border-gray-200 h-full">
+            <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
+                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
+                <span className="truncate">Approved</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
               {statsLoading ? (
                 <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  <span className="text-sm text-gray-500">Loading...</span>
+                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
+                  <span className="text-xs sm:text-sm text-gray-500">Loading...</span>
                 </div>
               ) : (
-                <div className="text-2xl font-bold text-gray-900">{stats.approved}</div>
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">{stats.approved}</div>
               )}
-              <p className="text-xs text-gray-500">Verified harvests</p>
+              <p className="text-xs text-gray-500 truncate">Verified harvests</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-red-500" />
-                Rejected
+          <Card className="border border-gray-200 h-full">
+            <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
+                <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 flex-shrink-0" />
+                <span className="truncate">Rejected</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
               {statsLoading ? (
                 <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  <span className="text-sm text-gray-500">Loading...</span>
+                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
+                  <span className="text-xs sm:text-sm text-gray-500">Loading...</span>
                 </div>
               ) : (
-                <div className="text-2xl font-bold text-gray-900">{stats.rejected}</div>
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">{stats.rejected}</div>
               )}
-              <p className="text-xs text-gray-500">Rejected harvests</p>
+              <p className="text-xs text-gray-500 truncate">Rejected harvests</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-blue-500" />
-                Total Value
+          <Card className="border border-gray-200 h-full">
+            <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
+                <span className="truncate">Total Value</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
               {statsLoading ? (
                 <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  <span className="text-sm text-gray-500">Loading...</span>
+                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
+                  <span className="text-xs sm:text-sm text-gray-500">Loading...</span>
                 </div>
               ) : (
-                <div className="text-2xl font-bold text-gray-900">₦{(stats.totalValue || 0).toLocaleString()}</div>
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">₦{(stats.totalValue || 0).toLocaleString()}</div>
               )}
-              <p className="text-xs text-gray-500">Estimated value</p>
+              <p className="text-xs text-gray-500 truncate">Estimated value</p>
             </CardContent>
           </Card>
         </div>
@@ -732,26 +736,26 @@ export default function FarmerHarvestsPage() {
 
         {/* Filters and Search */}
         <Card className="border border-gray-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-500" />
+          <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
+            <CardTitle className="text-sm sm:text-base font-medium flex items-center gap-2">
+              <Filter className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500" />
               Search & Filter
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 space-y-3">
+            <div className="grid gap-3 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-4">
+              <div className="xs:col-span-2 sm:col-span-2 md:col-span-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-3 w-3 sm:h-4 sm:w-4" />
                 <Input
-                  placeholder="Search by crop, location, or variety..."
+                  placeholder="Search by crop, location..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-9 h-8 sm:h-9 text-xs sm:text-sm"
                 />
               </div>
               
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -764,7 +768,7 @@ export default function FarmerHarvestsPage() {
               </Select>
 
               <Select value={cropFilter} onValueChange={setCropFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
                   <SelectValue placeholder="Filter by crop" />
                 </SelectTrigger>
                 <SelectContent>
@@ -775,12 +779,12 @@ export default function FarmerHarvestsPage() {
                 </SelectContent>
               </Select>
 
-              <div className="flex border rounded-md">
+              <div className="flex border rounded-md h-8 sm:h-9">
                 <Button
                   variant={viewMode === "grid" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("grid")}
-                  className="rounded-r-none"
+                  className="rounded-r-none text-xs sm:text-sm h-full"
                 >
                   Grid
                 </Button>
@@ -788,7 +792,7 @@ export default function FarmerHarvestsPage() {
                   variant={viewMode === "list" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("list")}
-                  className="rounded-l-none"
+                  className="rounded-l-none text-xs sm:text-sm h-full"
                 >
                   List
                 </Button>
@@ -798,43 +802,47 @@ export default function FarmerHarvestsPage() {
         </Card>
 
         {/* Harvests Display */}
-        <Tabs defaultValue="all" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="all" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              All ({stats.total})
+        <Tabs defaultValue="all" className="space-y-3 sm:space-y-4">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-8 sm:h-9">
+            <TabsTrigger value="all" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Package className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">All ({stats.total})</span>
+              <span className="sm:hidden">All</span>
             </TabsTrigger>
-            <TabsTrigger value="pending" className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Pending ({stats.pending})
+            <TabsTrigger value="pending" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Pending ({stats.pending})</span>
+              <span className="sm:hidden">Pending</span>
             </TabsTrigger>
-            <TabsTrigger value="approved" className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4" />
-              Approved ({stats.approved})
+            <TabsTrigger value="approved" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Approved ({stats.approved})</span>
+              <span className="sm:hidden">Approved</span>
             </TabsTrigger>
-            <TabsTrigger value="rejected" className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              Rejected ({stats.rejected})
+            <TabsTrigger value="rejected" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Rejected ({stats.rejected})</span>
+              <span className="sm:hidden">Rejected</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="space-y-4">
+          <TabsContent value="all" className="space-y-3 sm:space-y-4">
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
                 {[...Array(6)].map((_, i) => (
-                  <Card key={i} className="animate-pulse border border-gray-200">
-                    <div className="h-48 bg-gray-200 rounded-t-lg"></div>
-                    <CardContent className="p-4">
-                      <div className="h-5 bg-gray-200 rounded mb-2"></div>
+                  <Card key={i} className="animate-pulse border border-gray-200 h-full">
+                    <div className="h-32 sm:h-40 bg-gray-200 rounded-t-lg"></div>
+                    <CardContent className="p-3 sm:p-4">
                       <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-4 bg-gray-200 rounded mb-3"></div>
-                      <div className="h-8 bg-gray-200 rounded"></div>
+                      <div className="h-3 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded mb-3"></div>
+                      <div className="h-6 sm:h-8 bg-gray-200 rounded"></div>
                     </CardContent>
                   </Card>
                 ))}
               </div>
             ) : filteredHarvests.length > 0 ? (
-              <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-3"}>
+              <div className={viewMode === "grid" ? "grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4" : "space-y-3"}>
                 {filteredHarvests.map((harvest) => (
                   <HarvestCard
                     key={harvest.id}
@@ -844,20 +852,20 @@ export default function FarmerHarvestsPage() {
                 ))}
               </div>
             ) : (
-              <Card className="text-center py-12 border border-gray-200">
-                <div className="text-gray-400 mb-4">
-                  <Leaf className="h-16 w-16 mx-auto" />
+              <Card className="text-center py-6 sm:py-8 border border-gray-200">
+                <div className="text-gray-400 mb-3 sm:mb-4">
+                  <Leaf className="h-10 w-10 sm:h-12 sm:w-12 mx-auto" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No harvests found</h3>
-                <p className="text-gray-600 mb-4">
+                <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-2">No harvests found</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                   {searchQuery || statusFilter !== "all" || cropFilter !== "all" 
                     ? "Try adjusting your search or filters" 
                     : "Start by logging your first harvest to track your agricultural progress"}
                 </p>
                 {!searchQuery && statusFilter === "all" && cropFilter === "all" && (
-                  <Button asChild>
+                  <Button asChild size="sm" className="w-full sm:w-auto">
                     <Link href="/dashboard/harvests/new">
-                      <Plus className="h-4 w-4 mr-2" />
+                      <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                       Log Your First Harvest
                     </Link>
                   </Button>

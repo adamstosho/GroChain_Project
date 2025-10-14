@@ -248,13 +248,13 @@ export function FarmerDashboard() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {[...Array(5)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
+            <Card key={i} className="animate-pulse h-full">
               <CardHeader className="space-y-0 pb-2">
-                <div className="h-4 bg-muted rounded w-1/2" />
-                <div className="h-8 bg-muted rounded w-3/4" />
+                <div className="h-3 sm:h-4 bg-muted rounded w-1/2" />
+                <div className="h-6 sm:h-8 bg-muted rounded w-3/4" />
               </CardHeader>
             </Card>
           ))}
@@ -264,24 +264,26 @@ export function FarmerDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Dashboard Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Farmer Dashboard</h2>
-          <p className="text-muted-foreground">Manage your harvests and track your performance</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight truncate">Farmer Dashboard</h2>
+          <p className="text-sm sm:text-base text-muted-foreground">Manage your harvests and track your performance</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0">
           {lastUpdated && (
             <div className="text-xs text-muted-foreground flex items-center gap-1">
               <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-              Last updated: {lastUpdated.toLocaleTimeString()}
+              <span className="hidden sm:inline">Last updated: {lastUpdated.toLocaleTimeString()}</span>
+              <span className="sm:hidden">Updated: {lastUpdated.toLocaleTimeString()}</span>
             </div>
           )}
           {isLoading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-              Loading...
+              <span className="hidden sm:inline">Loading...</span>
+              <span className="sm:hidden">Loading...</span>
             </div>
           )}
           <Button 
@@ -289,16 +291,17 @@ export function FarmerDashboard() {
             disabled={isRefreshing || isLoading}
             variant="outline" 
             size="sm"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+            <span className="sm:hidden">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
           </Button>
         </div>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         <StatsCard
           title="Total Harvests"
           value={stats?.totalHarvests || 0}
@@ -336,9 +339,9 @@ export function FarmerDashboard() {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Quick Actions */}
           <QuickActions actions={quickActions} />
 
@@ -356,7 +359,7 @@ export function FarmerDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {recentHarvests.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {recentHarvests.slice(0, 4).map((harvest) => (
                       <HarvestCard
                         key={harvest._id}
@@ -368,10 +371,10 @@ export function FarmerDashboard() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <Leaf className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No harvests recorded yet</p>
-                    <Button asChild className="mt-4">
+                  <div className="text-center py-6 sm:py-8">
+                    <Leaf className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                    <p className="text-sm sm:text-base text-muted-foreground">No harvests recorded yet</p>
+                    <Button asChild className="mt-3 sm:mt-4 w-full sm:w-auto">
                       <Link href="/dashboard/harvests/new">Add Your First Harvest</Link>
                     </Button>
                   </div>
@@ -383,61 +386,61 @@ export function FarmerDashboard() {
           {/* Performance Overview */}
           <Card>
             <CardHeader>
-              <CardTitle>Performance Overview</CardTitle>
-              <CardDescription>Your farming metrics and analytics</CardDescription>
+              <CardTitle className="text-sm sm:text-base">Performance Overview</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Your farming metrics and analytics</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {/* Harvest Quality */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Harvest Quality</span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs sm:text-sm font-medium">Harvest Quality</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">
                       {(stats?.totalHarvests || 0) > 0 ? '85%' : 'N/A'}
                     </span>
                   </div>
                   {(stats?.totalHarvests || 0) > 0 && (
-                    <Progress value={85} className="h-2" />
+                    <Progress value={85} className="h-1.5 sm:h-2" />
                   )}
                 </div>
 
                 {/* Market Success */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Market Success</span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs sm:text-sm font-medium">Market Success</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">
                       {(stats?.activeListings || 0) > 0 ? '72%' : 'N/A'}
                     </span>
                   </div>
                   {(stats?.activeListings || 0) > 0 && (
-                    <Progress value={72} className="h-2" />
+                    <Progress value={72} className="h-1.5 sm:h-2" />
                   )}
                 </div>
 
                 {/* Revenue Growth */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Revenue Growth</span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs sm:text-sm font-medium">Revenue Growth</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">
                       {(stats?.monthlyRevenue || 0) > 0 ? '+15%' : 'N/A'}
                     </span>
                   </div>
                   {(stats?.monthlyRevenue || 0) > 0 && (
-                    <Progress value={65} className="h-2" />
+                    <Progress value={65} className="h-1.5 sm:h-2" />
                   )}
                 </div>
 
                 {/* Activity Level */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Activity Level</span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs sm:text-sm font-medium">Activity Level</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">
                       {(stats?.totalHarvests || 0) > 0 ? 'Active' : 'Getting Started'}
                     </span>
                   </div>
                   <Progress
                     value={(stats?.totalHarvests || 0) > 0 ? 80 : 20}
-                    className="h-2"
+                    className="h-1.5 sm:h-2"
                   />
                 </div>
               </div>
@@ -446,7 +449,7 @@ export function FarmerDashboard() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Weather Widget */}
           <WeatherWidget />
 
@@ -456,51 +459,51 @@ export function FarmerDashboard() {
           {/* Credit Score */}
           <Card>
             <CardHeader>
-              <CardTitle>Credit Score</CardTitle>
-              <CardDescription>Your financial standing</CardDescription>
+              <CardTitle className="text-sm sm:text-base">Credit Score</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Your financial standing</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center">
                 {credit && credit.score !== "N/A" ? (
                   <>
-                    <div className="text-3xl font-bold text-primary mb-2">
+                    <div className="text-2xl sm:text-3xl font-bold text-primary mb-2">
                       {credit.score || "N/A"}
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       {getCreditScoreStatus(credit.score)}
                     </p>
                     {credit.factors && (
-                      <div className="mt-4 space-y-2">
+                      <div className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2">
                         <div className="flex justify-between text-xs">
-                          <span>Payment History</span>
-                          <span>{credit.factors.paymentHistory || credit.factors.paymentHistory || 0}%</span>
+                          <span className="truncate pr-2 min-w-0 flex-1">Payment History</span>
+                          <span className="flex-shrink-0">{credit.factors.paymentHistory || credit.factors.paymentHistory || 0}%</span>
                         </div>
                         <div className="flex justify-between text-xs">
-                          <span>Harvest Consistency</span>
-                          <span>{credit.factors.harvestConsistency || credit.factors.consistency || 0}%</span>
+                          <span className="truncate pr-2 min-w-0 flex-1">Harvest Consistency</span>
+                          <span className="flex-shrink-0">{credit.factors.harvestConsistency || credit.factors.consistency || 0}%</span>
                         </div>
                         <div className="flex justify-between text-xs">
-                          <span>Business Stability</span>
-                          <span>{credit.factors.businessStability || credit.factors.stability || 0}%</span>
+                          <span className="truncate pr-2 min-w-0 flex-1">Business Stability</span>
+                          <span className="flex-shrink-0">{credit.factors.businessStability || credit.factors.stability || 0}%</span>
                         </div>
                         <div className="flex justify-between text-xs">
-                          <span>Market Reputation</span>
-                          <span>{credit.factors.marketReputation || credit.factors.reputation || 0}%</span>
+                          <span className="truncate pr-2 min-w-0 flex-1">Market Reputation</span>
+                          <span className="flex-shrink-0">{credit.factors.marketReputation || credit.factors.reputation || 0}%</span>
                         </div>
                       </div>
                     )}
                   </>
                 ) : (
                   <>
-                    <div className="text-3xl font-bold text-muted-foreground mb-2">
+                    <div className="text-2xl sm:text-3xl font-bold text-muted-foreground mb-2">
                       N/A
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Calculating your credit score...
                     </p>
                   </>
                 )}
-                <Button variant="outline" size="sm" className="mt-4 w-full">
+                <Button variant="outline" size="sm" className="mt-3 sm:mt-4 w-full text-xs sm:text-sm">
                   View Details
                 </Button>
               </div>

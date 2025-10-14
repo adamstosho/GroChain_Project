@@ -30,7 +30,11 @@ class WebSocketService {
         credentials: true
       },
       // Add path for notifications WebSocket endpoint
-      path: '/notifications'
+      path: '/notifications',
+      transports: ['websocket', 'polling'],
+      connectTimeout: Number(process.env.WS_CONNECT_TIMEOUT_MS || 10000),
+      pingTimeout: Number(process.env.WS_PING_TIMEOUT_MS || 25000),
+      pingInterval: Number(process.env.WS_PING_INTERVAL_MS || 20000)
     })
 
     this.setupMiddleware()
@@ -43,6 +47,11 @@ class WebSocketService {
 
     this.io.on('connect_error', (error) => {
       console.error('🔌 WebSocket connect error:', error)
+    })
+
+    // Enable built-in retries on the client; here we emit guidance on retry
+    this.io.on('reconnect_attempt', (attempt) => {
+      console.log('🔌 WebSocket reconnect attempt:', attempt)
     })
 
     console.log('🔌 WebSocket service initialized')

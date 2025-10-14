@@ -8,7 +8,7 @@ import { apiService } from "@/lib/api"
 import { useAuthStore } from "@/lib/auth"
 import { useToast } from "@/hooks/use-toast"
 import { useGeolocation } from "@/hooks/useGeolocation"
-import { Cloud, Sun, CloudRain, Wind, Droplets, Calendar, Thermometer, Droplets as HumidityIcon, Navigation, RefreshCw, MapPin } from "lucide-react"
+import { Cloud, Sun, CloudRain, Wind, Droplets, Calendar, Thermometer, Droplets as HumidityIcon, Navigation, RefreshCw, MapPin, X } from "lucide-react"
 
 export function WeatherWidget() {
   const [weather, setWeather] = useState<any>(null)
@@ -17,6 +17,7 @@ export function WeatherWidget() {
   const [isForecastLoading, setIsForecastLoading] = useState(false)
   const [currentLocation, setCurrentLocation] = useState<string>("")
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
+  const [isForecastOpen, setIsForecastOpen] = useState(false)
   const { toast } = useToast()
   const { user } = useAuthStore()
   const { location: geoLocation, loading: geoLoading, error: geoError, requestLocation } = useGeolocation()
@@ -443,24 +444,24 @@ export function WeatherWidget() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
+    <Card className="overflow-hidden w-full">
+      <CardHeader className="overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-w-0">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
               Weather
-              {geoLoading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>}
+              {geoLoading && <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-gray-900"></div>}
             </CardTitle>
-            <CardDescription className="flex items-center gap-2">
+            <CardDescription className="flex items-center gap-2 text-xs sm:text-sm min-w-0">
               {geoLocation ? (
                 <>
-                  <Navigation className="h-3 w-3 text-green-500" />
-                  {weather?.location} (Live Location)
+                  <Navigation className="h-3 w-3 text-green-500 flex-shrink-0" />
+                  <span className="truncate min-w-0 flex-1">{weather?.location} (Live)</span>
                 </>
               ) : (
                 <>
-                  <MapPin className="h-3 w-3 text-muted-foreground" />
-                  {weather?.location} (Stored Location)
+                  <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                  <span className="truncate min-w-0 flex-1">{weather?.location} (Stored)</span>
                 </>
               )}
             </CardDescription>
@@ -471,63 +472,64 @@ export function WeatherWidget() {
             onClick={handleRefresh}
             disabled={isLoading || geoLoading}
             title="Refresh weather data"
+            className="flex-shrink-0"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading || geoLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-hidden">
         <div className="space-y-4">
           {/* Current Weather */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <WeatherIcon className="h-6 w-6 text-primary" />
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <WeatherIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               </div>
-              <div>
-                <div className="text-2xl font-bold">{weather?.current?.temperature}°C</div>
-                <div className="text-sm text-muted-foreground capitalize">{weather?.current?.description}</div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xl sm:text-2xl font-bold">{weather?.current?.temperature}°C</div>
+                <div className="text-xs sm:text-sm text-muted-foreground capitalize truncate">{weather?.current?.description}</div>
               </div>
             </div>
           </div>
 
           {/* Weather Details */}
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
             <div className="flex items-center space-x-2">
-              <Droplets className="h-4 w-4 text-muted-foreground" />
-              <span>{weather?.current?.humidity}% humidity</span>
+              <Droplets className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+              <span className="truncate">{weather?.current?.humidity}% humidity</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Wind className="h-4 w-4 text-muted-foreground" />
-              <span>{weather?.current?.windSpeed} km/h</span>
+              <Wind className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+              <span className="truncate">{weather?.current?.windSpeed} km/h</span>
             </div>
           </div>
 
           {/* Agricultural Insights */}
           <div className="space-y-2">
-            <h4 className="font-medium text-sm">Farming Insights</h4>
+            <h4 className="font-medium text-xs sm:text-sm">Farming Insights</h4>
             <div className="space-y-1">
               {weather?.current?.temperature > 0 ? (
                 // Generate intelligent insights based on real weather data
                 <>
                   <div className="text-xs text-muted-foreground flex items-start space-x-1">
-                    <div className="h-1 w-1 rounded-full bg-primary mt-2" />
-                    <span>
+                    <div className="h-1 w-1 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+                    <span className="break-words leading-relaxed">
                       {weather.current.temperature > 30
-                        ? "🔥 High temperatures - provide shade and increase irrigation"
+                        ? "🔥 High temps - provide shade and increase irrigation"
                         : weather.current.temperature > 25
-                        ? "🌡️ Warm conditions - monitor for heat stress in sensitive crops"
+                        ? "🌡️ Warm conditions - monitor heat stress in crops"
                         : weather.current.temperature < 15
-                        ? "❄️ Cool temperatures - protect frost-sensitive crops"
-                        : "✅ Optimal temperatures for most crop growth"
+                        ? "❄️ Cool temps - protect frost-sensitive crops"
+                        : "✅ Optimal temperatures for crop growth"
                       }
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground flex items-start space-x-1">
-                    <div className="h-1 w-1 rounded-full bg-primary mt-2" />
-                    <span>
+                    <div className="h-1 w-1 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+                    <span className="break-words leading-relaxed">
                       {weather.current.humidity > 80
-                        ? "💧 High humidity - monitor for fungal diseases and ensure ventilation"
+                        ? "💧 High humidity - monitor for fungal diseases"
                         : weather.current.humidity > 70
                         ? "💧 Elevated humidity - watch for pest activity"
                         : weather.current.humidity < 40
@@ -537,115 +539,134 @@ export function WeatherWidget() {
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground flex items-start space-x-1">
-                  <div className="h-1 w-1 rounded-full bg-primary mt-2" />
-                    <span>
+                    <div className="h-1 w-1 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+                    <span className="break-words leading-relaxed">
                       {weather.current.windSpeed > 15
-                        ? "🌪️ Strong winds - secure young plants and protect from wind damage"
+                        ? "🌪️ Strong winds - secure young plants"
                         : weather.current.windSpeed > 8
-                        ? "💨 Moderate winds - good for natural pest control"
-                        : "🌬️ Light winds - ideal conditions for most farming activities"
+                        ? "💨 Moderate winds - good for pest control"
+                        : "🌬️ Light winds - ideal farming conditions"
                       }
                     </span>
                   </div>
                 </>
               ) : (
                 <div className="text-xs text-muted-foreground flex items-start space-x-1">
-                  <div className="h-1 w-1 rounded-full bg-muted mt-2" />
-                  <span>Weather data required for farming insights</span>
+                  <div className="h-1 w-1 rounded-full bg-muted mt-1.5 flex-shrink-0" />
+                  <span className="break-words">Weather data required for farming insights</span>
                 </div>
               )}
             </div>
           </div>
 
-          <Dialog>
+          <Dialog open={isForecastOpen} onOpenChange={setIsForecastOpen}>
             <DialogTrigger asChild>
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full bg-transparent"
-                onClick={fetchForecast}
+                className="w-full bg-transparent text-xs sm:text-sm"
+                onClick={() => {
+                  fetchForecast()
+                  setIsForecastOpen(true)
+                }}
                 disabled={isForecastLoading}
               >
                 {isForecastLoading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2"></div>
-                    Loading...
+                    <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-gray-900 mr-2"></div>
+                    <span className="hidden sm:inline">Loading...</span>
+                    <span className="sm:hidden">Loading...</span>
                   </>
                 ) : (
                   <>
-                    <Calendar className="h-4 w-4 mr-2" />
-            View Forecast
+                    <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                    <span className="hidden sm:inline">View Forecast</span>
+                    <span className="sm:hidden">Forecast</span>
                   </>
                 )}
           </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>5-Day Weather Forecast</DialogTitle>
-                <DialogDescription>
-                  Weather forecast for {weather?.location || "your location"}
-                </DialogDescription>
+            <DialogContent className="max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-4xl w-[95vw] sm:w-full max-h-[90vh] overflow-hidden flex flex-col mx-2 sm:mx-0">
+              <DialogHeader className="flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <DialogTitle className="text-base sm:text-lg">5-Day Weather Forecast</DialogTitle>
+                    <DialogDescription className="text-sm">
+                      Weather forecast for {weather?.location || "your location"}
+                    </DialogDescription>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsForecastOpen(false)}
+                    className="h-8 w-8 p-0 flex-shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </DialogHeader>
 
-              <div className="grid gap-4 md:grid-cols-5">
+              <div className="flex-1 overflow-y-auto px-1">
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 pb-4">
                 {forecast.map((day: any, index: number) => {
                   const WeatherIcon = getWeatherIcon(day.weatherCondition || day.weatherIcon)
                   const dayDate = new Date(day.date || Date.now() + index * 24 * 60 * 60 * 1000)
 
                   return (
-                    <Card key={index} className="text-center">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">
+                    <Card key={index} className="text-center h-full">
+                      <CardHeader className="pb-2 px-3 sm:px-4">
+                        <CardTitle className="text-xs sm:text-sm font-medium">
                           {formatDayName(dayDate)}
                         </CardTitle>
                         <div className="flex justify-center">
-                          <WeatherIcon className="h-8 w-8 text-primary" />
+                          <WeatherIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
                         </div>
                       </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center text-sm">
-                            <Thermometer className="h-4 w-4 text-red-500" />
-                            <span className="font-medium">
+                      <CardContent className="pt-0 px-3 sm:px-4 pb-3 sm:pb-4">
+                        <div className="space-y-1.5 sm:space-y-2">
+                          <div className="flex justify-between items-center text-xs sm:text-sm">
+                            <Thermometer className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 flex-shrink-0" />
+                            <span className="font-medium text-xs sm:text-sm">
                               {Math.round(day.temperature?.max || day.highTemp || 25)}°
                             </span>
                           </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <Thermometer className="h-4 w-4 text-blue-500" />
-                            <span className="text-muted-foreground">
+                          <div className="flex justify-between items-center text-xs sm:text-sm">
+                            <Thermometer className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
+                            <span className="text-muted-foreground text-xs sm:text-sm">
                               {Math.round(day.temperature?.min || day.lowTemp || 20)}°
                             </span>
                           </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <HumidityIcon className="h-4 w-4 text-blue-400" />
-                            <span className="text-muted-foreground">
+                          <div className="flex justify-between items-center text-xs sm:text-sm">
+                            <HumidityIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-400 flex-shrink-0" />
+                            <span className="text-muted-foreground text-xs sm:text-sm">
                               {day.humidity || 65}%
                             </span>
                           </div>
                           {day.precipitation > 0 && (
-                            <div className="flex justify-between items-center text-sm">
-                              <CloudRain className="h-4 w-4 text-blue-600" />
-                              <span className="text-muted-foreground">
+                            <div className="flex justify-between items-center text-xs sm:text-sm">
+                              <CloudRain className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />
+                              <span className="text-muted-foreground text-xs sm:text-sm">
                                 {Math.round(day.precipitation)}mm
                               </span>
                             </div>
                           )}
                         </div>
-                        <div className="mt-2 text-xs text-muted-foreground capitalize">
+                        <div className="mt-2 text-xs text-muted-foreground capitalize break-words">
                           {day.weatherCondition || "Clear"}
                         </div>
                       </CardContent>
                     </Card>
                   )
                 })}
-              </div>
-
-              {forecast.length === 0 && !isForecastLoading && (
-                <div className="text-center py-8">
-                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No forecast data available</p>
                 </div>
-              )}
+
+                {forecast.length === 0 && !isForecastLoading && (
+                  <div className="text-center py-6 sm:py-8">
+                    <Calendar className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                    <p className="text-sm text-muted-foreground">No forecast data available</p>
+                  </div>
+                )}
+              </div>
             </DialogContent>
           </Dialog>
         </div>

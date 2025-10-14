@@ -94,24 +94,25 @@ export function HarvestCard({
 
   if (variant === "compact") {
     return (
-      <Card className={cn("hover:shadow-md transition-shadow cursor-pointer", className)}>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Leaf className="h-5 w-5 text-primary" />
+      <Card className={cn("hover:shadow-md transition-shadow cursor-pointer h-full", className)}>
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Leaf className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               </div>
-              <div>
-                <h4 className="font-semibold text-sm">{harvest.cropType}</h4>
-                <p className="text-xs text-muted-foreground">{harvest.farmerName}</p>
+              <div className="min-w-0 flex-1">
+                <h4 className="font-semibold text-xs sm:text-sm truncate">{harvest.cropType}</h4>
+                <p className="text-xs text-muted-foreground truncate">{harvest.farmerName}</p>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-right flex-shrink-0">
               <Badge variant="outline" className={cn("text-xs", statusColors[harvest.status])}>
                 <StatusIcon className="h-3 w-3 mr-1" />
-                {harvest.status}
+                <span className="hidden sm:inline">{harvest.status}</span>
+                <span className="sm:hidden">{harvest.status.charAt(0).toUpperCase()}</span>
               </Badge>
-              <p className="text-sm font-medium mt-1">₦{harvest.price.toLocaleString()}</p>
+              <p className="text-xs sm:text-sm font-medium mt-1">₦{harvest.price.toLocaleString()}</p>
             </div>
           </div>
         </CardContent>

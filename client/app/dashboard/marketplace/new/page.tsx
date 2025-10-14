@@ -341,22 +341,23 @@ function CreateListingPage() {
 
   return (
     <DashboardLayout pageTitle="Create New Listing">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" asChild className="text-gray-600 hover:text-gray-900">
-                <Link href="/dashboard/marketplace" className="flex items-center gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Listings
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+          <div className="space-y-1 sm:space-y-2 min-w-0 flex-1">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Button variant="ghost" asChild className="text-gray-600 hover:text-gray-900 h-8 sm:h-9">
+                <Link href="/dashboard/marketplace" className="flex items-center gap-2 text-sm sm:text-base">
+                  <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Back to Listings</span>
+                  <span className="sm:hidden">Back</span>
                 </Link>
               </Button>
             </div>
-            <h1 className="text-2xl font-semibold text-gray-900">
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900">
               {harvestId ? 'List Your Harvest' : 'Create New Listing'}
             </h1>
-            <p className="text-gray-600">
+            <p className="text-xs sm:text-sm lg:text-base text-gray-600">
               {harvestId
                 ? 'Set a price and list your approved harvest in your listings'
                 : 'List your agricultural products in your listings to reach more customers'
@@ -365,76 +366,76 @@ function CreateListingPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3">
           {/* Main Form */}
           <div className="lg:col-span-2">
             {loadingHarvest ? (
               <Card className="border border-gray-200">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
-                    <span className="text-gray-600">Loading harvest data...</span>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-center justify-center py-6 sm:py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-500 mr-2 sm:mr-3"></div>
+                    <span className="text-gray-600 text-sm sm:text-base">Loading harvest data...</span>
                   </div>
                 </CardContent>
               </Card>
             ) : (
               <Card className="border border-gray-200">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base font-medium">
-                    <Package className="h-4 w-4 text-blue-500" />
-                    {harvestId ? 'Harvest Information' : 'Product Information'}
+                <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
+                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
+                    <Package className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
+                    <span className="truncate pr-2 min-w-0 flex-1">{harvestId ? 'Harvest Information' : 'Product Information'}</span>
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">
                     {harvestId
                       ? 'Review your harvest details and set your selling price'
                       : 'Fill in the details about your agricultural product'
                     }
                   </CardDescription>
                 </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
+              <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                   {/* Basic Information */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-medium text-gray-900">Basic Information</h3>
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                      <h3 className="text-sm sm:text-base lg:text-lg font-medium text-gray-900">Basic Information</h3>
                       {harvestId && (
-                        <Badge className="bg-green-50 text-green-700 border-green-200">
-                          <CheckCircle className="h-3 w-3 mr-1" />
+                        <Badge className="bg-green-50 text-green-700 border-green-200 text-xs w-fit">
+                          <CheckCircle className="h-3 w-3 mr-1 flex-shrink-0" />
                           From Approved Harvest
                         </Badge>
                       )}
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="cropName">Crop/Product Name *</Label>
+                    <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label htmlFor="cropName" className="text-xs sm:text-sm">Crop/Product Name *</Label>
                         <Input
                           id="cropName"
                           value={formData.cropName}
                           onChange={(e) => setFormData(prev => ({ ...prev, cropName: e.target.value }))}
                           placeholder="e.g., Fresh Maize, Cassava Tubers"
-                          className={errors.cropName ? 'border-red-500' : ''}
+                          className={`h-8 sm:h-9 text-xs sm:text-sm ${errors.cropName ? 'border-red-500' : ''}`}
                         />
                         {errors.cropName && (
-                          <p className="text-sm text-red-600 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
+                          <p className="text-xs text-red-600 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3 flex-shrink-0" />
                             {errors.cropName}
                           </p>
                         )}
                       </div>
                       
-                      <div className="space-y-2">
-                        <Label htmlFor="category">Category *</Label>
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label htmlFor="category" className="text-xs sm:text-sm">Category *</Label>
                         <Select 
                           value={formData.category} 
                           onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
                         >
-                          <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
+                          <SelectTrigger className={`h-8 sm:h-9 text-xs sm:text-sm ${errors.category ? 'border-red-500' : ''}`}>
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
                             {categories.map((category) => (
-                              <SelectItem key={category.value} value={category.value}>
+                              <SelectItem key={category.value} value={category.value} className="text-xs sm:text-sm">
                                 <span className="flex items-center gap-2">
                                   <span>{category.icon}</span>
                                   <span>{category.label}</span>
@@ -444,27 +445,27 @@ function CreateListingPage() {
                           </SelectContent>
                         </Select>
                         {errors.category && (
-                          <p className="text-sm text-red-600 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
+                          <p className="text-xs text-red-600 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3 flex-shrink-0" />
                             {errors.category}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Description *</Label>
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <Label htmlFor="description" className="text-xs sm:text-sm">Description *</Label>
                       <Textarea
                         id="description"
                         value={formData.description}
                         onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                         placeholder="Describe your product, its quality, benefits, and any special features..."
-                        rows={4}
-                        className={errors.description ? 'border-red-500' : ''}
+                        rows={3}
+                        className={`text-xs sm:text-sm ${errors.description ? 'border-red-500' : ''}`}
                       />
                       {errors.description && (
-                        <p className="text-sm text-red-600 flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
+                        <p className="text-xs text-red-600 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 flex-shrink-0" />
                           {errors.description}
                         </p>
                       )}
@@ -472,14 +473,14 @@ function CreateListingPage() {
                   </div>
 
                   {/* Pricing and Quantity */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-900">Pricing & Quantity</h3>
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-sm sm:text-base lg:text-lg font-medium text-gray-900">Pricing & Quantity</h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="basePrice">Base Price (NGN) *</Label>
+                    <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label htmlFor="basePrice" className="text-xs sm:text-sm">Base Price (NGN) *</Label>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₦</span>
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs sm:text-sm">₦</span>
                           <Input
                             id="basePrice"
                             type="number"
@@ -488,29 +489,29 @@ function CreateListingPage() {
                             placeholder="0"
                             min="0"
                             step="10"
-                            className={`pl-8 ${errors.basePrice ? 'border-red-500' : ''}`}
+                            className={`pl-7 sm:pl-8 h-8 sm:h-9 text-xs sm:text-sm ${errors.basePrice ? 'border-red-500' : ''}`}
                           />
                         </div>
                         {errors.basePrice && (
-                          <p className="text-sm text-red-600 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
+                          <p className="text-xs text-red-600 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3 flex-shrink-0" />
                             {errors.basePrice}
                           </p>
                         )}
                       </div>
                       
-                      <div className="space-y-2">
-                        <Label htmlFor="unit">Unit *</Label>
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label htmlFor="unit" className="text-xs sm:text-sm">Unit *</Label>
                         <Select 
                           value={formData.unit} 
                           onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             {units.map((unit) => (
-                              <SelectItem key={unit.value} value={unit.value}>
+                              <SelectItem key={unit.value} value={unit.value} className="text-xs sm:text-sm">
                                 {unit.label}
                               </SelectItem>
                             ))}
@@ -518,8 +519,8 @@ function CreateListingPage() {
                         </Select>
                       </div>
                       
-                      <div className="space-y-2">
-                        <Label htmlFor="quantity">Total Quantity *</Label>
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label htmlFor="quantity" className="text-xs sm:text-sm">Total Quantity *</Label>
                         <Input
                           id="quantity"
                           type="number"
@@ -528,19 +529,19 @@ function CreateListingPage() {
                           placeholder="0"
                           min="0"
                           step="1"
-                          className={errors.quantity ? 'border-red-500' : ''}
+                          className={`h-8 sm:h-9 text-xs sm:text-sm ${errors.quantity ? 'border-red-500' : ''}`}
                         />
                         {errors.quantity && (
-                          <p className="text-sm text-red-600 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
+                          <p className="text-xs text-red-600 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3 flex-shrink-0" />
                             {errors.quantity}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="availableQuantity">Available Quantity *</Label>
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <Label htmlFor="availableQuantity" className="text-xs sm:text-sm">Available Quantity *</Label>
                       <Input
                         id="availableQuantity"
                         type="number"
@@ -550,14 +551,14 @@ function CreateListingPage() {
                         min="0"
                         max={formData.quantity}
                         step="1"
-                        className={errors.availableQuantity ? 'border-red-500' : ''}
+                        className={`h-8 sm:h-9 text-xs sm:text-sm ${errors.availableQuantity ? 'border-red-500' : ''}`}
                       />
                       <p className="text-xs text-gray-500">
                         This should be less than or equal to total quantity
                       </p>
                       {errors.availableQuantity && (
-                        <p className="text-sm text-red-600 flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
+                        <p className="text-xs text-red-600 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 flex-shrink-0" />
                           {errors.availableQuantity}
                         </p>
                       )}
@@ -565,12 +566,12 @@ function CreateListingPage() {
                   </div>
 
                   {/* Location */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-900">Location</h3>
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-sm sm:text-base lg:text-lg font-medium text-gray-900">Location</h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="location">Location *</Label>
+                    <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label htmlFor="location" className="text-xs sm:text-sm">Location *</Label>
                         <Input
                           id="location"
                           value={formData.location}
@@ -579,11 +580,11 @@ function CreateListingPage() {
                             location: e.target.value
                           }))}
                           placeholder="e.g., Ibadan, Oyo State, Nigeria"
-                          className={errors.location ? 'border-red-500' : ''}
+                          className={`h-8 sm:h-9 text-xs sm:text-sm ${errors.location ? 'border-red-500' : ''}`}
                         />
                         {errors.location && (
-                          <p className="text-sm text-red-600 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
+                          <p className="text-xs text-red-600 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3 flex-shrink-0" />
                             {errors.location}
                           </p>
                         )}
@@ -592,14 +593,14 @@ function CreateListingPage() {
                   </div>
 
                   {/* Images */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-900">Product Images</h3>
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-sm sm:text-base lg:text-lg font-medium text-gray-900">Product Images</h3>
                     
-                    <div className="space-y-4">
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                        <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center">
+                        <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400 mx-auto mb-2" />
                         <Label htmlFor="images" className="cursor-pointer">
-                          <span className="text-sm text-gray-600">
+                          <span className="text-xs sm:text-sm text-gray-600">
                             Click to upload images or drag and drop
                           </span>
                           <Input
@@ -617,19 +618,19 @@ function CreateListingPage() {
                       </div>
 
                       {formData.images.length > 0 && (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid gap-2 sm:gap-3 lg:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
                           {formData.images.map((image, index) => (
                             <div key={index} className="relative">
                               <img
                                 src={image}
                                 alt={`Product ${index + 1}`}
-                                className="w-full h-24 object-cover rounded-lg"
+                                className="w-full h-16 sm:h-20 lg:h-24 object-cover rounded-lg"
                               />
                               <Button
                                 type="button"
                                 variant="destructive"
                                 size="sm"
-                                className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                                className="absolute -top-1 -right-1 h-5 w-5 sm:h-6 sm:w-6 rounded-full p-0"
                                 onClick={() => removeImage(image)}
                               >
                                 ×
@@ -642,26 +643,27 @@ function CreateListingPage() {
                   </div>
 
                   {/* Tags */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-900">Tags</h3>
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-sm sm:text-base lg:text-lg font-medium text-gray-900">Tags</h3>
                     
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                       <div className="flex gap-2">
                         <Input
                           value={newTag}
                           onChange={(e) => setNewTag(e.target.value)}
                           placeholder="Add a tag..."
                           onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                          className="h-8 sm:h-9 text-xs sm:text-sm"
                         />
-                        <Button type="button" variant="outline" onClick={addTag}>
-                          <Plus className="h-4 w-4" />
+                        <Button type="button" variant="outline" onClick={addTag} className="h-8 sm:h-9 px-3">
+                          <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
                       </div>
 
                       {formData.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
                           {formData.tags.map((tag) => (
-                            <Badge key={tag} variant="secondary" className="gap-1">
+                            <Badge key={tag} variant="secondary" className="gap-1 text-xs">
                               {tag}
                               <button
                                 type="button"
@@ -675,14 +677,14 @@ function CreateListingPage() {
                         </div>
                       )}
 
-                      <div className="space-y-2">
-                        <p className="text-sm text-gray-600">Popular tags:</p>
-                        <div className="flex flex-wrap gap-2">
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <p className="text-xs sm:text-sm text-gray-600">Popular tags:</p>
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
                           {popularTags.map((tag) => (
                             <Badge
                               key={tag}
                               variant="outline"
-                              className={`cursor-pointer ${
+                              className={`cursor-pointer text-xs ${
                                 formData.tags.includes(tag) ? 'bg-blue-50 text-blue-700 border-blue-200' : ''
                               }`}
                               onClick={() => {
@@ -702,18 +704,19 @@ function CreateListingPage() {
                   </div>
 
                   {/* Form Actions */}
-                  <div className="flex gap-3 pt-4">
-                    <Button variant="outline" onClick={() => router.push("/dashboard/marketplace")} type="button">
+                  <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
+                    <Button variant="outline" onClick={() => router.push("/dashboard/marketplace")} type="button" className="w-full xs:w-auto h-8 sm:h-9 text-xs sm:text-sm">
                       Cancel
                     </Button>
                     <Button 
                       type="button" 
                       variant="outline"
                       onClick={() => setFormData(prev => ({ ...prev, status: 'draft' }))}
+                      className="w-full xs:w-auto h-8 sm:h-9 text-xs sm:text-sm"
                     >
                       Save as Draft
                     </Button>
-                    <Button type="submit" disabled={loading}>
+                    <Button type="submit" disabled={loading} className="w-full xs:w-auto h-8 sm:h-9 text-xs sm:text-sm">
                       {loading
                         ? (harvestId ? "Listing..." : "Creating...")
                         : (harvestId ? "List Harvest" : "Create Listing")
@@ -727,47 +730,47 @@ function CreateListingPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Listing Preview */}
-            <Card className="border border-gray-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-medium">Listing Preview</CardTitle>
-                <CardDescription>How your listing will appear</CardDescription>
+            <Card className="border border-gray-200 h-full">
+              <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
+                <CardTitle className="text-sm sm:text-base font-medium">Listing Preview</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">How your listing will appear</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 space-y-3 sm:space-y-4">
                 {formData.cropName ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl">{getCategoryIcon(formData.category)}</span>
-                      <div>
-                        <h4 className="font-medium text-gray-900">{formData.cropName}</h4>
-                        <p className="text-sm text-gray-500">{formData.category}</p>
+                      <span className="text-lg sm:text-xl lg:text-2xl flex-shrink-0">{getCategoryIcon(formData.category)}</span>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-medium text-gray-900 text-xs sm:text-sm truncate">{formData.cropName}</h4>
+                        <p className="text-xs text-gray-500 truncate">{formData.category}</p>
                       </div>
                     </div>
                     
                     {formData.description && (
-                      <p className="text-sm text-gray-600 line-clamp-3">
+                      <p className="text-xs sm:text-sm text-gray-600 line-clamp-3">
                         {formData.description}
                       </p>
                     )}
                     
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-gray-600">Price:</span>
                         <span className="font-medium">
                           ₦{formData.basePrice > 0 ? formData.basePrice.toLocaleString() : '0'}/{formData.unit}
                         </span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-gray-600">Available:</span>
                         <span className="font-medium">
                           {formData.availableQuantity > 0 ? formData.availableQuantity : '0'} {formData.unit}
                         </span>
                       </div>
                       {formData.location && (
-                        <div className="flex justify-between text-sm">
+                        <div className="flex justify-between text-xs sm:text-sm">
                           <span className="text-gray-600">Location:</span>
-                          <span className="font-medium">
+                          <span className="font-medium truncate ml-2">
                             {formData.location}
                           </span>
                         </div>
@@ -785,54 +788,54 @@ function CreateListingPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Package className="h-12 w-12 mx-auto mb-2" />
-                    <p className="text-sm">Fill in the form to see a preview</p>
+                  <div className="text-center py-6 sm:py-8 text-gray-500">
+                    <Package className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2" />
+                    <p className="text-xs sm:text-sm">Fill in the form to see a preview</p>
                   </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Tips */}
-            <Card className="border border-gray-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-medium">Listing Tips</CardTitle>
+            <Card className="border border-gray-200 h-full">
+              <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
+                <CardTitle className="text-sm sm:text-base font-medium">Listing Tips</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-start gap-2 text-sm">
-                  <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+              <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 space-y-2 sm:space-y-3">
+                <div className="flex items-start gap-2 text-xs sm:text-sm">
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                   <span>Use clear, descriptive product names</span>
                 </div>
-                <div className="flex items-start gap-2 text-sm">
-                  <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                <div className="flex items-start gap-2 text-xs sm:text-sm">
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                   <span>Include high-quality images</span>
                 </div>
-                <div className="flex items-start gap-2 text-sm">
-                  <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                <div className="flex items-start gap-2 text-xs sm:text-sm">
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                   <span>Set competitive pricing</span>
                 </div>
-                <div className="flex items-start gap-2 text-sm">
-                  <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                <div className="flex items-start gap-2 text-xs sm:text-sm">
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                   <span>Add relevant tags for better visibility</span>
                 </div>
-                <div className="flex items-start gap-2 text-sm">
-                  <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                <div className="flex items-start gap-2 text-xs sm:text-sm">
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                   <span>Keep quantities updated</span>
                 </div>
               </CardContent>
             </Card>
 
             {/* Help */}
-            <Card className="border border-gray-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-medium">Need Help?</CardTitle>
+            <Card className="border border-gray-200 h-full">
+              <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
+                <CardTitle className="text-sm sm:text-base font-medium">Need Help?</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-gray-600">
+              <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 space-y-2 sm:space-y-3">
+                <p className="text-xs sm:text-sm text-gray-600">
                   Having trouble creating your listing? Our support team is here to help.
                 </p>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Info className="h-4 w-4 mr-2" />
+                <Button variant="outline" size="sm" className="w-full h-8 sm:h-9 text-xs sm:text-sm">
+                  <Info className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                   Contact Support
                 </Button>
               </CardContent>
@@ -849,10 +852,10 @@ function CreateListingPageWrapper() {
   return (
     <Suspense fallback={
       <DashboardLayout pageTitle="Create Listing">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-lg font-medium">Loading...</p>
+        <div className="flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
+          <div className="text-center space-y-3 sm:space-y-4">
+            <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-sm sm:text-base lg:text-lg font-medium">Loading...</p>
           </div>
         </div>
       </DashboardLayout>
