@@ -249,6 +249,25 @@ export function SettingsForm() {
     try {
       setIsSaving(true)
 
+      // Validate required settings
+      if (!settings.general.language) {
+        toast({
+          title: "Validation Error",
+          description: "Language is required",
+          variant: "destructive"
+        })
+        return
+      }
+
+      if (!settings.general.timezone) {
+        toast({
+          title: "Validation Error",
+          description: "Timezone is required",
+          variant: "destructive"
+        })
+        return
+      }
+
       const updateData = {
         general: settings.general,
         notifications: settings.notifications,
@@ -264,12 +283,26 @@ export function SettingsForm() {
           description: "Your settings have been updated successfully",
           variant: "default"
         })
+      } else {
+        throw new Error('Failed to save settings')
       }
     } catch (error: any) {
       console.error('Error saving settings:', error)
+      
+      // Handle different types of errors
+      let errorMessage = "Failed to save settings. Please try again."
+      
+      if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        errorMessage = "Network error. Please check your connection and try again."
+      } else if (error.message?.includes('validation')) {
+        errorMessage = error.message
+      } else if (error.message?.includes('unauthorized')) {
+        errorMessage = "Session expired. Please log in again."
+      }
+      
       toast({
         title: "Error saving settings",
-        description: error.message || "Failed to save settings",
+        description: errorMessage,
         variant: "destructive"
       })
     } finally {
@@ -514,7 +547,7 @@ export function SettingsForm() {
                     <User className="w-8 h-8 text-gray-400" />
                   )}
                   {/* Hidden fallback avatar for error cases */}
-                  <div className="avatar-fallback absolute inset-0 w-full h-full rounded-full bg-gray-200 flex items-center justify-center hidden">
+                  <div className="avatar-fallback absolute inset-0 w-full h-full rounded-full bg-gray-200 items-center justify-center hidden">
                     <User className="w-8 h-8 text-gray-400" />
                   </div>
                 </div>
@@ -545,59 +578,65 @@ export function SettingsForm() {
           <Separator />
 
           {/* Profile Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="bio">Bio</Label>
+              <Label htmlFor="bio" className="text-sm font-medium">Bio</Label>
               <Input
                 id="bio"
                 value={settings.profile.bio}
                 onChange={(e) => handleProfileChange('bio', e.target.value)}
                 placeholder="Tell us about yourself..."
+                className="h-9 sm:h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address" className="text-sm font-medium">Address</Label>
               <Input
                 id="address"
                 value={settings.profile.address}
                 onChange={(e) => handleProfileChange('address', e.target.value)}
                 placeholder="Your address"
+                className="h-9 sm:h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
+              <Label htmlFor="city" className="text-sm font-medium">City</Label>
               <Input
                 id="city"
                 value={settings.profile.city}
                 onChange={(e) => handleProfileChange('city', e.target.value)}
                 placeholder="Your city"
+                className="h-9 sm:h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
+              <Label htmlFor="state" className="text-sm font-medium">State</Label>
               <Input
                 id="state"
                 value={settings.profile.state}
                 onChange={(e) => handleProfileChange('state', e.target.value)}
                 placeholder="Your state"
+                className="h-9 sm:h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="country">Country</Label>
+              <Label htmlFor="country" className="text-sm font-medium">Country</Label>
               <Input
                 id="country"
                 value={settings.profile.country}
                 onChange={(e) => handleProfileChange('country', e.target.value)}
                 placeholder="Your country"
+                className="h-9 sm:h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="postalCode">Postal Code</Label>
+              <Label htmlFor="postalCode" className="text-sm font-medium">Postal Code</Label>
               <Input
                 id="postalCode"
                 value={settings.profile.postalCode}
                 onChange={(e) => handleProfileChange('postalCode', e.target.value)}
                 placeholder="Your postal code"
+                className="h-9 sm:h-10"
               />
             </div>
           </div>
@@ -623,14 +662,14 @@ export function SettingsForm() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div className="space-y-2">
-              <Label htmlFor="language">Language</Label>
+              <Label htmlFor="language" className="text-sm font-medium">Language</Label>
               <Select
                 value={settings.general.language}
                 onValueChange={(value) => handleGeneralSettingChange('language', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -645,12 +684,12 @@ export function SettingsForm() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
+              <Label htmlFor="timezone" className="text-sm font-medium">Timezone</Label>
               <Select
                 value={settings.general.timezone}
                 onValueChange={(value) => handleGeneralSettingChange('timezone', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -662,12 +701,12 @@ export function SettingsForm() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
+              <Label htmlFor="currency" className="text-sm font-medium">Currency</Label>
               <Select
                 value={settings.general.currency}
                 onValueChange={(value) => handleGeneralSettingChange('currency', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -676,12 +715,12 @@ export function SettingsForm() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="theme">Theme</Label>
+              <Label htmlFor="theme" className="text-sm font-medium">Theme</Label>
               <Select
                 value={settings.general.theme}
                 onValueChange={(value) => handleGeneralSettingChange('theme', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -704,9 +743,9 @@ export function SettingsForm() {
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={handleSaveSettings} disabled={isSaving}>
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save General Settings'}
+            <Button onClick={handleSaveSettings} disabled={isSaving} className="h-9 sm:h-10" size="sm">
+              <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="text-xs sm:text-sm">{isSaving ? 'Saving...' : 'Save General Settings'}</span>
             </Button>
           </div>
         </CardContent>

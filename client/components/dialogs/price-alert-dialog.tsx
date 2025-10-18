@@ -181,21 +181,21 @@ export function PriceAlertDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            {existingAlert ? 'Edit Price Alert' : 'Create Price Alert'}
+      <DialogContent className="w-[95vw] max-w-[500px] mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="space-y-2 sm:space-y-3">
+          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="truncate">{existingAlert ? 'Edit Price Alert' : 'Create Price Alert'}</span>
           </DialogTitle>
-          <DialogDescription>
-            Set up price alerts for {product.cropName} to get notified when the price changes.
+          <DialogDescription className="text-sm sm:text-base">
+            Set up price alerts for <span className="font-medium">{product.cropName}</span> to get notified when the price changes.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Product Info */}
-          <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-            <div className="relative w-12 h-12 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-muted rounded-lg">
+            <div className="relative w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
               <Image
                 src={product.images[0] || "/placeholder.svg"}
                 alt={product.cropName}
@@ -204,38 +204,42 @@ export function PriceAlertDialog({
               />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-sm">{product.cropName}</h4>
-              <p className="text-sm text-muted-foreground">{product.category}</p>
-              <p className="text-sm font-medium">
-                Current Price: {formatPrice(currentPrice)}
+              <h4 className="font-medium text-sm sm:text-base truncate">{product.cropName}</h4>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{product.category}</p>
+              <p className="text-xs sm:text-sm font-medium">
+                Current Price: <span className="text-green-600">{formatPrice(currentPrice)}</span>
               </p>
             </div>
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
               {/* Target Price */}
               <FormField
                 control={form.control}
                 name="targetPrice"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Target Price (₦)</FormLabel>
+                    <FormLabel className="text-sm sm:text-base">Target Price (₦)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         placeholder="Enter target price"
+                        className="h-9 sm:h-10 text-sm sm:text-base"
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       />
                     </FormControl>
-                    <FormDescription>
+                    <FormDescription className="text-xs sm:text-sm">
                       {targetPrice > 0 && (
-                        <span className="flex items-center gap-2 mt-2">
-                          <Badge variant={priceDifference < 0 ? "destructive" : "default"}>
+                        <span className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+                          <Badge 
+                            variant={priceDifference < 0 ? "destructive" : "default"}
+                            className="text-xs sm:text-sm w-fit"
+                          >
                             {priceDifference < 0 ? 'Below' : 'Above'} current price by {priceDifferencePercentNum}%
                           </Badge>
-                          <span className="text-sm text-muted-foreground">
+                          <span className="text-xs sm:text-sm text-muted-foreground">
                             {formatPrice(targetPrice)}
                           </span>
                         </span>
@@ -252,20 +256,20 @@ export function PriceAlertDialog({
                 name="alertType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Alert Type</FormLabel>
+                    <FormLabel className="text-sm sm:text-base">Alert Type</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-9 sm:h-10 text-sm sm:text-base">
                           <SelectValue placeholder="Select alert type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="price_drop">
                           <div className="flex items-center gap-2">
-                            <TrendingDown className="h-4 w-4" />
+                            <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4" />
                             <div>
-                              <div className="font-medium">Price Drop</div>
-                              <div className="text-xs text-muted-foreground">
+                              <div className="font-medium text-sm sm:text-base">Price Drop</div>
+                              <div className="text-xs sm:text-sm text-muted-foreground">
                                 Notify when price drops to target
                               </div>
                             </div>
@@ -273,10 +277,10 @@ export function PriceAlertDialog({
                         </SelectItem>
                         <SelectItem value="price_increase">
                           <div className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4" />
+                            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
                             <div>
-                              <div className="font-medium">Price Increase</div>
-                              <div className="text-xs text-muted-foreground">
+                              <div className="font-medium text-sm sm:text-base">Price Increase</div>
+                              <div className="text-xs sm:text-sm text-muted-foreground">
                                 Notify when price rises to target
                               </div>
                             </div>
@@ -284,10 +288,10 @@ export function PriceAlertDialog({
                         </SelectItem>
                         <SelectItem value="both">
                           <div className="flex items-center gap-2">
-                            <Activity className="h-4 w-4" />
+                            <Activity className="h-3 w-3 sm:h-4 sm:w-4" />
                             <div>
-                              <div className="font-medium">Both</div>
-                              <div className="text-xs text-muted-foreground">
+                              <div className="font-medium text-sm sm:text-base">Both</div>
+                              <div className="text-xs sm:text-sm text-muted-foreground">
                                 Notify for any price change
                               </div>
                             </div>
@@ -295,7 +299,7 @@ export function PriceAlertDialog({
                         </SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormDescription>
+                    <FormDescription className="text-xs sm:text-sm">
                       {getAlertTypeDescription(field.value)}
                     </FormDescription>
                     <FormMessage />
@@ -309,13 +313,14 @@ export function PriceAlertDialog({
                 name="notificationChannels"
                 render={() => (
                   <FormItem>
-                    <div className="mb-4">
-                      <FormLabel className="text-base">Notification Methods</FormLabel>
-                      <FormDescription>
+                    <div className="mb-3 sm:mb-4">
+                      <FormLabel className="text-sm sm:text-base">Notification Methods</FormLabel>
+                      <FormDescription className="text-xs sm:text-sm">
                         Choose how you want to be notified when the price alert triggers.
                       </FormDescription>
                     </div>
-                    {['in_app', 'email', 'push', 'sms'].map((channel) => (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                      {['in_app', 'email', 'push', 'sms'].map((channel) => (
                       <FormField
                         key={channel}
                         control={form.control}
@@ -324,7 +329,7 @@ export function PriceAlertDialog({
                           return (
                             <FormItem
                               key={channel}
-                              className="flex flex-row items-start space-x-3 space-y-0"
+                              className="flex flex-row items-start space-x-2 sm:space-x-3 space-y-0 p-2 sm:p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                             >
                               <FormControl>
                                 <Checkbox
@@ -340,39 +345,47 @@ export function PriceAlertDialog({
                                   }}
                                 />
                               </FormControl>
-                              <FormLabel className="text-sm font-normal flex items-center gap-2">
+                              <FormLabel className="text-xs sm:text-sm font-normal flex items-center gap-2 cursor-pointer flex-1">
                                 {getNotificationIcon(channel)}
-                                {getNotificationLabel(channel)}
+                                <span className="truncate">{getNotificationLabel(channel)}</span>
                               </FormLabel>
                             </FormItem>
                           )
                         }}
                       />
-                    ))}
+                      ))}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <DialogFooter>
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
                   disabled={isSubmitting}
+                  className="w-full sm:w-auto h-9 sm:h-10 text-sm sm:text-base order-2 sm:order-1"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto h-9 sm:h-10 text-sm sm:text-base order-1 sm:order-2"
+                >
                   {isSubmitting ? (
                     <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-white mr-2" />
-                      {existingAlert ? 'Updating...' : 'Creating...'}
+                      <div className="h-3 w-3 sm:h-4 sm:w-4 animate-spin rounded-full border-2 border-gray-300 border-t-white mr-2" />
+                      <span className="hidden sm:inline">{existingAlert ? 'Updating...' : 'Creating...'}</span>
+                      <span className="sm:hidden">{existingAlert ? 'Updating...' : 'Creating...'}</span>
                     </>
                   ) : (
                     <>
-                      <Bell className="h-4 w-4 mr-2" />
-                      {existingAlert ? 'Update Alert' : 'Create Alert'}
+                      <Bell className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                      <span className="hidden sm:inline">{existingAlert ? 'Update Alert' : 'Create Alert'}</span>
+                      <span className="sm:hidden">{existingAlert ? 'Update' : 'Create'}</span>
                     </>
                   )}
                 </Button>

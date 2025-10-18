@@ -4,7 +4,15 @@ const HarvestSchema = new mongoose.Schema({
   farmer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   cropType: { type: String, required: true },
   variety: { type: String },
-  quantity: { type: Number, required: true, default: 0 },
+  quantity: { 
+    type: Number, 
+    required: true, 
+    default: 0,
+    set: function(value) {
+      // Ensure exact number precision by converting to string and back
+      return parseFloat(parseFloat(value).toFixed(2))
+    }
+  },
   date: { type: Date, default: () => new Date() },
   geoLocation: {
     lat: { type: Number, required: true },
@@ -54,7 +62,13 @@ const HarvestSchema = new mongoose.Schema({
     carbonFootprint: Number,
     waterUsage: Number
   },
-  price: { type: Number }, // Price per unit
+  price: { 
+    type: Number, // Price per unit
+    set: function(value) {
+      // Ensure exact number precision for price
+      return value ? parseFloat(parseFloat(value).toFixed(2)) : undefined
+    }
+  },
   certification: { type: String } // Certification details
 }, { timestamps: true })
 

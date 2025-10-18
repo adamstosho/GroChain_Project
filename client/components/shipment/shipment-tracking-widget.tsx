@@ -115,11 +115,11 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
   if (loading) {
     return (
       <Card className={className}>
-        <CardContent className="p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-            <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+        <CardContent className="p-3 sm:p-4 md:p-6">
+          <div className="animate-pulse space-y-2 sm:space-y-3 md:space-y-4">
+            <div className="h-2.5 sm:h-3 md:h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-2 sm:h-2.5 md:h-3 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-2 sm:h-2.5 md:h-3 bg-gray-200 rounded w-2/3"></div>
           </div>
         </CardContent>
       </Card>
@@ -129,12 +129,12 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
   if (error) {
     return (
       <Card className={className}>
-        <CardContent className="p-6 text-center">
-          <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Shipment Error</h3>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <Button onClick={fetchShipmentForOrder} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
+        <CardContent className="p-3 sm:p-4 md:p-6 text-center">
+          <Package className="h-6 w-6 sm:h-8 sm:w-8 md:h-12 md:w-12 text-gray-400 mx-auto mb-2 sm:mb-3 md:mb-4" />
+          <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">Shipment Error</h3>
+          <p className="text-xs sm:text-sm text-gray-600 mb-2.5 sm:mb-3 md:mb-4">{error}</p>
+          <Button onClick={fetchShipmentForOrder} variant="outline" size="sm" className="h-7 sm:h-8 text-xs">
+            <RefreshCw className="h-3 w-3 mr-1" />
             Try Again
           </Button>
         </CardContent>
@@ -145,10 +145,10 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
   if (!shipment) {
     return (
       <Card className={className}>
-        <CardContent className="p-6 text-center">
-          <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Shipment Yet</h3>
-          <p className="text-gray-600 mb-4">
+        <CardContent className="p-3 sm:p-4 md:p-6 text-center">
+          <Package className="h-6 w-6 sm:h-8 sm:w-8 md:h-12 md:w-12 text-gray-400 mx-auto mb-2 sm:mb-3 md:mb-4" />
+          <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">No Shipment Yet</h3>
+          <p className="text-xs sm:text-sm text-gray-600 mb-2.5 sm:mb-3 md:mb-4">
             This order hasn't been shipped yet. The seller will create a shipment once the order is confirmed.
           </p>
         </CardContent>
@@ -160,59 +160,76 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
 
   return (
     <Card className={className}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-green-600" />
-            Shipment Tracking
+      <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+        <div className="flex flex-col space-y-2 sm:space-y-3 md:flex-row md:items-center md:justify-between md:space-y-0">
+          <CardTitle className="flex items-center gap-1 sm:gap-2 text-sm sm:text-base md:text-lg">
+            <Package className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-green-600 flex-shrink-0" />
+            <span className="truncate">Shipment Tracking</span>
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:gap-2">
             <ShipmentStatusBadge status={shipment.status} />
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRefresh}
-              disabled={refreshing}
-            >
-              <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/dashboard/shipments/${shipment._id}`}>
-                <Eye className="h-4 w-4 mr-1" />
-                View Details
-              </Link>
-            </Button>
+            <div className="flex gap-1 sm:gap-2 w-full sm:w-auto">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex-1 sm:flex-none h-7 sm:h-8 text-xs px-2 sm:px-3"
+              >
+                <RefreshCw className={`h-3 w-3 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+                <span className="sm:hidden">Refresh</span>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none h-7 sm:h-8 text-xs px-2 sm:px-3">
+                <Link href={`/dashboard/shipments/${shipment._id}`}>
+                  <Eye className="h-3 w-3 mr-1" />
+                  <span className="hidden sm:inline">View Details</span>
+                  <span className="sm:hidden">Details</span>
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-4 md:p-6">
         {/* Shipment Info */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Package className="h-4 w-4 text-gray-500" />
-              <span className="text-gray-600">Shipment:</span>
-              <span className="font-medium text-gray-900">{shipment.shipmentNumber}</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 md:gap-4 text-xs sm:text-sm">
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Package className="h-3 w-3 text-gray-500 flex-shrink-0" />
+                <span className="text-gray-600 text-xs">Shipment:</span>
+              </div>
+              <span className="font-medium text-gray-900 text-xs break-all ml-4 sm:ml-0">
+                {shipment.shipmentNumber}
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Truck className="h-4 w-4 text-gray-500" />
-              <span className="text-gray-600">Carrier:</span>
-              <span className="font-medium text-gray-900">{shipment.carrier}</span>
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Truck className="h-3 w-3 text-gray-500 flex-shrink-0" />
+                <span className="text-gray-600 text-xs">Carrier:</span>
+              </div>
+              <span className="font-medium text-gray-900 text-xs ml-4 sm:ml-0">
+                {shipment.carrier}
+              </span>
             </div>
           </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-500" />
-              <span className="text-gray-600">Est. Delivery:</span>
-              <span className={`font-medium ${deliveryStatus.color}`}>
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Calendar className="h-3 w-3 text-gray-500 flex-shrink-0" />
+                <span className="text-gray-600 text-xs">Est. Delivery:</span>
+              </div>
+              <span className={`font-medium text-xs ml-4 sm:ml-0 ${deliveryStatus.color}`}>
                 {deliveryStatus.text}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-gray-500" />
-              <span className="text-gray-600">Created:</span>
-              <span className="font-medium text-gray-900">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Clock className="h-3 w-3 text-gray-500 flex-shrink-0" />
+                <span className="text-gray-600 text-xs">Created:</span>
+              </div>
+              <span className="font-medium text-gray-900 text-xs ml-4 sm:ml-0">
                 {formatDistanceToNow(new Date(shipment.createdAt), { addSuffix: true })}
               </span>
             </div>
@@ -221,18 +238,18 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
 
         {/* Route */}
         <div className="pt-2 border-t border-gray-100">
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-gray-500" />
+          <div className="space-y-1.5 sm:space-y-2 md:space-y-0 md:flex md:items-center md:gap-4 text-xs sm:text-sm">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <MapPin className="h-3 w-3 text-gray-500 flex-shrink-0" />
               <span className="text-gray-600">From:</span>
-              <span className="font-medium text-gray-900">
+              <span className="font-medium text-gray-900 break-words">
                 {shipment.origin.city}, {shipment.origin.state}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Truck className="h-4 w-4 text-gray-500" />
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Truck className="h-3 w-3 text-gray-500 flex-shrink-0" />
               <span className="text-gray-600">To:</span>
-              <span className="font-medium text-gray-900">
+              <span className="font-medium text-gray-900 break-words">
                 {shipment.destination.city}, {shipment.destination.state}
               </span>
             </div>
@@ -242,16 +259,16 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
         {/* Latest Tracking Event */}
         {shipment.trackingEvents && shipment.trackingEvents.length > 0 && (
           <div className="pt-2 border-t border-gray-100">
-            <h4 className="font-medium text-gray-900 mb-2">Latest Update</h4>
-            <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                <Package className="h-4 w-4 text-blue-600" />
+            <h4 className="font-medium text-gray-900 mb-1.5 sm:mb-2 text-xs sm:text-sm md:text-base">Latest Update</h4>
+            <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg">
+              <div className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <Package className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 text-blue-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <h5 className="font-medium text-gray-900">{shipment.trackingEvents[0].location}</h5>
-                <p className="text-sm text-gray-600">{shipment.trackingEvents[0].description}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <Clock className="h-3 w-3 text-gray-400" />
+                <h5 className="font-medium text-gray-900 text-xs sm:text-sm">{shipment.trackingEvents[0].location}</h5>
+                <p className="text-xs sm:text-sm text-gray-600 break-words mt-0.5">{shipment.trackingEvents[0].description}</p>
+                <div className="flex items-center gap-1 sm:gap-2 mt-1">
+                  <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-400 flex-shrink-0" />
                   <span className="text-xs text-gray-500">
                     {formatDistanceToNow(new Date(shipment.trackingEvents[0].timestamp), { addSuffix: true })}
                   </span>
@@ -264,8 +281,8 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
         {/* Issues Alert */}
         {shipment.issues && shipment.issues.length > 0 && (
           <div className="pt-2 border-t border-gray-100">
-            <div className="flex items-center gap-2 text-sm text-orange-600">
-              <Package className="h-4 w-4" />
+            <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-orange-600">
+              <Package className="h-3 w-3 flex-shrink-0" />
               <span className="font-medium">
                 {shipment.issues.length} issue{shipment.issues.length !== 1 ? 's' : ''} reported
               </span>

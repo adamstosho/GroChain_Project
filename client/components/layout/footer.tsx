@@ -80,7 +80,7 @@ export function Footer() {
         </div>
 
         <div className="mt-12 pt-8 border-t flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
-          <p className="text-sm text-muted-foreground">© 2025 GroChain. All rights reserved.</p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} GroChain. All rights reserved.</p>
           <div className="flex space-x-6">
             <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Privacy Policy

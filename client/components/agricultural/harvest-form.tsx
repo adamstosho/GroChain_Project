@@ -513,11 +513,20 @@ export function HarvestForm({
                       <FormControl>
                         <Input
                           type="number"
-                          step="0.1"
-                          placeholder="0.0"
+                          step="0.01"
+                          placeholder="0.00"
                           className="h-8 sm:h-9 text-xs sm:text-sm"
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '' || value === null || value === undefined) {
+                              field.onChange(0)
+                            } else {
+                              // Ensure exact precision by rounding to 2 decimal places
+                              const numValue = parseFloat(value)
+                              field.onChange(isNaN(numValue) ? 0 : parseFloat(numValue.toFixed(2)))
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -672,7 +681,16 @@ export function HarvestForm({
                           placeholder="0.00"
                           className="h-8 sm:h-9 text-xs sm:text-sm"
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '' || value === null || value === undefined) {
+                              field.onChange(0)
+                            } else {
+                              // Ensure exact precision by rounding to 2 decimal places
+                              const numValue = parseFloat(value)
+                              field.onChange(isNaN(numValue) ? 0 : parseFloat(numValue.toFixed(2)))
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormMessage />

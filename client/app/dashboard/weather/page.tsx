@@ -145,13 +145,13 @@ export default function WeatherPage() {
       }
 
       const mockForecast: WeatherForecast[] = [
-        { date: '2024-01-16', high: 30, low: 22, condition: 'clear', icon: 'clear', precipitation: 0, humidity: 60, windSpeed: 8 },
-        { date: '2024-01-17', high: 29, low: 21, condition: 'partly-cloudy', icon: 'partly-cloudy', precipitation: 5, humidity: 70, windSpeed: 10 },
-        { date: '2024-01-18', high: 27, low: 20, condition: 'rainy', icon: 'rainy', precipitation: 25, humidity: 85, windSpeed: 15 },
-        { date: '2024-01-19', high: 26, low: 19, condition: 'rainy', icon: 'rainy', precipitation: 30, humidity: 90, windSpeed: 18 },
-        { date: '2024-01-20', high: 28, low: 21, condition: 'partly-cloudy', icon: 'partly-cloudy', precipitation: 10, humidity: 75, windSpeed: 12 },
-        { date: '2024-01-21', high: 31, low: 23, condition: 'clear', icon: 'clear', precipitation: 0, humidity: 65, windSpeed: 8 },
-        { date: '2024-01-22', high: 32, low: 24, condition: 'clear', icon: 'clear', precipitation: 0, humidity: 60, windSpeed: 6 }
+        { date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], high: 30, low: 22, condition: 'clear', icon: 'clear', precipitation: 0, humidity: 60, windSpeed: 8 },
+        { date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], high: 29, low: 21, condition: 'partly-cloudy', icon: 'partly-cloudy', precipitation: 5, humidity: 70, windSpeed: 10 },
+        { date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], high: 27, low: 20, condition: 'rainy', icon: 'rainy', precipitation: 25, humidity: 85, windSpeed: 15 },
+        { date: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], high: 26, low: 19, condition: 'rainy', icon: 'rainy', precipitation: 30, humidity: 90, windSpeed: 18 },
+        { date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], high: 28, low: 21, condition: 'partly-cloudy', icon: 'partly-cloudy', precipitation: 10, humidity: 75, windSpeed: 12 },
+        { date: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], high: 31, low: 23, condition: 'clear', icon: 'clear', precipitation: 0, humidity: 65, windSpeed: 8 },
+        { date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], high: 32, low: 24, condition: 'clear', icon: 'clear', precipitation: 0, humidity: 60, windSpeed: 6 }
       ]
 
       const mockAlerts: WeatherAlert[] = [
@@ -161,8 +161,8 @@ export default function WeatherPage() {
           title: 'Heavy Rainfall Warning',
           description: 'Heavy rainfall expected in the next 24 hours. Prepare for potential flooding in low-lying areas.',
           severity: 'medium',
-          startTime: '2024-01-18T06:00:00Z',
-          endTime: '2024-01-19T18:00:00Z',
+          startTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
           affectedAreas: ['North Region', 'Central Region']
         },
         {
@@ -171,8 +171,8 @@ export default function WeatherPage() {
           title: 'High UV Index Advisory',
           description: 'UV index reaching high levels. Take precautions when working outdoors.',
           severity: 'low',
-          startTime: '2024-01-16T10:00:00Z',
-          endTime: '2024-01-16T16:00:00Z',
+          startTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
           affectedAreas: ['All Regions']
         }
       ]

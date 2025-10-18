@@ -4,6 +4,7 @@ const QRCode = require('qrcode')
 const Harvest = require('../models/harvest.model')
 const User = require('../models/user.model')
 const notificationController = require('./notification.controller')
+const { ensureExactPrecision, validateQuantity, validatePrice } = require('../utils/number-precision')
 
 const harvestSchema = Joi.object({
   cropType: Joi.string().required(),
@@ -39,12 +40,26 @@ exports.createHarvest = async (req, res) => {
     const { error, value } = harvestSchema.validate(body)
     if (error) return res.status(400).json({ status: 'error', message: error.details[0].message })
 
-    // Validate and round quantity to 2 decimal places
-    value.quantity = Number(Number(value.quantity).toFixed(2))
+    // Validate and ensure exact number precision for quantity
+    const quantityValidation = validateQuantity(value.quantity)
+    if (!quantityValidation.isValid) {
+      return res.status(400).json({ 
+        status: 'error', 
+        message: quantityValidation.error 
+      })
+    }
+    value.quantity = quantityValidation.value
 
-    // Validate and round price to 2 decimal places if present
+    // Validate and ensure exact number precision for price if present
     if (value.price) {
-      value.price = Number(Number(value.price).toFixed(2))
+      const priceValidation = validatePrice(value.price)
+      if (!priceValidation.isValid) {
+        return res.status(400).json({ 
+          status: 'error', 
+          message: priceValidation.error 
+        })
+      }
+      value.price = priceValidation.value
     }
 
     // Generate unique batch ID

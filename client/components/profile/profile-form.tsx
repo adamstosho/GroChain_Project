@@ -212,6 +212,25 @@ export function ProfileForm() {
     try {
       setIsSaving(true)
 
+      // Validate required fields
+      if (!profile.name?.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Full name is required",
+          variant: "destructive"
+        })
+        return
+      }
+
+      if (!profile.phone?.trim()) {
+        toast({
+          title: "Validation Error", 
+          description: "Phone number is required",
+          variant: "destructive"
+        })
+        return
+      }
+
       // Prepare update data based on user role
       let updateData: any = {}
 
@@ -308,9 +327,21 @@ export function ProfileForm() {
       }
     } catch (error: any) {
       console.error('Error updating profile:', error)
+      
+      // Handle different types of errors
+      let errorMessage = "Failed to save profile. Please try again."
+      
+      if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        errorMessage = "Network error. Please check your connection and try again."
+      } else if (error.message?.includes('validation')) {
+        errorMessage = error.message
+      } else if (error.message?.includes('unauthorized')) {
+        errorMessage = "Session expired. Please log in again."
+      }
+      
       toast({
-        title: "Error updating profile",
-        description: error.message || "Failed to update profile",
+        title: "Error saving profile",
+        description: errorMessage,
         variant: "destructive"
       })
     } finally {
@@ -414,23 +445,25 @@ export function ProfileForm() {
                 </Badge>
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsEditing(!isEditing)}
+                className="flex-1 sm:flex-none h-9 sm:h-10"
               >
-                <Edit className="h-4 w-4 mr-2" />
-                {isEditing ? 'Cancel' : 'Edit'}
+                <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="text-xs sm:text-sm">{isEditing ? 'Cancel' : 'Edit'}</span>
               </Button>
               {isEditing && (
                 <Button
                   size="sm"
                   onClick={handleSave}
                   disabled={isSaving}
+                  className="flex-1 sm:flex-none h-9 sm:h-10"
                 >
-                  <Save className="h-4 w-4 mr-2" />
-                  {isSaving ? 'Saving...' : 'Save'}
+                  <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="text-xs sm:text-sm">{isSaving ? 'Saving...' : 'Save'}</span>
                 </Button>
               )}
             </div>
@@ -834,9 +867,21 @@ function FarmerProfileView() {
       }
     } catch (error: any) {
       console.error('Error updating farmer profile:', error)
+      
+      // Handle different types of errors
+      let errorMessage = "Failed to save profile. Please try again."
+      
+      if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        errorMessage = "Network error. Please check your connection and try again."
+      } else if (error.message?.includes('validation')) {
+        errorMessage = error.message
+      } else if (error.message?.includes('unauthorized')) {
+        errorMessage = "Session expired. Please log in again."
+      }
+      
       toast({
-        title: "Error updating profile",
-        description: error.message || "Failed to update farmer profile",
+        title: "Error saving profile",
+        description: errorMessage,
         variant: "destructive"
       })
     } finally {
@@ -917,23 +962,25 @@ function FarmerProfileView() {
                 </Badge>
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsEditing(!isEditing)}
+                className="flex-1 sm:flex-none h-9 sm:h-10"
               >
-                <Edit className="h-4 w-4 mr-2" />
-                {isEditing ? 'Cancel' : 'Edit'}
+                <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="text-xs sm:text-sm">{isEditing ? 'Cancel' : 'Edit'}</span>
               </Button>
               {isEditing && (
                 <Button
                   size="sm"
                   onClick={handleSave}
                   disabled={isSaving}
+                  className="flex-1 sm:flex-none h-9 sm:h-10"
                 >
-                  <Save className="h-4 w-4 mr-2" />
-                  {isSaving ? 'Saving...' : 'Save'}
+                  <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="text-xs sm:text-sm">{isSaving ? 'Saving...' : 'Save'}</span>
                 </Button>
               )}
             </div>
@@ -993,7 +1040,7 @@ function FarmerProfileView() {
       </div>
 
       {/* Farmer Profile Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Personal Information */}
         <Card>
           <CardHeader>
@@ -1003,54 +1050,58 @@ function FarmerProfileView() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
-                <Label>Full Name</Label>
+                <Label className="text-sm font-medium">Full Name</Label>
                 <Input
                   value={profile.name || ''}
                   onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                   disabled={!isEditing}
+                  className="h-9 sm:h-10"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label className="text-sm font-medium">Email</Label>
                 <Input
                   type="email"
                   value={profile.email || ''}
                   disabled // Email should not be editable
+                  className="h-9 sm:h-10 bg-muted"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
-                <Label>Phone</Label>
+                <Label className="text-sm font-medium">Phone</Label>
                 <Input
                   value={profile.phone || ''}
                   onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                   disabled={!isEditing}
+                  className="h-9 sm:h-10"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Age</Label>
+                <Label className="text-sm font-medium">Age</Label>
                 <Input
                   type="number"
                   value={profile.age || ''}
                   onChange={(e) => setProfile({ ...profile, age: e.target.value })}
                   disabled={!isEditing}
+                  className="h-9 sm:h-10"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
-                <Label>Gender</Label>
+                <Label className="text-sm font-medium">Gender</Label>
                 <Select
                   value={profile.gender || ''}
                   onValueChange={(value) => setProfile({ ...profile, gender: value })}
                   disabled={!isEditing}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 sm:h-10">
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1061,11 +1112,12 @@ function FarmerProfileView() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Education</Label>
+                <Label className="text-sm font-medium">Education</Label>
                 <Input
                   value={profile.education || ''}
                   onChange={(e) => setProfile({ ...profile, education: e.target.value })}
                   disabled={!isEditing}
+                  className="h-9 sm:h-10"
                 />
               </div>
             </div>
@@ -1082,17 +1134,18 @@ function FarmerProfileView() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Farm Size (hectares)</Label>
+              <Label className="text-sm font-medium">Farm Size (hectares)</Label>
               <Input
                 value={profile.farmSize || ''}
                 onChange={(e) => setProfile({ ...profile, farmSize: e.target.value })}
                 disabled={!isEditing}
                 placeholder="e.g. 5.5"
+                className="h-9 sm:h-10"
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Primary Crops</Label>
+              <Label className="text-sm font-medium">Primary Crops</Label>
               <Input
                 value={(profile.primaryCrops || []).join(', ')}
                 onChange={(e) => setProfile({
@@ -1101,21 +1154,35 @@ function FarmerProfileView() {
                 })}
                 disabled={!isEditing}
                 placeholder="e.g. Maize, Cassava, Tomatoes"
+                className="h-9 sm:h-10"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Farming Experience (years)</Label>
-              <Input
-                value={profile.experience || ''}
-                onChange={(e) => setProfile({ ...profile, experience: e.target.value })}
-                disabled={!isEditing}
-                placeholder="e.g. 10"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Farming Experience (years)</Label>
+                <Input
+                  value={profile.experience || ''}
+                  onChange={(e) => setProfile({ ...profile, experience: e.target.value })}
+                  disabled={!isEditing}
+                  placeholder="e.g. 10"
+                  className="h-9 sm:h-10"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Location</Label>
+                <Input
+                  value={profile.location || ''}
+                  onChange={(e) => setProfile({ ...profile, location: e.target.value })}
+                  disabled={!isEditing}
+                  placeholder="e.g. Ibadan, Oyo State"
+                  className="h-9 sm:h-10"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Certifications</Label>
+              <Label className="text-sm font-medium">Certifications</Label>
               <Input
                 value={(profile.certifications || []).join(', ')}
                 onChange={(e) => setProfile({
@@ -1124,6 +1191,7 @@ function FarmerProfileView() {
                 })}
                 disabled={!isEditing}
                 placeholder="e.g. Organic, Fair Trade"
+                className="h-9 sm:h-10"
               />
             </div>
           </CardContent>
@@ -1139,48 +1207,59 @@ function FarmerProfileView() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Address</Label>
+            <Input
+              value={profile.address || ''}
+              onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+              disabled={!isEditing}
+              className="h-9 sm:h-10"
+              placeholder="Enter your full address"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
-              <Label>Address</Label>
-              <Input
-                value={profile.address || ''}
-                onChange={(e) => setProfile({ ...profile, address: e.target.value })}
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>City</Label>
+              <Label className="text-sm font-medium">City</Label>
               <Input
                 value={profile.city || ''}
                 onChange={(e) => setProfile({ ...profile, city: e.target.value })}
                 disabled={!isEditing}
+                className="h-9 sm:h-10"
+                placeholder="City"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>State</Label>
+              <Label className="text-sm font-medium">State</Label>
               <Input
                 value={profile.state || ''}
                 onChange={(e) => setProfile({ ...profile, state: e.target.value })}
                 disabled={!isEditing}
+                className="h-9 sm:h-10"
+                placeholder="State"
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
-              <Label>Country</Label>
+              <Label className="text-sm font-medium">Country</Label>
               <Input
                 value={profile.country || ''}
                 onChange={(e) => setProfile({ ...profile, country: e.target.value })}
                 disabled={!isEditing}
+                className="h-9 sm:h-10"
+                placeholder="Country"
               />
             </div>
             <div className="space-y-2">
-              <Label>Postal Code</Label>
+              <Label className="text-sm font-medium">Postal Code</Label>
               <Input
                 value={profile.postalCode || ''}
                 onChange={(e) => setProfile({ ...profile, postalCode: e.target.value })}
                 disabled={!isEditing}
+                className="h-9 sm:h-10"
+                placeholder="Postal Code"
               />
             </div>
           </div>
@@ -1190,7 +1269,13 @@ function FarmerProfileView() {
       {/* Bio */}
       <Card>
         <CardHeader>
-          <CardTitle>Bio</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <User className="h-4 w-4 sm:h-5 sm:w-5" />
+            Bio
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            Tell us about yourself and your farming experience
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Textarea
@@ -1199,6 +1284,7 @@ function FarmerProfileView() {
             disabled={!isEditing}
             placeholder="Tell us about yourself and your farming experience..."
             rows={4}
+            className="min-h-[100px] resize-none"
           />
         </CardContent>
       </Card>

@@ -294,7 +294,16 @@ export const useNotifications = () => {
     // Check if WebSocket is disabled via environment variable
     if (process.env.NEXT_PUBLIC_DISABLE_WEBSOCKET === 'true') {
       console.log('🔔 Socket.IO disabled via environment configuration')
+      setState(prev => ({ ...prev, connected: false }))
       return
+    }
+
+    // Check if we're in development and backend is not running
+    if (process.env.NODE_ENV === 'development') {
+      const isLocalhost = APP_CONFIG.api.baseUrl.includes('localhost')
+      if (isLocalhost) {
+        console.log('🔔 Development mode: Using localhost WebSocket connection')
+      }
     }
 
     // Check if we've had too many failures
@@ -413,6 +422,9 @@ export const useNotifications = () => {
 
         // Increment failure tracking
         wsFailures.current++
+        
+        // Set connected state to false on connection error
+        setState(prev => ({ ...prev, connected: false }))
       })
 
     } catch (error) {
@@ -427,6 +439,10 @@ export const useNotifications = () => {
       // If Socket.IO creation fails, we could fallback to polling
       // For now, we'll just log and continue without Socket.IO
       console.warn('🔔 Continuing without Socket.IO connection - notifications will use polling')
+      
+      // Set connected state to false and increment failures
+      setState(prev => ({ ...prev, connected: false }))
+      wsFailures.current++
     }
   }, [user]) // Remove toast dependency
 
@@ -452,7 +468,12 @@ export const useNotifications = () => {
       // Add a small delay before attempting Socket.IO connection
       // This helps ensure the user is fully authenticated
       const socketTimeout = setTimeout(() => {
-        connectSocket()
+        try {
+          connectSocket()
+        } catch (error) {
+          console.error('🔔 Error during Socket.IO connection attempt:', error)
+          // Silently handle the error - notifications will fallback to polling
+        }
       }, 1000)
 
       return () => clearTimeout(socketTimeout)

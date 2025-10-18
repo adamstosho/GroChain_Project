@@ -61,5 +61,6 @@ router.post('/scan', authenticate, qrCodeController.recordQRScan)
  */
 router.delete('/:id', authenticate, qrCodeController.deleteQRCode)
 
+
 module.exports = router
 

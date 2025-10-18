@@ -14,7 +14,6 @@ import {
   Package, 
   Search, 
   Filter, 
-  Plus,
   RefreshCw,
   TrendingUp,
   Clock,
@@ -105,13 +104,6 @@ export default function ShipmentsPage() {
               <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Refresh</span>
               <span className="sm:hidden">Refresh</span>
-            </Button>
-            <Button asChild size="sm" className="w-full xs:w-auto">
-              <Link href="/dashboard/shipments/create">
-                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                <span className="hidden sm:inline">Create Shipment</span>
-                <span className="sm:hidden">Create</span>
-              </Link>
             </Button>
           </div>
         </div>
@@ -347,15 +339,9 @@ export default function ShipmentsPage() {
                 <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                   {Object.keys(filters).some(key => filters[key as keyof ShipmentFilters]) 
                     ? "No shipments match your current filters."
-                    : "You haven't created any shipments yet."
+                    : "You don't have any shipments yet."
                   }
                 </p>
-                <Button asChild size="sm" className="w-full sm:w-auto">
-                  <Link href="/dashboard/shipments/create">
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                    Create Your First Shipment
-                  </Link>
-                </Button>
               </CardContent>
             </Card>
           ) : (

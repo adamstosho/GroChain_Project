@@ -22,20 +22,21 @@ export default function QRGenerator({ onQRGenerated }: QRGeneratorProps) {
   const { toast } = useToast()
 
   // Sample QR codes for testing
+  const currentYear = new Date().getFullYear()
   const sampleQRCodes = [
     {
       name: "Sample Maize Batch",
-      data: "BATCH-MAIZE-2024-001",
+      data: `BATCH-MAIZE-${currentYear}-001`,
       description: "Fresh maize from Lagos farm"
     },
     {
       name: "Sample Cassava Batch", 
-      data: "BATCH-CASSAVA-2024-002",
+      data: `BATCH-CASSAVA-${currentYear}-002`,
       description: "Organic cassava from Ogun state"
     },
     {
       name: "Sample Rice Batch",
-      data: "BATCH-RICE-2024-003", 
+      data: `BATCH-RICE-${currentYear}-003`, 
       description: "Premium rice from Kano"
     }
   ]

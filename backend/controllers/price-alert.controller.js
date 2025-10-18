@@ -3,6 +3,7 @@ const PriceAlert = require('../models/price-alert.model')
 const Listing = require('../models/listing.model')
 const Notification = require('../models/notification.model')
 const { WebSocketService } = require('../services/websocket.service')
+const NotificationService = require('../services/notification.service')
 
 const priceAlertController = {
   // Create a new price alert
@@ -260,37 +261,47 @@ const priceAlertController = {
         if (wasTriggered) {
           triggeredAlerts.push(alert)
           
-          // Create notification
-          const notification = new Notification({
+          // Get enabled notification channels from the alert
+          const enabledChannels = alert.notificationChannels
+            .filter(channel => channel.enabled)
+            .map(channel => channel.type)
+
+          // Create notification using the notification service
+          const notificationData = {
             user: alert.user._id,
-            title: 'Price Alert Triggered!',
-            message: `${alert.productName} price is now ${currentPrice} (Target: ${alert.targetPrice})`,
+            title: 'Price Alert Triggered! 🚨',
+            message: `${alert.productName} price is now ₦${currentPrice.toLocaleString()} (Target: ₦${alert.targetPrice.toLocaleString()})`,
             type: 'info',
             category: 'marketplace',
-            priority: 'normal',
-            actionUrl: `/dashboard/products/${alert.listing._id}`,
+            priority: 'high',
+            channels: enabledChannels,
             data: {
               alertId: alert._id,
               productId: alert.listing._id,
               currentPrice,
               targetPrice: alert.targetPrice,
-              alertType: alert.alertType
+              alertType: alert.alertType,
+              priceChange: currentPrice - alert.metadata.originalPrice,
+              priceChangePercent: ((currentPrice - alert.metadata.originalPrice) / alert.metadata.originalPrice * 100).toFixed(2)
             }
-          })
+          }
 
-          await notification.save()
+          // Send notification through all enabled channels (email, SMS, push, in-app)
+          const notification = await NotificationService.createNotification(notificationData)
 
-          // Send real-time notification via WebSocket
-          const wsService = new WebSocketService()
-          await wsService.sendNotificationToUser(alert.user._id, {
-            id: notification._id,
-            title: notification.title,
-            message: notification.message,
-            type: notification.type,
-            category: notification.category,
-            actionUrl: notification.actionUrl,
-            data: notification.data
-          })
+          // Send real-time notification via WebSocket for in-app notifications
+          if (enabledChannels.includes('in_app')) {
+            const wsService = new WebSocketService()
+            await wsService.sendNotificationToUser(alert.user._id, {
+              id: notification._id,
+              title: notification.title,
+              message: notification.message,
+              type: notification.type,
+              category: notification.category,
+              actionUrl: notification.actionUrl,
+              data: notification.data
+            })
+          }
 
           // Mark alert as notification sent
           alert.resetAfterNotification()

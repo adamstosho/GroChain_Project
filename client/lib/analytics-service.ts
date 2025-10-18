@@ -185,9 +185,9 @@ const mockAnalyticsData: AnalyticsData = {
       { category: 'Extension Services', amount: 175000, percentage: 14.0 }
     ],
     payoutHistory: [
-      { date: '2024-06-01', amount: 45000, status: 'completed', reference: 'PAY-001' },
-      { date: '2024-05-15', amount: 38000, status: 'completed', reference: 'PAY-002' },
-      { date: '2024-05-01', amount: 42000, status: 'completed', reference: 'PAY-003' }
+      { date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], amount: 45000, status: 'completed', reference: 'PAY-001' },
+      { date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], amount: 38000, status: 'completed', reference: 'PAY-002' },
+      { date: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], amount: 42000, status: 'completed', reference: 'PAY-003' }
     ]
   }
 }

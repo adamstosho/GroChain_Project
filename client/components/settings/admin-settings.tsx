@@ -428,7 +428,7 @@ export function AdminSettings() {
                     } : null)
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 sm:h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -503,7 +503,7 @@ export function AdminSettings() {
                     } : null)
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 sm:h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -526,7 +526,7 @@ export function AdminSettings() {
                     } : null)
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 sm:h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -590,7 +590,7 @@ export function AdminSettings() {
                     } : null)
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 sm:h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -613,7 +613,7 @@ export function AdminSettings() {
                     } : null)
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 sm:h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -636,7 +636,7 @@ export function AdminSettings() {
                     } : null)
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 sm:h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -718,7 +718,7 @@ export function AdminSettings() {
                     } : null)
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 sm:h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

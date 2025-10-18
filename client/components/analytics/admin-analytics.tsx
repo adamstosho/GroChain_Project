@@ -297,106 +297,162 @@ export function AdminAnalytics() {
   }
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-4 sm:space-y-6 w-full">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold text-gray-900">Analytics Dashboard</h1>
-          <p className="text-gray-600">
+      <div className="space-y-4">
+        <div className="flex flex-col space-y-2">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
             Platform-wide insights, user growth, and system performance metrics
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Select value={timeRange} onValueChange={(value: any) => setTimeRange(value)}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-              <SelectItem value="1y">Last year</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+        
+        {/* Controls - Mobile First Design */}
+        <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div className="flex flex-col xs:flex-row gap-2">
+            <Select value={timeRange} onValueChange={(value: any) => setTimeRange(value)}>
+              <SelectTrigger className="w-full xs:w-auto min-w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="90d">Last 90 days</SelectItem>
+                <SelectItem value="1y">Last year</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleRefresh} 
+              disabled={isLoading}
+              className="flex-1 sm:flex-none min-w-[100px]"
+              size="sm"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <span className="hidden xs:inline">Refresh</span>
+              <span className="xs:hidden">↻</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleExport}
+              className="flex-1 sm:flex-none min-w-[100px]"
+              size="sm"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              <span className="hidden xs:inline">Export</span>
+              <span className="xs:hidden">↓</span>
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-        <Card>
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-blue-600" />
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Users</CardTitle>
+            <div className="p-1.5 sm:p-2 bg-blue-50 rounded-full flex-shrink-0">
+              <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(analyticsData?.totalUsers || 0)}</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 mr-1 text-green-600" />
-              {formatNumber(analyticsData?.activeUsers || 0)} active
+          <CardContent className="pb-3 sm:pb-6">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{formatNumber(analyticsData?.totalUsers || 0)}</div>
+            <div className="flex items-center text-xs text-muted-foreground mt-1">
+              <TrendingUp className="h-3 w-3 mr-1 text-green-600 flex-shrink-0" />
+              <span className="truncate">{formatNumber(analyticsData?.activeUsers || 0)} active</span>
             </div>
           </CardContent>
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-blue-50 rounded-bl-full opacity-20" />
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <Banknote className="h-4 w-4 text-green-600" />
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Revenue</CardTitle>
+            <div className="p-1.5 sm:p-2 bg-green-50 rounded-full flex-shrink-0">
+              <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="pb-3 sm:pb-6">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold break-words">
               {formatCurrency(analyticsData?.totalRevenue || 0)}
             </div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 mr-1 text-green-600" />
-              From {formatNumber(analyticsData?.totalOrders || 0)} orders
+            <div className="flex items-center text-xs text-muted-foreground mt-1">
+              <TrendingUp className="h-3 w-3 mr-1 text-green-600 flex-shrink-0" />
+              <span className="truncate">From {formatNumber(analyticsData?.totalOrders || 0)} orders</span>
             </div>
           </CardContent>
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-green-50 rounded-bl-full opacity-20" />
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Harvests</CardTitle>
-            <Package className="h-4 w-4 text-purple-600" />
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Harvests</CardTitle>
+            <div className="p-1.5 sm:p-2 bg-purple-50 rounded-full flex-shrink-0">
+              <Package className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(analyticsData?.totalHarvests || 0)}</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <Target className="h-3 w-3 mr-1 text-blue-600" />
-              {analyticsData?.approvalRate || 0}% approval rate
+          <CardContent className="pb-3 sm:pb-6">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{formatNumber(analyticsData?.totalHarvests || 0)}</div>
+            <div className="flex items-center text-xs text-muted-foreground mt-1">
+              <Target className="h-3 w-3 mr-1 text-blue-600 flex-shrink-0" />
+              <span className="truncate">{analyticsData?.approvalRate || 0}% approval rate</span>
             </div>
           </CardContent>
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-purple-50 rounded-bl-full opacity-20" />
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Credit Score</CardTitle>
-            <Activity className="h-4 w-4 text-orange-600" />
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">Credit Score</CardTitle>
+            <div className="p-1.5 sm:p-2 bg-orange-50 rounded-full flex-shrink-0">
+              <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analyticsData?.averageCreditScore || 0}</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <Shield className="h-3 w-3 mr-1 text-blue-600" />
-              Platform average
+          <CardContent className="pb-3 sm:pb-6">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{analyticsData?.averageCreditScore || 0}</div>
+            <div className="flex items-center text-xs text-muted-foreground mt-1">
+              <Shield className="h-3 w-3 mr-1 text-blue-600 flex-shrink-0" />
+              <span className="truncate">Platform average</span>
             </div>
           </CardContent>
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-orange-50 rounded-bl-full opacity-20" />
         </Card>
       </div>
 
       {/* Charts Section */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="users">User Analytics</TabsTrigger>
-          <TabsTrigger value="regional">Regional Data</TabsTrigger>
-          <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto p-1 bg-muted/50">
+          <TabsTrigger 
+            value="overview" 
+            className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
+          >
+            <span className="hidden xs:inline">Overview</span>
+            <span className="xs:hidden">📊</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="users" 
+            className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
+          >
+            <span className="hidden xs:inline">User Analytics</span>
+            <span className="xs:hidden">👥</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="regional" 
+            className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
+          >
+            <span className="hidden xs:inline">Regional Data</span>
+            <span className="xs:hidden">🗺️</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="quality" 
+            className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
+          >
+            <span className="hidden xs:inline">Quality Metrics</span>
+            <span className="xs:hidden">⭐</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">

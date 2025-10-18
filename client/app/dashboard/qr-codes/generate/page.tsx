@@ -330,7 +330,7 @@ export default function GenerateQRCodePage() {
                       id="customBatchId"
                       value={formData.customBatchId}
                       onChange={(e) => setFormData(prev => ({ ...prev, customBatchId: e.target.value }))}
-                      placeholder="e.g., BATCH_001_2024"
+                      placeholder={`e.g., BATCH_001_${new Date().getFullYear()}`}
                     />
                   </div>
                 </div>

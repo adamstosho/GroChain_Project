@@ -155,10 +155,11 @@ const shipmentController = {
       )
 
       // Create notification for buyer
+      const orderNumber = order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`
       await Notification.create({
         user: order.buyer._id,
         title: 'Shipment Created',
-        message: `Your order #${order.orderNumber} has been shipped. Track your delivery with shipment #${shipment.shipmentNumber}`,
+        message: `Your order #${orderNumber} has been shipped. Track your delivery with shipment #${shipment.shipmentNumber}`,
         type: 'info',
         category: 'shipment',
         data: { shipmentId: shipment._id, orderId: order._id }
@@ -390,10 +391,12 @@ const shipmentController = {
       await shipment.addTrackingEvent(status, location, description, coordinates)
 
       // Create notification for buyer
+      const order = await Order.findById(shipment.order)
+      const orderNumber = order?.orderNumber || `ORD-${shipment.order?.toString().slice(-6).toUpperCase() || 'UNKNOWN'}`
       await Notification.create({
         user: shipment.buyer,
         title: 'Shipment Update',
-        message: `Your shipment #${shipment.shipmentNumber} status: ${status} - ${description}`,
+        message: `Your order #${orderNumber} shipment #${shipment.shipmentNumber} status: ${status} - ${description}`,
         type: 'info',
         category: 'shipment',
         data: { shipmentId: shipment._id, status, location }

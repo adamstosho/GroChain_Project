@@ -6,6 +6,7 @@ const Harvest = require('../models/harvest.model')
 const Transaction = require('../models/transaction.model')
 const mongoose = require('mongoose')
 const notificationController = require('./notification.controller')
+const { ensureExactPrecision } = require('../utils/number-precision')
 
 // Helper function to map crop types to categories
 const getCategoryFromCropType = (cropType) => {
@@ -406,8 +407,8 @@ const marketplaceController = {
         })
       }
       
-      // Ensure quantity is a positive number and round to 2 decimal places
-      const harvestQuantity = Number(Number(harvest.quantity).toFixed(2))
+      // Ensure quantity is a positive number with exact precision
+      const harvestQuantity = ensureExactPrecision(harvest.quantity)
       
       // Logging for debugging
       console.log('📦 Creating Listing:', {
@@ -651,7 +652,7 @@ const marketplaceController = {
           'orderReceived',
           {
             productName: items.length === 1 ? items[0].cropName : `${items.length} products`,
-            orderNumber: order._id,
+            orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
             actionUrl: `/dashboard/orders/${order._id}`
           }
         )
@@ -671,7 +672,7 @@ const marketplaceController = {
               {
                 productName: item.listing.cropName,
                 buyerName: populatedOrder.buyer.name,
-                orderNumber: order._id,
+                orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
                 actionUrl: `/dashboard/orders/${order._id}`
               }
             )
@@ -683,7 +684,7 @@ const marketplaceController = {
           'system',
           'newOrder',
           {
-            orderNumber: order._id,
+            orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
             buyerName: populatedOrder.buyer.name,
             totalAmount: order.total,
             actionUrl: `/admin/orders/${order._id}`

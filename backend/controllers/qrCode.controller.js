@@ -494,6 +494,7 @@ const qrCodeController = {
     }
   },
 
+
   // Delete QR code
   async deleteQRCode(req, res) {
     try {

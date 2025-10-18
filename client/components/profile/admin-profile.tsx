@@ -587,25 +587,25 @@ export function AdminProfile() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Profile</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Admin Profile</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Manage your administrative profile and system access
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           {isEditing ? (
             <>
-              <Button onClick={handleSave} disabled={isLoading}>
+              <Button onClick={handleSave} disabled={isLoading} className="h-9 sm:h-10" size="sm">
                 Save Changes
               </Button>
-              <Button variant="outline" onClick={handleCancel}>
+              <Button variant="outline" onClick={handleCancel} className="h-9 sm:h-10" size="sm">
                 Cancel
               </Button>
             </>
           ) : (
-            <Button onClick={() => setIsEditing(true)}>
+            <Button onClick={() => setIsEditing(true)} className="h-9 sm:h-10" size="sm">
               Edit Profile
             </Button>
           )}

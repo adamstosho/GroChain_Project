@@ -2,6 +2,7 @@
 
 import { createContext, useContext, ReactNode } from 'react'
 import { useNotifications, Notification } from '@/hooks/use-notifications'
+import { WebSocketErrorBoundary } from './websocket-error-boundary'
 
 interface NotificationContextType {
   notifications: Notification[]
@@ -29,9 +30,11 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const notificationData = useNotifications()
 
   return (
-    <NotificationContext.Provider value={notificationData}>
-      {children}
-    </NotificationContext.Provider>
+    <WebSocketErrorBoundary>
+      <NotificationContext.Provider value={notificationData}>
+        {children}
+      </NotificationContext.Provider>
+    </WebSocketErrorBoundary>
   )
 }
 

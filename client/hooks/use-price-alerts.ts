@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from 'react'
-import { api } from '@/lib/api'
+import { apiService } from '@/lib/api'
 import { useToast } from './use-toast'
 import { useAuthStore } from '@/lib/auth'
 
@@ -86,18 +86,23 @@ export const usePriceAlerts = () => {
         params.append('isActive', isActive.toString())
       }
 
-      const response = await api.get(`/price-alerts?${params}`)
+      console.log('🔍 Fetching price alerts with params:', params.toString())
+      const response = await apiService.get(`/price-alerts?${params}`)
+      console.log('📋 Price alerts response:', response)
       
-      if (response.data && response.data.status === 'success') {
-        setAlerts(response.data.data.alerts)
-        return response.data.data
+      if (response && response.status === 'success') {
+        const alertsData = response.data?.alerts || []
+        setAlerts(alertsData)
+        console.log('✅ Price alerts set:', alertsData.length, 'alerts')
+        return response.data
       } else {
-        throw new Error(response.data?.message || 'Failed to fetch alerts')
+        console.error('❌ Price alerts API error:', response?.message || 'Unknown error')
+        throw new Error(response?.message || 'Failed to fetch alerts')
       }
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to fetch price alerts'
       setError(errorMessage)
-      console.error('Error fetching price alerts:', error)
+      console.error('❌ Error fetching price alerts:', error)
       
       // Network/timeout errors will still be caught here
       setAlerts([])
@@ -110,16 +115,28 @@ export const usePriceAlerts = () => {
   // Fetch price alert statistics
   const fetchStats = useCallback(async () => {
     try {
-      const response = await api.get('/price-alerts/stats')
+      console.log('🔍 Fetching price alert stats...')
+      const response = await apiService.get('/price-alerts/stats')
+      console.log('📊 Price alert stats response:', response)
       
-      if (response.data && response.data.status === 'success') {
-        setStats(response.data.data)
-        return response.data.data
+      if (response && response.status === 'success') {
+        const statsData = response.data || {
+          totalAlerts: 0,
+          activeAlerts: 0,
+          triggeredAlerts: 0,
+          totalTriggers: 0,
+          avgTargetPrice: 0,
+          avgCurrentPrice: 0
+        }
+        setStats(statsData)
+        console.log('✅ Price alert stats set:', statsData)
+        return statsData
       } else {
-        throw new Error(response.data?.message || 'Failed to fetch stats')
+        console.error('❌ Price alert stats API error:', response?.message || 'Unknown error')
+        throw new Error(response?.message || 'Failed to fetch stats')
       }
     } catch (error: any) {
-      console.error('Error fetching price alert stats:', error)
+      console.error('❌ Error fetching price alert stats:', error)
       
       // Network/timeout errors will still be caught here
       const emptyStats = {
@@ -141,10 +158,10 @@ export const usePriceAlerts = () => {
       setLoading(true)
       setError(null)
 
-      const response = await api.post('/price-alerts', data)
+      const response = await apiService.post('/price-alerts', data)
       
-      if (response.data.status === 'success') {
-        const newAlert = response.data.data
+      if (response.status === 'success') {
+        const newAlert = response.data
         setAlerts(prev => [newAlert, ...prev])
         
         toast({
@@ -154,7 +171,7 @@ export const usePriceAlerts = () => {
         
         return newAlert
       } else {
-        throw new Error(response.data.message || 'Failed to create alert')
+        throw new Error(response.message || 'Failed to create alert')
       }
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to create price alert'
@@ -178,10 +195,10 @@ export const usePriceAlerts = () => {
       setLoading(true)
       setError(null)
 
-      const response = await api.put(`/price-alerts/${alertId}`, data)
+      const response = await apiService.put(`/price-alerts/${alertId}`, data)
       
-      if (response.data.status === 'success') {
-        const updatedAlert = response.data.data
+      if (response.status === 'success') {
+        const updatedAlert = response.data
         setAlerts(prev => prev.map(alert => 
           alert._id === alertId ? updatedAlert : alert
         ))
@@ -193,7 +210,7 @@ export const usePriceAlerts = () => {
         
         return updatedAlert
       } else {
-        throw new Error(response.data.message || 'Failed to update alert')
+        throw new Error(response.message || 'Failed to update alert')
       }
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to update price alert'
@@ -217,9 +234,9 @@ export const usePriceAlerts = () => {
       setLoading(true)
       setError(null)
 
-      const response = await api.delete(`/price-alerts/${alertId}`)
+      const response = await apiService.delete(`/price-alerts/${alertId}`)
       
-      if (response.data.status === 'success') {
+      if (response.status === 'success') {
         setAlerts(prev => prev.filter(alert => alert._id !== alertId))
         
         toast({
@@ -229,7 +246,7 @@ export const usePriceAlerts = () => {
         
         return true
       } else {
-        throw new Error(response.data.message || 'Failed to delete alert')
+        throw new Error(response.message || 'Failed to delete alert')
       }
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to delete price alert'

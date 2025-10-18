@@ -299,86 +299,88 @@ export default function PaymentsPage() {
 
   return (
     <DashboardLayout pageTitle="Payment Management">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Payment Management</h1>
-            <p className="text-muted-foreground">
+        <div className="flex flex-col space-y-3 sm:space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+          <div className="space-y-2">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Payment Management</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Manage your payment methods, view transactions, and handle billing
             </p>
             {error && (
-              <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded">
+              <div className="mt-2 text-xs sm:text-sm text-red-600 bg-red-50 p-2 rounded">
                 ⚠️ {error}
               </div>
             )}
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={refreshData} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+            <Button variant="outline" onClick={refreshData} disabled={loading} className="h-8 sm:h-9 text-xs sm:text-sm">
+              <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Payment Method
-          </Button>
+            <Button className="h-8 sm:h-9 text-xs sm:text-sm">
+              <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              Add Payment Method
+            </Button>
           </div>
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="methods">Payment Methods</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="billing">Billing</TabsTrigger>
-            <TabsTrigger value="refunds">Refunds</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto p-1">
+            <TabsTrigger value="methods" className="text-xs sm:text-sm">Payment Methods</TabsTrigger>
+            <TabsTrigger value="transactions" className="text-xs sm:text-sm">Transactions</TabsTrigger>
+            <TabsTrigger value="billing" className="text-xs sm:text-sm">Billing</TabsTrigger>
+            <TabsTrigger value="refunds" className="text-xs sm:text-sm">Refunds</TabsTrigger>
           </TabsList>
 
           {/* Payment Methods Tab */}
-          <TabsContent value="methods" className="mt-6">
-            <div className="space-y-4">
+          <TabsContent value="methods" className="mt-4 sm:mt-6">
+            <div className="space-y-3 sm:space-y-4">
               {paymentMethodsLoading ? (
                 // Loading skeletons for payment methods
                 Array.from({ length: 3 }).map((_, index) => (
                   <Card key={index} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <Skeleton className="h-10 w-10 rounded-lg" />
-                          <div className="space-y-2">
-                            <Skeleton className="h-4 w-48" />
-                            <Skeleton className="h-3 w-32" />
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="flex items-center space-x-3 sm:space-x-4">
+                          <Skeleton className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg" />
+                          <div className="space-y-1 sm:space-y-2">
+                            <Skeleton className="h-3 w-32 sm:h-4 sm:w-48" />
+                            <Skeleton className="h-2 w-24 sm:h-3 sm:w-32" />
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Skeleton className="h-5 w-16" />
-                          <Skeleton className="h-5 w-14" />
-                          <Skeleton className="h-8 w-8" />
-                          <Skeleton className="h-8 w-8" />
+                        <div className="flex items-center space-x-1 sm:space-x-2 w-full sm:w-auto">
+                          <Skeleton className="h-4 w-12 sm:h-5 sm:w-16" />
+                          <Skeleton className="h-4 w-10 sm:h-5 sm:w-14" />
+                          <Skeleton className="h-7 w-7 sm:h-8 sm:w-8" />
+                          <Skeleton className="h-7 w-7 sm:h-8 sm:w-8" />
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 ))
               ) : paymentMethods.length === 0 ? (
-                <div className="text-center py-8">
-                  <CreditCardIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-muted-foreground mb-2">No payment methods found</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                <div className="text-center py-6 sm:py-8">
+                  <CreditCardIcon className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-medium text-muted-foreground mb-2">No payment methods found</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                     Add your first payment method to start making purchases.
                   </p>
-                  <Button><Plus className="h-4 w-4 mr-2" />Add Payment Method</Button>
+                  <Button className="h-8 sm:h-9 text-xs sm:text-sm"><Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Add Payment Method</Button>
                 </div>
               ) : (
                 paymentMethods.map((method) => (
                 <Card key={method._id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        {getTypeIcon(method.type)}
-                        <div>
-                          <h4 className="font-semibold text-foreground">{method.name}</h4>
-                          <p className="text-sm text-muted-foreground">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
+                        <div className="flex-shrink-0">
+                          {getTypeIcon(method.type)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-semibold text-foreground text-sm sm:text-base truncate">{method.name}</h4>
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
                             {method.type === 'card' ? `**** **** **** ${method.details.last4}` : 
                                method.type === 'bank_account' ? `Bank: ${method.details.bankName} - ****${method.details.accountNumber?.slice(-4)}` :
                              method.type === 'mobile_money' ? `Phone: ${method.details.phoneNumber}` : ''}
@@ -390,11 +392,11 @@ export default function PaymentsPage() {
                             )}
                           </div>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1 sm:space-x-2 w-full sm:w-auto">
                         {method.isDefault && <Badge variant="secondary" className="text-xs">Default</Badge>}
                           {method.isVerified && <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">Verified</Badge>}
-                        <Button variant="ghost" size="sm"><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0"><Edit className="h-3 w-3 sm:h-4 sm:w-4" /></Button>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive h-7 w-7 sm:h-8 sm:w-8 p-0"><Trash2 className="h-3 w-3 sm:h-4 sm:w-4" /></Button>
                       </div>
                     </div>
                   </CardContent>
@@ -402,153 +404,155 @@ export default function PaymentsPage() {
                 ))
               )}
               {paymentMethods.length > 0 && (
-              <Button className="w-full"><Plus className="h-4 w-4 mr-2" />Add New Method</Button>
+              <Button className="w-full h-8 sm:h-9 text-xs sm:text-sm"><Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Add New Method</Button>
               )}
             </div>
           </TabsContent>
 
           {/* Transactions Tab */}
-          <TabsContent value="transactions" className="mt-6">
+          <TabsContent value="transactions" className="mt-4 sm:mt-6">
             {/* Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
               <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2">
-                    <Banknote className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Total</span>
+                <CardContent className="p-2 sm:p-4">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium truncate">Total</span>
                   </div>
                   {loading ? (
-                    <Skeleton className="h-8 w-16 mt-2" />
+                    <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-2xl font-bold">{stats.total}</p>
+                  <p className="text-lg sm:text-2xl font-bold mt-1 sm:mt-2">{stats.total}</p>
                   )}
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium">Successful</span>
+                <CardContent className="p-2 sm:p-4">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium truncate">Successful</span>
                   </div>
                   {loading ? (
-                    <Skeleton className="h-8 w-16 mt-2" />
+                    <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-2xl font-bold text-green-600">{stats.successful}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-green-600 mt-1 sm:mt-2">{stats.successful}</p>
                   )}
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2">
-                    <Clock className="h-4 w-4 text-yellow-600" />
-                    <span className="text-sm font-medium">Pending</span>
+                <CardContent className="p-2 sm:p-4">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-600 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium truncate">Pending</span>
                   </div>
                   {loading ? (
-                    <Skeleton className="h-8 w-16 mt-2" />
+                    <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-yellow-600 mt-1 sm:mt-2">{stats.pending}</p>
                   )}
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2">
-                    <TrendingDown className="h-4 w-4 text-red-600" />
-                    <span className="text-sm font-medium">Failed</span>
+                <CardContent className="p-2 sm:p-4">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-red-600 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium truncate">Failed</span>
                   </div>
                   {loading ? (
-                    <Skeleton className="h-8 w-16 mt-2" />
+                    <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-2xl font-bold text-red-600">{stats.failed}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-red-600 mt-1 sm:mt-2">{stats.failed}</p>
                   )}
                 </CardContent>
               </Card>
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row gap-2 sm:gap-4 mb-4 sm:mb-6">
               <div className="flex-1">
-                <Input placeholder="Search transactions..." className="max-w-sm" />
+                <Input placeholder="Search transactions..." className="w-full sm:max-w-sm h-8 sm:h-9 text-xs sm:text-sm" />
               </div>
-              <Select>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="successful">Successful</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                  <SelectItem value="refunded">Refunded</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="purchase">Purchase</SelectItem>
-                  <SelectItem value="refund">Refund</SelectItem>
-                  <SelectItem value="withdrawal">Withdrawal</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 sm:gap-4">
+                <Select>
+                  <SelectTrigger className="w-full sm:w-[180px] h-8 sm:h-9 text-xs sm:text-sm">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="successful">Successful</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="refunded">Refunded</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select>
+                  <SelectTrigger className="w-full sm:w-[180px] h-8 sm:h-9 text-xs sm:text-sm">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="purchase">Purchase</SelectItem>
+                    <SelectItem value="refund">Refund</SelectItem>
+                    <SelectItem value="withdrawal">Withdrawal</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Transactions List */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {loading ? (
                 // Loading skeletons
                 Array.from({ length: 3 }).map((_, index) => (
                   <Card key={index} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <Skeleton className="h-10 w-10 rounded-lg" />
-                          <div className="space-y-2">
-                            <Skeleton className="h-4 w-48" />
-                            <Skeleton className="h-3 w-32" />
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
+                          <Skeleton className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg flex-shrink-0" />
+                          <div className="space-y-1 sm:space-y-2 min-w-0 flex-1">
+                            <Skeleton className="h-3 w-32 sm:h-4 sm:w-48" />
+                            <Skeleton className="h-2 w-24 sm:h-3 sm:w-32" />
                           </div>
                         </div>
-                        <div className="text-right space-y-2">
-                          <Skeleton className="h-4 w-20" />
-                          <Skeleton className="h-5 w-16" />
+                        <div className="text-right space-y-1 sm:space-y-2 w-full sm:w-auto">
+                          <Skeleton className="h-3 w-16 sm:h-4 sm:w-20 ml-auto" />
+                          <Skeleton className="h-4 w-12 sm:h-5 sm:w-16 ml-auto" />
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 ))
               ) : transactions.length === 0 ? (
-                <div className="text-center py-8">
-                  <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-muted-foreground mb-2">No transactions found</h3>
-                  <p className="text-sm text-muted-foreground">
+                <div className="text-center py-6 sm:py-8">
+                  <Receipt className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-medium text-muted-foreground mb-2">No transactions found</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Your transaction history will appear here once you make purchases.
                   </p>
                 </div>
               ) : (
                 transactions.map((transaction) => (
                   <Card key={transaction._id || transaction.reference || `txn-${Math.random()}`} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="p-2 bg-primary/10 rounded-lg">
+                  <CardContent className="p-3 sm:p-4 overflow-hidden">
+                    <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-start space-x-3 sm:space-x-4 min-w-0 flex-1">
+                        <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg flex-shrink-0 mt-0.5">
                           {getStatusIcon(transaction.status)}
                         </div>
-                        <div>
-                            <h4 className="font-semibold text-foreground">
+                        <div className="min-w-0 flex-1 space-y-1">
+                            <h4 className="font-semibold text-foreground text-sm sm:text-base break-words leading-tight">
                               {transaction.description || `Transaction ${transaction.reference || ''}`}
                             </h4>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs sm:text-sm text-muted-foreground break-all">
                               {transaction.reference || transaction._id} • {transaction.createdAt ? formatDate(transaction.createdAt) : 'N/A'}
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                          <p className="font-semibold text-foreground">
+                      <div className="flex items-center justify-between sm:flex-col sm:items-end sm:space-y-2 w-full sm:w-auto">
+                          <p className="font-semibold text-foreground text-sm sm:text-base whitespace-nowrap">
                             {formatPrice(transaction.amount || 0)}
                           </p>
-                          <Badge className={getStatusColor(transaction.status || 'pending')}>
+                          <Badge className={`${getStatusColor(transaction.status || 'pending')} text-xs whitespace-nowrap`}>
                             {transaction.status || 'pending'}
                         </Badge>
                       </div>
@@ -561,47 +565,47 @@ export default function PaymentsPage() {
           </TabsContent>
 
           {/* Billing Tab */}
-          <TabsContent value="billing" className="mt-6">
+          <TabsContent value="billing" className="mt-4 sm:mt-6">
             {/* Billing Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
               <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2">
-                    <Receipt className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Total Orders</span>
+                <CardContent className="p-2 sm:p-4">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <Receipt className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium truncate">Total Orders</span>
                   </div>
                   {loading ? (
-                    <Skeleton className="h-8 w-16 mt-2" />
+                    <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-2xl font-bold">{billingHistory.length}</p>
+                  <p className="text-lg sm:text-2xl font-bold mt-1 sm:mt-2">{billingHistory.length}</p>
                   )}
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium">Paid</span>
+                <CardContent className="p-2 sm:p-4">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium truncate">Paid</span>
                   </div>
                   {loading ? (
-                    <Skeleton className="h-8 w-16 mt-2" />
+                    <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-lg sm:text-2xl font-bold text-green-600 mt-1 sm:mt-2">
                     {billingHistory.filter(b => b.status === 'paid').length}
                   </p>
                   )}
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2">
-                    <Clock className="h-4 w-4 text-yellow-600" />
-                    <span className="text-sm font-medium">Pending</span>
+                <CardContent className="p-2 sm:p-4">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-600 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium truncate">Pending</span>
                   </div>
                   {loading ? (
-                    <Skeleton className="h-8 w-16 mt-2" />
+                    <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-2xl font-bold text-yellow-600">
+                  <p className="text-lg sm:text-2xl font-bold text-yellow-600 mt-1 sm:mt-2">
                     {billingHistory.filter(b => b.status === 'pending').length}
                   </p>
                   )}
@@ -610,87 +614,87 @@ export default function PaymentsPage() {
             </div>
 
             {/* Billing History */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {loading ? (
                 // Loading skeletons for billing
                 Array.from({ length: 2 }).map((_, index) => (
                   <Card key={index} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="space-y-2">
-                          <Skeleton className="h-5 w-32" />
-                          <Skeleton className="h-4 w-48" />
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-3">
+                        <div className="space-y-1 sm:space-y-2">
+                          <Skeleton className="h-4 w-24 sm:h-5 sm:w-32" />
+                          <Skeleton className="h-3 w-32 sm:h-4 sm:w-48" />
                         </div>
-                        <div className="text-right space-y-2">
-                          <Skeleton className="h-7 w-24" />
-                          <Skeleton className="h-5 w-16" />
+                        <div className="text-right space-y-1 sm:space-y-2 w-full sm:w-auto">
+                          <Skeleton className="h-6 w-20 sm:h-7 sm:w-24 ml-auto" />
+                          <Skeleton className="h-4 w-12 sm:h-5 sm:w-16 ml-auto" />
                         </div>
                       </div>
-                      <div className="border-t pt-4 space-y-2">
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
+                      <div className="border-t pt-3 sm:pt-4 space-y-1 sm:space-y-2">
+                        <Skeleton className="h-3 w-full sm:h-4" />
+                        <Skeleton className="h-3 w-3/4 sm:h-4" />
                       </div>
-                      <div className="flex items-center space-x-2 pt-4 border-t">
-                        <Skeleton className="h-8 w-24" />
-                        <Skeleton className="h-8 w-28" />
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 pt-3 sm:pt-4 border-t">
+                        <Skeleton className="h-7 w-20 sm:h-8 sm:w-24" />
+                        <Skeleton className="h-7 w-24 sm:h-8 sm:w-28" />
                       </div>
                     </CardContent>
                   </Card>
                 ))
               ) : billingHistory.length === 0 ? (
-                <div className="text-center py-8">
-                  <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-muted-foreground mb-2">No orders found</h3>
-                  <p className="text-sm text-muted-foreground">
+                <div className="text-center py-6 sm:py-8">
+                  <Receipt className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-medium text-muted-foreground mb-2">No orders found</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Your order history will appear here once you make purchases.
                   </p>
                 </div>
               ) : (
                 billingHistory.map((invoice) => (
                 <Card key={invoice._id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                          <h4 className="font-semibold text-foreground">Order #{invoice.orderNumber}</h4>
-                        <p className="text-sm text-muted-foreground">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-3">
+                      <div className="min-w-0 flex-1">
+                          <h4 className="font-semibold text-foreground text-sm sm:text-base truncate">Order #{invoice.orderNumber}</h4>
+                        <p className="text-xs sm:text-sm text-muted-foreground truncate">
                             Invoice: {invoice.invoiceNumber} • {invoice.issuedDate ? `Issued: ${formatDate(invoice.issuedDate)}` : ''}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-foreground">{formatPrice(invoice.amount)}</p>
-                        <Badge className={getStatusColor(invoice.status)}>
+                      <div className="text-right w-full sm:w-auto">
+                        <p className="text-lg sm:text-2xl font-bold text-foreground">{formatPrice(invoice.amount)}</p>
+                        <Badge className={`${getStatusColor(invoice.status)} text-xs`}>
                           {invoice.status}
                         </Badge>
                       </div>
                     </div>
                     
                       {/* Order Items */}
-                    <div className="border-t pt-4">
+                    <div className="border-t pt-3 sm:pt-4">
                         {invoice.items && invoice.items.length > 0 ? (
                           invoice.items.map((item: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center py-2">
-                              <span className="text-sm">{item.name || 'Product'} ({item.quantity || 0})</span>
-                              <span className="text-sm font-medium">{formatPrice(item.total || item.price || 0)}</span>
+                        <div key={index} className="flex justify-between items-center py-1 sm:py-2">
+                              <span className="text-xs sm:text-sm truncate">{item.name || 'Product'} ({item.quantity || 0})</span>
+                              <span className="text-xs sm:text-sm font-medium">{formatPrice(item.total || item.price || 0)}</span>
                         </div>
                           ))
                         ) : (
-                          <p className="text-sm text-muted-foreground py-2">No items details available</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground py-1 sm:py-2">No items details available</p>
                         )}
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center space-x-2 pt-4 border-t">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4 mr-2" />
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 pt-3 sm:pt-4 border-t">
+                      <Button variant="outline" size="sm" className="h-7 sm:h-8 text-xs sm:text-sm">
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                           View Details
                       </Button>
-                      <Button variant="outline" size="sm">
-                        <Download className="h-4 w-4 mr-2" />
+                      <Button variant="outline" size="sm" className="h-7 sm:h-8 text-xs sm:text-sm">
+                        <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                           Download Receipt
                       </Button>
                       {invoice.status === 'pending' && (
-                        <Button size="sm">
-                          <CreditCard className="h-4 w-4 mr-2" />
+                        <Button size="sm" className="h-7 sm:h-8 text-xs sm:text-sm">
+                          <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                           Pay Now
                         </Button>
                       )}
@@ -703,47 +707,47 @@ export default function PaymentsPage() {
           </TabsContent>
 
           {/* Refunds Tab */}
-          <TabsContent value="refunds" className="mt-6">
+          <TabsContent value="refunds" className="mt-4 sm:mt-6">
             {/* Refund Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
               <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2">
-                    <ArrowDownRight className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Total Refunds</span>
+                <CardContent className="p-2 sm:p-4">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <ArrowDownRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium truncate">Total Refunds</span>
                   </div>
                   {loading ? (
-                    <Skeleton className="h-8 w-16 mt-2" />
+                    <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-2xl font-bold">{refunds.length}</p>
+                  <p className="text-lg sm:text-2xl font-bold mt-1 sm:mt-2">{refunds.length}</p>
                   )}
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium">Approved</span>
+                <CardContent className="p-2 sm:p-4">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium truncate">Approved</span>
                   </div>
                   {loading ? (
-                    <Skeleton className="h-8 w-16 mt-2" />
+                    <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-lg sm:text-2xl font-bold text-green-600 mt-1 sm:mt-2">
                     {refunds.filter(r => r.status === 'approved').length}
                   </p>
                   )}
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2">
-                    <Clock className="h-4 w-4 text-yellow-600" />
-                    <span className="text-sm font-medium">Pending</span>
+                <CardContent className="p-2 sm:p-4">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-600 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium truncate">Pending</span>
                   </div>
                   {loading ? (
-                    <Skeleton className="h-8 w-16 mt-2" />
+                    <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-2xl font-bold text-yellow-600">
+                  <p className="text-lg sm:text-2xl font-bold text-yellow-600 mt-1 sm:mt-2">
                     {refunds.filter(r => r.status === 'pending').length}
                   </p>
                   )}
@@ -752,80 +756,80 @@ export default function PaymentsPage() {
             </div>
 
             {/* Refunds List */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {loading ? (
                 // Loading skeletons for refunds
                 Array.from({ length: 2 }).map((_, index) => (
                   <Card key={index} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="space-y-2">
-                          <Skeleton className="h-5 w-32" />
-                          <Skeleton className="h-4 w-48" />
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-3">
+                        <div className="space-y-1 sm:space-y-2">
+                          <Skeleton className="h-4 w-24 sm:h-5 sm:w-32" />
+                          <Skeleton className="h-3 w-32 sm:h-4 sm:w-48" />
                         </div>
-                        <div className="text-right space-y-2">
-                          <Skeleton className="h-7 w-24" />
-                          <Skeleton className="h-5 w-16" />
+                        <div className="text-right space-y-1 sm:space-y-2 w-full sm:w-auto">
+                          <Skeleton className="h-6 w-20 sm:h-7 sm:w-24 ml-auto" />
+                          <Skeleton className="h-4 w-12 sm:h-5 sm:w-16 ml-auto" />
                         </div>
                       </div>
-                      <div className="mb-4 space-y-2">
-                        <Skeleton className="h-4 w-16" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
+                      <div className="mb-3 sm:mb-4 space-y-1 sm:space-y-2">
+                        <Skeleton className="h-3 w-12 sm:h-4 sm:w-16" />
+                        <Skeleton className="h-3 w-full sm:h-4" />
+                        <Skeleton className="h-3 w-3/4 sm:h-4" />
                       </div>
-                      <div className="flex items-center space-x-2 pt-4 border-t">
-                        <Skeleton className="h-8 w-24" />
-                        <Skeleton className="h-8 w-32" />
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 pt-3 sm:pt-4 border-t">
+                        <Skeleton className="h-7 w-20 sm:h-8 sm:w-24" />
+                        <Skeleton className="h-7 w-24 sm:h-8 sm:w-32" />
                       </div>
                     </CardContent>
                   </Card>
                 ))
               ) : refunds.length === 0 ? (
-                <div className="text-center py-8">
-                  <ArrowDownRight className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-muted-foreground mb-2">No refunds found</h3>
-                  <p className="text-sm text-muted-foreground">
+                <div className="text-center py-6 sm:py-8">
+                  <ArrowDownRight className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-medium text-muted-foreground mb-2">No refunds found</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Your refund history will appear here when refunds are processed.
                   </p>
                 </div>
               ) : (
                 refunds.map((refund) => (
                 <Card key={refund._id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h4 className="font-semibold text-foreground">Refund #{refund.refundNumber}</h4>
-                        <p className="text-sm text-muted-foreground">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-3">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-semibold text-foreground text-sm sm:text-base truncate">Refund #{refund.refundNumber}</h4>
+                        <p className="text-xs sm:text-sm text-muted-foreground truncate">
                             Order: {refund.orderNumber} • Requested: {refund.requestedDate ? formatDate(refund.requestedDate) : 'N/A'}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-foreground">{formatPrice(refund.amount)}</p>
-                        <Badge className={getStatusColor(refund.status)}>
+                      <div className="text-right w-full sm:w-auto">
+                        <p className="text-lg sm:text-2xl font-bold text-foreground">{formatPrice(refund.amount)}</p>
+                        <Badge className={`${getStatusColor(refund.status)} text-xs`}>
                           {refund.status}
                         </Badge>
                       </div>
                     </div>
                     
-                    <div className="mb-4">
-                      <p className="text-sm text-muted-foreground mb-2">Reason:</p>
-                      <p className="text-sm font-medium">{refund.reason}</p>
-                      <p className="text-sm text-muted-foreground mt-1">{refund.description}</p>
+                    <div className="mb-3 sm:mb-4">
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2">Reason:</p>
+                      <p className="text-xs sm:text-sm font-medium">{refund.reason}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">{refund.description}</p>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center space-x-2 pt-4 border-t">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4 mr-2" />
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 pt-3 sm:pt-4 border-t">
+                      <Button variant="outline" size="sm" className="h-7 sm:h-8 text-xs sm:text-sm">
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                         View Details
                       </Button>
-                      <Button variant="outline" size="sm">
-                        <FileText className="h-4 w-4 mr-2" />
+                      <Button variant="outline" size="sm" className="h-7 sm:h-8 text-xs sm:text-sm">
+                        <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                         Download Receipt
                       </Button>
                       {refund.status === 'pending' && (
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4 mr-2" />
+                        <Button variant="outline" size="sm" className="h-7 sm:h-8 text-xs sm:text-sm">
+                          <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                           Update Request
                         </Button>
                       )}

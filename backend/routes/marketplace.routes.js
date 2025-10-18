@@ -580,6 +580,10 @@ router.get('/orders', authenticate, async (req, res) => {
         select: 'name email phone profile.phone profile.avatar'
       })
       .populate({
+        path: 'seller',
+        select: 'name email phone location profile.phone profile.farmName profile.avatar'
+      })
+      .populate({
         path: 'items.listing',
         select: 'cropName images farmer category unit',
         populate: {
@@ -857,7 +861,9 @@ router.get('/orders/buyer/:buyerId', authenticate, async (req, res) => {
 
 router.patch('/orders/:id/status', authenticate, async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate('items.listing', 'farmer')
+    const order = await Order.findById(req.params.id)
+      .populate('seller', 'name email phone profile.phone profile.farmName')
+      .populate('items.listing', 'farmer')
     if (!order) return res.status(404).json({ status: 'error', message: 'Order not found' })
     
     const { status } = req.body || {}

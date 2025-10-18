@@ -54,30 +54,37 @@ export function QRScanner({
 
   // Mock scan history for demonstration
   useEffect(() => {
+    const now = new Date()
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000)
+    
+    const formatDate = (date: Date) => date.toISOString().split('T')[0]
+    const formatDateForQR = (date: Date) => date.toISOString().split('T')[0].replace(/-/g, '_')
+    
     const mockHistory: QRScanResult[] = [
       {
         id: "1",
         timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-        data: "GROCHAIN_HARVEST_001_2024_08_26",
+        data: `GROCHAIN_HARVEST_001_${formatDateForQR(yesterday)}`,
         isValid: true,
         harvestData: {
           cropType: "Rice",
           variety: "Basmati",
           farmer: "John Doe",
-          harvestDate: "2024-08-26",
+          harvestDate: formatDate(yesterday),
           location: "Kano State"
         }
       },
       {
         id: "2",
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-        data: "GROCHAIN_HARVEST_002_2024_08_25",
+        data: `GROCHAIN_HARVEST_002_${formatDateForQR(twoDaysAgo)}`,
         isValid: true,
         harvestData: {
           cropType: "Maize",
           variety: "Sweet Corn",
           farmer: "Jane Smith",
-          harvestDate: "2024-08-25",
+          harvestDate: formatDate(twoDaysAgo),
           location: "Kaduna State"
         }
       }

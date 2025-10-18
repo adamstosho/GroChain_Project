@@ -141,6 +141,26 @@ export function BuyerProfileForm() {
 
     try {
       setIsSaving(true)
+
+      // Validate required fields
+      if (!profile.name?.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Full name is required",
+          variant: "destructive"
+        })
+        return
+      }
+
+      if (!profile.phone?.trim()) {
+        toast({
+          title: "Validation Error", 
+          description: "Phone number is required",
+          variant: "destructive"
+        })
+        return
+      }
+
       const updateData = {
         name: profile.name,
         phone: profile.phone,
@@ -194,9 +214,21 @@ export function BuyerProfileForm() {
       }
     } catch (error: any) {
       console.error('Error updating profile:', error)
+      
+      // Handle different types of errors
+      let errorMessage = "Failed to save profile. Please try again."
+      
+      if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        errorMessage = "Network error. Please check your connection and try again."
+      } else if (error.message?.includes('validation')) {
+        errorMessage = error.message
+      } else if (error.message?.includes('unauthorized')) {
+        errorMessage = "Session expired. Please log in again."
+      }
+      
       toast({
-        title: "Error updating profile",
-        description: error.message || "Failed to update profile",
+        title: "Error saving profile",
+        description: errorMessage,
         variant: "destructive"
       })
     } finally {
@@ -348,7 +380,7 @@ export function BuyerProfileForm() {
       </Card>
 
       {/* Buyer Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
@@ -409,42 +441,46 @@ export function BuyerProfileForm() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
                 <Input
                   id="name"
                   value={profile.name || ''}
                   onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                   disabled={!isEditing}
+                  className="h-9 sm:h-10"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
                   value={profile.email || ''}
                   disabled // Email should not be editable
+                  className="h-9 sm:h-10 bg-muted"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
                 <Input
                   id="phone"
                   value={profile.phone || ''}
                   onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                   disabled={!isEditing}
+                  className="h-9 sm:h-10"
                 />
               </div>
             <div className="space-y-2">
-              <Label htmlFor="company">Company Name</Label>
+              <Label htmlFor="company" className="text-sm font-medium">Company Name</Label>
               <Input
                 id="company"
                 value={profile.company || ''}
                 onChange={(e) => setProfile({ ...profile, company: e.target.value })}
                 disabled={!isEditing}
                 placeholder="Your company name"
+                className="h-9 sm:h-10"
               />
             </div>
             <div className="space-y-2">

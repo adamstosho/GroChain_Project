@@ -6,7 +6,7 @@ const Shipment = require('../models/shipment.model')
 
 class QRCodeService {
   constructor() {
-    this.secretKey = process.env.QR_SECRET_KEY || 'grochain-qr-secret-2024'
+    this.secretKey = process.env.QR_SECRET_KEY || 'grochain-qr-secret-2025'
   }
 
   // Generate QR code for harvest

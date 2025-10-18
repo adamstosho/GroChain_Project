@@ -74,6 +74,12 @@ app.use(cookieParser())
 // Auto-verify payments middleware
 app.use(autoVerifyPayments)
 
+// Global request logger
+app.use((req, res, next) => {
+  console.log(`📥 ${req.method} ${req.path} - Headers:`, req.headers.authorization ? 'Has Auth' : 'No Auth')
+  next()
+})
+
 // Static file serving for uploaded images with CORS headers
 app.use('/uploads', express.static('uploads', {
   setHeaders: (res, path) => {
@@ -343,6 +349,7 @@ const initializeApp = async () => {
       app.use('/api/notifications', require('./routes/notification.routes'));
       app.use('/api/payments', require('./routes/payment.routes'));
       app.use('/api/qr-codes', require('./routes/qrCode.routes'));
+      console.log('✅ Registered /api/verify routes (PUBLIC - no auth required)');
       app.use('/api/verify', require('./routes/verify.routes'));
       app.use('/api/referrals', require('./routes/referral.routes'));
       app.use('/api/commissions', require('./routes/commission.routes'));

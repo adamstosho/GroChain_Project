@@ -2292,7 +2292,7 @@ router.get('/reports/generated', async (req, res) => {
       {
         id: '1',
         templateName: 'Harvest Summary Report',
-        fileName: 'harvest_summary_2024_01_15.pdf',
+        fileName: `harvest_summary_${new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0].replace(/-/g, '_')}.pdf`,
         generatedDate: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
         fileSize: '2.4 MB',
         format: 'pdf',
@@ -2302,7 +2302,7 @@ router.get('/reports/generated', async (req, res) => {
       {
         id: '2',
         templateName: 'Financial Performance Report',
-        fileName: 'financial_performance_2024_01_14.xlsx',
+        fileName: `financial_performance_${new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0].replace(/-/g, '_')}.xlsx`,
         generatedDate: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
         fileSize: '1.8 MB',
         format: 'excel',
@@ -2312,7 +2312,7 @@ router.get('/reports/generated', async (req, res) => {
       {
         id: '3',
         templateName: 'User Analytics Report',
-        fileName: 'user_analytics_2024_01_13.csv',
+        fileName: `user_analytics_${new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0].replace(/-/g, '_')}.csv`,
         generatedDate: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
         fileSize: '856 KB',
         format: 'csv',

@@ -93,7 +93,17 @@ interface Order {
       avatar: string
     }
   }
-  seller: string
+  seller: string | {
+    _id: string
+    name: string
+    email: string
+    phone?: string
+    location?: string
+    profile?: {
+      phone: string
+      farmName: string
+    }
+  }
   items: OrderItem[]
   total: number
   subtotal: number
@@ -802,125 +812,140 @@ export default function OrdersPage() {
 
   return (
     <DashboardLayout pageTitle="My Orders">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
         {/* Header Section */}
         <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">My Orders</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">My Orders</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Track your orders, view delivery status, and manage your purchases
             </p>
           </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={refreshing}
-            >
-              {refreshing ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              )}
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => exportOrders('csv')}
-              disabled={exporting || filteredOrders.length === 0}
-            >
-              {exporting ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
-              )}
-              Export CSV ({filteredOrders.length})
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={exporting || filteredOrders.length === 0}>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => exportOrders('csv')}>
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  Export as CSV
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => exportOrders('json')}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Export as JSON
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => exportOrders('pdf')}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Export as HTML
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button size="sm" asChild>
-              <Link href="/dashboard/marketplace">
-                <ShoppingBag className="h-4 w-4 mr-2" />
-                Browse Products
-              </Link>
-            </Button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="h-8 sm:h-9 text-xs sm:text-sm flex-1 xs:flex-none"
+              >
+                {refreshing ? (
+                  <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                )}
+                <span className="hidden sm:inline">{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+                <span className="sm:hidden">Refresh</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => exportOrders('csv')}
+                disabled={exporting || filteredOrders.length === 0}
+                className="h-8 sm:h-9 text-xs sm:text-sm flex-1 xs:flex-none"
+              >
+                {exporting ? (
+                  <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                )}
+                <span className="hidden sm:inline">Export CSV ({filteredOrders.length})</span>
+                <span className="sm:hidden">Export ({filteredOrders.length})</span>
+              </Button>
+            </div>
+            <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    disabled={exporting || filteredOrders.length === 0}
+                    className="h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3"
+                  >
+                    <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline ml-1">More</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => exportOrders('csv')}>
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    Export as CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportOrders('json')}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Export as JSON
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportOrders('pdf')}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Export as HTML
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button size="sm" asChild className="h-8 sm:h-9 text-xs sm:text-sm flex-1 sm:flex-none">
+                <Link href="/dashboard/marketplace">
+                  <ShoppingBag className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Browse Products</span>
+                  <span className="sm:hidden">Browse</span>
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
           <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <Package className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Orders</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
+            <CardContent className="p-2 sm:p-3 md:p-4">
+              <div className="flex items-center space-x-1.5 sm:space-x-2">
+                <Package className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Total Orders</p>
+                  <p className="text-sm sm:text-lg md:text-2xl font-bold truncate">{stats.total}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <Clock className="h-5 w-5 text-yellow-600" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Pending</p>
-                  <p className="text-2xl font-bold">{stats.pending}</p>
+            <CardContent className="p-2 sm:p-3 md:p-4">
+              <div className="flex items-center space-x-1.5 sm:space-x-2">
+                <Clock className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-yellow-600 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Pending</p>
+                  <p className="text-sm sm:text-lg md:text-2xl font-bold truncate">{stats.pending}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Confirmed</p>
-                  <p className="text-2xl font-bold">{stats.confirmed}</p>
+            <CardContent className="p-2 sm:p-3 md:p-4">
+              <div className="flex items-center space-x-1.5 sm:space-x-2">
+                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-blue-600 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Confirmed</p>
+                  <p className="text-sm sm:text-lg md:text-2xl font-bold truncate">{stats.confirmed}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <Truck className="h-5 w-5 text-indigo-600" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Shipped</p>
-                  <p className="text-2xl font-bold">{stats.shipped}</p>
+            <CardContent className="p-2 sm:p-3 md:p-4">
+              <div className="flex items-center space-x-1.5 sm:space-x-2">
+                <Truck className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-indigo-600 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Shipped</p>
+                  <p className="text-sm sm:text-lg md:text-2xl font-bold truncate">{stats.shipped}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <Banknote className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Spent</p>
-                  <p className="text-2xl font-bold">{formatPrice(stats.totalSpent)}</p>
+            <CardContent className="p-2 sm:p-3 md:p-4">
+              <div className="flex items-center space-x-1.5 sm:space-x-2">
+                <Banknote className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-green-600 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Total Spent</p>
+                  <p className="text-xs sm:text-sm md:text-lg font-bold truncate">{formatPrice(stats.totalSpent)}</p>
                 </div>
               </div>
             </CardContent>
@@ -929,41 +954,72 @@ export default function OrdersPage() {
 
         {/* Tabs and Filters */}
         <Card>
-          <CardHeader>
-            <CardTitle>Order Management</CardTitle>
-            <CardDescription>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg sm:text-xl">Order Management</CardTitle>
+            <CardDescription className="text-sm">
               View and manage your orders by status and filters
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-7">
-                <TabsTrigger value="all">All ({stats.total})</TabsTrigger>
-                <TabsTrigger value="pending">Pending ({stats.pending})</TabsTrigger>
-                <TabsTrigger value="confirmed">Confirmed ({stats.confirmed})</TabsTrigger>
-                <TabsTrigger value="shipped">Shipped ({stats.shipped})</TabsTrigger>
-                <TabsTrigger value="delivered">Delivered ({stats.delivered})</TabsTrigger>
-                <TabsTrigger value="cancelled">Cancelled ({stats.cancelled})</TabsTrigger>
-                <TabsTrigger value="refunded">Refunded</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 h-auto p-1">
+                <TabsTrigger value="all" className="text-xs sm:text-sm py-2 px-2 sm:px-3">
+                  <span className="hidden sm:inline">All</span>
+                  <span className="sm:hidden">All</span>
+                  <span className="ml-1 text-xs">({stats.total})</span>
+                </TabsTrigger>
+                <TabsTrigger value="pending" className="text-xs sm:text-sm py-2 px-2 sm:px-3">
+                  <span className="hidden sm:inline">Pending</span>
+                  <span className="sm:hidden">Pend</span>
+                  <span className="ml-1 text-xs">({stats.pending})</span>
+                </TabsTrigger>
+                <TabsTrigger value="confirmed" className="text-xs sm:text-sm py-2 px-2 sm:px-3">
+                  <span className="hidden sm:inline">Confirmed</span>
+                  <span className="sm:hidden">Conf</span>
+                  <span className="ml-1 text-xs">({stats.confirmed})</span>
+                </TabsTrigger>
+                <TabsTrigger value="shipped" className="text-xs sm:text-sm py-2 px-2 sm:px-3">
+                  <span className="hidden sm:inline">Shipped</span>
+                  <span className="sm:hidden">Ship</span>
+                  <span className="ml-1 text-xs">({stats.shipped})</span>
+                </TabsTrigger>
+                <TabsTrigger value="delivered" className="text-xs sm:text-sm py-2 px-2 sm:px-3">
+                  <span className="hidden sm:inline">Delivered</span>
+                  <span className="sm:hidden">Del</span>
+                  <span className="ml-1 text-xs">({stats.delivered})</span>
+                </TabsTrigger>
+                <TabsTrigger value="cancelled" className="text-xs sm:text-sm py-2 px-2 sm:px-3">
+                  <span className="hidden sm:inline">Cancelled</span>
+                  <span className="sm:hidden">Can</span>
+                  <span className="ml-1 text-xs">({stats.cancelled})</span>
+                </TabsTrigger>
+                <TabsTrigger value="refunded" className="text-xs sm:text-sm py-2 px-2 sm:px-3">
+                  <span className="hidden sm:inline">Refunded</span>
+                  <span className="sm:hidden">Ref</span>
+                  <span className="ml-1 text-xs">(0)</span>
+                </TabsTrigger>
               </TabsList>
 
-              <TabsContent value={activeTab} className="mt-6">
+              <TabsContent value={activeTab} className="mt-4 sm:mt-6">
                 {/* Filters */}
-                <div className="flex flex-col lg:flex-row gap-4 mb-6">
-                  <div className="flex-1">
+                <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
+                  {/* Search */}
+                  <div className="w-full">
                     <Input
                       placeholder="Search orders, products, or sellers..."
                       value={filters.searchQuery}
                       onChange={(e) => setFilters({ ...filters, searchQuery: e.target.value })}
-                      className="max-w-md"
+                      className="w-full sm:max-w-md h-8 sm:h-9 text-xs sm:text-sm"
                     />
                   </div>
-                  <div className="flex gap-2">
+                  
+                  {/* Filter Controls */}
+                  <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                     <Select 
                       value={filters.status} 
                       onValueChange={(value) => setFilters({ ...filters, status: value as OrderStatus })}
                     >
-                      <SelectTrigger className="w-40">
+                      <SelectTrigger className="w-full h-8 sm:h-9 text-xs sm:text-sm">
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -982,7 +1038,7 @@ export default function OrdersPage() {
                       value={filters.paymentStatus} 
                       onValueChange={(value) => setFilters({ ...filters, paymentStatus: value as PaymentStatus })}
                     >
-                      <SelectTrigger className="w-40">
+                      <SelectTrigger className="w-full h-8 sm:h-9 text-xs sm:text-sm">
                         <SelectValue placeholder="Payment" />
                       </SelectTrigger>
                       <SelectContent>
@@ -997,7 +1053,7 @@ export default function OrdersPage() {
                       value={filters.dateRange}
                       onValueChange={(value) => setFilters({ ...filters, dateRange: value as OrderFilters['dateRange'] })}
                     >
-                      <SelectTrigger className="w-40">
+                      <SelectTrigger className="w-full h-8 sm:h-9 text-xs sm:text-sm xs:col-span-2 sm:col-span-1">
                         <SelectValue placeholder="Date Range" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1196,35 +1252,37 @@ function OrderCard({
   }
   return (
     <Card className="hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary/20">
-      <CardContent className="p-6">
+      <CardContent className="p-4 sm:p-6">
         {/* Order Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4">
-          <div className="flex items-center space-x-4 mb-4 lg:mb-0">
+        <div className="flex flex-col space-y-3 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center space-x-2">
               {getStatusIcon(order.status)}
-              <Badge className={`${getStatusColor(order.status)} font-medium`}>
+                <Badge className={`${getStatusColor(order.status)} font-medium text-xs`}>
                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
               </Badge>
             </div>
             <div className="flex items-center space-x-2">
-              <Badge variant="outline" className={`${getPaymentStatusColor(order.paymentStatus)} font-medium`}>
+                <Badge variant="outline" className={`${getPaymentStatusColor(order.paymentStatus)} font-medium text-xs`}>
                 {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
               </Badge>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-muted-foreground">Order:</span>
-            <span className="font-mono font-semibold text-primary">{order.orderNumber || `ORD-${order._id.slice(-6).toUpperCase()}`}</span>
-            <span className="text-sm text-muted-foreground">•</span>
-            <span className="text-sm text-muted-foreground">{formatDate(new Date(order.createdAt))}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              <span className="text-xs sm:text-sm text-muted-foreground">Order:</span>
+              <span className="font-mono font-semibold text-primary text-xs sm:text-sm break-all">{order.orderNumber || `ORD-${order._id.slice(-6).toUpperCase()}`}</span>
+              <span className="hidden sm:inline text-sm text-muted-foreground">•</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">{formatDate(new Date(order.createdAt))}</span>
+            </div>
           </div>
         </div>
 
         {/* Order Items */}
         <div className="space-y-3 mb-4">
           {order.items.map((item) => (
-            <div key={item._id} className="flex items-center space-x-3 p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
-              <div className="relative w-16 h-16 flex-shrink-0">
+            <div key={item._id} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
+              <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0">
                 <Image
                   src={item.listing?.images?.[0] || "/placeholder.svg"}
                   alt={item.listing?.cropName || 'Product'}
@@ -1232,26 +1290,26 @@ function OrderCard({
                   className="rounded-md object-cover"
                 />
               </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-foreground">{item.listing?.cropName || 'Unknown Product'}</h4>
-                <p className="text-sm text-muted-foreground">
+              <div className="flex-1 min-w-0 w-full sm:w-auto">
+                <h4 className="font-semibold text-foreground text-sm sm:text-base truncate">{item.listing?.cropName || 'Unknown Product'}</h4>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {item.quantity} {item.unit} × {formatPrice(item.price)}
                 </p>
                 {item.listing?.farmer?.name && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground truncate">
                     Sold by: {item.listing.farmer.name}
                   </p>
                 )}
               </div>
-              <div className="text-right">
-                <p className="font-semibold text-primary">{formatPrice((item.quantity || 0) * (item.price || 0))}</p>
+              <div className="text-right sm:text-right w-full sm:w-auto">
+                <p className="font-semibold text-primary text-sm sm:text-base">{formatPrice((item.quantity || 0) * (item.price || 0))}</p>
               </div>
             </div>
           ))}
         </div>
 
         {/* Order Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           {/* Seller Info */}
           <div className="space-y-3">
             <h5 className="font-semibold text-sm text-muted-foreground flex items-center gap-2">
@@ -1259,30 +1317,55 @@ function OrderCard({
               Seller Information
             </h5>
             <div className="space-y-2">
-              {order.items[0]?.listing?.farmer ? (
-                <>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-semibold">{order.items[0].listing.farmer.name}</span>
-                    <Badge variant="secondary" className="text-xs">Verified</Badge>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <Building className="h-3 w-3" />
-                    <span>{order.items[0].listing.farmer.profile?.farmName || (order.items[0].listing.farmer as any).location || 'Farm'}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <Phone className="h-3 w-3" />
-                    <span>{(order.items[0].listing.farmer as any).phone || order.items[0].listing.farmer.profile?.phone || 'Phone not provided'}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <Mail className="h-3 w-3" />
-                    <span>{order.items[0].listing.farmer.email}</span>
-                  </div>
-                </>
-              ) : (
+              {(() => {
+                // Try to get seller info from multiple sources
+                // Priority: order.seller (authoritative) > items[0].listing.farmer (fallback)
+                const sellerFromOrder = typeof order.seller === 'object' ? order.seller : null
+                const sellerFromListing = order.items[0]?.listing?.farmer
+                
+                // Debug logging (can be removed in production)
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('🔍 Seller Info Debug:', {
+                    orderId: order._id,
+                    sellerFromOrder,
+                    sellerFromListing,
+                    sellerField: order.seller,
+                    hasListing: !!order.items[0]?.listing,
+                    hasFarmer: !!order.items[0]?.listing?.farmer
+                  })
+                }
+                
+                const seller = sellerFromOrder || sellerFromListing
+                
+                if (seller) {
+                  return (
+                    <>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                        <span className="font-semibold text-sm truncate">{seller.name || 'Unknown Seller'}</span>
+                        <Badge variant="secondary" className="text-xs w-fit">Verified</Badge>
+                      </div>
+                      <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground">
+                        <Building className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{seller.profile?.farmName || (seller as any).location || 'Farm'}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground">
+                        <Phone className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{(seller as any).phone || seller.profile?.phone || 'Phone not provided'}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground">
+                        <Mail className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{seller.email || 'Email not provided'}</span>
+                      </div>
+                    </>
+                  )
+                } else {
+                  return (
                 <div className="text-sm text-muted-foreground">
                   Seller information not available
                 </div>
-              )}
+                  )
+                }
+              })()}
             </div>
           </div>
 
@@ -1293,39 +1376,39 @@ function OrderCard({
               Delivery Information
             </h5>
             <div className="space-y-2">
-              <div className="flex items-center space-x-2 text-sm">
-                <MapPin className="h-3 w-3 text-muted-foreground" />
-                <span className="text-muted-foreground">
+              <div className="flex items-start space-x-2 text-xs sm:text-sm">
+                <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <span className="text-muted-foreground break-words">
                   {order.shippingAddress.street}, {order.shippingAddress.city}, {order.shippingAddress.state}
                 </span>
               </div>
               {order.estimatedDelivery && (
-                <div className="flex items-center space-x-2 text-sm">
-                  <Clock className="h-3 w-3 text-muted-foreground" />
+                <div className="flex items-center space-x-2 text-xs sm:text-sm">
+                  <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                   <span className="text-muted-foreground">
                     Est. Delivery: {formatDate(new Date(order.estimatedDelivery))}
                   </span>
                 </div>
               )}
               {order.trackingNumber && (
-                <div className="flex items-center space-x-2 text-sm">
-                  <Truck className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">
+                <div className="flex items-center space-x-2 text-xs sm:text-sm">
+                  <Truck className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                  <span className="text-muted-foreground break-all">
                     Tracking: {order.trackingNumber}
                   </span>
                 </div>
               )}
               {order.actualDelivery && (
-                <div className="flex items-center space-x-2 text-sm">
-                  <CheckCircle2 className="h-3 w-3 text-green-600" />
+                <div className="flex items-center space-x-2 text-xs sm:text-sm">
+                  <CheckCircle2 className="h-3 w-3 text-green-600 flex-shrink-0" />
                   <span className="text-green-600">
                     Delivered: {formatDate(new Date(order.actualDelivery!))}
                   </span>
                 </div>
               )}
               {order.deliveryInstructions && (
-                <div className="text-sm text-muted-foreground">
-                  <strong>Instructions:</strong> {order.deliveryInstructions}
+                <div className="text-xs sm:text-sm text-muted-foreground">
+                  <strong>Instructions:</strong> <span className="break-words">{order.deliveryInstructions}</span>
                 </div>
               )}
             </div>
@@ -1363,37 +1446,42 @@ function OrderCard({
 
         {/* Shipment Tracking */}
         {(order.status === 'shipped' || order.status === 'delivered') && (
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="mt-4 p-3 sm:p-4 bg-blue-50 rounded-lg border border-blue-200">
             <h5 className="font-semibold text-sm text-blue-800 mb-3 flex items-center gap-2">
               <Truck className="h-4 w-4" />
               Shipment Tracking
             </h5>
-            <ShipmentTrackingWidget orderId={order._id} />
+            <div className="overflow-hidden">
+              <ShipmentTrackingWidget orderId={order._id} />
+            </div>
           </div>
         )}
 
         {/* Order Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
-          <Button variant="outline" size="sm" asChild>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t">
+          <Button variant="outline" size="sm" asChild className="h-8 sm:h-9 text-xs sm:text-sm">
             <Link href={`/dashboard/orders/${order._id}`}>
-              <Eye className="h-4 w-4 mr-2" />
-              View Full Details
+              <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">View Full Details</span>
+              <span className="sm:hidden">Details</span>
             </Link>
           </Button>
 
           {order.trackingNumber && (
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" asChild className="h-8 sm:h-9 text-xs sm:text-sm">
               <Link href={`/dashboard/orders/${order._id}/tracking`}>
-                <Truck className="h-4 w-4 mr-2" />
-                Track Package
+                <Truck className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Track Package</span>
+                <span className="sm:hidden">Track</span>
               </Link>
             </Button>
           )}
 
           {order.status === 'delivered' && (
-            <Button variant="outline" size="sm">
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Contact Seller
+            <Button variant="outline" size="sm" className="h-8 sm:h-9 text-xs sm:text-sm">
+              <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Contact Seller</span>
+              <span className="sm:hidden">Contact</span>
             </Button>
           )}
 
@@ -1403,13 +1491,15 @@ function OrderCard({
               size="sm"
               onClick={handleCancelOrder}
               disabled={cancelling}
+              className="h-8 sm:h-9 text-xs sm:text-sm"
             >
               {cancelling ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
               ) : (
-                <XCircle className="h-4 w-4 mr-2" />
+                <XCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               )}
-              {cancelling ? 'Cancelling...' : 'Cancel Order'}
+              <span className="hidden sm:inline">{cancelling ? 'Cancelling...' : 'Cancel Order'}</span>
+              <span className="sm:hidden">{cancelling ? 'Cancelling...' : 'Cancel'}</span>
             </Button>
           )}
 

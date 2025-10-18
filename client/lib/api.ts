@@ -50,7 +50,7 @@ class ApiService {
     return this.token
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+  private async request<T>(endpoint: string, options: RequestInit = {}, isRetry: boolean = false): Promise<ApiResponse<T>> {
     // Load token from storage before each request to ensure it's up to date
     // Skip for auth endpoints and refresh-related calls to prevent infinite loops
     if (!endpoint.includes('/auth/') && !endpoint.includes('refresh')) {
@@ -78,13 +78,20 @@ class ApiService {
       }
     }
 
-    if (this.token && this.token !== 'undefined') {
-      headers["Authorization"] = `Bearer ${this.token}`
-    } else {
-      // Try to load token from storage
-      this.loadTokenFromStorage()
+    // Check if this is a public endpoint that shouldn't have Authorization header
+    const publicEndpoints = ['/api/verify', '/api/marketplace/listings']
+    const isPublicEndpoint = publicEndpoints.some(publicEndpoint => endpoint.includes(publicEndpoint))
+    
+    // Only add Authorization header for non-public endpoints
+    if (!isPublicEndpoint) {
       if (this.token && this.token !== 'undefined') {
         headers["Authorization"] = `Bearer ${this.token}`
+      } else {
+        // Try to load token from storage
+        this.loadTokenFromStorage()
+        if (this.token && this.token !== 'undefined') {
+          headers["Authorization"] = `Bearer ${this.token}`
+        }
       }
     }
 
@@ -114,6 +121,11 @@ class ApiService {
       if (contentType && contentType.includes("application/json")) {
         try {
           data = await response.json()
+          
+          // Handle empty response objects
+          if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
+            data = { message: "Empty response from server" }
+          }
         } catch (jsonError) {
           console.error('JSON parsing error:', jsonError)
           const text = await response.text()
@@ -125,28 +137,23 @@ class ApiService {
       }
 
       if (!response.ok) {
-        // Handle 401 Unauthorized - try to refresh token
-        if (response.status === 401 && endpoint !== '/api/auth/refresh' && endpoint !== '/api/auth/login') {
-          console.log('🔄 401 Error on endpoint:', endpoint, 'attempting refresh...')
-          
-          // Don't redirect for public endpoints that might be called with invalid tokens
-          const publicEndpoints = ['/api/marketplace/listings']
-          const isPublicEndpoint = publicEndpoints.some(publicEndpoint => endpoint.includes(publicEndpoint))
-          
-          console.log('🔍 Endpoint check:', { endpoint, isPublicEndpoint, publicEndpoints })
+        // Handle 401 Unauthorized - try to refresh token (only for protected endpoints)
+        if (response.status === 401 && endpoint !== '/api/auth/refresh' && endpoint !== '/api/auth/login' && !isPublicEndpoint) {
+          console.log('🔄 401 Error on protected endpoint:', endpoint, 'attempting refresh...')
           
           const refreshSuccess = await this.refreshTokenIfNeeded()
           if (refreshSuccess) {
             console.log('✅ Token refreshed successfully, retrying request...')
             // Retry the original request with new token
-            return this.request(endpoint, options)
+            const retryResult = await this.request<T>(endpoint, options, true)
+            return retryResult
           } else {
             console.log('❌ Token refresh failed for endpoint:', endpoint)
             // Clear all auth data
             this.clearToken()
             
-            // Only redirect to login for non-public endpoints
-            if (!isPublicEndpoint && typeof window !== 'undefined') {
+            // Redirect to login for protected endpoints
+            if (typeof window !== 'undefined') {
               console.log('🚨 REDIRECTING TO LOGIN for protected endpoint:', endpoint)
               // Import useAuthStore dynamically to avoid circular dependency
               import('./auth').then(({ useAuthStore }) => {
@@ -154,9 +161,6 @@ class ApiService {
               })
               // Redirect to login page
               window.location.href = '/login'
-            } else if (isPublicEndpoint) {
-              console.log('⚠️ Public endpoint failed with 401, not redirecting:', endpoint)
-              // For public endpoints, just throw the error without redirecting
             }
           }
         }
@@ -168,16 +172,16 @@ class ApiService {
           errorMessage += `\nValidation errors: ${data.errors.join(', ')}`
         }
 
-        // Add more detailed error information for debugging
-        console.error(`API Error [${endpoint}]:`, {
-          status: response.status,
-          statusText: response.statusText,
-          contentType: response.headers.get("content-type"),
-          data: data,
-          errorType: data.errorType || 'Unknown',
-          errorDetails: data.errorDetails || 'No details provided',
-          errors: data.errors || 'No validation errors provided'
-        })
+        // Add more detailed error information for debugging (only for non-retry requests)
+        if (!isRetry) {
+          console.error(`API Error [${endpoint}]:`, {
+            status: response.status,
+            statusText: response.statusText,
+            data: data,
+            errorType: data?.errorType || 'Unknown',
+            errorDetails: data?.errorDetails || 'No details provided'
+          })
+        }
 
         if (response.status === 0 || !response.status) {
           errorMessage =
@@ -202,7 +206,7 @@ class ApiService {
       console.log("[API] Request successful:", { endpoint, status: response.status, data })
       return data
     } catch (error) {
-      console.log("[API] Request failed:", { endpoint, error: error.message })
+      console.log("[API] Request failed:", { endpoint, error: (error as Error).message })
 
       // Handle timeout/abort errors
       if (error instanceof Error) {
@@ -1272,6 +1276,16 @@ class ApiService {
     }
   }
 
+  async getFarmerCropAnalytics(farmerId?: string, period: string = '30d') {
+    const endpoint = farmerId ? `/api/analytics/farmers/${farmerId}/crops` : '/api/analytics/farmers/me/crops'
+    try {
+      const result = await this.request(`${endpoint}?period=${period}`)
+      return result
+    } catch (error) {
+      throw error
+    }
+  }
+
   // Farmer-specific marketplace data
   async getFarmerListings(params?: Record<string, any>) {
     const queryString = new URLSearchParams(params).toString()
@@ -1943,19 +1957,26 @@ class ApiService {
 
   // QR Code Verification Methods
   async verifyQRCode(batchId: string) {
-    return this.request<{
-      verified: boolean
-      batchId: string
-      cropType: string
-      harvestDate: string
-      quantity: number
-      unit: string
-      quality: string
-      location: any
-      farmer: string
-      status: string
-      message?: string
-    }>(`/api/verify/${batchId}`)
+    // Try the public verify endpoint first, if it fails, return a mock response for testing
+    try {
+      return await this.request<{
+        verified: boolean
+        batchId: string
+        cropType: string
+        harvestDate: string
+        quantity: number
+        unit: string
+        quality: string
+        location: any
+        farmer: string
+        status: string
+        message?: string
+      }>(`/api/verify/${batchId}`)
+    } catch (error) {
+      console.warn('Verify endpoint failed, using fallback:', error)
+      // Return a fallback response for testing
+      throw error
+    }
   }
 
   async getQRProvenance(batchId: string) {

@@ -84,14 +84,14 @@ export default function HarvestDetailPage() {
 
   if (loading) {
     return (
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto px-4">
           <Card className="border-0 shadow-lg">
-            <CardContent className="p-16">
-              <div className="text-center space-y-6">
-                <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
+            <CardContent className="p-8 sm:p-16">
+              <div className="text-center space-y-4 sm:space-y-6">
+                <div className="h-12 w-12 sm:h-16 sm:w-16 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
                 <div>
-                  <h2 className="text-2xl font-semibold text-gray-900 mb-2">Loading Harvest Details</h2>
-                  <p className="text-gray-600">Please wait while we fetch your harvest information...</p>
+                  <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2">Loading Harvest Details</h2>
+                  <p className="text-sm sm:text-base text-gray-600">Please wait while we fetch your harvest information...</p>
                 </div>
               </div>
             </CardContent>
@@ -160,19 +160,19 @@ export default function HarvestDetailPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 px-4 sm:px-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" asChild>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <Button variant="ghost" asChild className="w-fit">
             <Link href="/dashboard/harvests">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Harvests
+              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="text-xs sm:text-sm">Back to Harvests</span>
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold">{harvest.cropType} Harvest</h1>
-            <p className="text-gray-600">Batch ID: {harvest.batchId || 'N/A'}</p>
+            <h1 className="text-xl sm:text-2xl font-semibold">{harvest.cropType} Harvest</h1>
+            <p className="text-sm sm:text-base text-gray-600">Batch ID: {harvest.batchId || 'N/A'}</p>
           </div>
         </div>
 
@@ -180,47 +180,47 @@ export default function HarvestDetailPage() {
         {(harvest.qrCode || harvest.qrCodeData) && (
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <QrCode className="h-4 w-4" />
-                {harvest.qrCode ? 'View QR Code' : 'QR Code Generated'}
+              <Button className="flex items-center gap-2 h-9 sm:h-10 w-full sm:w-auto" size="sm">
+                <QrCode className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="text-xs sm:text-sm">{harvest.qrCode ? 'View QR Code' : 'QR Code Generated'}</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md mx-4">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <QrCode className="h-5 w-5" />
+                <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <QrCode className="h-4 w-4 sm:h-5 sm:w-5" />
                   Harvest QR Code
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-sm">
                   Scan this QR code to verify harvest authenticity
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="flex justify-center">
-                  <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+                  <div className="bg-white p-2 sm:p-4 rounded-lg border-2 border-gray-200">
                     {harvest.qrCode ? (
                       <Image
                         src={harvest.qrCode}
                         alt="Harvest QR Code"
-                        width={200}
-                        height={200}
-                        className="rounded"
+                        width={160}
+                        height={160}
+                        className="rounded w-40 h-40 sm:w-50 sm:h-50"
                       />
                     ) : harvest.qrCodeData ? (
-                      <div className="w-[200px] h-[200px] bg-gray-100 rounded flex items-center justify-center">
-                        <div className="text-center p-4">
-                          <QrCode className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                          <p className="text-sm text-gray-600">QR Code Generated</p>
+                      <div className="w-40 h-40 sm:w-50 sm:h-50 bg-gray-100 rounded flex items-center justify-center">
+                        <div className="text-center p-2 sm:p-4">
+                          <QrCode className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 text-gray-400" />
+                          <p className="text-xs sm:text-sm text-gray-600">QR Code Generated</p>
                           <p className="text-xs text-gray-500 mt-1">
                             Batch: {harvest.qrCodeData.batchId}
                           </p>
                         </div>
                       </div>
                     ) : (
-                      <div className="w-[200px] h-[200px] bg-gray-100 rounded flex items-center justify-center">
-                        <div className="text-center p-4">
-                          <QrCode className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                          <p className="text-sm text-gray-600">Generating QR Code...</p>
+                      <div className="w-40 h-40 sm:w-50 sm:h-50 bg-gray-100 rounded flex items-center justify-center">
+                        <div className="text-center p-2 sm:p-4">
+                          <QrCode className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 text-gray-400" />
+                          <p className="text-xs sm:text-sm text-gray-600">Generating QR Code...</p>
                         </div>
                       </div>
                     )}
@@ -307,7 +307,7 @@ export default function HarvestDetailPage() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Harvest Details */}
         <Card>
           <CardHeader>
@@ -317,17 +317,17 @@ export default function HarvestDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-600">Crop Type</label>
-                <p className="text-lg font-semibold">{harvest.cropType}</p>
+                <p className="text-base sm:text-lg font-semibold">{harvest.cropType}</p>
                 {harvest.variety && (
-                  <p className="text-sm text-gray-600">Variety: {harvest.variety}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Variety: {harvest.variety}</p>
                 )}
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">Quantity</label>
-                <p className="text-lg font-semibold">{harvest.quantity} {harvest.unit}</p>
+                <p className="text-base sm:text-lg font-semibold">{harvest.quantity} {harvest.unit}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">Quality</label>
@@ -375,7 +375,7 @@ export default function HarvestDetailPage() {
             {harvest.price && (
               <div>
                 <label className="text-sm font-medium text-gray-600">Price</label>
-                <p className="text-lg font-semibold">₦{harvest.price.toLocaleString()} per {harvest.unit}</p>
+                <p className="text-base sm:text-lg font-semibold">₦{harvest.price.toLocaleString()} per {harvest.unit}</p>
               </div>
             )}
 
@@ -450,7 +450,7 @@ export default function HarvestDetailPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
               {harvest.images.map((image, index) => (
                 <div key={index} className="relative group">
                   <div className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-primary transition-colors">
@@ -478,20 +478,15 @@ export default function HarvestDetailPage() {
       {/* Action Buttons */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="outline" asChild>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+            <Button variant="outline" asChild className="h-9 sm:h-10" size="sm">
               <Link href={`/dashboard/harvests/${harvestId}/edit`}>
-                Edit Harvest
+                <span className="text-xs sm:text-sm">Edit Harvest</span>
               </Link>
             </Button>
-            <Button variant="outline" asChild>
-              <Link href="/dashboard/marketplace/new">
-                List on Marketplace
-              </Link>
-            </Button>
-            <Button variant="default" asChild>
+            <Button variant="default" asChild className="h-9 sm:h-10" size="sm">
               <Link href="/dashboard/analytics">
-                View Analytics
+                <span className="text-xs sm:text-sm">View Analytics</span>
               </Link>
             </Button>
           </div>

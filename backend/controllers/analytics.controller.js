@@ -5,6 +5,7 @@ const Listing = require('../models/listing.model')
 const Order = require('../models/order.model')
 const CreditScore = require('../models/credit-score.model')
 const Partner = require('../models/partner.model')
+const mongoose = require('mongoose')
 
 // Add export helpers
 const ExcelJS = require('exceljs')
@@ -259,6 +260,424 @@ exports.getFarmerAnalytics = async (req, res) => {
     console.log('📊 Final metrics for farmer:', metrics)
     return res.json({ status: 'success', data: metrics })
   } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Server error' })
+  }
+}
+
+// Get farmer crop analytics (crop distribution and performance)
+exports.getFarmerCropAnalytics = async (req, res) => {
+  try {
+    const farmerId = req.params.farmerId || req.user.id
+    const { period = '30d' } = req.query
+
+    const farmer = await User.findById(farmerId).select('role')
+    if (!farmer || farmer.role !== 'farmer') {
+      return res.status(404).json({ status: 'error', message: 'Farmer not found' })
+    }
+
+    // Calculate date range based on period
+    const now = new Date()
+    const startDate = new Date(now)
+    
+    switch (period) {
+      case '7d':
+        startDate.setDate(now.getDate() - 7)
+        break
+      case '30d':
+        startDate.setDate(now.getDate() - 30)
+        break
+      case '90d':
+        startDate.setDate(now.getDate() - 90)
+        break
+      case '1y':
+        startDate.setFullYear(now.getFullYear() - 1)
+        break
+      default:
+        startDate.setDate(now.getDate() - 30)
+    }
+
+    // Get crop distribution data
+    const cropDistribution = await Harvest.aggregate([
+      {
+        $match: {
+          farmer: new mongoose.Types.ObjectId(farmerId),
+          createdAt: { $gte: startDate, $lte: now }
+        }
+      },
+      {
+        $group: {
+          _id: '$cropType',
+          quantity: { $sum: '$quantity' },
+          count: { $sum: 1 },
+          totalValue: { $sum: '$price' },
+          avgQuality: { 
+            $avg: { 
+              $cond: [
+                { $eq: ['$quality', 'excellent'] }, 4,
+                { $cond: [
+                  { $eq: ['$quality', 'good'] }, 3,
+                  { $cond: [
+                    { $eq: ['$quality', 'fair'] }, 2, 1
+                  ]}
+                ]}
+              ]
+            }
+          },
+          avgPrice: { $avg: '$price' }
+        }
+      },
+      {
+        $sort: { quantity: -1 }
+      }
+    ])
+
+    // Get crop performance data (monthly trends for each crop)
+    const cropPerformance = await Harvest.aggregate([
+      {
+        $match: {
+          farmer: new mongoose.Types.ObjectId(farmerId),
+          createdAt: { $gte: startDate, $lte: now }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            cropType: '$cropType',
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' }
+          },
+          quantity: { $sum: '$quantity' },
+          revenue: { $sum: '$price' },
+          count: { $sum: 1 },
+          avgQuality: { 
+            $avg: { 
+              $cond: [
+                { $eq: ['$quality', 'excellent'] }, 4,
+                { $cond: [
+                  { $eq: ['$quality', 'good'] }, 3,
+                  { $cond: [
+                    { $eq: ['$quality', 'fair'] }, 2, 1
+                  ]}
+                ]}
+              ]
+            }
+          }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1 }
+      }
+    ])
+
+    // Get quality distribution data
+    const qualityDistribution = await Harvest.aggregate([
+      {
+        $match: {
+          farmer: new mongoose.Types.ObjectId(farmerId),
+          createdAt: { $gte: startDate, $lte: now }
+        }
+      },
+      {
+        $group: {
+          _id: '$quality',
+          count: { $sum: 1 },
+          totalQuantity: { $sum: '$quantity' },
+          totalValue: { $sum: '$price' },
+          avgPrice: { $avg: '$price' },
+          crops: { $addToSet: '$cropType' }
+        }
+      },
+      {
+        $sort: { 
+          count: -1,
+          _id: 1 // Sort by quality level (excellent, good, fair, poor)
+        }
+      }
+    ])
+
+    // Get quality trends over time
+    const qualityTrends = await Harvest.aggregate([
+      {
+        $match: {
+          farmer: new mongoose.Types.ObjectId(farmerId),
+          createdAt: { $gte: startDate, $lte: now }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            quality: '$quality',
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' }
+          },
+          count: { $sum: 1 },
+          totalQuantity: { $sum: '$quantity' },
+          totalValue: { $sum: '$price' }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1 }
+      }
+    ])
+
+    // Get quality by crop type
+    const qualityByCrop = await Harvest.aggregate([
+      {
+        $match: {
+          farmer: new mongoose.Types.ObjectId(farmerId),
+          createdAt: { $gte: startDate, $lte: now }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            cropType: '$cropType',
+            quality: '$quality'
+          },
+          count: { $sum: 1 },
+          totalQuantity: { $sum: '$quantity' },
+          totalValue: { $sum: '$price' }
+        }
+      },
+      {
+        $sort: { '_id.cropType': 1, count: -1 }
+      }
+    ])
+
+    // Format crop distribution data for charts
+    const totalQuantity = cropDistribution.reduce((sum, crop) => sum + crop.quantity, 0)
+    const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#8dd1e1', '#d084d0', '#ffb347']
+    
+    const formattedCropDistribution = cropDistribution.map((crop, index) => ({
+      name: crop._id,
+      value: totalQuantity > 0 ? Math.round((crop.quantity / totalQuantity) * 100) : 0,
+      quantity: crop.quantity,
+      count: crop.count,
+      totalValue: crop.totalValue,
+      avgQuality: Math.round(crop.avgQuality * 100) / 100,
+      avgPrice: Math.round(crop.avgPrice * 100) / 100,
+      color: colors[index % colors.length]
+    }))
+
+    // Format crop performance data for charts
+    const cropPerformanceMap = {}
+    cropPerformance.forEach(item => {
+      const cropType = item._id.cropType
+      const monthKey = `${item._id.year}-${item._id.month.toString().padStart(2, '0')}`
+      
+      if (!cropPerformanceMap[cropType]) {
+        cropPerformanceMap[cropType] = {}
+      }
+      
+      cropPerformanceMap[cropType][monthKey] = {
+        quantity: item.quantity,
+        revenue: item.revenue,
+        count: item.count,
+        avgQuality: Math.round(item.avgQuality * 100) / 100
+      }
+    })
+
+    // Create monthly performance data for top crops
+    const topCrops = formattedCropDistribution.slice(0, 5)
+    const monthlyPerformance = []
+    
+    // Generate month labels for the period
+    const monthLabels = []
+    const current = new Date(startDate)
+    while (current <= now) {
+      const monthKey = `${current.getFullYear()}-${(current.getMonth() + 1).toString().padStart(2, '0')}`
+      const monthLabel = current.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+      monthLabels.push({ key: monthKey, label: monthLabel })
+      
+      const monthData = { month: monthLabel, monthKey }
+      
+      topCrops.forEach(crop => {
+        const cropData = cropPerformanceMap[crop.name]?.[monthKey]
+        monthData[`${crop.name}_quantity`] = cropData?.quantity || 0
+        monthData[`${crop.name}_revenue`] = cropData?.revenue || 0
+        monthData[`${crop.name}_quality`] = cropData?.avgQuality || 0
+      })
+      
+      monthlyPerformance.push(monthData)
+      current.setMonth(current.getMonth() + 1)
+    }
+
+    // Format quality distribution data for charts
+    const qualityColors = {
+      'excellent': '#22c55e', // Green
+      'good': '#84cc16',      // Lime
+      'fair': '#f59e0b',      // Amber
+      'poor': '#ef4444'       // Red
+    }
+
+    const qualityLabels = {
+      'excellent': 'Excellent',
+      'good': 'Good',
+      'fair': 'Fair',
+      'poor': 'Poor'
+    }
+
+    const totalQualityHarvests = qualityDistribution.reduce((sum, quality) => sum + quality.count, 0)
+    
+    const formattedQualityDistribution = qualityDistribution.map(quality => ({
+      name: qualityLabels[quality._id] || quality._id,
+      value: totalQualityHarvests > 0 ? Math.round((quality.count / totalQualityHarvests) * 100) : 0,
+      count: quality.count,
+      totalQuantity: quality.totalQuantity,
+      totalValue: quality.totalValue,
+      avgPrice: Math.round(quality.avgPrice * 100) / 100,
+      crops: quality.crops,
+      color: qualityColors[quality._id] || '#8884d8'
+    }))
+
+    // Format quality trends data
+    const qualityTrendsMap = {}
+    qualityTrends.forEach(item => {
+      const quality = item._id.quality
+      const monthKey = `${item._id.year}-${item._id.month.toString().padStart(2, '0')}`
+      
+      if (!qualityTrendsMap[quality]) {
+        qualityTrendsMap[quality] = {}
+      }
+      
+      qualityTrendsMap[quality][monthKey] = {
+        count: item.count,
+        quantity: item.totalQuantity,
+        value: item.totalValue
+      }
+    })
+
+    // Create monthly quality trends
+    const monthlyQualityTrends = []
+    const currentTrend = new Date(startDate)
+    while (currentTrend <= now) {
+      const monthKey = `${currentTrend.getFullYear()}-${(currentTrend.getMonth() + 1).toString().padStart(2, '0')}`
+      const monthLabel = currentTrend.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+      
+      const monthData = { month: monthLabel, monthKey }
+      
+      Object.keys(qualityColors).forEach(quality => {
+        const qualityData = qualityTrendsMap[quality]?.[monthKey]
+        monthData[`${quality}_count`] = qualityData?.count || 0
+        monthData[`${quality}_quantity`] = qualityData?.quantity || 0
+        monthData[`${quality}_value`] = qualityData?.value || 0
+      })
+      
+      monthlyQualityTrends.push(monthData)
+      currentTrend.setMonth(currentTrend.getMonth() + 1)
+    }
+
+    // Format quality by crop data
+    const qualityByCropMap = {}
+    qualityByCrop.forEach(item => {
+      const cropType = item._id.cropType
+      const quality = item._id.quality
+      
+      if (!qualityByCropMap[cropType]) {
+        qualityByCropMap[cropType] = {}
+      }
+      
+      qualityByCropMap[cropType][quality] = {
+        count: item.count,
+        quantity: item.totalQuantity,
+        value: item.totalValue
+      }
+    })
+
+    // Calculate quality insights
+    const qualityInsights = formattedQualityDistribution.map(quality => {
+      const percentage = quality.value
+      const isHighQuality = quality.name === 'Excellent' || quality.name === 'Good'
+      
+      return {
+        quality: quality.name,
+        percentage,
+        count: quality.count,
+        quantity: quality.totalQuantity,
+        revenue: quality.totalValue,
+        avgPrice: quality.avgPrice,
+        crops: quality.crops,
+        isHighQuality,
+        recommendation: quality.name === 'Excellent'
+          ? 'Outstanding quality! Maintain these standards'
+          : quality.name === 'Good'
+          ? 'Good quality production, aim for excellence'
+          : quality.name === 'Fair'
+          ? 'Quality needs improvement, review farming practices'
+          : 'Poor quality detected, immediate attention required'
+      }
+    })
+
+    // Calculate crop insights
+    const cropInsights = formattedCropDistribution.map(crop => {
+      const marketShare = crop.value
+      const isTopPerformer = marketShare >= 20
+      const isGrowing = true // This could be calculated by comparing with previous period
+      
+      return {
+        cropType: crop.name,
+        marketShare,
+        quantity: crop.quantity,
+        revenue: crop.totalValue,
+        avgQuality: crop.avgQuality,
+        avgPrice: crop.avgPrice,
+        isTopPerformer,
+        isGrowing,
+        recommendation: marketShare >= 20 
+          ? 'Consider expanding production of this high-performing crop'
+          : marketShare >= 10
+          ? 'This crop shows good performance, monitor for growth opportunities'
+          : 'Evaluate market demand and consider optimizing production'
+      }
+    })
+
+    const analyticsData = {
+      period,
+      cropDistribution: formattedCropDistribution,
+      cropPerformance: {
+        monthly: monthlyPerformance,
+        topCrops: topCrops.map(crop => ({
+          name: crop.name,
+          quantity: crop.quantity,
+          revenue: crop.totalValue,
+          marketShare: crop.value,
+          avgQuality: crop.avgQuality,
+          color: crop.color
+        }))
+      },
+      qualityDistribution: {
+        distribution: formattedQualityDistribution,
+        trends: {
+          monthly: monthlyQualityTrends
+        },
+        byCrop: qualityByCropMap,
+        insights: qualityInsights
+      },
+      insights: cropInsights,
+      summary: {
+        totalCrops: cropDistribution.length,
+        totalQuantity,
+        topCrop: formattedCropDistribution[0]?.name || 'N/A',
+        avgQuality: formattedCropDistribution.length > 0 
+          ? Math.round(formattedCropDistribution.reduce((sum, crop) => sum + crop.avgQuality, 0) / formattedCropDistribution.length * 100) / 100
+          : 0,
+        diversification: formattedCropDistribution.length >= 3 ? 'High' : formattedCropDistribution.length >= 2 ? 'Medium' : 'Low',
+        qualitySummary: {
+          totalHarvests: totalQualityHarvests,
+          highQualityPercentage: qualityInsights.filter(q => q.isHighQuality).reduce((sum, q) => sum + q.percentage, 0),
+          averageQualityScore: qualityInsights.length > 0 
+            ? Math.round(qualityInsights.reduce((sum, q) => {
+                const score = q.quality === 'Excellent' ? 4 : q.quality === 'Good' ? 3 : q.quality === 'Fair' ? 2 : 1
+                return sum + (score * q.percentage / 100)
+              }, 0) * 100) / 100
+            : 0
+        }
+      }
+    }
+
+    return res.json({ status: 'success', data: analyticsData })
+  } catch (error) {
+    console.error('Farmer crop analytics error:', error)
     return res.status(500).json({ status: 'error', message: 'Server error' })
   }
 }
@@ -1439,7 +1858,9 @@ exports.generateReport = async (req, res) => {
         docs = await Listing.find(query).populate('farmer', 'name email')
         break
       case 'financial':
-        docs = await Order.find(query).populate('buyer', 'name email')
+        docs = await Order.find(query)
+          .populate('buyer', 'name email')
+          .populate('seller', 'name email profile.farmName')
         break
     }
     

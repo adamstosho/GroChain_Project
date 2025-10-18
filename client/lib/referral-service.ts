@@ -22,8 +22,8 @@ const mockReferrals: Referral[] = [
     commissionRate: 0.05,
     commission: 2500,
     notes: "Successful rice farmer referral",
-    createdAt: new Date("2024-01-15"),
-    updatedAt: new Date("2024-01-25")
+    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+    updatedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)
   },
   {
     _id: "2",
@@ -43,8 +43,8 @@ const mockReferrals: Referral[] = [
     status: "active",
     commissionRate: 0.05,
     notes: "Maize farmer referral",
-    createdAt: new Date("2024-01-18"),
-    updatedAt: new Date("2024-01-20")
+    createdAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000),
+    updatedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
   },
   {
     _id: "3",
@@ -64,8 +64,8 @@ const mockReferrals: Referral[] = [
     status: "pending",
     commissionRate: 0.05,
     notes: "Cassava farmer referral",
-    createdAt: new Date("2024-01-20"),
-    updatedAt: new Date("2024-01-20")
+    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+    updatedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)
   }
 ]
 

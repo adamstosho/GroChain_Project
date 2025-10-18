@@ -2,6 +2,7 @@
 const Order = require('../models/order.model')
 const Transaction = require('../models/transaction.model')
 const Commission = require('../models/commission.model')
+const PaymentMethod = require('../models/payment-method.model')
 const https = require('https')
 const notificationController = require('./notification.controller')
 const realTimeCommissionService = require('../services/commission-realtime.service')
@@ -60,7 +61,9 @@ exports.initializePayment = async (req, res) => {
       })
     }
     
-    const order = await Order.findById(orderId).populate('buyer')
+    const order = await Order.findById(orderId)
+      .populate('buyer', 'name email phone profile.phone profile.avatar')
+      .populate('seller', 'name email phone profile.phone profile.farmName')
     if (!order) {
       return res.status(404).json({ status: 'error', message: 'Order not found' })
     }
@@ -691,7 +694,7 @@ exports.verifyPayment = async (req, res) => {
             'paymentCompleted',
             {
               amount: order.total,
-              orderNumber: order.orderNumber || order._id,
+              orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
               actionUrl: `/dashboard/orders/${order._id}`
             }
           )
@@ -710,7 +713,7 @@ exports.verifyPayment = async (req, res) => {
                 'paymentReceived',
                 {
                   amount: item.price * item.quantity,
-                  orderNumber: order.orderNumber || order._id,
+                  orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
                   productName: item.listing.cropName,
                   buyerName: populatedOrder.buyer.name,
                   actionUrl: `/dashboard/orders/${order._id}`
@@ -725,7 +728,7 @@ exports.verifyPayment = async (req, res) => {
             'paymentCompleted',
             {
               amount: order.total,
-              orderNumber: order.orderNumber || order._id,
+              orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
               buyerName: populatedOrder.buyer.name,
               actionUrl: `/admin/orders/${order._id}`
             }
@@ -1322,7 +1325,7 @@ exports.webhookVerify = async (req, res) => {
                 'paymentCompleted',
                 {
                   amount: order.total,
-                  orderNumber: order.orderNumber || order._id,
+                  orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
                   actionUrl: `/dashboard/orders/${order._id}`
                 }
               )
@@ -1341,7 +1344,7 @@ exports.webhookVerify = async (req, res) => {
                     'paymentReceived',
                     {
                       amount: item.price * item.quantity,
-                      orderNumber: order.orderNumber || order._id,
+                      orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
                       productName: item.listing.cropName,
                       buyerName: populatedOrder.buyer.name,
                       actionUrl: `/dashboard/orders/${order._id}`
@@ -1356,7 +1359,7 @@ exports.webhookVerify = async (req, res) => {
                 'paymentCompleted',
                 {
                   amount: order.total,
-                  orderNumber: order.orderNumber || order._id,
+                  orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
                   buyerName: populatedOrder.buyer.name,
                   actionUrl: `/admin/orders/${order._id}`
                 }
@@ -1758,4 +1761,180 @@ async function verifyWithFlutterwaveAPI(reference) {
 
     req.end()
   })
+}
+
+// Payment Methods Management
+exports.getPaymentMethods = async (req, res) => {
+  try {
+    const userId = req.user.id
+    
+    // Get payment methods from database
+    const paymentMethods = await PaymentMethod.findByUser(userId)
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Payment methods retrieved successfully',
+      data: paymentMethods
+    })
+  } catch (error) {
+    console.error('Error fetching payment methods:', error)
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch payment methods',
+      error: error.message
+    })
+  }
+}
+
+exports.addPaymentMethod = async (req, res) => {
+  try {
+    const userId = req.user.id
+    const { type, details } = req.body
+    
+    // Validate required fields
+    if (!type || !details) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Type and details are required'
+      })
+    }
+    
+    // Create payment method name based on type
+    let name = ''
+    if (type === 'card') {
+      name = `${details.brand || 'Card'} ending in ${details.last4}`
+    } else if (type === 'bank_account') {
+      name = `${details.bankName} Account`
+    } else if (type === 'mobile_money') {
+      name = `${details.provider} Mobile Money`
+    } else {
+      name = `${type.charAt(0).toUpperCase() + type.slice(1)} Payment`
+    }
+    
+    // Create new payment method
+    const paymentMethod = new PaymentMethod({
+      user: userId,
+      name,
+      type,
+      details,
+      isVerified: false, // Will be verified through payment provider
+      status: 'active'
+    })
+    
+    await paymentMethod.save()
+    
+    res.status(201).json({
+      status: 'success',
+      message: 'Payment method added successfully',
+      data: paymentMethod
+    })
+  } catch (error) {
+    console.error('Error adding payment method:', error)
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to add payment method',
+      error: error.message
+    })
+  }
+}
+
+exports.updatePaymentMethod = async (req, res) => {
+  try {
+    const userId = req.user.id
+    const methodId = req.params.id
+    const updateData = req.body
+    
+    // Find payment method and ensure it belongs to user
+    const paymentMethod = await PaymentMethod.findOne({ _id: methodId, user: userId })
+    
+    if (!paymentMethod) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Payment method not found'
+      })
+    }
+    
+    // Update payment method
+    Object.assign(paymentMethod, updateData)
+    await paymentMethod.save()
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Payment method updated successfully',
+      data: paymentMethod
+    })
+  } catch (error) {
+    console.error('Error updating payment method:', error)
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to update payment method',
+      error: error.message
+    })
+  }
+}
+
+exports.deletePaymentMethod = async (req, res) => {
+  try {
+    const userId = req.user.id
+    const methodId = req.params.id
+    
+    // Find payment method and ensure it belongs to user
+    const paymentMethod = await PaymentMethod.findOne({ _id: methodId, user: userId })
+    
+    if (!paymentMethod) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Payment method not found'
+      })
+    }
+    
+    // Soft delete by setting status to inactive
+    paymentMethod.status = 'inactive'
+    await paymentMethod.save()
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Payment method deleted successfully'
+    })
+  } catch (error) {
+    console.error('Error deleting payment method:', error)
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to delete payment method',
+      error: error.message
+    })
+  }
+}
+
+exports.setDefaultPaymentMethod = async (req, res) => {
+  try {
+    const userId = req.user.id
+    const methodId = req.params.id
+    
+    // Find payment method and ensure it belongs to user
+    const paymentMethod = await PaymentMethod.findOne({ _id: methodId, user: userId })
+    
+    if (!paymentMethod) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Payment method not found'
+      })
+    }
+    
+    // Set as default
+    await paymentMethod.setAsDefault()
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Default payment method updated successfully',
+      data: paymentMethod
+    })
+  } catch (error) {
+    console.error('Error setting default payment method:', error)
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to set default payment method',
+      error: error.message
+    })
+  }
 }

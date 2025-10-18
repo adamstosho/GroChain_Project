@@ -125,7 +125,7 @@ const fintechController = {
             reference: 'TXN-SAMPLE-001-' + Date.now(),
             description: 'Harvest sale - Cassava',
             userId: userId,
-            createdAt: new Date('2024-01-15')
+            createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
           },
           {
             type: 'commission',
@@ -135,7 +135,7 @@ const fintechController = {
             reference: 'TXN-SAMPLE-002-' + Date.now(),
             description: 'Referral commission',
             userId: userId,
-            createdAt: new Date('2024-01-14')
+            createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
           },
           {
             type: 'payment',
@@ -145,7 +145,7 @@ const fintechController = {
             reference: 'TXN-SAMPLE-003-' + Date.now(),
             description: 'Harvest sale - Maize',
             userId: userId,
-            createdAt: new Date('2024-01-13')
+            createdAt: new Date(Date.now() - 16 * 24 * 60 * 60 * 1000)
           },
           {
             type: 'payment',
@@ -155,7 +155,7 @@ const fintechController = {
             reference: 'TXN-SAMPLE-004-' + Date.now(),
             description: 'Harvest sale - Tomatoes',
             userId: userId,
-            createdAt: new Date('2024-01-12')
+            createdAt: new Date(Date.now() - 17 * 24 * 60 * 60 * 1000)
           }
         ]
 
@@ -181,7 +181,7 @@ const fintechController = {
             type: 'emergency_fund',
             targetAmount: 500000,
             currentAmount: 150000,
-            targetDate: new Date('2025-12-31'),
+            targetDate: new Date(new Date().getFullYear(), 11, 31),
             priority: 'high',
             category: 'short_term',
             status: 'active'
@@ -193,7 +193,7 @@ const fintechController = {
             type: 'equipment_purchase',
             targetAmount: 2000000,
             currentAmount: 450000,
-            targetDate: new Date('2025-06-30'),
+            targetDate: new Date(new Date().getFullYear(), 5, 30),
             priority: 'medium',
             category: 'medium_term',
             status: 'active'
@@ -239,17 +239,17 @@ const fintechController = {
             approvedInterestRate: 15,
             repaymentSchedule: [
               {
-                dueDate: new Date('2024-02-15'),
+                dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
                 amount: 45000,
                 status: 'pending'
               },
               {
-                dueDate: new Date('2024-03-15'),
+                dueDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
                 amount: 45000,
                 status: 'pending'
               },
               {
-                dueDate: new Date('2024-04-15'),
+                dueDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
                 amount: 45000,
                 status: 'pending'
               }
@@ -265,15 +265,15 @@ const fintechController = {
             approvedAmount: 300000,
             approvedDuration: 6,
             approvedInterestRate: 12,
-            disbursedAt: new Date('2024-01-10'),
+            disbursedAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
             repaymentSchedule: [
               {
-                dueDate: new Date('2024-02-10'),
+                dueDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000),
                 amount: 53000,
                 status: 'pending'
               },
               {
-                dueDate: new Date('2024-03-10'),
+                dueDate: new Date(Date.now() + 55 * 24 * 60 * 60 * 1000),
                 amount: 53000,
                 status: 'pending'
               }
@@ -304,8 +304,8 @@ const fintechController = {
             policyNumber: 'POL-SAMPLE-001-' + Date.now(),
             coverageAmount: 1000000,
             premium: 25000,
-            startDate: new Date('2024-01-01'),
-            endDate: new Date('2024-12-31'),
+            startDate: new Date(new Date().getFullYear(), 0, 1),
+            endDate: new Date(new Date().getFullYear(), 11, 31),
             status: 'active',
             region: 'Lagos',
             coverageDetails: {
@@ -320,8 +320,8 @@ const fintechController = {
             policyNumber: 'POL-SAMPLE-002-' + Date.now(),
             coverageAmount: 500000,
             premium: 15000,
-            startDate: new Date('2024-01-01'),
-            endDate: new Date('2024-12-31'),
+            startDate: new Date(new Date().getFullYear(), 0, 1),
+            endDate: new Date(new Date().getFullYear(), 11, 31),
             status: 'active',
             region: 'Lagos',
             coverageDetails: {
@@ -336,8 +336,8 @@ const fintechController = {
             policyNumber: 'POL-SAMPLE-003-' + Date.now(),
             coverageAmount: 300000,
             premium: 12000,
-            startDate: new Date('2024-01-01'),
-            endDate: new Date('2024-12-31'),
+            startDate: new Date(new Date().getFullYear(), 0, 1),
+            endDate: new Date(new Date().getFullYear(), 11, 31),
             status: 'active',
             region: 'Lagos',
             coverageDetails: {
@@ -1879,9 +1879,9 @@ const fintechController = {
         policyId: 'POLICY_123',
         claimAmount: 50000,
         description: 'Crop damage due to flooding',
-        incidentDate: new Date('2024-01-15'),
+        incidentDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
         status: 'pending',
-        submittedAt: new Date('2024-01-20')
+        submittedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000)
       }
       
       res.json({
@@ -1909,11 +1909,11 @@ const fintechController = {
         policyId: 'POLICY_123',
         claimAmount: 50000,
         description: 'Crop damage due to flooding',
-        incidentDate: new Date('2024-01-15'),
+        incidentDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
         status: status || 'pending',
         notes: notes || undefined,
         approvedAmount: approvedAmount ? Number(approvedAmount) : undefined,
-        submittedAt: new Date('2024-01-20')
+        submittedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000)
       }
       
       res.json({
@@ -2250,9 +2250,9 @@ const fintechController = {
           farmerId: 'farmer_001',
           claimAmount: 50000,
           description: 'Crop damage due to flooding',
-          incidentDate: new Date('2024-01-15'),
+          incidentDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
           status: 'pending',
-          submittedAt: new Date('2024-01-20'),
+          submittedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000),
           documents: ['flood_photos.pdf', 'damage_assessment.pdf']
         },
         {
@@ -2261,10 +2261,10 @@ const fintechController = {
           farmerId: 'farmer_002',
           claimAmount: 30000,
           description: 'Equipment breakdown',
-          incidentDate: new Date('2024-01-10'),
+          incidentDate: new Date(Date.now() - 19 * 24 * 60 * 60 * 1000),
           status: 'approved',
-          submittedAt: new Date('2024-01-12'),
-          approvedAt: new Date('2024-01-18'),
+          submittedAt: new Date(Date.now() - 17 * 24 * 60 * 60 * 1000),
+          approvedAt: new Date(Date.now() - 11 * 24 * 60 * 60 * 1000),
           approvedAmount: 28000
         }
       ]

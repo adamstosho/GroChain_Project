@@ -9,6 +9,11 @@ const OrderItemSchema = new mongoose.Schema({
 })
 
 const OrderSchema = new mongoose.Schema({
+  orderNumber: { 
+    type: String, 
+    required: true,
+    default: () => `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+  },
   buyer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   items: [OrderItemSchema],
@@ -51,6 +56,7 @@ OrderSchema.index({ seller: 1 })
 OrderSchema.index({ status: 1 })
 OrderSchema.index({ paymentStatus: 1 })
 OrderSchema.index({ createdAt: -1 })
+OrderSchema.index({ orderNumber: 1 }, { unique: true })
 
 // Calculate totals before saving
 OrderSchema.pre('save', function(next) {

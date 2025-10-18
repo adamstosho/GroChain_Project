@@ -120,11 +120,11 @@ export default function InsuranceClaimsPage() {
       const mockClaims: InsuranceClaim[] = [
         {
           id: '1',
-          policyNumber: 'INS-2024-001',
+          policyNumber: `INS-${new Date().getFullYear()}-001`,
           claimType: 'crop_damage',
           description: 'Heavy rainfall caused flooding in maize field, resulting in 40% crop loss',
-          incidentDate: '2024-01-15',
-          reportedDate: '2024-01-16',
+          incidentDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          reportedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           estimatedLoss: 150000,
           status: 'approved',
           claimAmount: 120000,
@@ -133,15 +133,15 @@ export default function InsuranceClaimsPage() {
           location: 'North Field, Plot A',
           weatherConditions: 'Heavy rainfall, flooding',
           adjusterNotes: 'Claim approved based on weather reports and damage assessment',
-          decisionDate: '2024-01-25'
+          decisionDate: new Date().toISOString().split('T')[0]
         },
         {
           id: '2',
-          policyNumber: 'INS-2024-002',
+          policyNumber: `INS-${new Date().getFullYear()}-002`,
           claimType: 'equipment_damage',
           description: 'Tractor engine failure during harvest season',
-          incidentDate: '2024-01-20',
-          reportedDate: '2024-01-21',
+          incidentDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          reportedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           estimatedLoss: 80000,
           status: 'under_review',
           claimAmount: 65000,
@@ -151,11 +151,11 @@ export default function InsuranceClaimsPage() {
         },
         {
           id: '3',
-          policyNumber: 'INS-2024-003',
+          policyNumber: `INS-${new Date().getFullYear()}-003`,
           claimType: 'natural_disaster',
           description: 'Drought conditions affecting cassava yield',
-          incidentDate: '2024-01-10',
-          reportedDate: '2024-01-12',
+          incidentDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          reportedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           estimatedLoss: 200000,
           status: 'pending',
           claimAmount: 160000,
@@ -400,7 +400,7 @@ export default function InsuranceClaimsPage() {
                       id="policyNumber"
                       value={newClaim.policyNumber}
                       onChange={(e) => setNewClaim(prev => ({ ...prev, policyNumber: e.target.value }))}
-                      placeholder="e.g., INS-2024-001"
+                      placeholder={`e.g., INS-${new Date().getFullYear()}-001`}
                       required
                     />
                   </div>

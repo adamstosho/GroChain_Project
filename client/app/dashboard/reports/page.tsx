@@ -83,7 +83,7 @@ export default function ReportsPage() {
           category: 'harvest',
           format: 'pdf',
           estimatedTime: '2-3 minutes',
-          lastGenerated: '2024-01-15T10:30:00Z'
+          lastGenerated: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
         },
         {
           id: '2',
@@ -92,7 +92,7 @@ export default function ReportsPage() {
           category: 'financial',
           format: 'excel',
           estimatedTime: '3-5 minutes',
-          lastGenerated: '2024-01-14T15:45:00Z'
+          lastGenerated: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
         },
         {
           id: '3',
@@ -101,7 +101,7 @@ export default function ReportsPage() {
           category: 'marketplace',
           format: 'pdf',
           estimatedTime: '2-4 minutes',
-          lastGenerated: '2024-01-13T09:20:00Z'
+          lastGenerated: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
         }
       ]
 
@@ -109,8 +109,8 @@ export default function ReportsPage() {
         {
           id: '1',
           templateName: 'Harvest Summary Report',
-          fileName: 'harvest_summary_2024_01_15.pdf',
-          generatedDate: '2024-01-15T10:30:00Z',
+          fileName: `harvest_summary_${new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0].replace(/-/g, '_')}.pdf`,
+          generatedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
           fileSize: '2.4 MB',
           format: 'pdf',
           status: 'completed'
@@ -118,8 +118,8 @@ export default function ReportsPage() {
         {
           id: '2',
           templateName: 'Financial Performance Report',
-          fileName: 'financial_performance_2024_01_14.xlsx',
-          generatedDate: '2024-01-14T15:45:00Z',
+          fileName: `financial_performance_${new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0].replace(/-/g, '_')}.xlsx`,
+          generatedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
           fileSize: '1.8 MB',
           format: 'excel',
           status: 'completed'

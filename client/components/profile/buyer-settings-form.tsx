@@ -222,6 +222,25 @@ export function BuyerSettingsForm() {
     try {
       setIsSaving(true)
 
+      // Validate required settings
+      if (!settings.general.language) {
+        toast({
+          title: "Validation Error",
+          description: "Language is required",
+          variant: "destructive"
+        })
+        return
+      }
+
+      if (!settings.general.timezone) {
+        toast({
+          title: "Validation Error",
+          description: "Timezone is required",
+          variant: "destructive"
+        })
+        return
+      }
+
       const updateData = {
         general: settings.general,
         notifications: settings.notifications,
@@ -237,12 +256,26 @@ export function BuyerSettingsForm() {
           description: "Your settings have been updated successfully",
           variant: "default"
         })
+      } else {
+        throw new Error('Failed to save settings')
       }
     } catch (error: any) {
       console.error('Error saving settings:', error)
+      
+      // Handle different types of errors
+      let errorMessage = "Failed to save settings. Please try again."
+      
+      if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        errorMessage = "Network error. Please check your connection and try again."
+      } else if (error.message?.includes('validation')) {
+        errorMessage = error.message
+      } else if (error.message?.includes('unauthorized')) {
+        errorMessage = "Session expired. Please log in again."
+      }
+      
       toast({
         title: "Error saving settings",
-        description: error.message || "Failed to save settings",
+        description: errorMessage,
         variant: "destructive"
       })
     } finally {
@@ -382,59 +415,65 @@ export function BuyerSettingsForm() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="bio">Bio</Label>
+              <Label htmlFor="bio" className="text-sm font-medium">Bio</Label>
               <Input
                 id="bio"
                 value={settings.profile.bio}
                 onChange={(e) => handleProfileChange('bio', e.target.value)}
                 placeholder="Tell us about your business..."
+                className="h-9 sm:h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address" className="text-sm font-medium">Address</Label>
               <Input
                 id="address"
                 value={settings.profile.address}
                 onChange={(e) => handleProfileChange('address', e.target.value)}
                 placeholder="Your address"
+                className="h-9 sm:h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
+              <Label htmlFor="city" className="text-sm font-medium">City</Label>
               <Input
                 id="city"
                 value={settings.profile.city}
                 onChange={(e) => handleProfileChange('city', e.target.value)}
                 placeholder="Your city"
+                className="h-9 sm:h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
+              <Label htmlFor="state" className="text-sm font-medium">State</Label>
               <Input
                 id="state"
                 value={settings.profile.state}
                 onChange={(e) => handleProfileChange('state', e.target.value)}
                 placeholder="Your state"
+                className="h-9 sm:h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="country">Country</Label>
+              <Label htmlFor="country" className="text-sm font-medium">Country</Label>
               <Input
                 id="country"
                 value={settings.profile.country}
                 onChange={(e) => handleProfileChange('country', e.target.value)}
                 placeholder="Your country"
+                className="h-9 sm:h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="postalCode">Postal Code</Label>
+              <Label htmlFor="postalCode" className="text-sm font-medium">Postal Code</Label>
               <Input
                 id="postalCode"
                 value={settings.profile.postalCode}
                 onChange={(e) => handleProfileChange('postalCode', e.target.value)}
                 placeholder="Your postal code"
+                className="h-9 sm:h-10"
               />
             </div>
           </div>
@@ -460,14 +499,14 @@ export function BuyerSettingsForm() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div className="space-y-2">
-              <Label htmlFor="language">Language</Label>
+              <Label htmlFor="language" className="text-sm font-medium">Language</Label>
               <Select
                 value={settings.general.language}
                 onValueChange={(value) => handleGeneralSettingChange('language', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -482,12 +521,12 @@ export function BuyerSettingsForm() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
+              <Label htmlFor="timezone" className="text-sm font-medium">Timezone</Label>
               <Select
                 value={settings.general.timezone}
                 onValueChange={(value) => handleGeneralSettingChange('timezone', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -499,12 +538,12 @@ export function BuyerSettingsForm() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
+              <Label htmlFor="currency" className="text-sm font-medium">Currency</Label>
               <Select
                 value={settings.general.currency}
                 onValueChange={(value) => handleGeneralSettingChange('currency', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -513,12 +552,12 @@ export function BuyerSettingsForm() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="theme">Theme</Label>
+              <Label htmlFor="theme" className="text-sm font-medium">Theme</Label>
               <Select
                 value={settings.general.theme}
                 onValueChange={(value) => handleGeneralSettingChange('theme', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
