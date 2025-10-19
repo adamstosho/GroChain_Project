@@ -7,29 +7,41 @@ class EmailQueueService {
     this.maxRetries = Number(process.env.EMAIL_MAX_RETRIES || 5)
     this.baseDelayMs = Number(process.env.EMAIL_BASE_RETRY_DELAY_MS || 2000)
 
-    // Initialize transporters based on env (SMTP preferred, SendGrid fallback)
+    // Initialize transporters based on env (respect EMAIL_PROVIDER setting)
     this.transport = null
     this.sendgrid = null
 
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    // Debug environment variables
+    console.log('🔍 EmailQueue Debug:', {
+      EMAIL_PROVIDER: process.env.EMAIL_PROVIDER,
+      SENDGRID_API_KEY_EXISTS: !!process.env.SENDGRID_API_KEY,
+      SENDGRID_FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL,
+      SMTP_HOST_EXISTS: !!process.env.SMTP_HOST,
+      SMTP_USER_EXISTS: !!process.env.SMTP_USER,
+      SMTP_PASS_EXISTS: !!process.env.SMTP_PASS
+    })
+
+    // Check EMAIL_PROVIDER setting first
+    if (process.env.EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      try {
+        const sgMail = require('@sendgrid/mail')
+        sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+        this.sendgrid = sgMail
+        console.log('✅ EmailQueue: SendGrid initialized (EMAIL_PROVIDER=sendgrid)')
+      } catch (e) {
+        console.warn('⚠️ EmailQueue: Failed to init SendGrid:', e.message)
+      }
+    } else if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
       this.transport = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT || 587),
         secure: String(process.env.SMTP_SECURE) === 'true',
         auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
       })
-      console.log('✅ EmailQueue: SMTP transporter initialized')
-    } else if (process.env.EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
-      try {
-        const sgMail = require('@sendgrid/mail')
-        sgMail.setApiKey(process.env.SENDGRID_API_KEY)
-        this.sendgrid = sgMail
-        console.log('✅ EmailQueue: SendGrid initialized')
-      } catch (e) {
-        console.warn('⚠️ EmailQueue: Failed to init SendGrid:', e.message)
-      }
+      console.log('✅ EmailQueue: SMTP transporter initialized (fallback)')
     } else {
       console.warn('⚠️ EmailQueue: No email provider configured; emails will be logged only')
+      console.warn('⚠️ EmailQueue: Check EMAIL_PROVIDER, SENDGRID_API_KEY, or SMTP settings')
     }
 
     // Start processor loop
@@ -81,7 +93,10 @@ class EmailQueueService {
   }
 
   async send(job) {
+    console.log('📧 EmailQueue: Attempting to send email to:', job.to)
+    
     if (this.sendgrid) {
+      console.log('📧 EmailQueue: Using SendGrid to send email')
       const msg = {
         to: job.to,
         from: {
@@ -92,11 +107,18 @@ class EmailQueueService {
         html: job.html,
         text: job.text
       }
+      console.log('📧 EmailQueue: SendGrid message config:', {
+        to: msg.to,
+        from: msg.from.email,
+        subject: msg.subject
+      })
       await this.sendgrid.send(msg)
+      console.log('✅ EmailQueue: SendGrid email sent successfully to:', job.to)
       return
     }
 
     if (this.transport) {
+      console.log('📧 EmailQueue: Using SMTP to send email')
       const mailOptions = {
         from: process.env.SMTP_FROM || process.env.SMTP_USER,
         to: job.to,
@@ -104,12 +126,19 @@ class EmailQueueService {
         html: job.html,
         text: job.text
       }
+      console.log('📧 EmailQueue: SMTP mail options:', {
+        from: mailOptions.from,
+        to: mailOptions.to,
+        subject: mailOptions.subject
+      })
       await this.transport.sendMail(mailOptions)
+      console.log('✅ EmailQueue: SMTP email sent successfully to:', job.to)
       return
     }
 
     // Dev fallback: log only
-    console.log('[DEV-EMAIL-QUEUE] No provider, logging email:', { to: job.to, subject: job.subject })
+    console.log('[DEV-EMAIL-QUEUE] No provider configured, logging email:', { to: job.to, subject: job.subject })
+    console.log('[DEV-EMAIL-QUEUE] Email HTML content:', job.html)
   }
 }
 
