@@ -227,6 +227,7 @@ start-*.ps1
 setup-*.js
 webhook-setup-*.js
 payment-*.js
+!payment-method.model.js
 auto-fix-*.js
 clear-*.js
 
