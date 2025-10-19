@@ -1330,7 +1330,7 @@ router.put('/referrals/:id',
 
 // Delete referral
 router.delete('/referrals/:id', 
-  authorize(['admin']), 
+  authorize(['partner', 'admin']), 
   referralController.deleteReferral
 );
 

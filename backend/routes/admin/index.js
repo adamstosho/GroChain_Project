@@ -6,6 +6,8 @@ const Harvest = require('../../models/harvest.model')
 const Transaction = require('../../models/transaction.model')
 const Order = require('../../models/order.model')
 const Listing = require('../../models/listing.model')
+const Partner = require('../../models/partner.model')
+const Referral = require('../../models/referral.model')
 const multer = require('multer')
 const cloudinary = require('cloudinary').v2
 const fs = require('fs')
@@ -2540,6 +2542,88 @@ router.delete('/reports/scheduled/:id', async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Failed to delete scheduled report'
+    })
+  }
+})
+
+// Cleanup orphaned farmers endpoint
+router.post('/cleanup-orphaned-farmers', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    console.log('🔍 Starting cleanup of orphaned farmers...')
+    
+    // Find all farmers that have a partner field but no active referral
+    const farmersWithPartners = await User.find({
+      role: 'farmer',
+      partner: { $exists: true, $ne: null }
+    })
+    
+    console.log(`🔍 Found ${farmersWithPartners.length} farmers with partner references`)
+    
+    let cleanedCount = 0
+    const cleanedFarmers = []
+    
+    for (const farmer of farmersWithPartners) {
+      // Check if there's an active referral for this farmer-partner pair
+      const activeReferral = await Referral.findOne({
+        farmer: farmer._id,
+        partner: farmer.partner,
+        status: { $in: ['pending', 'active', 'completed'] }
+      })
+      
+      if (!activeReferral) {
+        // No active referral found, clean up the farmer's partner field
+        await User.findByIdAndUpdate(farmer._id, {
+          $unset: { partner: 1 }
+        })
+        
+        // Remove farmer from partner's farmers array
+        await Partner.findByIdAndUpdate(farmer.partner, {
+          $pull: { farmers: farmer._id }
+        })
+        
+        // Update partner's totalFarmers count
+        const partner = await Partner.findById(farmer.partner)
+        if (partner) {
+          partner.totalFarmers = partner.farmers.length
+          await partner.save()
+        }
+        
+        cleanedCount++
+        cleanedFarmers.push({
+          name: farmer.name,
+          email: farmer.email,
+          partnerId: farmer.partner
+        })
+        console.log(`✅ Cleaned up farmer: ${farmer.name} (${farmer.email})`)
+      } else {
+        console.log(`⏭️ Skipping farmer: ${farmer.name} - has active referral`)
+      }
+    }
+    
+    console.log(`🎉 Cleanup complete! Cleaned ${cleanedCount} orphaned farmers`)
+    
+    // Verify the cleanup
+    const remainingFarmersWithPartners = await User.countDocuments({
+      role: 'farmer',
+      partner: { $exists: true, $ne: null }
+    })
+    
+    res.json({
+      status: 'success',
+      message: `Cleanup complete! Cleaned ${cleanedCount} orphaned farmers`,
+      data: {
+        cleanedCount,
+        cleanedFarmers,
+        remainingFarmersWithPartners
+      }
+    })
+    
+  } catch (error) {
+    console.error('❌ Error during cleanup:', error)
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to cleanup orphaned farmers',
+      error: error.message
     })
   }
 })

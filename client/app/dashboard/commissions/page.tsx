@@ -207,6 +207,26 @@ export default function CommissionsPage() {
     }
   }
 
+  const handleExport = async () => {
+    try {
+      await exportCommissions()
+      toast({
+        title: "Export successful",
+        description: "Commission data has been exported",
+      })
+    } catch (error: unknown) {
+      toast({
+        title: "Export failed",
+        description: error instanceof Error ? error.message : "Failed to export commissions",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleRefresh = () => {
+    refreshData()
+  }
+
   const exportCommissions = async () => {
     await exportService.exportCustomData(commissions, {
       format: 'csv',
@@ -352,53 +372,57 @@ export default function CommissionsPage() {
         </Card>
 
         {/* Commission Overview */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Commission Overview</CardTitle>
+        <Card className="border border-gray-200">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Commission Overview</CardTitle>
             <CardDescription>Your earnings breakdown and performance metrics</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-2">
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Earnings Summary</h3>
+                <h3 className="text-lg font-medium text-gray-900">Earnings Summary</h3>
                 <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Total Earned</span>
-                    <span className="font-medium">₦{(summary?.summary.totalAmount || 0).toLocaleString()}</span>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm text-gray-600">Total Earned</span>
+                    <span className="font-semibold text-gray-900">₦{(summary?.summary?.totalAmount || stats?.totalAmount || 0).toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Paid Out</span>
-                    <span className="font-medium">₦{(summary?.summary.paidAmount || 0).toLocaleString()}</span>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm text-gray-600">Paid Out</span>
+                    <span className="font-semibold text-gray-900">₦{(summary?.summary?.paidAmount || 0).toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Pending</span>
-                    <span className="font-medium text-yellow-600">₦{(summary?.summary.pendingAmount || 0).toLocaleString()}</span>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm text-gray-600">Pending</span>
+                    <span className="font-semibold text-yellow-600">₦{(summary?.summary?.pendingAmount || totalPendingAmount || 0).toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Average Commission</span>
-                    <span className="font-medium">₦{(stats?.averageCommission || 0).toLocaleString()}</span>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm text-gray-600">Average Commission</span>
+                    <span className="font-semibold text-gray-900">₦{(stats?.averageCommission || 0).toLocaleString()}</span>
                   </div>
                 </div>
-                
-                {/* Last payout information removed - not available in current data structure */}
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Monthly Performance</h3>
+                <h3 className="text-lg font-medium text-gray-900">Monthly Performance</h3>
                 <div className="space-y-3">
                   {stats?.monthlyBreakdown && stats.monthlyBreakdown.length > 0 ? (
                     stats.monthlyBreakdown.slice(0, 6).map((month, index) => (
                       <div key={index} className="space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span>{new Date(month._id.year, month._id.month - 1, 1).toLocaleDateString('en-US', { month: 'short' })}</span>
-                          <span>₦{month.totalAmount.toLocaleString()}</span>
+                          <span className="text-gray-600">
+                            {new Date(month._id.year, month._id.month - 1, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                          </span>
+                          <span className="font-medium text-gray-900">₦{month.totalAmount.toLocaleString()}</span>
                         </div>
-                        <Progress value={(month.totalAmount / (stats.totalAmount || 1)) * 100} className="h-2" />
+                        <Progress 
+                          value={(month.totalAmount / (stats.totalAmount || 1)) * 100} 
+                          className="h-2" 
+                        />
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-muted-foreground">No monthly data available</p>
+                    <div className="text-center py-6">
+                      <BarChart3 className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">No monthly data available</p>
                     </div>
                   )}
                 </div>
@@ -408,41 +432,41 @@ export default function CommissionsPage() {
         </Card>
 
         {/* Commission Tabs */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Commission Details</CardTitle>
+        <Card className="border border-gray-200">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Commission Details</CardTitle>
             <CardDescription>View and manage your commission transactions</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="pending">Pending</TabsTrigger>
-                <TabsTrigger value="history">History</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 mb-6">
+                <TabsTrigger value="overview" className="text-sm">Overview</TabsTrigger>
+                <TabsTrigger value="pending" className="text-sm">Pending</TabsTrigger>
+                <TabsTrigger value="history" className="text-sm">History</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-4">
                 <div className="space-y-4">
                   {(filteredCommissions || []).slice(0, 10).map((commission) => (
-                    <div key={commission._id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Banknote className="h-5 w-5 text-primary" />
+                    <div key={commission._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors gap-4 sm:gap-2">
+                      <div className="flex items-center space-x-4 min-w-0 flex-1">
+                        <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                          <Banknote className="h-5 w-5 text-blue-600" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium truncate">{commission.farmer?.name || 'Unknown Farmer'}</p>
-                          <p className="text-sm text-muted-foreground truncate">
+                          <p className="font-medium text-gray-900 truncate">{commission.farmer?.name || 'Unknown Farmer'}</p>
+                          <p className="text-sm text-gray-600 truncate">
                             Order #{commission.order?.orderNumber || commission.order?._id || 'N/A'} • ₦{commission.orderAmount.toLocaleString()}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-gray-500">
                             {commission.listing?.cropName || 'Unknown Crop'} • {new Date(commission.orderDate).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center justify-between sm:justify-end space-x-4">
                         <div className="text-right">
-                          <p className="font-medium">₦{commission.amount.toLocaleString()}</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="font-semibold text-gray-900">₦{commission.amount.toLocaleString()}</p>
+                          <p className="text-sm text-gray-600">
                             {(commission.rate * 100).toFixed(1)}% commission
                           </p>
                         </div>
@@ -479,10 +503,26 @@ export default function CommissionsPage() {
                   ))}
                   
                   {filteredCommissions.length === 0 && (
-                    <div className="text-center py-8">
-                      <Banknote className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">No commissions found</p>
-                      <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
+                    <div className="text-center py-8 sm:py-12">
+                      <Banknote className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No commissions found</h3>
+                      <p className="text-sm text-gray-500 mb-4">
+                        {searchTerm || statusFilter !== "all" 
+                          ? "No commissions match your current filters." 
+                          : "You haven't earned any commissions yet."}
+                      </p>
+                      {(searchTerm || statusFilter !== "all") && (
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setSearchTerm("")
+                            setStatusFilter("all")
+                          }}
+                          className="text-sm"
+                        >
+                          Clear Filters
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -491,36 +531,38 @@ export default function CommissionsPage() {
               <TabsContent value="pending" className="space-y-4">
                 <div className="space-y-4">
                   {(pendingCommissions || []).map((commission) => (
-                    <div key={commission._id} className="flex items-center justify-between p-4 border rounded-lg bg-yellow-50">
-                      <div className="flex items-center space-x-4">
-                        <div className="h-10 w-10 rounded-lg bg-yellow-100 flex items-center justify-center">
+                    <div key={commission._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-yellow-200 rounded-lg bg-yellow-50 hover:bg-yellow-100 transition-colors gap-4 sm:gap-2">
+                      <div className="flex items-center space-x-4 min-w-0 flex-1">
+                        <div className="h-10 w-10 rounded-lg bg-yellow-100 flex items-center justify-center flex-shrink-0">
                           <Clock className="h-5 w-5 text-yellow-600" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium truncate">{commission.farmer?.name || 'Unknown Farmer'}</p>
-                          <p className="text-sm text-muted-foreground truncate">
+                          <p className="font-medium text-gray-900 truncate">{commission.farmer?.name || 'Unknown Farmer'}</p>
+                          <p className="text-sm text-gray-600 truncate">
                             Order #{commission.order?.orderNumber || commission.order?._id || 'N/A'} • ₦{commission.orderAmount.toLocaleString()}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-gray-500">
                             {commission.listing?.cropName || 'Unknown Crop'} • {new Date(commission.orderDate).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-4">
                         <div className="text-right">
-                          <p className="font-medium">₦{commission.amount.toLocaleString()}</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="font-semibold text-gray-900">₦{commission.amount.toLocaleString()}</p>
+                          <p className="text-sm text-gray-600">
                             {(commission.rate * 100).toFixed(1)}% commission
                           </p>
                         </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleUpdateStatus(commission._id, 'approved')}
-                        >
-                          Approve
-                        </Button>
-                        <DropdownMenu>
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleUpdateStatus(commission._id, 'approved')}
+                            className="text-green-600 border-green-200 hover:bg-green-50"
+                          >
+                            Approve
+                          </Button>
+                          <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                               <MoreHorizontal className="h-4 w-4" />
@@ -537,15 +579,16 @@ export default function CommissionsPage() {
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
+                        </div>
                       </div>
                     </div>
                   ))}
                   
                   {pendingCommissions.length === 0 && (
-                    <div className="text-center py-8">
-                      <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
-                      <p className="text-muted-foreground">No pending commissions</p>
-                      <p className="text-sm text-muted-foreground">All your commissions have been processed</p>
+                    <div className="text-center py-8 sm:py-12">
+                      <CheckCircle className="h-12 w-12 sm:h-16 sm:w-16 text-green-600 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No pending commissions</h3>
+                      <p className="text-sm text-gray-500">All your commissions have been processed</p>
                     </div>
                   )}
                 </div>
@@ -554,25 +597,25 @@ export default function CommissionsPage() {
               <TabsContent value="history" className="space-y-4">
                 <div className="space-y-4">
                   {(paidCommissions || []).map((commission) => (
-                    <div key={commission._id} className="flex items-center justify-between p-4 border rounded-lg bg-green-50">
-                      <div className="flex items-center space-x-4">
-                        <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
+                    <div key={commission._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-green-200 rounded-lg bg-green-50 hover:bg-green-100 transition-colors gap-4 sm:gap-2">
+                      <div className="flex items-center space-x-4 min-w-0 flex-1">
+                        <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
                           <CheckCircle className="h-5 w-5 text-green-600" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium truncate">{commission.farmer?.name || 'Unknown Farmer'}</p>
-                          <p className="text-sm text-muted-foreground truncate">
+                          <p className="font-medium text-gray-900 truncate">{commission.farmer?.name || 'Unknown Farmer'}</p>
+                          <p className="text-sm text-gray-600 truncate">
                             Order #{commission.order?.orderNumber || commission.order?._id || 'N/A'} • ₦{commission.orderAmount.toLocaleString()}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-gray-500">
                             {commission.listing?.cropName || 'Unknown Crop'} • Paid on {commission.paidAt ? new Date(commission.paidAt).toLocaleDateString() : 'N/A'}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-4">
                         <div className="text-right">
-                          <p className="font-medium">₦{commission.amount.toLocaleString()}</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="font-semibold text-gray-900">₦{commission.amount.toLocaleString()}</p>
+                          <p className="text-sm text-gray-600">
                             {(commission.rate * 100).toFixed(1)}% commission
                           </p>
                         </div>
@@ -598,10 +641,10 @@ export default function CommissionsPage() {
                   ))}
                   
                   {paidCommissions.length === 0 && (
-                    <div className="text-center py-8">
-                      <Banknote className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">No payment history</p>
-                      <p className="text-sm text-muted-foreground">Your commission payments will appear here</p>
+                    <div className="text-center py-8 sm:py-12">
+                      <Banknote className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No payment history</h3>
+                      <p className="text-sm text-gray-500">Your commission payments will appear here</p>
                     </div>
                   )}
                 </div>

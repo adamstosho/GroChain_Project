@@ -18,3 +18,12 @@ services:
         value: https://gro-chain.vercel.app
       - key: FRONTEND_URL
         value: https://gro-chain.vercel.app
+      # Email Configuration
+      - key: EMAIL_PROVIDER
+        value: sendgrid
+      - key: SENDGRID_API_KEY
+        sync: false  # Set this manually in Render dashboard
+      - key: SENDGRID_FROM_EMAIL
+        value: noreply@grochain.ng
+      - key: SENDGRID_FROM_NAME
+        value: GroChain

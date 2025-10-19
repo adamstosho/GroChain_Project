@@ -353,6 +353,7 @@ const referralController = {
   async deleteReferral(req, res) {
     try {
       const { id } = req.params
+      const user = req.user // From auth middleware
       
       const referral = await Referral.findById(id)
       
@@ -361,6 +362,54 @@ const referralController = {
           status: 'error',
           message: 'Referral not found'
         })
+      }
+      
+      // Check if user can delete this referral
+      // Admins can delete any referral
+      // Partners can only delete their own referrals
+      if (user.role === 'partner') {
+        // Find partner by user email (since user.partner might not be set)
+        const Partner = require('../models/partner.model')
+        const partner = await Partner.findOne({ email: user.email })
+        
+        console.log('🔍 Authorization check:', {
+          userRole: user.role,
+          userEmail: user.email,
+          userPartner: user.partner,
+          referralPartner: referral.partner,
+          foundPartner: partner?._id,
+          referralPartnerString: referral.partner.toString(),
+          foundPartnerString: partner?._id?.toString()
+        })
+        
+        if (!partner || referral.partner.toString() !== partner._id.toString()) {
+          console.log('❌ Authorization failed - partner mismatch')
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only delete your own referrals'
+          })
+        }
+      }
+      
+      console.log('✅ Authorization passed')
+      
+      // Clean up farmer's partner field when deleting referral
+      const User = require('../models/user.model')
+      await User.findByIdAndUpdate(referral.farmer, {
+        $unset: { partner: 1 }
+      })
+      
+      // Remove farmer from partner's farmers array
+      const Partner = require('../models/partner.model')
+      await Partner.findByIdAndUpdate(referral.partner, {
+        $pull: { farmers: referral.farmer }
+      })
+      
+      // Update partner's totalFarmers count
+      const partner = await Partner.findById(referral.partner)
+      if (partner) {
+        partner.totalFarmers = partner.farmers.length
+        await partner.save()
       }
       
       await Referral.findByIdAndDelete(id)

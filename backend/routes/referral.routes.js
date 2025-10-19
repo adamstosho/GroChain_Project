@@ -27,7 +27,7 @@ router.put('/:id',
 )
 
 router.delete('/:id', 
-  authorize(['admin']), 
+  authorize(['partner', 'admin']), 
   referralController.deleteReferral
 )
 
