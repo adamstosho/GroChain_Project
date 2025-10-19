@@ -425,7 +425,7 @@ export default function ProductsPage() {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center space-y-4">
             <RefreshCw className="h-8 w-8 animate-spin mx-auto text-primary" />
-            <p className="text-lg font-medium">Loading products...</p>
+            <p className="text-sm sm:text-base text-muted-foreground font-medium">Loading products...</p>
           </div>
         </div>
       </DashboardLayout>

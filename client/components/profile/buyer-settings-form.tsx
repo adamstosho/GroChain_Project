@@ -55,7 +55,6 @@ interface BuyerSettings {
     }
     qualityPreferences: string[]
     organicPreference: boolean
-    autoOrder: boolean
   }
   security: {
     twoFactorAuth: boolean
@@ -102,8 +101,7 @@ export function BuyerSettingsForm() {
       cropTypes: [],
       priceRange: { min: 0, max: 100000 },
       qualityPreferences: [],
-      organicPreference: false,
-      autoOrder: false
+      organicPreference: false
     },
     security: {
       twoFactorAuth: false,
@@ -372,14 +370,14 @@ export function BuyerSettingsForm() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Settings className="h-5 w-5 mr-2" />
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center text-base sm:text-lg">
+              <Settings className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Buyer Settings
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm sm:text-base">
               Loading your settings...
             </CardDescription>
           </CardHeader>
@@ -389,15 +387,15 @@ export function BuyerSettingsForm() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
       {/* Settings Header */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Settings className="h-5 w-5 mr-2" />
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <Settings className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Buyer Settings
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm sm:text-base">
             Manage your profile, preferences, notifications, and security settings
           </CardDescription>
         </CardHeader>
@@ -405,12 +403,12 @@ export function BuyerSettingsForm() {
 
       {/* Profile Settings */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <User className="h-5 w-5 mr-2" />
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <User className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Profile Information
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm sm:text-base">
             Update your personal information and profile details
           </CardDescription>
         </CardHeader>
@@ -423,7 +421,7 @@ export function BuyerSettingsForm() {
                 value={settings.profile.bio}
                 onChange={(e) => handleProfileChange('bio', e.target.value)}
                 placeholder="Tell us about your business..."
-                className="h-9 sm:h-10"
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div className="space-y-2">
@@ -433,7 +431,7 @@ export function BuyerSettingsForm() {
                 value={settings.profile.address}
                 onChange={(e) => handleProfileChange('address', e.target.value)}
                 placeholder="Your address"
-                className="h-9 sm:h-10"
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div className="space-y-2">
@@ -443,7 +441,7 @@ export function BuyerSettingsForm() {
                 value={settings.profile.city}
                 onChange={(e) => handleProfileChange('city', e.target.value)}
                 placeholder="Your city"
-                className="h-9 sm:h-10"
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div className="space-y-2">
@@ -453,7 +451,7 @@ export function BuyerSettingsForm() {
                 value={settings.profile.state}
                 onChange={(e) => handleProfileChange('state', e.target.value)}
                 placeholder="Your state"
-                className="h-9 sm:h-10"
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div className="space-y-2">
@@ -463,7 +461,7 @@ export function BuyerSettingsForm() {
                 value={settings.profile.country}
                 onChange={(e) => handleProfileChange('country', e.target.value)}
                 placeholder="Your country"
-                className="h-9 sm:h-10"
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div className="space-y-2">
@@ -473,14 +471,14 @@ export function BuyerSettingsForm() {
                 value={settings.profile.postalCode}
                 onChange={(e) => handleProfileChange('postalCode', e.target.value)}
                 placeholder="Your postal code"
-                className="h-9 sm:h-10"
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={handleUpdateProfile} disabled={isSaving}>
-              <Save className="h-4 w-4 mr-2" />
+            <Button onClick={handleUpdateProfile} disabled={isSaving} className="h-9 sm:h-10 text-xs sm:text-sm">
+              <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               {isSaving ? 'Updating...' : 'Update Profile'}
             </Button>
           </div>
@@ -489,24 +487,24 @@ export function BuyerSettingsForm() {
 
       {/* General Settings */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Globe className="h-5 w-5 mr-2" />
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <Globe className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             General Settings
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm sm:text-base">
             Configure your general application preferences
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+        <CardContent className="space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="language" className="text-sm font-medium">Language</Label>
               <Select
                 value={settings.general.language}
                 onValueChange={(value) => handleGeneralSettingChange('language', value)}
               >
-                <SelectTrigger className="h-9 sm:h-10">
+                <SelectTrigger className="h-9 sm:h-10 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -526,7 +524,7 @@ export function BuyerSettingsForm() {
                 value={settings.general.timezone}
                 onValueChange={(value) => handleGeneralSettingChange('timezone', value)}
               >
-                <SelectTrigger className="h-9 sm:h-10">
+                <SelectTrigger className="h-9 sm:h-10 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -543,7 +541,7 @@ export function BuyerSettingsForm() {
                 value={settings.general.currency}
                 onValueChange={(value) => handleGeneralSettingChange('currency', value)}
               >
-                <SelectTrigger className="h-9 sm:h-10">
+                <SelectTrigger className="h-9 sm:h-10 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -557,7 +555,7 @@ export function BuyerSettingsForm() {
                 value={settings.general.theme}
                 onValueChange={(value) => handleGeneralSettingChange('theme', value)}
               >
-                <SelectTrigger className="h-9 sm:h-10">
+                <SelectTrigger className="h-9 sm:h-10 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -580,8 +578,8 @@ export function BuyerSettingsForm() {
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={handleSaveSettings} disabled={isSaving}>
-              <Save className="h-4 w-4 mr-2" />
+            <Button onClick={handleSaveSettings} disabled={isSaving} className="h-9 sm:h-10 text-xs sm:text-sm">
+              <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               {isSaving ? 'Saving...' : 'Save General Settings'}
             </Button>
           </div>
@@ -590,23 +588,23 @@ export function BuyerSettingsForm() {
 
       {/* Notification Preferences */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Bell className="h-5 w-5 mr-2" />
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <Bell className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Notification Preferences
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm sm:text-base">
             Choose how you want to receive notifications
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 sm:space-y-6">
           <div className="space-y-4">
-            <Label className="text-base font-medium">Communication Channels</Label>
+            <Label className="text-sm sm:text-base font-medium">Communication Channels</Label>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
+                <div className="space-y-0.5 flex-1 min-w-0">
+                  <Label className="text-sm">Email Notifications</Label>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Receive updates via email
                   </p>
                 </div>
@@ -616,9 +614,9 @@ export function BuyerSettingsForm() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>SMS Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
+                <div className="space-y-0.5 flex-1 min-w-0">
+                  <Label className="text-sm">SMS Notifications</Label>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Receive updates via SMS
                   </p>
                 </div>
@@ -628,9 +626,9 @@ export function BuyerSettingsForm() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Push Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
+                <div className="space-y-0.5 flex-1 min-w-0">
+                  <Label className="text-sm">Push Notifications</Label>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Receive updates via push notifications
                   </p>
                 </div>
@@ -640,9 +638,9 @@ export function BuyerSettingsForm() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>In-App Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
+                <div className="space-y-0.5 flex-1 min-w-0">
+                  <Label className="text-sm">In-App Notifications</Label>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Receive notifications within the app
                   </p>
                 </div>
@@ -657,12 +655,12 @@ export function BuyerSettingsForm() {
           <Separator />
 
           <div className="space-y-4">
-            <Label className="text-base font-medium">Notification Types</Label>
+            <Label className="text-sm sm:text-base font-medium">Notification Types</Label>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Order Updates</Label>
-                  <p className="text-sm text-muted-foreground">
+                <div className="space-y-0.5 flex-1 min-w-0">
+                  <Label className="text-sm">Order Updates</Label>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Notifications about your order status
                   </p>
                 </div>
@@ -672,9 +670,9 @@ export function BuyerSettingsForm() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Marketplace Updates</Label>
-                  <p className="text-sm text-muted-foreground">
+                <div className="space-y-0.5 flex-1 min-w-0">
+                  <Label className="text-sm">Marketplace Updates</Label>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Notifications about marketplace activities
                   </p>
                 </div>
@@ -684,9 +682,9 @@ export function BuyerSettingsForm() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Price Alerts</Label>
-                  <p className="text-sm text-muted-foreground">
+                <div className="space-y-0.5 flex-1 min-w-0">
+                  <Label className="text-sm">Price Alerts</Label>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Notifications about price changes for your favorites
                   </p>
                 </div>
@@ -696,9 +694,9 @@ export function BuyerSettingsForm() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>New Products</Label>
-                  <p className="text-sm text-muted-foreground">
+                <div className="space-y-0.5 flex-1 min-w-0">
+                  <Label className="text-sm">New Products</Label>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Notifications about new products matching your preferences
                   </p>
                 </div>
@@ -708,9 +706,9 @@ export function BuyerSettingsForm() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>System Updates</Label>
-                  <p className="text-sm text-muted-foreground">
+                <div className="space-y-0.5 flex-1 min-w-0">
+                  <Label className="text-sm">System Updates</Label>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Important system announcements and updates
                   </p>
                 </div>
@@ -723,8 +721,8 @@ export function BuyerSettingsForm() {
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={handleSaveSettings} disabled={isSaving}>
-              <Save className="h-4 w-4 mr-2" />
+            <Button onClick={handleSaveSettings} disabled={isSaving} className="h-9 sm:h-10 text-xs sm:text-sm">
+              <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               {isSaving ? 'Saving...' : 'Save Notification Preferences'}
             </Button>
           </div>
@@ -733,20 +731,20 @@ export function BuyerSettingsForm() {
 
       {/* Buying Preferences */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <ShoppingCart className="h-5 w-5 mr-2" />
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Buying Preferences
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm sm:text-base">
             Set your buying preferences and marketplace settings
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 sm:space-y-6">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Crop Types</Label>
-              <p className="text-sm text-muted-foreground">
+              <Label className="text-sm font-medium">Crop Types</Label>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Select the types of crops you're interested in
               </p>
               <div className="flex flex-wrap gap-2">
@@ -767,6 +765,7 @@ export function BuyerSettingsForm() {
                         }
                       })
                     }}
+                    className="h-8 text-xs sm:text-sm"
                   >
                     {crop}
                   </Button>
@@ -775,9 +774,9 @@ export function BuyerSettingsForm() {
             </div>
 
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Organic Preference</Label>
-                <p className="text-sm text-muted-foreground">
+              <div className="space-y-0.5 flex-1 min-w-0">
+                <Label className="text-sm">Organic Preference</Label>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Prefer organic farming products
                 </p>
               </div>
@@ -787,22 +786,10 @@ export function BuyerSettingsForm() {
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Auto Order</Label>
-                <p className="text-sm text-muted-foreground">
-                  Automatically place orders for favorite products when available
-                </p>
-              </div>
-              <Switch
-                checked={settings.preferences.autoOrder}
-                onCheckedChange={(value) => handlePreferenceToggle('autoOrder', value)}
-              />
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
-                <Label htmlFor="priceMin">Minimum Price Range (₦)</Label>
+                <Label htmlFor="priceMin" className="text-sm font-medium">Minimum Price Range (₦)</Label>
                 <Input
                   id="priceMin"
                   type="number"
@@ -818,10 +805,11 @@ export function BuyerSettingsForm() {
                     }
                   })}
                   placeholder="0"
+                  className="h-9 sm:h-10 text-sm"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="priceMax">Maximum Price Range (₦)</Label>
+                <Label htmlFor="priceMax" className="text-sm font-medium">Maximum Price Range (₦)</Label>
                 <Input
                   id="priceMax"
                   type="number"
@@ -837,14 +825,15 @@ export function BuyerSettingsForm() {
                     }
                   })}
                   placeholder="100000"
+                  className="h-9 sm:h-10 text-sm"
                 />
               </div>
             </div>
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={handleSaveSettings} disabled={isSaving}>
-              <Save className="h-4 w-4 mr-2" />
+            <Button onClick={handleSaveSettings} disabled={isSaving} className="h-9 sm:h-10 text-xs sm:text-sm">
+              <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               {isSaving ? 'Saving...' : 'Save Preferences'}
             </Button>
           </div>
@@ -853,21 +842,21 @@ export function BuyerSettingsForm() {
 
       {/* Security Settings */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Shield className="h-5 w-5 mr-2" />
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <Shield className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Security Settings
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm sm:text-base">
             Manage your account security preferences
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 sm:space-y-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Two-Factor Authentication</Label>
-                <p className="text-sm text-muted-foreground">
+              <div className="space-y-0.5 flex-1 min-w-0">
+                <Label className="text-sm">Two-Factor Authentication</Label>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Add an extra layer of security to your account (Coming Soon)
                 </p>
               </div>
@@ -878,9 +867,9 @@ export function BuyerSettingsForm() {
               />
             </div>
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Login Notifications</Label>
-                <p className="text-sm text-muted-foreground">
+              <div className="space-y-0.5 flex-1 min-w-0">
+                <Label className="text-sm">Login Notifications</Label>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Get notified of new login attempts
                 </p>
               </div>
@@ -894,9 +883,9 @@ export function BuyerSettingsForm() {
           <Separator />
 
           <div className="space-y-4">
-            <Label className="text-base font-medium">Session Management</Label>
+            <Label className="text-sm sm:text-base font-medium">Session Management</Label>
             <div className="space-y-2">
-              <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
+              <Label htmlFor="sessionTimeout" className="text-sm font-medium">Session Timeout (minutes)</Label>
               <Select
                 value={settings.security.sessionTimeout.toString()}
                 onValueChange={(value) => setSettings({
@@ -907,7 +896,7 @@ export function BuyerSettingsForm() {
                   }
                 })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -922,8 +911,8 @@ export function BuyerSettingsForm() {
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={handleSaveSettings} disabled={isSaving}>
-              <Save className="h-4 w-4 mr-2" />
+            <Button onClick={handleSaveSettings} disabled={isSaving} className="h-9 sm:h-10 text-xs sm:text-sm">
+              <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               {isSaving ? 'Saving...' : 'Save Security Settings'}
             </Button>
           </div>
@@ -932,19 +921,19 @@ export function BuyerSettingsForm() {
 
       {/* Password Change */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Lock className="h-5 w-5 mr-2" />
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <Lock className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Change Password
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm sm:text-base">
             Update your account password for enhanced security
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
+              <Label htmlFor="currentPassword" className="text-sm font-medium">Current Password</Label>
               <div className="relative">
                 <Input
                   id="currentPassword"
@@ -958,20 +947,21 @@ export function BuyerSettingsForm() {
                     }
                   })}
                   placeholder="Enter current password"
+                  className="h-9 sm:h-10 text-sm pr-10"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3"
+                  className="absolute right-0 top-0 h-full px-2 sm:px-3"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" /> : <Eye className="h-3 w-3 sm:h-4 sm:w-4" />}
                 </Button>
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
+              <Label htmlFor="newPassword" className="text-sm font-medium">New Password</Label>
               <Input
                 id="newPassword"
                 type={showPassword ? "text" : "password"}
@@ -984,10 +974,11 @@ export function BuyerSettingsForm() {
                   }
                 })}
                 placeholder="Enter new password"
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm New Password</Label>
               <Input
                 id="confirmPassword"
                 type={showPassword ? "text" : "password"}
@@ -1000,14 +991,16 @@ export function BuyerSettingsForm() {
                   }
                 })}
                 placeholder="Confirm new password"
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end sm:col-span-2">
               <Button
                 onClick={handlePasswordChange}
                 disabled={isSaving || !settings.passwordData.currentPassword || !settings.passwordData.newPassword || !settings.passwordData.confirmPassword}
+                className="h-9 sm:h-10 text-xs sm:text-sm"
               >
-                <CheckCircle className="h-4 w-4 mr-2" />
+                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 {isSaving ? 'Changing...' : 'Change Password'}
               </Button>
             </div>

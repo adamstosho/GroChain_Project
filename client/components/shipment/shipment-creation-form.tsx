@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { useCreateShipment } from "@/hooks/use-shipments"
+import { useOfflineApi } from "@/hooks/use-offline-api"
 import { CreateShipmentRequest } from "@/types/shipment"
 import { Package, Truck, Shield, Thermometer, AlertTriangle } from "lucide-react"
 
@@ -56,6 +57,7 @@ export function ShipmentCreationForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
   const { createShipment, loading } = useCreateShipment()
+  const { createShipment: createShipmentOffline, isOffline } = useOfflineApi()
 
   const {
     register,
@@ -160,9 +162,17 @@ export function ShipmentCreationForm({
         }
       }
       
-      const shipment = await createShipment(shipmentData)
-      onSuccess?.(shipment)
-      reset()
+      // Use offline-aware API
+      const result = await createShipmentOffline(shipmentData)
+      
+      if (result.success && !result.queued) {
+        onSuccess?.(result.data)
+        reset()
+      } else if (result.queued) {
+        // If queued, still call onSuccess but with offline indicator
+        onSuccess?.(result.offlineAction)
+        reset()
+      }
     } catch (error) {
       toast({
         title: "Error",

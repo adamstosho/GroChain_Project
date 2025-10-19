@@ -110,7 +110,14 @@ export function useFarmers() {
         })
       }
     } catch (error: any) {
-      console.error('Failed to fetch farmers:', error)
+      console.error('❌ Failed to fetch farmers:', error)
+      console.error('❌ Error details:', {
+        message: error?.message,
+        status: error?.status,
+        endpoint: error?.endpoint,
+        payload: error?.payload
+      })
+      
       setFarmers([])
       setFilteredFarmers([])
       setPagination({
@@ -245,6 +252,103 @@ export function useFarmers() {
     })
   }, [fetchFarmers, toast])
 
+  // Export farmers data
+  const exportFarmers = useCallback(async (format: 'csv' | 'excel' = 'csv') => {
+    try {
+      // Get all farmers data (not just current page)
+      const response = await api.getPartnerFarmers({
+        limit: 1000, // Get all farmers
+        page: 1,
+        search: filters.searchTerm,
+        status: filters.status
+      })
+
+      const farmersData = response?.data?.farmers || filteredFarmers
+      
+      if (farmersData.length === 0) {
+        toast({
+          title: "No data to export",
+          description: "No farmers found to export",
+          variant: "destructive"
+        })
+        return
+      }
+
+      if (format === 'csv') {
+        // Create CSV content
+        const headers = ['Name', 'Email', 'Phone', 'Location', 'Status', 'Joined Date', 'Total Harvests', 'Total Sales']
+        const csvContent = [
+          headers.join(','),
+          ...farmersData.map(farmer => [
+            `"${farmer.name}"`,
+            `"${farmer.email}"`,
+            `"${farmer.phone}"`,
+            `"${farmer.location}"`,
+            `"${farmer.status}"`,
+            `"${farmer.joinedDate ? new Date(farmer.joinedDate).toLocaleDateString() : 'N/A'}"`,
+            farmer.totalHarvests || 0,
+            farmer.totalSales || 0
+          ].join(','))
+        ].join('\n')
+
+        // Create and download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        const url = URL.createObjectURL(blob)
+        link.setAttribute('href', url)
+        link.setAttribute('download', `farmers-export-${new Date().toISOString().split('T')[0]}.csv`)
+        link.style.visibility = 'hidden'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+
+        toast({
+          title: "Export successful",
+          description: `Exported ${farmersData.length} farmers to CSV`,
+        })
+      } else if (format === 'excel') {
+        // For Excel format, we'll create a more structured CSV that Excel can open
+        const headers = ['Name', 'Email', 'Phone', 'Location', 'Status', 'Joined Date', 'Total Harvests', 'Total Sales']
+        const csvContent = [
+          headers.join('\t'), // Use tab separator for Excel
+          ...farmersData.map(farmer => [
+            farmer.name,
+            farmer.email,
+            farmer.phone,
+            farmer.location,
+            farmer.status,
+            farmer.joinedDate ? new Date(farmer.joinedDate).toLocaleDateString() : 'N/A',
+            farmer.totalHarvests || 0,
+            farmer.totalSales || 0
+          ].join('\t'))
+        ].join('\n')
+
+        // Create and download file
+        const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel' })
+        const link = document.createElement('a')
+        const url = URL.createObjectURL(blob)
+        link.setAttribute('href', url)
+        link.setAttribute('download', `farmers-export-${new Date().toISOString().split('T')[0]}.xls`)
+        link.style.visibility = 'hidden'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+
+        toast({
+          title: "Export successful",
+          description: `Exported ${farmersData.length} farmers to Excel`,
+        })
+      }
+    } catch (error: any) {
+      console.error('Export failed:', error)
+      toast({
+        title: "Export failed",
+        description: error?.message || "Failed to export farmers data",
+        variant: "destructive"
+      })
+    }
+  }, [filteredFarmers, filters, toast])
+
   // Load initial data
   useEffect(() => {
     fetchFarmers()
@@ -271,6 +375,7 @@ export function useFarmers() {
     updateFarmer,
     deleteFarmer,
     refreshData,
+    exportFarmers,
 
     // Computed values from backend stats
     activeFarmers: stats.activeFarmers,

@@ -1,0 +1,4 @@
+name,email,phone,location,address,farmSize,primaryCrops,experience
+John Doe,john.doe.test@example.com,+2348012345678,Lagos,"123 Lagos Street, Lagos","2 hectares","Maize, Cassava","Intermediate (3-5 years)"
+Jane Smith,jane.smith.test@example.com,+2348012345679,Abuja,"456 Abuja Avenue, Abuja","3 hectares","Rice, Wheat","Experienced (6-10 years)"
+Mike Johnson,mike.johnson.test@example.com,+2348012345680,Kano,"789 Kano Road, Kano","1.5 hectares","Yam, Plantain","Beginner (0-2 years)"

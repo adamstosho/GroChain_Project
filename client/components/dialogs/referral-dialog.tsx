@@ -9,13 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { useReferrals } from "@/hooks/use-referrals"
-import { Loader2, Search, User } from "lucide-react"
-import { api } from "@/lib/api"
+import { Loader2, Search, User, X } from "lucide-react"
+import { apiService } from "@/lib/api"
 
 interface ReferralDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   referral?: any // For editing existing referrals
+  onCreateSuccess?: () => void
 }
 
 interface Farmer {
@@ -26,54 +27,51 @@ interface Farmer {
   location: string
 }
 
-export function ReferralDialog({ open, onOpenChange, referral }: ReferralDialogProps) {
+export function ReferralDialog({ open, onOpenChange, referral, onCreateSuccess }: ReferralDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
   const [farmers, setFarmers] = useState<Farmer[]>([])
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null)
-  const [commissionRate, setCommissionRate] = useState(0.05)
+  const [commissionRate, setCommissionRate] = useState(5)
   const [notes, setNotes] = useState("")
-  
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
   const { toast } = useToast()
-  const { createReferral, updateReferral } = useReferrals()
+  const { createReferral } = useReferrals()
 
   // Reset form when dialog opens/closes
   useEffect(() => {
     if (open) {
-      if (referral) {
-        // Editing existing referral
-        setSelectedFarmer(referral.farmer)
-        setCommissionRate(referral.commissionRate)
-        setNotes(referral.notes || "")
-        setSearchTerm(referral.farmer.name)
-      } else {
-        // Creating new referral
-        setSelectedFarmer(null)
-        setCommissionRate(0.05)
-        setNotes("")
-        setSearchTerm("")
-        setFarmers([])
-      }
+      setSearchQuery("")
+      setFarmers([])
+      setSelectedFarmer(null)
+      setCommissionRate(5)
+      setNotes("")
+      setErrors({})
     }
-  }, [open, referral])
+  }, [open])
 
-  // Search for farmers
+  // Search farmers
   const searchFarmers = async (query: string) => {
-    if (query.length < 2) {
+    if (!query.trim()) {
       setFarmers([])
       return
     }
 
     setIsSearching(true)
     try {
-      const response = await api.searchFarmers({ search: query, limit: 10 })
+      const response = await apiService.getFarmers({ 
+        search: query,
+        limit: 10 
+      })
       setFarmers(response.data?.farmers || [])
     } catch (error) {
-      console.error("Failed to search farmers:", error)
+      console.error('Failed to search farmers:', error)
+      setFarmers([])
       toast({
         title: "Search failed",
-        description: "Failed to search for farmers",
+        description: "Failed to search for farmers. Please try again.",
         variant: "destructive"
       })
     } finally {
@@ -83,62 +81,66 @@ export function ReferralDialog({ open, onOpenChange, referral }: ReferralDialogP
 
   // Handle search input change
   const handleSearchChange = (value: string) => {
-    setSearchTerm(value)
-    if (value.length >= 2) {
-      searchFarmers(value)
+    setSearchQuery(value)
+    if (value.trim()) {
+      const timeoutId = setTimeout(() => searchFarmers(value), 300)
+      return () => clearTimeout(timeoutId)
     } else {
       setFarmers([])
     }
   }
 
-  // Handle farmer selection
-  const handleFarmerSelect = (farmer: Farmer) => {
+  // Select farmer
+  const handleSelectFarmer = (farmer: Farmer) => {
     setSelectedFarmer(farmer)
-    setSearchTerm(farmer.name)
+    setSearchQuery(farmer.name)
     setFarmers([])
+  }
+
+  // Remove selected farmer
+  const handleRemoveFarmer = () => {
+    setSelectedFarmer(null)
+    setSearchQuery("")
+  }
+
+  // Validate form
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    if (!selectedFarmer) {
+      newErrors.farmer = "Please select a farmer"
+    }
+
+    if (commissionRate < 0 || commissionRate > 100) {
+      newErrors.commissionRate = "Commission rate must be between 0 and 100"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
   // Handle form submission
   const handleSubmit = async () => {
-    if (!selectedFarmer) {
-      toast({
-        title: "Validation error",
-        description: "Please select a farmer",
-        variant: "destructive"
-      })
-      return
-    }
-
-    if (commissionRate < 0 || commissionRate > 1) {
-      toast({
-        title: "Validation error",
-        description: "Commission rate must be between 0% and 100%",
-        variant: "destructive"
-      })
-      return
-    }
+    if (!validateForm()) return
 
     setIsLoading(true)
     try {
-      const data = {
-        farmerId: selectedFarmer._id,
-        commissionRate,
+      await createReferral({
+        farmerId: selectedFarmer!._id,
+        commissionRate: commissionRate / 100, // Convert to decimal
         notes: notes.trim() || undefined
-      }
+      })
 
-      if (referral) {
-        // Update existing referral
-        await updateReferral(referral._id, data)
-      } else {
-        // Create new referral
-        await createReferral(data)
-      }
+      toast({
+        title: "Referral created",
+        description: `Referral created for ${selectedFarmer!.name}`,
+      })
 
-      onOpenChange(false)
+      onCreateSuccess?.()
     } catch (error: any) {
       toast({
-        title: referral ? "Update failed" : "Creation failed",
-        description: error.message || `Failed to ${referral ? 'update' : 'create'} referral`,
+        title: "Creation failed",
+        description: error.message || "Failed to create referral",
         variant: "destructive"
       })
     } finally {
@@ -148,85 +150,77 @@ export function ReferralDialog({ open, onOpenChange, referral }: ReferralDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {referral ? "Edit Referral" : "Add New Referral"}
-          </DialogTitle>
+          <DialogTitle>Create New Referral</DialogTitle>
           <DialogDescription>
-            {referral 
-              ? "Update the referral details below."
-              : "Create a new farmer referral to track performance and earn commissions."
-            }
+            Add a new farmer referral to track and manage.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4">
           {/* Farmer Search */}
           <div className="space-y-2">
-            <Label htmlFor="farmer-search">Farmer</Label>
+            <Label htmlFor="farmer-search">Select Farmer</Label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 id="farmer-search"
                 placeholder="Search for farmer by name or email..."
-                value={searchTerm}
+                value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
-                disabled={isLoading}
               />
               {isSearching && (
-                <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
               )}
             </div>
-
-            {/* Farmer Search Results */}
-            {farmers.length > 0 && (
-              <div className="border rounded-md max-h-40 overflow-y-auto">
-                {farmers.map((farmer) => (
-                  <div
-                    key={farmer._id}
-                    className="flex items-center space-x-3 p-3 hover:bg-muted cursor-pointer"
-                    onClick={() => handleFarmerSelect(farmer)}
-                  >
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{farmer.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{farmer.email}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {typeof farmer.location === 'object' ? `${farmer.location?.city || 'Unknown'}, ${farmer.location?.state || 'Unknown State'}` : farmer.location || 'Unknown Location'}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            {errors.farmer && (
+              <p className="text-sm text-red-600">{errors.farmer}</p>
             )}
 
-            {/* Selected Farmer Display */}
-            {selectedFarmer && farmers.length === 0 && (
-              <div className="flex items-center space-x-3 p-3 border rounded-md bg-muted/50">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{selectedFarmer.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{selectedFarmer.email}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {typeof selectedFarmer.location === 'object' ? `${selectedFarmer.location?.city || 'Unknown'}, ${selectedFarmer.location?.state || 'Unknown State'}` : selectedFarmer.location || 'Unknown Location'}
-                  </p>
+            {/* Selected Farmer */}
+            {selectedFarmer && (
+              <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <User className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-green-900">{selectedFarmer.name}</p>
+                    <p className="text-sm text-green-700">{selectedFarmer.email}</p>
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    setSelectedFarmer(null)
-                    setSearchTerm("")
-                  }}
+                  onClick={handleRemoveFarmer}
+                  className="text-green-600 hover:text-green-700"
                 >
-                  Clear
+                  <X className="h-4 w-4" />
                 </Button>
+              </div>
+            )}
+
+            {/* Search Results */}
+            {farmers.length > 0 && !selectedFarmer && (
+              <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+                {farmers.map((farmer) => (
+                  <button
+                    key={farmer._id}
+                    onClick={() => handleSelectFarmer(farmer)}
+                    className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50 text-left"
+                  >
+                    <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center">
+                      <User className="h-4 w-4 text-gray-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{farmer.name}</p>
+                      <p className="text-sm text-gray-500 truncate">{farmer.email}</p>
+                      <p className="text-xs text-gray-400 truncate">{farmer.location}</p>
+                    </div>
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -240,14 +234,13 @@ export function ReferralDialog({ open, onOpenChange, referral }: ReferralDialogP
               min="0"
               max="100"
               step="0.1"
-              value={commissionRate * 100}
-              onChange={(e) => setCommissionRate(parseFloat(e.target.value) / 100)}
-              placeholder="5.0"
-              disabled={isLoading}
+              value={commissionRate}
+              onChange={(e) => setCommissionRate(Number(e.target.value))}
+              placeholder="Enter commission rate"
             />
-            <p className="text-xs text-muted-foreground">
-              Default: 5% (₦100 per farmer transaction)
-            </p>
+            {errors.commissionRate && (
+              <p className="text-sm text-red-600">{errors.commissionRate}</p>
+            )}
           </div>
 
           {/* Notes */}
@@ -255,26 +248,31 @@ export function ReferralDialog({ open, onOpenChange, referral }: ReferralDialogP
             <Label htmlFor="notes">Notes (Optional)</Label>
             <Textarea
               id="notes"
-              placeholder="Add any notes about this referral..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add any additional notes about this referral..."
               rows={3}
-              disabled={isLoading}
             />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isLoading || !selectedFarmer}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {referral ? "Update Referral" : "Create Referral"}
+          <Button
+            onClick={handleSubmit}
+            disabled={isLoading || !selectedFarmer}
+          >
+            {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Create Referral
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
-

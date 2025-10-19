@@ -540,6 +540,131 @@ router.get('/farmers', async (req, res) => {
   }
 });
 
+// Get specific farmer details
+router.get('/farmers/:farmerId', async (req, res) => {
+  try {
+    // Validate authentication
+    if (!req.user || (!req.user.id && !req.user._id)) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Authentication required'
+      });
+    }
+
+    const userId = req.user.id || req.user._id;
+    const farmerId = req.params.farmerId;
+
+    console.log('🔍 Partner requesting farmer details:', { userId, farmerId });
+
+    // Get user from database
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    // Get or create partner profile
+    let partner = await Partner.findOne({ email: user.email });
+    if (!partner) {
+      return res.status(403).json({ 
+        status: 'error', 
+        message: 'Partner profile not found' 
+      });
+    }
+
+    // Get farmer details
+    const farmer = await User.findById(farmerId).select('-password');
+    if (!farmer) {
+      return res.status(404).json({ 
+        status: 'error', 
+        message: 'Farmer not found' 
+      });
+    }
+
+    // Check if farmer belongs to this partner
+    if (farmer.partner && farmer.partner.toString() !== partner._id.toString()) {
+      return res.status(403).json({ 
+        status: 'error', 
+        message: 'Access denied: Farmer does not belong to your organization' 
+      });
+    }
+
+    // Get farmer's harvests
+    const Harvest = require('../models/harvest.model');
+    const harvests = await Harvest.find({ farmer: farmerId })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .select('cropType quantity unit quality status createdAt estimatedValue');
+
+    // Calculate performance metrics
+    const totalSales = harvests.reduce((sum, harvest) => sum + (harvest.estimatedValue || 0), 0);
+    const totalHarvests = harvests.length;
+    const averageValue = totalHarvests > 0 ? totalSales / totalHarvests : 0;
+    const cropsGrown = [...new Set(harvests.map(h => h.cropType))];
+
+    let performanceRating = 'average';
+    if (totalHarvests >= 10 && averageValue >= 50000) performanceRating = 'excellent';
+    else if (totalHarvests >= 5 && averageValue >= 30000) performanceRating = 'good';
+    else if (totalHarvests >= 2 && averageValue >= 15000) performanceRating = 'average';
+    else performanceRating = 'needs_improvement';
+
+    const farmerData = {
+      _id: farmer._id,
+      name: farmer.name,
+      email: farmer.email,
+      phone: farmer.phone,
+      location: farmer.location,
+      address: farmer.address,
+      status: farmer.status,
+      role: farmer.role,
+      joinedDate: farmer.createdAt,
+      emailVerified: farmer.emailVerified,
+      profile: farmer.profile,
+      partner: {
+        _id: partner._id,
+        name: partner.name,
+        email: partner.email
+      },
+      harvests: harvests,
+      performanceMetrics: {
+        totalHarvests,
+        totalSales,
+        averageHarvestValue: averageValue,
+        lastHarvestDate: harvests.length > 0 ? harvests[0].createdAt : undefined,
+        cropsGrown,
+        performanceRating
+      }
+    };
+
+    console.log('✅ Farmer details retrieved successfully for:', farmer.name);
+
+    return res.json({
+      status: 'success',
+      message: 'Farmer details retrieved successfully',
+      data: farmerData
+    });
+
+  } catch (error) {
+    console.error('Farmer details endpoint error:', error);
+
+    // Handle database connection errors
+    if (error.name === 'MongoNetworkError' ||
+        error.name === 'MongoTimeoutError' ||
+        error.code === 'ECONNREFUSED') {
+      return res.status(503).json({
+        status: 'error',
+        message: 'Database connection unavailable',
+        code: 'DATABASE_UNAVAILABLE'
+      });
+    }
+
+    return res.status(500).json({
+      status: 'error',
+      message: 'Server error occurred',
+      debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // Simple debug endpoint
 router.get('/commission-debug', async (req, res) => {
   try {

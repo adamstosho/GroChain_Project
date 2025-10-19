@@ -14,6 +14,7 @@ import { apiService } from "@/lib/api"
 import { useBuyerStore, useCartInitialization } from "@/hooks/use-buyer-store"
 import { useMemo } from "react"
 import { useToast } from "@/hooks/use-toast"
+import { useOfflineApi } from "@/hooks/use-offline-api"
 import { useAuthStore } from "@/lib/auth"
 import type { Product } from "@/lib/types"
 import Link from "next/link"
@@ -36,6 +37,7 @@ export default function MarketplacePage() {
   const { addToCart, fetchFavorites, cart } = useBuyerStore()
   const { toast } = useToast()
   const { user, isAuthenticated, hasHydrated } = useAuthStore()
+  const { isOffline } = useOfflineApi()
   const router = useRouter()
 
   // Debug logging
@@ -268,8 +270,10 @@ export default function MarketplacePage() {
         await addToCart(cartItem, 1)
 
         toast({
-          title: "Added to cart!",
-          description: `${(product as any).name} has been added to your cart.`,
+          title: isOffline ? "Added to cart (offline)" : "Added to cart!",
+          description: isOffline 
+            ? `${(product as any).name} added to cart. Will sync when online.`
+            : `${(product as any).name} has been added to your cart.`,
         })
 
         // Note: We don't refresh products here because quantities are calculated

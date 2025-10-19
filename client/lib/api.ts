@@ -50,12 +50,18 @@ class ApiService {
     return this.token
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}, isRetry: boolean = false): Promise<ApiResponse<T>> {
+  private async request<T>(endpoint: string, options: RequestInit = {}, isRetry: boolean = false, retryCount: number = 0): Promise<ApiResponse<T>> {
     // Load token from storage before each request to ensure it's up to date
     // Skip for auth endpoints and refresh-related calls to prevent infinite loops
     if (!endpoint.includes('/auth/') && !endpoint.includes('refresh')) {
       this.loadTokenFromStorage()
     }
+
+    console.log(`[API] Making request to: ${endpoint}`, {
+      method: options.method || 'GET',
+      hasToken: !!this.token,
+      tokenPreview: this.token ? `${this.token.substring(0, 10)}...` : 'none'
+    })
 
     // Add cache buster for non-GET requests to prevent caching issues
     // Automatically prepend /api to all endpoints (except auth endpoints that already have it)
@@ -104,7 +110,7 @@ class ApiService {
     try {
       // Add timeout to prevent hanging requests
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 second timeout
 
       const response = await fetch(url, {
         ...options,
@@ -208,9 +214,15 @@ class ApiService {
     } catch (error) {
       console.log("[API] Request failed:", { endpoint, error: (error as Error).message })
 
-      // Handle timeout/abort errors
+      // Handle timeout/abort errors with retry logic
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
+          // Retry up to 2 times for timeout errors
+          if (retryCount < 2 && !isRetry) {
+            console.log(`[API] Retrying request due to timeout (attempt ${retryCount + 1})`)
+            await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))) // Exponential backoff
+            return this.request<T>(endpoint, options, true, retryCount + 1)
+          }
           throw new Error('Request timeout: The server took too long to respond. Please try again.')
         }
 
@@ -451,16 +463,24 @@ class ApiService {
   }
 
   async getDashboard() {
-    return this.request<DashboardStats>("/api/users/dashboard")
+    return this.request<DashboardStats>("/users/dashboard")
   }
 
   async getRecentActivities(limit?: number) {
-    const params = limit ? `?limit=${limit}` : ''
-    return this.request("/api/users/recent-activities" + params)
+    console.log('🔍 Calling getRecentActivities API endpoint');
+    try {
+      const params = limit ? `?limit=${limit}` : ''
+      const result = await this.request("/users/recent-activities" + params)
+      console.log('✅ getRecentActivities response:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ getRecentActivities error:', error);
+      throw error;
+    }
   }
 
   async getDashboardMetrics() {
-    return this.request("/api/analytics/dashboard")
+    return this.request("/analytics/dashboard")
   }
 
   // Admin-specific methods
@@ -1342,26 +1362,34 @@ class ApiService {
       total: number
       page: number
       pages: number
-    }>(`/api/partners/farmers?${queryString}`)
+    }>(`/partners/farmers?${queryString}`)
   }
 
   async getPartnerMetrics() {
-    return this.request<{
-      totalFarmers: number
-      activeFarmers: number
-      inactiveFarmers: number
-      pendingFarmers: number
-      totalCommissions: number
-      monthlyCommissions: number
-      commissionRate: number
-      approvalRate: number
-      conversionRate: number
-      performanceMetrics: {
-        farmersOnboardedThisMonth: number
-        commissionsEarnedThisMonth: number
-        averageCommissionPerFarmer: number
-      }
-    }>("/api/partners/metrics")
+    console.log('🔍 Calling getPartnerMetrics API endpoint');
+    try {
+      const result = await this.request<{
+        totalFarmers: number
+        activeFarmers: number
+        inactiveFarmers: number
+        pendingFarmers: number
+        totalCommissions: number
+        monthlyCommissions: number
+        commissionRate: number
+        approvalRate: number
+        conversionRate: number
+        performanceMetrics: {
+          farmersOnboardedThisMonth: number
+          commissionsEarnedThisMonth: number
+          averageCommissionPerFarmer: number
+        }
+      }>("/partners/metrics")
+      console.log('✅ getPartnerMetrics response:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ getPartnerMetrics error:', error);
+      throw error;
+    }
   }
 
   async getPartnerCommission() {
@@ -2066,6 +2094,56 @@ class ApiService {
     }
 
     return response
+  }
+
+  // Get farmer details by ID (for partner dashboard)
+  async getFarmerById(farmerId: string) {
+    console.log('🔍 Calling getFarmerById API endpoint for farmer:', farmerId);
+    try {
+      const result = await this.request<{
+        _id: string
+        name: string
+        email: string
+        phone: string
+        location: string
+        address?: string
+        status: string
+        role: string
+        joinedDate: string
+        emailVerified: boolean
+        profile?: any
+        partner?: any
+        harvests?: any[]
+        performanceMetrics?: any
+      }>(`/partners/farmers/${farmerId}`);
+      console.log('✅ getFarmerById response:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ getFarmerById error:', error);
+      throw error;
+    }
+  }
+
+  // Get harvests by farmer ID
+  async getHarvestsByFarmer(farmerId: string) {
+    console.log('🔍 Calling getHarvestsByFarmer API endpoint for farmer:', farmerId);
+    try {
+      const result = await this.request<Array<{
+        _id: string
+        cropType: string
+        quantity: number
+        unit: string
+        quality: string
+        status: string
+        createdAt: string
+        estimatedValue?: number
+      }>>(`/harvests/farmer/${farmerId}`);
+      console.log('✅ getHarvestsByFarmer response:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ getHarvestsByFarmer error:', error);
+      throw error;
+    }
   }
 
 }

@@ -35,10 +35,10 @@ export default function DashboardPage() {
     return (
       <DashboardLayout>
         <div className="flex h-screen bg-background">
-          <div className="flex flex-1 flex-col items-center justify-center">
-            <div className="text-center space-y-4">
-              <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
-              <p className="text-lg font-medium">
+          <div className="flex flex-1 flex-col items-center justify-center px-4 sm:px-6">
+            <div className="text-center space-y-4 max-w-md w-full">
+              <div className="h-12 w-12 sm:h-16 sm:w-16 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
+              <p className="text-base sm:text-lg font-medium">
                 {!hasHydrated ? "Restoring session..." : "Loading dashboard..."}
               </p>
             </div>

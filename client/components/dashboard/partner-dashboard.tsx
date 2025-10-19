@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress"
 import { StatsCard } from "@/components/dashboard/stats-card"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { QuickActions } from "@/components/dashboard/quick-actions"
-import { api } from "@/lib/api"
+import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useDashboardRefresh } from "@/hooks/use-dashboard-refresh"
 import { useCommissionUpdates } from "@/hooks/use-commission-updates"
@@ -101,10 +101,10 @@ export function PartnerDashboard() {
         commissionResponse,
         metricsResponse
       ] = await Promise.allSettled([
-        api.getPartnerDashboard(),
-        api.getPartnerFarmers({ limit: 5 }),
-        api.getPartnerCommission(),
-        api.getPartnerMetrics()
+        apiService.getPartnerDashboard(),
+        apiService.getPartnerFarmers({ limit: 5 }),
+        apiService.getPartnerCommission(),
+        apiService.getPartnerMetrics()
       ])
 
       // Handle dashboard data - REAL DATABASE DATA ONLY
@@ -187,7 +187,12 @@ export function PartnerDashboard() {
 
       // Handle metrics data - REAL DATABASE DATA ONLY
       if (metricsResponse.status === 'fulfilled') {
-        console.log('✅ Metrics data loaded from database');
+        console.log('✅ Metrics data loaded from database:', metricsResponse.value.data);
+        console.log('📊 Performance Metrics:', {
+          farmersOnboarded: metricsResponse.value.data?.performanceMetrics?.farmersOnboardedThisMonth,
+          approvalRate: metricsResponse.value.data?.approvalRate,
+          commissionRate: metricsResponse.value.data?.commissionRate
+        });
         setMetricsData(metricsResponse.value.data)
       } else {
         console.error('❌ Metrics fetch failed:', metricsResponse.reason?.message || metricsResponse.reason)
@@ -272,7 +277,7 @@ export function PartnerDashboard() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="space-y-4 md:space-y-6">
+      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
@@ -290,7 +295,7 @@ export function PartnerDashboard() {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader className="space-y-0 pb-2">
@@ -347,7 +352,7 @@ export function PartnerDashboard() {
   // Error state
   if (error) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Partner Dashboard</h1>
@@ -385,7 +390,7 @@ export function PartnerDashboard() {
   // Show error state if database connection fails
   if (error && !dashboardData && !farmersData && !commissionData && !metricsData) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Partner Dashboard</h1>
@@ -424,45 +429,52 @@ export function PartnerDashboard() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
       {/* Header with Refresh */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Partner Dashboard</h1>
-          <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1 space-y-2">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">Partner Dashboard</h1>
+          <div className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 flex-wrap">
             <p className="text-gray-600 text-sm sm:text-base">
               Manage your farmer network and track performance
             </p>
             {isCommissionConnected && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800 flex-shrink-0">
                 <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
                 Live Updates
               </span>
             )}
           </div>
           {error && (
-            <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-800">
-              <AlertCircle className="h-4 w-4 mr-1 flex-shrink-0" />
+            <div className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm bg-yellow-100 text-yellow-800 flex-shrink-0">
+              <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
               <span className="truncate">Some data may be unavailable - {error}</span>
             </div>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 flex-shrink-0">
           {lastUpdated && (
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
+            <div className="text-xs text-muted-foreground flex items-center gap-1 flex-shrink-0">
               <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-              Last updated: {lastUpdated.toLocaleTimeString()}
+              <span className="hidden xs:inline">Last updated: </span>
+              <span className="xs:hidden">Updated: </span>
+              {lastUpdated.toLocaleTimeString()}
             </div>
           )}
-          <Button onClick={handleRefresh} disabled={isRefreshing} size="sm" className="w-full sm:w-auto">
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <Button 
+            onClick={handleRefresh} 
+            disabled={isRefreshing} 
+            size="sm" 
+            className="h-8 sm:h-9 text-xs sm:text-sm w-full xs:w-auto"
+          >
+            <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
         </div>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Farmers"
           value={dashboardData?.totalFarmers || 0}
@@ -507,9 +519,9 @@ export function PartnerDashboard() {
         />
       </div>
 
-      <div className="grid gap-4 lg:gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-4 lg:space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Quick Actions */}
           <QuickActions actions={quickActions} />
 
@@ -581,7 +593,7 @@ export function PartnerDashboard() {
                         <div className="min-w-0 flex-1">
                           <p className="font-medium text-sm sm:text-base truncate">{farmer.name}</p>
                           <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                            {farmer.location} • Joined {new Date(farmer.joinedAt).toLocaleDateString()}
+                            {farmer.location} • Joined {farmer.joinedAt ? new Date(farmer.joinedAt).toLocaleDateString() : 'N/A'}
                           </p>
                         </div>
                       </div>
@@ -617,44 +629,70 @@ export function PartnerDashboard() {
 
           {/* Performance Metrics - Using real data */}
           <Card>
-            <CardHeader>
-              <CardTitle>Performance Metrics</CardTitle>
-              <CardDescription>Your partnership performance this month</CardDescription>
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="text-sm sm:text-base lg:text-lg">Performance Metrics</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Your partnership performance this month</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Farmers Onboarded</span>
-                    <span>{metricsData?.performanceMetrics?.farmersOnboardedThisMonth || 0}</span>
+            <CardContent className="p-3 sm:p-4 lg:p-6">
+              {metricsData ? (
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <div className="flex justify-between items-center text-xs sm:text-sm">
+                      <span className="text-muted-foreground">Farmers Onboarded</span>
+                      <span className="font-medium">
+                        {metricsData?.performanceMetrics?.farmersOnboardedThisMonth ?? 
+                         dashboardData?.totalFarmers ?? 0}
+                      </span>
+                    </div>
+                    <Progress
+                      value={(() => {
+                        const onboarded = metricsData?.performanceMetrics?.farmersOnboardedThisMonth ?? dashboardData?.totalFarmers ?? 0;
+                        const total = metricsData?.totalFarmers ?? dashboardData?.totalFarmers ?? 1;
+                        return total > 0 ? (onboarded / total) * 100 : 0;
+                      })()}
+                      className="h-1.5 sm:h-2"
+                    />
                   </div>
-                  <Progress
-                    value={metricsData?.totalFarmers ?
-                      ((metricsData.performanceMetrics?.farmersOnboardedThisMonth || 0) / metricsData.totalFarmers) * 100 : 0}
-                    className="h-2"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Approval Rate</span>
-                    <span>{metricsData?.approvalRate ? `${metricsData.approvalRate.toFixed(1)}%` : '0%'}</span>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <div className="flex justify-between items-center text-xs sm:text-sm">
+                      <span className="text-muted-foreground">Approval Rate</span>
+                      <span className="font-medium">
+                        {(() => {
+                          const rate = metricsData?.approvalRate ?? dashboardData?.approvalRate ?? 0;
+                          return `${rate.toFixed(1)}%`;
+                        })()}
+                      </span>
+                    </div>
+                    <Progress 
+                      value={metricsData?.approvalRate ?? dashboardData?.approvalRate ?? 0} 
+                      className="h-1.5 sm:h-2" 
+                    />
                   </div>
-                  <Progress value={metricsData?.approvalRate || 0} className="h-2" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Commission Rate</span>
-                    <span>{(commissionData?.commissionRate || dashboardData?.commissionRate || metricsData?.commissionRate) ? `${((commissionData?.commissionRate || dashboardData?.commissionRate || metricsData?.commissionRate) * 100).toFixed(1)}%` : '0%'}</span>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <div className="flex justify-between items-center text-xs sm:text-sm">
+                      <span className="text-muted-foreground">Commission Rate</span>
+                      <span className="font-medium">
+                        {(() => {
+                          const rate = commissionData?.commissionRate || dashboardData?.commissionRate || metricsData?.commissionRate;
+                          return rate ? `${(rate * 100).toFixed(1)}%` : '0%';
+                        })()}
+                      </span>
+                    </div>
+                    <Progress value={(metricsData?.commissionRate || 0) * 100} className="h-1.5 sm:h-2" />
                   </div>
-                  <Progress value={(metricsData?.commissionRate || 0) * 100} className="h-2" />
                 </div>
-              </div>
+              ) : (
+                <div className="text-center py-6 sm:py-8">
+                  <div className="h-8 w-8 sm:h-12 sm:w-12 bg-muted rounded animate-pulse mx-auto mb-3 sm:mb-4"></div>
+                  <p className="text-muted-foreground text-xs sm:text-sm">Loading performance metrics...</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-4 lg:space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <RecentActivity />
 
           {/* Commission Summary - REAL DATABASE DATA ONLY */}

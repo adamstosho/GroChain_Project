@@ -1,4 +1,4 @@
- {
+{
   "name": "grochain-monorepo",
   "version": "1.0.0",
   "private": true,
@@ -19,5 +19,11 @@
     "jspdf": "^3.0.2",
     "node-fetch": "^3.3.2",
     "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.4",
+    "@babel/plugin-transform-modules-commonjs": "^7.27.1",
+    "@babel/preset-env": "^7.28.3",
+    "babel-loader": "^10.0.0"
   }
 }

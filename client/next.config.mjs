@@ -1,6 +1,7 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import withPWA from 'next-pwa';
+import webpack from 'webpack';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,13 +19,34 @@ const nextConfig = {
   },
   // Silence the warning about multiple lockfiles in monorepo
   outputFileTracingRoot: path.join(__dirname, '../'),
-  // Webpack configuration for better module resolution
-  webpack: (config, { isServer }) => {
+  // Add experimental features for better chunk loading
+  experimental: {
+    optimizePackageImports: ['@/components', '@/lib', '@/hooks'],
+  },
+  // Add webpack optimization for chunk loading
+  webpack: (config, { isServer, dev }) => {
     // Add path resolution for @ alias
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': path.resolve(__dirname),
     };
+    
+    // Fix for "exports is not defined" error - simple approach
+    config.resolve.extensionAlias = {
+      '.js': ['.js', '.ts', '.tsx'],
+      '.jsx': ['.jsx', '.tsx'],
+    };
+    
+    // Add module resolution fixes
+    config.resolve.mainFields = ['browser', 'module', 'main'];
+    
+    // Add module rules to handle exports and CommonJS modules
+    config.module.rules.push({
+      test: /\.m?js$/,
+      resolve: {
+        fullySpecified: false,
+      },
+    });
     
     if (!isServer) {
       config.resolve.fallback = {
@@ -34,6 +56,7 @@ const nextConfig = {
         tls: false,
       };
     }
+    
     return config;
   },
 }
@@ -53,7 +76,7 @@ const pwaConfig = withPWA({
   },
   publicExcludes: ['!robots.txt', '!sitemap.xml'],
   // Add additional excludes to prevent precaching issues
-  additionalPrecacheEntries: [],
+  additionalManifestEntries: [],
   runtimeCaching: [
     {
       urlPattern: /^https?:\/\/.*\/api\/.*/i,

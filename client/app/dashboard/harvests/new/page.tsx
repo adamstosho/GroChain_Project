@@ -7,6 +7,7 @@ import { HarvestForm, type HarvestFormData } from "@/components/agricultural"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { useOfflineApi } from "@/hooks/use-offline-api"
 import { ArrowLeft, Leaf } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -15,6 +16,7 @@ export default function NewHarvestPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
+  const { createHarvest, isOffline } = useOfflineApi()
 
   const handleSubmit = async (data: HarvestFormData) => {
     try {
@@ -46,17 +48,23 @@ export default function NewHarvestPage() {
         certification: data.certification
       }
 
-      const response = await apiService.createHarvest(payload)
-      const created = (response as any)?.harvest || (response as any)?.data?.harvest || response
-      const id = created?._id || created?.id
+      // Use offline-aware API
+      const result = await createHarvest(payload)
       
-      toast({ 
-        title: "Harvest logged successfully! 🎉", 
-        description: "Your harvest has been recorded and is pending verification.",
-        variant: "default"
-      })
-      
-      router.push(id ? `/dashboard/harvests/${id}` : "/dashboard/harvests")
+      if (result.success && !result.queued) {
+        // Only navigate if successfully saved to server
+        const created = result.data?.harvest || result.data
+        const id = created?._id || created?.id
+        
+        if (id) {
+          router.push(`/dashboard/harvests/${id}`)
+        } else {
+          router.push('/dashboard/harvests')
+        }
+      } else if (result.queued) {
+        // If queued, just go back to harvests list
+        router.push('/dashboard/harvests')
+      }
     } catch (error) {
       console.error("Failed to create harvest:", error)
       toast({ 

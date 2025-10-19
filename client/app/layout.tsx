@@ -10,7 +10,10 @@ import { NotificationContainer } from "@/components/notifications/notification-t
 import { OfflineIndicator, OfflineBanner, OfflineToast } from "@/components/ui/offline-indicator"
 import { PWAInstallPrompt, PWAStatusIndicator } from "@/components/ui/pwa-install-prompt"
 import { TokenRefreshProvider } from "@/components/auth/token-refresh-provider"
+import { ErrorBoundary } from "@/components/error-boundary"
 import "@/lib/sw-register"
+import "@/lib/chunk-retry"
+import "@/lib/fix-exports" // Fix exports is not defined error
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -70,26 +73,28 @@ export default function RootLayout({
         <script src="https://js.paystack.co/v1/inline.js"></script>
       </head>
       <body className={`font-sans ${dmSans.variable} ${nunito.variable} antialiased`}>
-        <DatadogSuppressor />
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <TokenRefreshProvider>
-            <NotificationProvider>
-              <NotificationContainer>
-                {process.env.NODE_ENV === 'production' && <OfflineBanner />}
-                {children}
-              </NotificationContainer>
-            </NotificationProvider>
-          </TokenRefreshProvider>
-          <Toaster />
-          {process.env.NODE_ENV === 'production' && (
-            <>
-              <OfflineIndicator />
-              <PWAInstallPrompt />
-              <PWAStatusIndicator />
-              <OfflineToast />
-            </>
-          )}
-        </ThemeProvider>
+        <ErrorBoundary>
+          <DatadogSuppressor />
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+            <TokenRefreshProvider>
+              <NotificationProvider>
+                <NotificationContainer>
+                  {process.env.NODE_ENV === 'production' && <OfflineBanner />}
+                  {children}
+                </NotificationContainer>
+              </NotificationProvider>
+            </TokenRefreshProvider>
+            <Toaster />
+            {process.env.NODE_ENV === 'production' && (
+              <>
+                <OfflineIndicator />
+                <PWAInstallPrompt />
+                <PWAStatusIndicator />
+                <OfflineToast />
+              </>
+            )}
+          </ThemeProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )

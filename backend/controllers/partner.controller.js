@@ -393,17 +393,22 @@ exports.bulkUploadFarmersCSV = async (req, res) => {
     partner.totalFarmers = partner.farmers.length;
     await partner.save();
 
-    // Send welcome emails to newly created farmers
+    // Send welcome emails to newly created farmers (async, non-blocking)
     if (createdFarmers.length > 0) {
-      console.log('📧 Sending welcome emails to', createdFarmers.length, 'farmers...');
+      console.log('📧 Queuing welcome emails for', createdFarmers.length, 'farmers...');
 
-      for (const farmer of createdFarmers) {
-        try {
-          // Generate welcome email content
-          const welcomeEmailData = {
-            user: farmer._id,
-            title: 'Welcome to GroChain - Your Agricultural Partner!',
-            message: `Welcome to GroChain, ${farmer.name}!
+      // Process emails asynchronously to avoid blocking the response
+      setImmediate(async () => {
+        let emailSuccessCount = 0;
+        let emailErrorCount = 0;
+
+        for (const farmer of createdFarmers) {
+          try {
+            // Generate welcome email content
+            const welcomeEmailData = {
+              user: farmer._id,
+              title: 'Welcome to GroChain - Your Agricultural Partner!',
+              message: `Welcome to GroChain, ${farmer.name}!
 
 Your farmer account has been successfully created by your partner ${partner.name || 'GroChain Partner'}.
 
@@ -412,7 +417,7 @@ Email: ${farmer.email}
 Password: ${farmer.plainTextPassword} (Please change this after first login)
 
 **Next Steps:**
-1. Visit http://localhost:3000/login
+1. Visit ${process.env.FRONTEND_URL || 'http://localhost:3000'}/login
 2. Log in with your email and temporary password
 3. Complete your profile information
 4. Start logging your harvests and accessing our marketplace
@@ -430,25 +435,30 @@ Welcome to the future of agriculture!
 
 Best regards,
 The GroChain Team`,
-            type: 'info',
-            category: 'system',
-            channels: ['email'],
-            data: {
-              farmerId: farmer._id,
-              partnerId: partner._id,
-              temporaryPassword: farmer.plainTextPassword,
-              loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`
-            }
-          };
+              type: 'info',
+              category: 'system',
+              channels: ['email'],
+              data: {
+                farmerId: farmer._id,
+                partnerId: partner._id,
+                temporaryPassword: farmer.plainTextPassword,
+                loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`
+              }
+            };
 
-          await NotificationService.createNotification(welcomeEmailData);
-          console.log('✅ Welcome email sent to:', farmer.email);
+            await NotificationService.createNotification(welcomeEmailData);
+            console.log('✅ Welcome email sent to:', farmer.email);
+            emailSuccessCount++;
 
-        } catch (emailError) {
-          console.error('❌ Failed to send welcome email to:', farmer.email, emailError.message);
-          // Don't fail the entire process if email sending fails
+          } catch (emailError) {
+            console.error('❌ Failed to send welcome email to:', farmer.email, emailError.message);
+            emailErrorCount++;
+            // Don't fail the entire process if email sending fails
+          }
         }
-      }
+
+        console.log(`📧 Email sending completed: ${emailSuccessCount} successful, ${emailErrorCount} failed`);
+      });
     }
 
     const result = {
@@ -621,9 +631,19 @@ exports.getPartnerFarmers = async (req, res) => {
     }
 
     // Get farmers associated with this partner
+    console.log('🔍 Looking for farmers with partner ID:', partner._id);
     const farmers = await User.find({ partner: partner._id, role: 'farmer' })
       .select('name email phone location status createdAt')
       .sort({ createdAt: -1 })
+    
+    console.log('🔍 Found farmers:', farmers.length);
+    if (farmers.length > 0) {
+      console.log('🔍 First farmer:', {
+        name: farmers[0].name,
+        createdAt: farmers[0].createdAt,
+        createdAtType: typeof farmers[0].createdAt
+      });
+    }
 
     const farmersData = farmers.map(farmer => ({
       _id: farmer._id,
@@ -632,10 +652,20 @@ exports.getPartnerFarmers = async (req, res) => {
       phone: farmer.phone,
       location: farmer.location,
       status: farmer.status || 'active',
-      joinedDate: farmer.createdAt
+      joinedDate: farmer.createdAt ? farmer.createdAt.toISOString() : null,
+      totalHarvests: 0, // Default value
+      totalSales: 0 // Default value
     }))
 
     console.log('🔍 Farmers data prepared:', farmersData.length, 'farmers');
+    if (farmersData.length > 0) {
+      console.log('🔍 First farmer data:', {
+        name: farmersData[0].name,
+        joinedDate: farmersData[0].joinedDate,
+        joinedDateType: typeof farmersData[0].joinedDate
+      });
+    }
+    
     return res.json({
       status: 'success',
       data: {
@@ -764,12 +794,13 @@ exports.addSingleFarmer = async (req, res) => {
       await partner.save();
     }
 
-    // Send welcome email with credentials
-    try {
-      const welcomeEmailData = {
-        user: farmer._id,
-        title: 'Welcome to GroChain - Your Agricultural Partner!',
-        message: `Welcome to GroChain, ${farmer.name}!
+    // Send welcome email with credentials (async, non-blocking)
+    setImmediate(async () => {
+      try {
+        const welcomeEmailData = {
+          user: farmer._id,
+          title: 'Welcome to GroChain - Your Agricultural Partner!',
+          message: `Welcome to GroChain, ${farmer.name}!
 
 Your farmer account has been successfully created by your partner ${partner.name || 'GroChain Partner'}.
 
@@ -778,7 +809,7 @@ Email: ${farmer.email}
 Password: ${tempPassword} (Please change this after first login)
 
 **Next Steps:**
-1. Visit http://localhost:3000/login
+1. Visit ${process.env.FRONTEND_URL || 'http://localhost:3000'}/login
 2. Log in with your email and temporary password
 3. Complete your profile information
 4. Start logging your harvests and accessing our marketplace
@@ -796,24 +827,25 @@ Welcome to the future of agriculture!
 
 Best regards,
 The GroChain Team`,
-        type: 'info',
-        category: 'system',
-        channels: ['email'],
-        data: {
-          farmerId: farmer._id,
-          partnerId: partner._id,
-          temporaryPassword: tempPassword,
-          loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`
-        }
-      };
+          type: 'info',
+          category: 'system',
+          channels: ['email'],
+          data: {
+            farmerId: farmer._id,
+            partnerId: partner._id,
+            temporaryPassword: tempPassword,
+            loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`
+          }
+        };
 
-      await NotificationService.createNotification(welcomeEmailData);
-      console.log('✅ Welcome email sent to:', farmer.email);
+        await NotificationService.createNotification(welcomeEmailData);
+        console.log('✅ Welcome email sent to:', farmer.email);
 
-    } catch (emailError) {
-      console.error('❌ Failed to send welcome email to:', farmer.email, emailError.message);
-      // Don't fail the entire process if email sending fails
-    }
+      } catch (emailError) {
+        console.error('❌ Failed to send welcome email to:', farmer.email, emailError.message);
+        // Log error but don't fail the entire process
+      }
+    });
 
     // Return success response
     return res.status(201).json({

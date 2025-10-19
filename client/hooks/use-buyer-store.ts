@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { useEffect } from 'react'
 import { apiService } from '@/lib/api'
+import { offlineApiService } from '@/lib/offline-api'
 
 interface BuyerState {
   profile: any
@@ -77,11 +78,30 @@ export const useBuyerStore = create<BuyerState>((set, get) => ({
   fetchProfile: async () => {
     set({ isLoading: true, error: null })
     try {
+      // Check if user is authenticated before making the request
+      const token = localStorage.getItem('grochain_auth_token')
+      if (!token || token === 'undefined' || token === 'null') {
+        console.log('No valid token found, skipping profile fetch')
+        set({ profile: null, isLoading: false, error: null })
+        return
+      }
+
       const response = await apiService.getProfile()
       set({ profile: response.data, isLoading: false })
     } catch (error: any) {
       console.error('Failed to fetch profile:', error)
-      set({ error: error.message || 'Failed to load profile', isLoading: false })
+      // Handle different types of errors
+      if (error.message?.includes('timeout')) {
+        set({ 
+          error: 'Server is taking too long to respond. Please check your connection and try again.', 
+          isLoading: false 
+        })
+      } else if (error.message?.includes('Invalid token') || error.message?.includes('Unauthorized')) {
+        console.log('Authentication error, clearing profile')
+        set({ profile: null, isLoading: false, error: null })
+      } else {
+        set({ error: error.message || 'Failed to load profile', isLoading: false })
+      }
     }
   },
 
@@ -97,15 +117,12 @@ export const useBuyerStore = create<BuyerState>((set, get) => ({
   },
 
   fetchFavorites: async () => {
-    // Safety check: Don't make authenticated calls if we're on marketplace page
-    // and don't have a proper token to prevent 401 redirects
-    if (typeof window !== 'undefined' && window.location.pathname === '/marketplace') {
-      const token = localStorage.getItem('grochain_auth_token')
-      if (!token || token === 'undefined' || token === 'null' || token.length < 10) {
-        console.log('🛡️ Marketplace safety: Skipping favorites fetch due to invalid token')
-        set({ favorites: [], isLoading: false, error: null })
-        return
-      }
+    // Safety check: Don't make authenticated calls if we don't have a proper token
+    const token = localStorage.getItem('grochain_auth_token')
+    if (!token || token === 'undefined' || token === 'null' || token.length < 10) {
+      console.log('🛡️ Safety: Skipping favorites fetch due to invalid token')
+      set({ favorites: [], isLoading: false, error: null })
+      return
     }
 
     set({ isLoading: true, error: null })
@@ -143,8 +160,17 @@ export const useBuyerStore = create<BuyerState>((set, get) => ({
       set({ favorites, isLoading: false })
     } catch (error: any) {
       console.error('Failed to fetch favorites:', error)
-      // Set empty favorites instead of error state to prevent UI issues
-      set({ favorites: [], isLoading: false, error: null })
+      // Handle different types of errors
+      if (error.message?.includes('timeout')) {
+        console.warn('Favorites fetch timed out, setting empty favorites')
+        set({ favorites: [], isLoading: false, error: null })
+      } else if (error.message?.includes('Invalid token') || error.message?.includes('Unauthorized')) {
+        console.log('Authentication error for favorites, setting empty favorites')
+        set({ favorites: [], isLoading: false, error: null })
+      } else {
+        // Set empty favorites instead of error state to prevent UI issues
+        set({ favorites: [], isLoading: false, error: null })
+      }
       // Re-throw error so calling code can handle it
       throw error
     }
@@ -211,21 +237,38 @@ export const useBuyerStore = create<BuyerState>((set, get) => ({
         const newQuantity = existingItem.quantity + itemToAdd.quantity
         await get().updateCartQuantity(itemToAdd.id, newQuantity)
       } else {
-        // Reserve quantity in backend before adding to cart
-        try {
-          await apiService.reserveCartQuantity([{
-            listingId: itemToAdd.listingId,
-            quantity: itemToAdd.quantity
-          }])
-
+        // Check if offline - if so, just add to cart without API call
+        const isOffline = !navigator.onLine
+        
+        if (isOffline) {
+          // Add to cart without API reservation when offline
           set(state => {
             const newCart = [...state.cart, itemToAdd]
             saveCartToStorage(newCart) // Save to localStorage
             return { cart: newCart }
           })
-        } catch (error) {
-          console.error('Failed to reserve cart quantity:', error)
-          throw error // Re-throw to let caller handle it
+        } else {
+          // Reserve quantity in backend before adding to cart (online only)
+          try {
+            await apiService.reserveCartQuantity([{
+              listingId: itemToAdd.listingId,
+              quantity: itemToAdd.quantity
+            }])
+
+            set(state => {
+              const newCart = [...state.cart, itemToAdd]
+              saveCartToStorage(newCart) // Save to localStorage
+              return { cart: newCart }
+            })
+          } catch (error) {
+            console.error('Failed to reserve cart quantity:', error)
+            // If API fails, still add to cart but mark as offline
+            set(state => {
+              const newCart = [...state.cart, itemToAdd]
+              saveCartToStorage(newCart) // Save to localStorage
+              return { cart: newCart }
+            })
+          }
         }
       }
     } catch (error) {

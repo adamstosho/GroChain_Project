@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useAuth } from './use-auth';
+import { useAuthStore } from '@/lib/auth';
 import { apiService } from '@/lib/api';
 import { io, Socket } from 'socket.io-client';
 
@@ -35,7 +35,7 @@ interface UseCommissionUpdatesOptions {
 
 export function useCommissionUpdates(options: UseCommissionUpdatesOptions = {}) {
   const { autoRefresh = true, onCommissionUpdate, onError } = options;
-  const { user, token } = useAuth();
+  const { user, token } = useAuthStore();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<CommissionUpdate | null>(null);

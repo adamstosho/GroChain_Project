@@ -31,7 +31,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
-export default function ReferralsPage() {
+export function ReferralsPageContent() {
   const [mounted, setMounted] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -74,14 +74,7 @@ export default function ReferralsPage() {
   }, [statusFilter, updateFilters, mounted])
 
   if (!mounted) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-sm text-gray-600">Loading referrals...</p>
-        </div>
-      </div>
-    )
+    return null
   }
 
   // Filter referrals with null safety and search

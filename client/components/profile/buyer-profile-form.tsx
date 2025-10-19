@@ -263,34 +263,38 @@ export function BuyerProfileForm() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
         {/* Profile Header Skeleton */}
         <Card>
           <CardHeader className="pb-4">
-            <div className="flex items-center space-x-4">
-              <div className="h-20 w-20 bg-muted rounded-full animate-pulse" />
+            <div className="flex flex-col space-y-4 sm:space-y-6 lg:flex-row lg:items-center lg:space-y-0">
+              <div className="h-16 w-16 sm:h-20 sm:w-20 bg-muted rounded-full animate-pulse" />
               <div className="flex-1 space-y-2">
-                <div className="h-6 bg-muted rounded w-48 animate-pulse" />
-                <div className="h-4 bg-muted rounded w-32 animate-pulse" />
-                <div className="flex space-x-2">
-                  <div className="h-6 bg-muted rounded w-16 animate-pulse" />
-                  <div className="h-6 bg-muted rounded w-20 animate-pulse" />
+                <div className="h-6 sm:h-8 bg-muted rounded w-48 sm:w-64 animate-pulse" />
+                <div className="h-4 sm:h-5 bg-muted rounded w-32 sm:w-40 animate-pulse" />
+                <div className="flex flex-wrap gap-2">
+                  <div className="h-5 bg-muted rounded w-16 animate-pulse" />
+                  <div className="h-5 bg-muted rounded w-20 animate-pulse" />
                 </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                <div className="h-9 sm:h-10 bg-muted rounded w-full sm:w-20 animate-pulse" />
+                <div className="h-9 sm:h-10 bg-muted rounded w-full sm:w-16 animate-pulse" />
               </div>
             </div>
           </CardHeader>
         </Card>
 
         {/* Stats Cards Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
-              <CardContent className="p-4">
+              <CardContent className="p-2 sm:p-3 md:p-4">
                 <div className="flex items-center space-x-2">
-                  <div className="h-5 w-5 bg-muted rounded animate-pulse" />
-                  <div className="space-y-1">
-                    <div className="h-3 bg-muted rounded w-20 animate-pulse" />
-                    <div className="h-6 bg-muted rounded w-12 animate-pulse" />
+                  <div className="h-4 w-4 sm:h-5 sm:w-5 bg-muted rounded animate-pulse" />
+                  <div className="space-y-1 flex-1">
+                    <div className="h-3 bg-muted rounded w-16 sm:w-20 animate-pulse" />
+                    <div className="h-6 sm:h-8 bg-muted rounded w-12 sm:w-16 animate-pulse" />
                   </div>
                 </div>
               </CardContent>
@@ -300,17 +304,21 @@ export function BuyerProfileForm() {
 
         {/* Form Skeleton */}
         <Card>
-          <CardHeader>
-            <div className="h-6 bg-muted rounded w-40 animate-pulse" />
+          <CardHeader className="pb-2">
+            <div className="h-5 sm:h-6 bg-muted rounded w-40 sm:w-48 animate-pulse" />
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="space-y-2">
-                  <div className="h-4 bg-muted rounded w-24 animate-pulse" />
-                  <div className="h-10 bg-muted rounded animate-pulse" />
+                  <div className="h-4 bg-muted rounded w-24 sm:w-32 animate-pulse" />
+                  <div className="h-9 sm:h-10 bg-muted rounded animate-pulse" />
                 </div>
               ))}
+            </div>
+            <div className="space-y-2">
+              <div className="h-4 bg-muted rounded w-16 animate-pulse" />
+              <div className="h-20 bg-muted rounded animate-pulse" />
             </div>
           </CardContent>
         </Card>
@@ -329,11 +337,11 @@ export function BuyerProfileForm() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
       {/* Profile Header */}
       <Card>
         <CardHeader className="pb-4">
-          <div className="flex items-center space-x-6">
+          <div className="flex flex-col space-y-4 sm:space-y-6 lg:flex-row lg:items-center lg:space-y-0">
             <AvatarUpload
               currentAvatar={profile.avatar}
               userName={profile.name}
@@ -341,27 +349,28 @@ export function BuyerProfileForm() {
               disabled={!isEditing}
               size="lg"
             />
-            <div className="flex-1">
-              <CardTitle className="text-2xl">{profile.name}</CardTitle>
-              <CardDescription className="text-lg">
+            <div className="flex-1 space-y-2">
+              <CardTitle className="text-xl sm:text-2xl lg:text-3xl">{profile.name}</CardTitle>
+              <CardDescription className="text-sm sm:text-base lg:text-lg">
                 Buyer {profile.company && `• ${profile.company}`}
               </CardDescription>
-              <div className="flex items-center space-x-2 mt-2">
-                <Badge variant={profile.status === 'active' ? 'default' : 'secondary'}>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={profile.status === 'active' ? 'default' : 'secondary'} className="text-xs">
                   {profile.status}
                 </Badge>
-                <Badge variant="outline">
+                <Badge variant="outline" className="text-xs">
                   Buyer since {profile.createdAt ? new Date(profile.createdAt).getFullYear() : 'N/A'}
                 </Badge>
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsEditing(!isEditing)}
+                className="h-9 sm:h-10 text-xs sm:text-sm"
               >
-                <Edit className="h-4 w-4 mr-2" />
+                <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 {isEditing ? 'Cancel' : 'Edit'}
               </Button>
               {isEditing && (
@@ -369,8 +378,9 @@ export function BuyerProfileForm() {
                   size="sm"
                   onClick={handleSave}
                   disabled={isSaving}
+                  className="h-9 sm:h-10 text-xs sm:text-sm"
                 >
-                  <Save className="h-4 w-4 mr-2" />
+                  <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   {isSaving ? 'Saving...' : 'Save'}
                 </Button>
               )}
@@ -380,50 +390,50 @@ export function BuyerProfileForm() {
       </Card>
 
       {/* Buyer Stats */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-2 sm:p-3 md:p-4">
             <div className="flex items-center space-x-2">
-              <ShoppingCart className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total Orders</p>
-                <p className="text-2xl font-bold">{profile.stats?.totalOrders || 0}</p>
+              <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Total Orders</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold">{profile.stats?.totalOrders || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-2 sm:p-3 md:p-4">
             <div className="flex items-center space-x-2">
-              <Banknote className="h-5 w-5 text-green-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total Spent</p>
-                <p className="text-2xl font-bold">₦{(profile.stats?.totalSpent || 0).toLocaleString()}</p>
+              <Banknote className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Total Spent</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold">₦{(profile.stats?.totalSpent || 0).toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-2 sm:p-3 md:p-4">
             <div className="flex items-center space-x-2">
-              <Activity className="h-5 w-5 text-purple-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Favorites</p>
-                <p className="text-2xl font-bold">{profile.stats?.favoriteProducts || 0}</p>
+              <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Favorites</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold">{profile.stats?.favoriteProducts || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-2 sm:p-3 md:p-4">
             <div className="flex items-center space-x-2">
-              <Building className="h-5 w-5 text-orange-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Last Active</p>
-                <p className="text-2xl font-bold">
+              <Building className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Last Active</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold">
                   {profile.stats?.lastActive ? new Date(profile.stats.lastActive).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
@@ -434,9 +444,9 @@ export function BuyerProfileForm() {
 
       {/* Personal Information */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <User className="h-5 w-5 mr-2" />
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <User className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Personal Information
           </CardTitle>
         </CardHeader>
@@ -449,7 +459,7 @@ export function BuyerProfileForm() {
                   value={profile.name || ''}
                   onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                   disabled={!isEditing}
-                  className="h-9 sm:h-10"
+                  className="h-9 sm:h-10 text-sm"
                 />
               </div>
               <div className="space-y-2">
@@ -459,7 +469,7 @@ export function BuyerProfileForm() {
                   type="email"
                   value={profile.email || ''}
                   disabled // Email should not be editable
-                  className="h-9 sm:h-10 bg-muted"
+                  className="h-9 sm:h-10 text-sm bg-muted"
                 />
               </div>
               <div className="space-y-2">
@@ -469,7 +479,7 @@ export function BuyerProfileForm() {
                   value={profile.phone || ''}
                   onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                   disabled={!isEditing}
-                  className="h-9 sm:h-10"
+                  className="h-9 sm:h-10 text-sm"
                 />
               </div>
             <div className="space-y-2">
@@ -480,32 +490,34 @@ export function BuyerProfileForm() {
                 onChange={(e) => setProfile({ ...profile, company: e.target.value })}
                 disabled={!isEditing}
                 placeholder="Your company name"
-                className="h-9 sm:h-10"
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="businessType">Business Type</Label>
+              <Label htmlFor="businessType" className="text-sm font-medium">Business Type</Label>
               <Input
                 id="businessType"
                 value={profile.businessType || ''}
                 onChange={(e) => setProfile({ ...profile, businessType: e.target.value })}
                 disabled={!isEditing}
                 placeholder="e.g. Restaurant, Retail, Export"
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
+              <Label htmlFor="website" className="text-sm font-medium">Website</Label>
               <Input
                 id="website"
                 value={profile.website || ''}
                 onChange={(e) => setProfile({ ...profile, website: e.target.value })}
                 disabled={!isEditing}
                 placeholder="https://example.com"
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
+            <Label htmlFor="bio" className="text-sm font-medium">Bio</Label>
             <Textarea
               id="bio"
               value={profile.bio || ''}
@@ -513,6 +525,7 @@ export function BuyerProfileForm() {
               disabled={!isEditing}
               placeholder="Tell us about your business..."
               rows={3}
+              className="text-sm"
             />
           </div>
         </CardContent>
@@ -520,16 +533,16 @@ export function BuyerProfileForm() {
 
       {/* Address Information */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <MapPin className="h-5 w-5 mr-2" />
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Address Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="street">Street Address</Label>
+              <Label htmlFor="street" className="text-sm font-medium">Street Address</Label>
               <Input
                 id="street"
                 value={(profile.address?.street) || ''}
@@ -538,10 +551,11 @@ export function BuyerProfileForm() {
                   address: { ...(profile.address || {}), street: e.target.value }
                 })}
                 disabled={!isEditing}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
+              <Label htmlFor="city" className="text-sm font-medium">City</Label>
               <Input
                 id="city"
                 value={(profile.address?.city) || ''}
@@ -550,10 +564,11 @@ export function BuyerProfileForm() {
                   address: { ...(profile.address || {}), city: e.target.value }
                 })}
                 disabled={!isEditing}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
+              <Label htmlFor="state" className="text-sm font-medium">State</Label>
               <Input
                 id="state"
                 value={(profile.address?.state) || ''}
@@ -562,10 +577,11 @@ export function BuyerProfileForm() {
                   address: { ...(profile.address || {}), state: e.target.value }
                 })}
                 disabled={!isEditing}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="postalCode">Postal Code</Label>
+              <Label htmlFor="postalCode" className="text-sm font-medium">Postal Code</Label>
               <Input
                 id="postalCode"
                 value={(profile.address?.postalCode) || ''}
@@ -574,10 +590,11 @@ export function BuyerProfileForm() {
                   address: { ...(profile.address || {}), postalCode: e.target.value }
                 })}
                 disabled={!isEditing}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="country">Country</Label>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="country" className="text-sm font-medium">Country</Label>
               <Input
                 id="country"
                 value={(profile.address?.country) || ''}
@@ -586,6 +603,7 @@ export function BuyerProfileForm() {
                   address: { ...(profile.address || {}), country: e.target.value }
                 })}
                 disabled={!isEditing}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
           </div>
@@ -594,27 +612,27 @@ export function BuyerProfileForm() {
 
       {/* Buying Preferences */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <ShoppingCart className="h-5 w-5 mr-2" />
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Buying Preferences
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Preferred Crop Types</Label>
+            <Label className="text-sm font-medium">Preferred Crop Types</Label>
             <div className="flex flex-wrap gap-2">
               {['Maize', 'Rice', 'Cassava', 'Yam', 'Tomato', 'Pepper', 'Onion', 'Potato', 'Sorghum', 'Millet'].map((crop) => (
                 <Button
                   key={crop}
-                                     variant={((profile.preferences?.cropTypes) || []).includes(crop) ? "default" : "outline"}
+                  variant={((profile.preferences?.cropTypes) || []).includes(crop) ? "default" : "outline"}
                   size="sm"
                   onClick={() => {
                     if (!isEditing) return
-                                         const currentCrops = profile.preferences?.cropTypes || []
-                     const newCrops = currentCrops.includes(crop)
-                       ? currentCrops.filter(c => c !== crop)
-                       : [...currentCrops, crop]
+                    const currentCrops = profile.preferences?.cropTypes || []
+                    const newCrops = currentCrops.includes(crop)
+                      ? currentCrops.filter(c => c !== crop)
+                      : [...currentCrops, crop]
                     setProfile({
                       ...profile,
                       preferences: {
@@ -624,6 +642,7 @@ export function BuyerProfileForm() {
                     })
                   }}
                   disabled={!isEditing}
+                  className="h-8 text-xs sm:text-sm"
                 >
                   {crop}
                 </Button>
@@ -631,9 +650,9 @@ export function BuyerProfileForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="priceMin">Minimum Price Range (₦)</Label>
+              <Label htmlFor="priceMin" className="text-sm font-medium">Minimum Price Range (₦)</Label>
               <Input
                 id="priceMin"
                 type="number"
@@ -649,10 +668,11 @@ export function BuyerProfileForm() {
                   }
                 })}
                 disabled={!isEditing}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="priceMax">Maximum Price Range (₦)</Label>
+              <Label htmlFor="priceMax" className="text-sm font-medium">Maximum Price Range (₦)</Label>
               <Input
                 id="priceMax"
                 type="number"
@@ -668,24 +688,25 @@ export function BuyerProfileForm() {
                   }
                 })}
                 disabled={!isEditing}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Quality Preferences</Label>
+            <Label className="text-sm font-medium">Quality Preferences</Label>
             <div className="flex flex-wrap gap-2">
               {['Premium', 'Standard', 'Organic', 'Fair Trade', 'Local'].map((quality) => (
                 <Button
                   key={quality}
-                                     variant={((profile.preferences?.qualityPreferences) || []).includes(quality) ? "default" : "outline"}
+                  variant={((profile.preferences?.qualityPreferences) || []).includes(quality) ? "default" : "outline"}
                   size="sm"
                   onClick={() => {
                     if (!isEditing) return
-                                         const currentQualities = profile.preferences?.qualityPreferences || []
-                     const newQualities = currentQualities.includes(quality)
-                       ? currentQualities.filter(q => q !== quality)
-                       : [...currentQualities, quality]
+                    const currentQualities = profile.preferences?.qualityPreferences || []
+                    const newQualities = currentQualities.includes(quality)
+                      ? currentQualities.filter(q => q !== quality)
+                      : [...currentQualities, quality]
                     setProfile({
                       ...profile,
                       preferences: {
@@ -695,6 +716,7 @@ export function BuyerProfileForm() {
                     })
                   }}
                   disabled={!isEditing}
+                  className="h-8 text-xs sm:text-sm"
                 >
                   {quality}
                 </Button>

@@ -2,58 +2,95 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { useReferrals } from "@/hooks/use-referrals"
-import { Loader2 } from "lucide-react"
+import { Loader2, User, AlertCircle } from "lucide-react"
 
 interface ReferralStatusDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  referral: any
+  referral?: any
+  onUpdateSuccess?: () => void
 }
 
-const statusOptions = [
-  { value: 'pending', label: 'Pending', description: 'Referral created but not yet activated' },
-  { value: 'active', label: 'Active', description: 'Referral is active and earning commissions' },
-  { value: 'completed', label: 'Completed', description: 'Referral has been successfully completed' },
-  { value: 'cancelled', label: 'Cancelled', description: 'Referral has been cancelled' }
-]
-
-export function ReferralStatusDialog({ open, onOpenChange, referral }: ReferralStatusDialogProps) {
-  const [status, setStatus] = useState('pending')
-  const [notes, setNotes] = useState('')
+export function ReferralStatusDialog({ 
+  open, 
+  onOpenChange, 
+  referral, 
+  onUpdateSuccess 
+}: ReferralStatusDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [status, setStatus] = useState("")
+  const [commissionRate, setCommissionRate] = useState(0)
+  const [notes, setNotes] = useState("")
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Reset form when referral changes or dialog opens
-  useEffect(() => {
-    if (open && referral) {
-      setStatus(referral.status || 'pending')
-      setNotes(referral.notes || '')
-    }
-  }, [open, referral])
-  
   const { toast } = useToast()
   const { updateReferral } = useReferrals()
 
+  // Initialize form when referral changes
+  useEffect(() => {
+    if (referral) {
+      setStatus(referral.status || "")
+      setCommissionRate((referral.commissionRate || 0) * 100) // Convert to percentage
+      setNotes(referral.notes || "")
+      setErrors({})
+    }
+  }, [referral])
+
+  // Reset form when dialog opens/closes
+  useEffect(() => {
+    if (!open) {
+      setStatus("")
+      setCommissionRate(0)
+      setNotes("")
+      setErrors({})
+    }
+  }, [open])
+
+  // Validate form
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    if (!status) {
+      newErrors.status = "Please select a status"
+    }
+
+    if (commissionRate < 0 || commissionRate > 100) {
+      newErrors.commissionRate = "Commission rate must be between 0 and 100"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  // Handle form submission
   const handleSubmit = async () => {
-    if (!referral) return
+    if (!referral || !validateForm()) return
 
     setIsLoading(true)
     try {
       await updateReferral(referral._id, {
         status,
+        commissionRate: commissionRate / 100, // Convert to decimal
         notes: notes.trim() || undefined
       })
-      
-      onOpenChange(false)
+
+      toast({
+        title: "Referral updated",
+        description: `Referral status updated to ${status}`,
+      })
+
+      onUpdateSuccess?.()
     } catch (error: any) {
       toast({
         title: "Update failed",
-        description: error.message || "Failed to update referral status",
+        description: error.message || "Failed to update referral",
         variant: "destructive"
       })
     } finally {
@@ -61,104 +98,137 @@ export function ReferralStatusDialog({ open, onOpenChange, referral }: ReferralS
     }
   }
 
-  const selectedStatus = statusOptions.find(option => option.value === status)
+  if (!referral) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Update Referral Status</DialogTitle>
           <DialogDescription>
-            Update the status for {referral?.farmer?.name}'s referral
+            Update the status and details for this referral.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Current Status Display */}
-          <div className="space-y-2">
-            <Label>Current Status</Label>
-            <div className="p-3 border rounded-md bg-muted/50">
-              <div className="flex items-center justify-between">
-                <span className="font-medium capitalize">{referral?.status}</span>
-                <span className="text-sm text-muted-foreground">
-                  Referred on {new Date(referral?.createdAt).toLocaleDateString()}
-                </span>
+        <div className="space-y-4">
+          {/* Referral Info */}
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
+                <User className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-900 truncate">
+                  {referral.farmer?.name || 'Unknown Farmer'}
+                </p>
+                <p className="text-sm text-gray-500 truncate">
+                  {referral.farmer?.email || 'No email'}
+                </p>
+                <p className="text-xs text-gray-400">
+                  Referred on {new Date(referral.createdAt).toLocaleDateString()}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Status Selection */}
+          {/* Status */}
           <div className="space-y-2">
-            <Label htmlFor="status">New Status</Label>
+            <Label htmlFor="status">Status</Label>
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger>
-                <SelectValue placeholder="Select new status" />
+                <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{option.label}</span>
-                      <span className="text-xs text-muted-foreground">{option.description}</span>
-                    </div>
-                  </SelectItem>
-                ))}
+                <SelectItem value="pending">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-yellow-600">⏳</span>
+                    <span>Pending</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="active">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-blue-600">✅</span>
+                    <span>Active</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="completed">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-green-600">💰</span>
+                    <span>Completed</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="cancelled">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-red-600">❌</span>
+                    <span>Cancelled</span>
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
-            {selectedStatus && (
-              <p className="text-xs text-muted-foreground">{selectedStatus.description}</p>
+            {errors.status && (
+              <p className="text-sm text-red-600">{errors.status}</p>
+            )}
+          </div>
+
+          {/* Commission Rate */}
+          <div className="space-y-2">
+            <Label htmlFor="commission-rate">Commission Rate (%)</Label>
+            <Input
+              id="commission-rate"
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              value={commissionRate}
+              onChange={(e) => setCommissionRate(Number(e.target.value))}
+              placeholder="Enter commission rate"
+            />
+            {errors.commissionRate && (
+              <p className="text-sm text-red-600">{errors.commissionRate}</p>
             )}
           </div>
 
           {/* Notes */}
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes (Optional)</Label>
+            <Label htmlFor="notes">Notes</Label>
             <Textarea
               id="notes"
-              placeholder="Add any notes about this status change..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add any additional notes about this referral..."
               rows={3}
-              disabled={isLoading}
             />
           </div>
 
-          {/* Status Change Impact */}
-          {status !== referral?.status && (
-            <div className="p-3 border rounded-md bg-blue-50 border-blue-200">
-              <h4 className="text-sm font-medium text-blue-900 mb-2">Status Change Impact</h4>
-              <div className="text-xs text-blue-700 space-y-1">
-                {status === 'active' && (
-                  <p>• Farmer will be associated with your partner account</p>
-                )}
-                {status === 'completed' && (
-                  <p>• Referral will be marked as successfully completed</p>
-                )}
-                {status === 'cancelled' && (
-                  <p>• Referral will be cancelled and no commissions will be earned</p>
-                )}
-                {status === 'pending' && (
-                  <p>• Referral will be reset to pending status</p>
-                )}
+          {/* Warning for status changes */}
+          {status !== referral.status && (
+            <div className="flex items-start space-x-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-yellow-800">
+                <p className="font-medium">Status Change</p>
+                <p>Changing status from {referral.status} to {status} will affect commission calculations.</p>
               </div>
             </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
             Cancel
           </Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={isLoading || status === referral?.status}
+          <Button
+            onClick={handleSubmit}
+            disabled={isLoading}
           >
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Update Status
+            {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Update Referral
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
-
