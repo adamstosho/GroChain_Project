@@ -384,13 +384,13 @@ export default function ReferralsPage() {
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search by farmer name or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+                <Input
+                  placeholder="Search by farmer name or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -425,11 +425,11 @@ export default function ReferralsPage() {
           {/* Referrals List */}
           <div className="lg:col-span-2">
             <Card className="border border-gray-200">
-              <CardHeader>
+          <CardHeader>
                 <CardTitle className="text-lg">Referral Details</CardTitle>
-                <CardDescription>View and manage your farmer referrals</CardDescription>
-              </CardHeader>
-              <CardContent>
+            <CardDescription>View and manage your farmer referrals</CardDescription>
+          </CardHeader>
+          <CardContent>
                 {filteredReferrals.length === 0 ? (
                   <div className="text-center py-8">
                     <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -447,30 +447,30 @@ export default function ReferralsPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                <div className="space-y-4">
                     {filteredReferrals.map((referral: any) => (
                       <div
                         key={referral._id}
                         className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors gap-4 sm:gap-2"
                       >
                         <div className="flex items-center space-x-4 min-w-0 flex-1">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <Users className="h-5 w-5 text-primary" />
-                          </div>
-                          <div className="min-w-0 flex-1">
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Users className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="min-w-0 flex-1">
                             <p className="font-medium truncate">
                               {referral.farmer?.name || 'Unknown Farmer'}
                             </p>
-                            <p className="text-sm text-muted-foreground truncate">
+                          <p className="text-sm text-muted-foreground truncate">
                               {referral.farmer?.email || 'No email'}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
+                          </p>
+                          <p className="text-xs text-muted-foreground">
                               Referred on {formatDate(referral.createdAt)}
-                            </p>
-                          </div>
+                          </p>
+                        </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Badge
+                          <Badge 
                             variant="secondary"
                             className={`${getReferralStatusColor(referral.status)} text-xs sm:text-sm`}
                           >
@@ -494,24 +494,24 @@ export default function ReferralsPage() {
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete
                               </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    </div>
+                  ))}
+                    </div>
+                  )}
+          </CardContent>
+        </Card>
           </div>
 
-          {/* Performance Metrics */}
+        {/* Performance Metrics */}
           <div className="space-y-4 sm:space-y-6">
             <Card className="border border-gray-200">
-              <CardHeader>
+          <CardHeader>
                 <CardTitle className="text-lg">Performance Metrics</CardTitle>
-                <CardDescription>Track your referral performance over time</CardDescription>
-              </CardHeader>
+            <CardDescription>Track your referral performance over time</CardDescription>
+          </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
@@ -536,43 +536,43 @@ export default function ReferralsPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Conversion Rate</span>
                       <span className="font-bold text-green-600">{stats?.conversionRate || 0}%</span>
-                    </div>
+              </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Monthly Growth</span>
                       <span className="font-bold text-blue-600">+{stats?.monthlyGrowth || 0}</span>
-                    </div>
+                  </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Average Commission</span>
                       <span className="font-bold">{formatCurrency(stats?.averageCommission || 0)}</span>
-                    </div>
+                  </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </div>
-      </div>
+                </div>
+              </div>
+            </div>
 
-      {/* Dialogs */}
-      <ReferralDialog
-        open={showCreateDialog}
+        {/* Dialogs */}
+        <ReferralDialog
+          open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         onCreateSuccess={() => {
           setShowCreateDialog(false)
           refreshData()
         }}
-      />
+        />
 
-      <ReferralStatusDialog
-        open={showStatusDialog}
+        <ReferralStatusDialog
+          open={showStatusDialog}
         onOpenChange={setShowStatusDialog}
         referral={selectedReferral}
         onUpdateSuccess={() => {
           setShowStatusDialog(false)
-          setSelectedReferral(null)
+              setSelectedReferral(null)
           refreshData()
-        }}
-      />
+          }}
+        />
     </DashboardLayout>
   )
 }

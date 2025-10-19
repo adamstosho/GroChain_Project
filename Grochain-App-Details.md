@@ -176,7 +176,7 @@ GroChain addresses these challenges through a multi-faceted digital platform tha
 
 #### 1. **Revenue Model**
 - **Transaction Fees**: 3% platform fee on successful transactions
-- **Commission System**: 5% partner commission for farmer onboarding
+- **Commission System**: 2% partner commission for farmer onboarding
 - **Premium Services**: Advanced analytics and reporting for large buyers
 - **Financial Services**: Revenue sharing from loan processing
 

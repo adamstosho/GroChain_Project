@@ -71,8 +71,8 @@ const fintechController = {
 
         // Platform fee rate (3%)
         const platformFeeRate = 0.03
-        // Partner commission rate (5%)
-        const partnerCommissionRate = hasPartner ? 0.05 : 0
+        // Partner commission rate (2%)
+        const partnerCommissionRate = hasPartner ? 0.02 : 0
 
         // Calculate total earnings from completed orders
         const earningsResult = await Order.aggregate([

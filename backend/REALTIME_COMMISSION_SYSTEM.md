@@ -48,7 +48,7 @@ Payment Made → Payment Controller → Real-Time Commission Service → Databas
 ```
 
 1. **Payment Verification**: When a payment is verified (manual or webhook)
-2. **Commission Calculation**: Real-time service calculates 5% commission for partner
+2. **Commission Calculation**: Real-time service calculates 2% commission for partner
 3. **Database Update**: Commission record created, partner's `totalCommissions` updated
 4. **WebSocket Emission**: Update sent to partner's connected devices
 5. **Frontend Update**: Dashboard automatically updates with new commission data

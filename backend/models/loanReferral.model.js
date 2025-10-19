@@ -173,10 +173,10 @@ const loanReferralSchema = new mongoose.Schema({
   
   commissionRate: {
     type: Number,
-    default: 0.05,
+    default: 0.02,
     min: 0,
     max: 1,
-    description: 'Commission rate as decimal (0.05 = 5%)'
+    description: 'Commission rate as decimal (0.02 = 2%)'
   },
   
   commissionStatus: {

@@ -830,9 +830,9 @@ console.log('==== START COMMISSION CALCULATION FOR ORDER:', order._id, '====');
       let commissionRate = 0
 
       if (referral && referral.partner) {
-        // Farmer is referred - 5% commission to referring partner
+        // Farmer is referred - 2% commission to referring partner
         partner = referral.partner
-        commissionRate = referral.commissionRate || 0.05
+        commissionRate = referral.commissionRate || 0.02
         partnerCommission = itemAmount * commissionRate
         commissionType = 'referral'
 
@@ -848,10 +848,10 @@ console.log('==== START COMMISSION CALCULATION FOR ORDER:', order._id, '====');
           farmerName: farmer.name,
           partnerId: farmer.partner._id || farmer.partner
         });
-        // Farmer is directly under a partner - 5% commission to partner
+        // Farmer is directly under a partner - 2% commission to partner
         partner = farmer.partner // Already populated
         if (partner) {
-          commissionRate = partner.commissionRate || 0.05
+          commissionRate = partner.commissionRate || 0.02
           partnerCommission = itemAmount * commissionRate
           commissionType = 'direct'
 

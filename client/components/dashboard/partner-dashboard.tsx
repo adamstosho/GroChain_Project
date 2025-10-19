@@ -136,7 +136,7 @@ export function PartnerDashboard() {
           // Ensure all needed fields exist
           setCommissionData({
             totalEarned: commissionDataValue.totalEarned || 0,
-            commissionRate: commissionDataValue.commissionRate || 0.05,
+            commissionRate: commissionDataValue.commissionRate || 0.02,
             pendingAmount: commissionDataValue.pendingAmount || 0,
             paidAmount: commissionDataValue.paidAmount || 0,
             summary: {
@@ -150,7 +150,7 @@ export function PartnerDashboard() {
           console.warn('⚠️ Commission data is invalid or empty. Using default values.');
           setCommissionData({
             totalEarned: 0,
-            commissionRate: 0.05,
+            commissionRate: 0.02,
             pendingAmount: 0,
             paidAmount: 0,
             summary: {
@@ -166,7 +166,7 @@ export function PartnerDashboard() {
         // Set default values for commission data
         setCommissionData({
           totalEarned: 0,
-          commissionRate: 0.05,
+          commissionRate: 0.02,
           pendingAmount: 0,
           paidAmount: 0,
           summary: {

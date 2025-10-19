@@ -33,9 +33,10 @@ export function ReferralDialog({ open, onOpenChange, referral, onCreateSuccess }
   const [searchQuery, setSearchQuery] = useState("")
   const [farmers, setFarmers] = useState<Farmer[]>([])
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null)
-  const [commissionRate, setCommissionRate] = useState(5)
+  const [commissionRate, setCommissionRate] = useState(2)
   const [notes, setNotes] = useState("")
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const MIN_SEARCH_LEN = 2
 
   const { toast } = useToast()
   const { createReferral } = useReferrals()
@@ -46,32 +47,34 @@ export function ReferralDialog({ open, onOpenChange, referral, onCreateSuccess }
       setSearchQuery("")
       setFarmers([])
       setSelectedFarmer(null)
-      setCommissionRate(5)
+      setCommissionRate(2)
       setNotes("")
       setErrors({})
     }
   }, [open])
 
-  // Search farmers
+  // Search farmers (API call)
   const searchFarmers = async (query: string) => {
-    if (!query.trim()) {
+    const q = query.trim()
+    if (q.length < MIN_SEARCH_LEN) {
       setFarmers([])
       return
     }
 
     setIsSearching(true)
     try {
-      const response = await apiService.getFarmers({ 
-        search: query,
-        limit: 10 
+      const response = await apiService.searchFarmers({
+        search: q,
+        limit: 10,
+        page: 1
       })
       setFarmers(response.data?.farmers || [])
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to search farmers:', error)
       setFarmers([])
       toast({
         title: "Search failed",
-        description: "Failed to search for farmers. Please try again.",
+        description: error?.message || "Failed to search for farmers.",
         variant: "destructive"
       })
     } finally {
@@ -79,16 +82,23 @@ export function ReferralDialog({ open, onOpenChange, referral, onCreateSuccess }
     }
   }
 
-  // Handle search input change
+  // Handle search input change (debounced via effect below)
   const handleSearchChange = (value: string) => {
     setSearchQuery(value)
-    if (value.trim()) {
-      const timeoutId = setTimeout(() => searchFarmers(value), 300)
-      return () => clearTimeout(timeoutId)
-    } else {
+    if (value.trim().length < MIN_SEARCH_LEN) {
       setFarmers([])
     }
   }
+
+  // Debounce search effect
+  useEffect(() => {
+    const q = searchQuery.trim()
+    if (q.length < MIN_SEARCH_LEN) return
+    const id = setTimeout(() => {
+      searchFarmers(q)
+    }, 300)
+    return () => clearTimeout(id)
+  }, [searchQuery])
 
   // Select farmer
   const handleSelectFarmer = (farmer: Farmer) => {

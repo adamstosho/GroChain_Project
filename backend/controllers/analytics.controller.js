@@ -151,8 +151,8 @@ exports.getFarmerAnalytics = async (req, res) => {
 
     // Platform fee rate (3%)
     const platformFeeRate = 0.03
-    // Partner commission rate (5%)
-    const partnerCommissionRate = hasPartner ? 0.05 : 0
+    // Partner commission rate (2%)
+    const partnerCommissionRate = hasPartner ? 0.02 : 0
 
     orders.forEach(order => {
       if (order.paymentStatus === 'paid') {
@@ -1023,8 +1023,8 @@ exports.getFarmerMarketplaceAnalytics = async (req, res) => {
 
     // Platform fee rate (3%)
     const platformFeeRate = 0.03
-    // Partner commission rate (5%)
-    const partnerCommissionRate = hasPartner ? 0.05 : 0
+    // Partner commission rate (2%)
+    const partnerCommissionRate = hasPartner ? 0.02 : 0
 
     // Calculate farmer's revenue from their listings (after fees)
     const calculateFarmerRevenue = (orders) => {

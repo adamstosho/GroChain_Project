@@ -1199,7 +1199,7 @@ const createSampleData = async (req, res) => {
         type: 'cooperative',
         location: 'Lagos, Nigeria',
         status: 'active',
-        commissionRate: 0.05,
+        commissionRate: 0.02,
         farmers: [],
         totalFarmers: 0,
         totalCommissions: 0

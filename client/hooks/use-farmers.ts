@@ -49,6 +49,26 @@ export function useFarmers() {
   })
   const { toast } = useToast()
 
+  // Normalize incoming farmer records to ensure joinedDate is present
+  const normalizeFarmers = (farmersList: any[]): Farmer[] => {
+    return (farmersList || []).map((f: any) => {
+      const rawJoined = f?.joinedDate
+        || f?.createdAt
+        || f?.created_at
+        || f?.onboardedAt
+        || f?.onboarded_at
+        || f?.user?.createdAt
+        || f?.profile?.createdAt
+        || f?.meta?.createdAt
+      
+      const joinedDate = rawJoined ? new Date(rawJoined).toISOString() : ""
+      return {
+        ...f,
+        joinedDate,
+      } as Farmer
+    })
+  }
+
   // Fetch farmers from real API
   const fetchFarmers = useCallback(async () => {
     try {
@@ -67,10 +87,11 @@ export function useFarmers() {
 
       if (response && response.data) {
         const farmersData = response.data.farmers || []
+        const normalized = normalizeFarmers(farmersData)
         console.log('👥 useFarmers: Farmers data received:', farmersData.length, 'farmers')
 
-        setFarmers(farmersData)
-        setFilteredFarmers(farmersData) // Backend already filters
+        setFarmers(normalized)
+        setFilteredFarmers(normalized) // Backend already filters
         setPagination({
           currentPage: response.data.page || 1,
           totalPages: response.data.pages || 1,
@@ -79,9 +100,9 @@ export function useFarmers() {
         })
 
         // Calculate stats from current page data
-        const activeFarmers = farmersData.filter(f => f.status === 'active').length
-        const inactiveFarmers = farmersData.filter(f => f.status === 'inactive').length
-        const pendingFarmers = farmersData.filter(f => f.status === 'pending').length
+        const activeFarmers = normalized.filter(f => f.status === 'active').length
+        const inactiveFarmers = normalized.filter(f => f.status === 'inactive').length
+        const pendingFarmers = normalized.filter(f => f.status === 'pending').length
 
         const statsData = {
           totalFarmers: response.data.total || 0,

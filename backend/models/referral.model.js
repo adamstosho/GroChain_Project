@@ -44,8 +44,8 @@ const referralSchema = new mongoose.Schema({
     type: Number,
     min: 0,
     max: 1,
-    default: 0.05, // 5% default commission
-    description: 'Commission rate as decimal (0.05 = 5%)'
+    default: 0.02, // 2% default commission
+    description: 'Commission rate as decimal (0.02 = 2%)'
   },
   
   commission: {

@@ -44,7 +44,7 @@ class RealTimeCommissionService {
         
         const listing = item.listing;
         const itemAmount = item.price * item.quantity;
-        const partnerCommission = itemAmount * 0.05; // 5% commission
+        const partnerCommission = itemAmount * 0.02; // 2% commission
         
         if (partnerCommission > 0) {
           // Get the farmer and their partner
@@ -73,7 +73,7 @@ class RealTimeCommissionService {
             order: order._id,
             listing: listing._id,
             amount: partnerCommission,
-            rate: 0.05,
+            rate: 0.02,
             orderAmount: itemAmount,
             orderDate: order.createdAt,
             status: 'pending',

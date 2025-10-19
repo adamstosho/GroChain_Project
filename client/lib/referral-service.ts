@@ -1,95 +1,6 @@
 import { apiService } from './api'
 import { Referral, ReferralStats, ReferralFilters, CreateReferralData, UpdateReferralData } from './types/referrals'
 
-// Mock data for development
-const mockReferrals: Referral[] = [
-  {
-    _id: "1",
-    farmer: {
-      _id: "farmer1",
-      name: "John Doe",
-      email: "john@example.com",
-      phone: "+2348000000001",
-      region: "Lagos"
-    },
-    partner: {
-      _id: "partner1",
-      name: "Sample Partner",
-      type: "cooperative",
-      contactEmail: "partner@example.com"
-    },
-    status: "completed",
-    commissionRate: 0.05,
-    commission: 2500,
-    notes: "Successful rice farmer referral",
-    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)
-  },
-  {
-    _id: "2",
-    farmer: {
-      _id: "farmer2",
-      name: "Jane Smith",
-      email: "jane@example.com",
-      phone: "+2348000000002",
-      region: "Ogun"
-    },
-    partner: {
-      _id: "partner1",
-      name: "Sample Partner",
-      type: "cooperative",
-      contactEmail: "partner@example.com"
-    },
-    status: "active",
-    commissionRate: 0.05,
-    notes: "Maize farmer referral",
-    createdAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
-  },
-  {
-    _id: "3",
-    farmer: {
-      _id: "farmer3",
-      name: "Mike Johnson",
-      email: "mike@example.com",
-      phone: "+2348000000003",
-      region: "Oyo"
-    },
-    partner: {
-      _id: "partner1",
-      name: "Sample Partner",
-      type: "cooperative",
-      contactEmail: "partner@example.com"
-    },
-    status: "pending",
-    commissionRate: 0.05,
-    notes: "Cassava farmer referral",
-    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)
-  }
-]
-
-const mockReferralStats: ReferralStats = {
-  totalReferrals: 45,
-  pendingReferrals: 8,
-  activeReferrals: 22,
-  completedReferrals: 15,
-  conversionRate: 33.3,
-  monthlyGrowth: 5,
-  averageCommission: 1800,
-  statusBreakdown: [
-    { _id: 'pending', count: 8 },
-    { _id: 'active', count: 22 },
-    { _id: 'completed', count: 15 }
-  ],
-  performanceData: [
-    { month: 'Jan', referrals: 8, completed: 3, conversion: 37.5 },
-    { month: 'Feb', referrals: 12, completed: 4, conversion: 33.3 },
-    { month: 'Mar', referrals: 15, completed: 5, conversion: 33.3 },
-    { month: 'Apr', referrals: 10, completed: 3, conversion: 30.0 }
-  ]
-}
-
 export class ReferralService {
   private static instance: ReferralService
   private cache: Map<string, any> = new Map()
@@ -157,19 +68,7 @@ export class ReferralService {
       return result
     } catch (error) {
       console.error('Referral API call failed:', error)
-
-      // Return empty data instead of mock data for production
-      const result = {
-        referrals: [],
-        pagination: {
-          currentPage: 1,
-          totalPages: 1,
-          totalItems: 0,
-          itemsPerPage: 20
-        }
-      }
-      this.setCache(cacheKey, result)
-      return result
+      throw error
     }
   }
 
@@ -182,22 +81,13 @@ export class ReferralService {
     }
 
     try {
-      const response = await apiService.getReferrals({})
-      const referral = (response.data?.docs || []).find((r: any) => r._id === id) as unknown as Referral
-      if (!referral) {
-        throw new Error('Referral not found')
-      }
+      const response = await apiService.getReferralById(id)
+      const referral = response.data as Referral
       this.setCache(cacheKey, referral)
       return referral
     } catch (error) {
-      console.warn('API call failed, using mock data:', error)
-      // Fallback to mock data
-      const referral = mockReferrals.find(r => r._id === id)
-      if (referral) {
-        this.setCache(cacheKey, referral)
-        return referral
-      }
-      throw new Error('Referral not found')
+      console.error('Failed to fetch referral:', error)
+      throw error
     }
   }
 
@@ -216,21 +106,7 @@ export class ReferralService {
       return stats
     } catch (error) {
       console.error('Referral stats API call failed:', error)
-
-      // Return default stats instead of mock data
-      const defaultStats: ReferralStats = {
-        totalReferrals: 0,
-        pendingReferrals: 0,
-        activeReferrals: 0,
-        completedReferrals: 0,
-        conversionRate: 0,
-        monthlyGrowth: 0,
-        averageCommission: 0,
-        statusBreakdown: [],
-        performanceData: []
-      }
-      this.setCache(cacheKey, defaultStats)
-      return defaultStats
+      throw error
     }
   }
 
@@ -248,14 +124,8 @@ export class ReferralService {
       this.setCache(cacheKey, stats)
       return stats
     } catch (error) {
-      console.warn('API call failed, using mock data:', error)
-      // Fallback to mock data
-      const mockPerformance = {
-        period,
-        data: mockReferralStats.performanceData
-      }
-      this.setCache(cacheKey, mockPerformance)
-      return mockPerformance
+      console.error('Performance stats API call failed:', error)
+      throw error
     }
   }
 

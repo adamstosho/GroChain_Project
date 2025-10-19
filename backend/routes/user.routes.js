@@ -50,8 +50,8 @@ router.get('/dashboard', authenticate, authorize('admin','partner','farmer','buy
 
       // Platform fee rate (3%)
       const platformFeeRate = 0.03
-      // Partner commission rate (5%)
-      const partnerCommissionRate = hasPartner ? 0.05 : 0
+      // Partner commission rate (2%)
+      const partnerCommissionRate = hasPartner ? 0.02 : 0
 
       // Calculate monthly revenue from farmer's orders (after fees)
       const monthlyRevenueResult = await Order.aggregate([
@@ -176,7 +176,7 @@ router.get('/dashboard', authenticate, authorize('admin','partner','farmer','buy
         dashboardData.pendingCommission = pendingAmount
         dashboardData.paidCommission = paidAmount
         dashboardData.monthlyCommission = monthlyCommissionAmount
-        dashboardData.commissionRate = partner.commissionRate || 0.05
+        dashboardData.commissionRate = partner.commissionRate || 0.02
         dashboardData.totalFarmers = partner.farmers?.length || 0
       }
     }
@@ -382,8 +382,8 @@ router.get('/profile/me', authenticate, async (req, res) => {
 
       // Platform fee rate (3%)
       const platformFeeRate = 0.03
-      // Partner commission rate (5%)
-      const partnerCommissionRate = hasPartner ? 0.05 : 0
+      // Partner commission rate (2%)
+      const partnerCommissionRate = hasPartner ? 0.02 : 0
 
       const [totalHarvests, totalListings, totalOrders, totalRevenueResult] = await Promise.all([
         Harvest.countDocuments({ farmer: user._id }),

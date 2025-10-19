@@ -83,6 +83,7 @@ export default function CommissionsPage() {
     refreshData,
     updateCommissionStatus,
     pendingCommissions,
+    paidCommissions,
     totalPendingAmount
   } = useCommission()
 
@@ -95,6 +96,59 @@ export default function CommissionsPage() {
   const [selectedCommission, setSelectedCommission] = useState<Commission | null>(null)
   const { toast } = useToast()
   const exportService = useExportService()
+
+  // Show loading state if data is still loading
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-4 sm:space-y-6">
+          {/* Header Skeleton */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-2"></div>
+              <div className="h-4 w-64 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+
+          {/* Stats Cards Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-white rounded-lg border p-4 sm:p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Content Skeleton */}
+          <div className="bg-white rounded-lg border p-4 sm:p-6">
+            <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-4"></div>
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+                  <div className="h-10 w-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-32 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-3 w-48 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="h-6 w-16 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   // Filter commissions based on search and filters
   const filteredCommissions = commissions.filter(commission => {
@@ -161,30 +215,6 @@ export default function CommissionsPage() {
     })
   }
 
-  if (isLoading) {
-    return (
-      <DashboardLayout pageTitle="Commission Management">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h1 className="text-2xl font-bold tracking-tight">Commission Management</h1>
-              <p className="text-muted-foreground">Track your earnings and manage payouts</p>
-            </div>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {[...Array(4)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader className="space-y-0 pb-2">
-                  <div className="h-4 bg-muted rounded w-1/2" />
-                  <div className="h-8 bg-muted rounded w-3/4" />
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </DashboardLayout>
-    )
-  }
 
   return (
     <DashboardLayout pageTitle="Commission Management">
@@ -207,78 +237,89 @@ export default function CommissionsPage() {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
+        {/* Stats Cards - Real Data Only */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <Card className="border border-gray-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Earned</CardTitle>
-              <Banknote className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-gray-600">Total Earned</CardTitle>
+              <Banknote className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₦{(summary?.summary.totalAmount || 0).toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
-                Real data from database
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+                ₦{(summary?.summary?.totalAmount || stats?.totalAmount || 0).toLocaleString()}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Lifetime earnings
               </p>
             </CardContent>
           </Card>
-          <Card>
+          
+          <Card className="border border-gray-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Amount</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Pending Amount</CardTitle>
               <Clock className="h-4 w-4 text-yellow-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₦{totalPendingAmount.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+                ₦{(totalPendingAmount || 0).toLocaleString()}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
                 Awaiting payout
               </p>
             </CardContent>
           </Card>
-          <Card>
+          
+          <Card className="border border-gray-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Commission Rate</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-gray-600">Commission Rate</CardTitle>
+              <TrendingUp className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">5.0%</div>
-              <p className="text-xs text-muted-foreground">
-                Standard commission rate
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900">2.0%</div>
+              <p className="text-xs text-gray-500 mt-1">
+                Standard rate
               </p>
             </CardContent>
           </Card>
-          <Card>
+          
+          <Card className="border border-gray-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-gray-600">Total Transactions</CardTitle>
+              <BarChart3 className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalCommissions || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                Total commission transactions
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+                {stats?.totalCommissions || commissions?.length || 0}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Commission transactions
               </p>
             </CardContent>
           </Card>
         </div>
 
         {/* Search and Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Search & Filters</CardTitle>
+        <Card className="border border-gray-200">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Search & Filters</CardTitle>
             <CardDescription>Find specific commissions or filter by criteria</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col gap-4 md:flex-row md:items-center">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by farmer name, order number, or crop..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search by farmer name, order number, or crop..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 w-full"
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-2 md:gap-4">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="w-full sm:w-40">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -290,7 +331,7 @@ export default function CommissionsPage() {
                   </SelectContent>
                 </Select>
                 <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="w-full sm:w-40">
                     <SelectValue placeholder="Filter by date" />
                   </SelectTrigger>
                   <SelectContent>
@@ -301,7 +342,7 @@ export default function CommissionsPage() {
                     <SelectItem value="year">This Year</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button variant="outline" size="sm" onClick={refreshData} disabled={isRefreshing}>
+                <Button variant="outline" size="sm" onClick={refreshData} disabled={isRefreshing} className="w-full sm:w-auto">
                   <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                   <span className="hidden sm:inline">Refresh</span>
                 </Button>
@@ -382,7 +423,7 @@ export default function CommissionsPage() {
 
               <TabsContent value="overview" className="space-y-4">
                 <div className="space-y-4">
-                  {filteredCommissions.slice(0, 10).map((commission) => (
+                  {(filteredCommissions || []).slice(0, 10).map((commission) => (
                     <div key={commission._id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center space-x-4">
                         <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -449,7 +490,7 @@ export default function CommissionsPage() {
 
               <TabsContent value="pending" className="space-y-4">
                 <div className="space-y-4">
-                  {pendingCommissions.map((commission) => (
+                  {(pendingCommissions || []).map((commission) => (
                     <div key={commission._id} className="flex items-center justify-between p-4 border rounded-lg bg-yellow-50">
                       <div className="flex items-center space-x-4">
                         <div className="h-10 w-10 rounded-lg bg-yellow-100 flex items-center justify-center">
@@ -512,7 +553,7 @@ export default function CommissionsPage() {
 
               <TabsContent value="history" className="space-y-4">
                 <div className="space-y-4">
-                  {paidCommissions.map((commission) => (
+                  {(paidCommissions || []).map((commission) => (
                     <div key={commission._id} className="flex items-center justify-between p-4 border rounded-lg bg-green-50">
                       <div className="flex items-center space-x-4">
                         <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">

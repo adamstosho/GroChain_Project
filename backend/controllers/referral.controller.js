@@ -33,7 +33,7 @@ const referralController = {
           type: 'cooperative',
           location: user.location || 'Nigeria',
           status: 'active',
-          commissionRate: 0.05,
+          commissionRate: 0.02,
           farmers: [],
           totalFarmers: 0,
           totalCommissions: 0
@@ -86,7 +86,7 @@ const referralController = {
     try {
       console.log('🔍 Create referral called by user:', req.user.id, 'Role:', req.user.role)
       const userId = req.user.id
-      const { farmerId, notes, commissionRate = 0.05 } = req.body
+      const { farmerId, notes, commissionRate = 0.02 } = req.body
       
       console.log('🔍 Request body:', { farmerId, notes, commissionRate })
       
@@ -133,7 +133,7 @@ const referralController = {
           type: 'cooperative',
           location: user.location || 'Nigeria',
           status: 'active',
-          commissionRate: 0.05,
+          commissionRate: 0.02,
           farmers: [],
           totalFarmers: 0,
           totalCommissions: 0

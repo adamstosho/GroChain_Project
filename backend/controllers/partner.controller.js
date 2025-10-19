@@ -236,7 +236,7 @@ exports.bulkUploadFarmersCSV = async (req, res) => {
         type: 'cooperative',
         location: user.location || 'Nigeria',
         status: 'active',
-        commissionRate: 0.05,
+        commissionRate: 0.02,
         farmers: [],
         totalFarmers: 0,
         totalCommissions: 0
@@ -525,7 +525,7 @@ exports.getPartnerDashboard = async (req, res) => {
           type: 'cooperative',
           location: user.location || 'Nigeria',
           status: 'active',
-          commissionRate: 0.05,
+          commissionRate: 0.02,
           farmers: [],
           totalFarmers: 0,
           totalCommissions: 0
@@ -551,7 +551,7 @@ exports.getPartnerDashboard = async (req, res) => {
       pendingApprovals: 0, // Mock data for now
       monthlyCommission: partner.totalCommissions || 0,
       totalCommission: partner.totalCommissions || 0,
-      commissionRate: partner.commissionRate || 0.05,
+      commissionRate: partner.commissionRate || 0.02,
       approvalRate: 85, // Mock data
       recentActivity: [],
       joinedAt: partner.createdAt
@@ -611,7 +611,7 @@ exports.getPartnerFarmers = async (req, res) => {
           type: 'cooperative',
           location: user.location || 'Nigeria',
           status: 'active',
-          commissionRate: 0.05,
+          commissionRate: 0.02,
           farmers: [],
           totalFarmers: 0,
           totalCommissions: 0
@@ -712,7 +712,7 @@ exports.addSingleFarmer = async (req, res) => {
         type: 'cooperative',
         location: user.location || 'Nigeria',
         status: 'active',
-        commissionRate: 0.05,
+        commissionRate: 0.02,
         farmers: [],
         totalFarmers: 0,
         totalCommissions: 0
@@ -916,7 +916,7 @@ exports.getPartnerCommission = async (req, res) => {
           type: 'cooperative',
           location: user.location || 'Nigeria',
           status: 'active',
-          commissionRate: 0.05,
+          commissionRate: 0.02,
           farmers: [],
           totalFarmers: 0,
           totalCommissions: 0
@@ -1024,7 +1024,7 @@ exports.getPartnerCommission = async (req, res) => {
       // Create the response object
       const commissionData = {
         totalEarned,
-        commissionRate: partner.commissionRate || 0.05,
+        commissionRate: partner.commissionRate || 0.02,
         pendingAmount,
         paidAmount,
         lastPayout: lastPayoutRecord?.paidAt || null,
@@ -1062,7 +1062,7 @@ exports.getPartnerCommission = async (req, res) => {
       console.log('Using partner.totalCommissions fallback:', partner.totalCommissions);
       const commissionData = {
         totalEarned: partner.totalCommissions || 0,
-        commissionRate: partner.commissionRate || 0.05,
+        commissionRate: partner.commissionRate || 0.02,
         pendingAmount: partner.totalCommissions || 0, // All commission is pending
         paidAmount: 0, // No paid commission yet
         lastPayout: null,

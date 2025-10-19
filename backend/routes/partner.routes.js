@@ -66,7 +66,7 @@ router.get('/dashboard', async (req, res) => {
         type: 'cooperative',
         location: user.location || 'Nigeria',
         status: 'active',
-        commissionRate: 0.05,
+        commissionRate: 0.02,
         farmers: [],
         totalFarmers: 0,
         totalCommissions: 0
@@ -215,7 +215,7 @@ router.get('/dashboard', async (req, res) => {
       pendingApprovals: 0, // Real data when harvest system is implemented
       monthlyCommission: monthlyCommissionAmount,
       totalCommission: totalCommission,
-      commissionRate: partner.commissionRate || 0.05,
+      commissionRate: partner.commissionRate || 0.02,
       commissionBreakdown: {
         pending: pendingCommissions,
         paid: paidCommissions,
@@ -396,7 +396,7 @@ router.get('/farmers', async (req, res) => {
         type: 'cooperative',
         location: user.location || 'Nigeria',
         status: 'active',
-        commissionRate: 0.05,
+        commissionRate: 0.02,
         farmers: [],
         totalFarmers: 0,
         totalCommissions: 0
@@ -772,7 +772,7 @@ router.get('/commission', async (req, res) => {
         type: 'cooperative',
         location: user.location || 'Nigeria',
         status: 'active',
-        commissionRate: 0.05,
+        commissionRate: 0.02,
         farmers: [],
         totalFarmers: 0,
         totalCommissions: 0
@@ -887,7 +887,7 @@ router.get('/commission', async (req, res) => {
     // Return comprehensive commission data
     const commissionData = {
       totalEarned: totalEarned,
-      commissionRate: partner.commissionRate || 0.05,
+      commissionRate: partner.commissionRate || 0.02,
       pendingAmount: pendingAmount,
       paidAmount: paidAmount,
       lastPayout: lastPayout?.paidAt || null,
@@ -972,7 +972,7 @@ router.get('/metrics', async (req, res) => {
         type: 'cooperative',
         location: user.location || 'Nigeria',
         status: 'active',
-        commissionRate: 0.05,
+        commissionRate: 0.02,
         farmers: [],
         totalFarmers: 0,
         totalCommissions: 0
@@ -1190,7 +1190,7 @@ router.get('/metrics', async (req, res) => {
       f.createdAt >= thisMonthStart
     ).length;
 
-    const commissionRate = partner.commissionRate || 0.05;
+    const commissionRate = partner.commissionRate || 0.02;
 
     const comprehensiveMetrics = {
       // Basic farmer stats

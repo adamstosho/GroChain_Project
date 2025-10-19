@@ -12,7 +12,7 @@ const PartnerSchema = new mongoose.Schema({
   website: { type: String },
   logo: { type: String },
   status: { type: String, enum: ['active', 'inactive', 'suspended'], default: 'active' },
-  commissionRate: { type: Number, default: 0.05, min: 0, max: 1 },
+  commissionRate: { type: Number, default: 0.02, min: 0, max: 1 },
   farmers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   totalFarmers: { type: Number, default: 0 },
   totalCommissions: { type: Number, default: 0 },
