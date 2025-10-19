@@ -171,12 +171,12 @@ exports.register = async (req, res) => {
           const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`
           const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">Complete your GroChain signup</h2>
+        <h2 style="color: #4CAF50;">Complete your GroChain signup</h2>
         <p>Hi ${exists.name || 'there'},</p>
         <p>It looks like you tried to sign up before but didn\'t verify your email. Click below to verify and finish setting up your account:</p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="${verificationLink}" 
-             style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+             style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
             Verify Email Address
           </a>
         </div>
@@ -207,12 +207,12 @@ exports.register = async (req, res) => {
     const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">Welcome to GroChain!</h2>
+        <h2 style="color: #4CAF50;">Welcome to GroChain!</h2>
         <p>Hi ${user.name},</p>
         <p>Thank you for registering with GroChain. To complete your registration, please verify your email address by clicking the button below:</p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="${verificationLink}" 
-             style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+             style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
             Verify Email Address
           </a>
         </div>
@@ -428,12 +428,12 @@ exports.resendVerification = async (req, res) => {
     const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">GroChain Email Verification</h2>
+        <h2 style="color: #4CAF50;">GroChain Email Verification</h2>
         <p>Hi ${user.name},</p>
         <p>You requested a new verification email. Please click the button below to verify your email address:</p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="${verificationLink}" 
-             style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+             style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
             Verify Email Address
           </a>
         </div>
@@ -543,12 +543,12 @@ exports.forgotPassword = async (req, res) => {
     const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">Password Reset Request</h2>
+        <h2 style="color: #4CAF50;">Password Reset Request</h2>
         <p>Hi ${user.name},</p>
         <p>You requested a password reset for your GroChain account. Click the button below to reset your password:</p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="${resetLink}" 
-             style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+             style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
             Reset Password
           </a>
         </div>

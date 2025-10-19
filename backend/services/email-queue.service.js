@@ -31,7 +31,7 @@ class EmailQueueService {
       } catch (e) {
         console.warn('⚠️ EmailQueue: Failed to init SendGrid:', e.message)
       }
-    } else if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    } else if (process.env.EMAIL_PROVIDER === 'smtp' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
       this.transport = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT || 587),
