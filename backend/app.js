@@ -362,6 +362,7 @@ const initializeApp = async () => {
       app.use('/api/reviews', require('./routes/review.routes'));
       app.use('/api/price-alerts', require('./routes/price-alert.routes'));
       app.use('/api/onboarding', require('./routes/onboarding.routes'));
+      app.use('/api/debug', require('./routes/debug.route'));
     } else {
       console.log('⚠️ Skipping route setup due to database connection failure');
       
