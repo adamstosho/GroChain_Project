@@ -105,25 +105,22 @@ app.use((req, res, next) => {
 
 // Serverless connection middleware - attempt to connect on each request if needed
 app.use('/api', async (req, res, next) => {
-  // Only attempt connection if not already connected
-  if (!serverlessDB.isConnected()) {
+  // Only attempt connection if not already connected and MONGODB_URI exists
+  if (!serverlessDB.isConnected() && process.env.MONGODB_URI) {
     try {
-      // Quick connection attempt for serverless
-      if (process.env.MONGODB_URI) {
-        console.log('🔄 Attempting serverless connection for request:', req.path);
-        const connected = await serverlessDB.ensureConnection();
-        if (connected) {
-          console.log('✅ Database connected for request:', req.path);
-        } else {
-          console.log('⚠️ Database connection failed for request:', req.path);
-        }
+      console.log('🔄 Attempting serverless connection for request:', req.path);
+      const connected = await serverlessDB.ensureConnection();
+      if (connected) {
+        console.log('✅ Database connected for request:', req.path);
       } else {
-        console.log('⚠️ MONGODB_URI not found in environment variables');
+        console.log('⚠️ Database connection failed for request:', req.path);
       }
     } catch (err) {
       // Don't block the request if connection fails
       console.log('⚠️ Serverless connection attempt failed:', err.message);
     }
+  } else if (!process.env.MONGODB_URI) {
+    console.log('⚠️ MONGODB_URI not found in environment variables');
   }
   next();
 })
@@ -509,6 +506,21 @@ app.get('/api/db-test-detailed', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
+});
+
+// Environment variables test endpoint (safe - no database required)
+app.get('/api/env-test', (req, res) => {
+  res.json({
+    status: 'success',
+    message: 'Environment variables test',
+    environment: {
+      MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Not set',
+      NODE_ENV: process.env.NODE_ENV || 'Not set',
+      VERCEL: process.env.VERCEL || 'Not set',
+      PORT: process.env.PORT || 'Not set'
+    },
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Load routes immediately outside of initialization
