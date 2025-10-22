@@ -444,6 +444,61 @@ app.get('/api/db-test', async (req, res) => {
   }
 });
 
+// Load routes immediately outside of initialization
+console.log('🚀 Loading routes immediately for serverless...');
+
+// Core routes with error handling
+try {
+  app.use('/api/auth', require('./routes/auth.routes'));
+  console.log('✅ Auth routes loaded immediately');
+} catch (error) {
+  console.error('❌ Auth routes failed to load:', error.message);
+}
+
+try {
+  app.use('/api/users', require('./routes/user.routes'));
+  console.log('✅ User routes loaded immediately');
+} catch (error) {
+  console.error('❌ User routes failed to load:', error.message);
+}
+
+try {
+  app.use('/api/partners', require('./routes/partner.routes'));
+  console.log('✅ Partner routes loaded immediately');
+} catch (error) {
+  console.error('❌ Partner routes failed to load:', error.message);
+}
+
+try {
+  app.use('/api/farmers', require('./routes/farmer.routes'));
+  console.log('✅ Farmer routes loaded immediately');
+} catch (error) {
+  console.error('❌ Farmer routes failed to load:', error.message);
+}
+
+try {
+  app.use('/api/harvests', require('./routes/harvest.routes'));
+  console.log('✅ Harvest routes loaded immediately');
+} catch (error) {
+  console.error('❌ Harvest routes failed to load:', error.message);
+}
+
+try {
+  app.use('/api/marketplace', require('./routes/marketplace.routes'));
+  console.log('✅ Marketplace routes loaded immediately');
+} catch (error) {
+  console.error('❌ Marketplace routes failed to load:', error.message);
+}
+
+try {
+  app.use('/api/payments', require('./routes/payment.routes'));
+  console.log('✅ Payment routes loaded immediately');
+} catch (error) {
+  console.error('❌ Payment routes failed to load:', error.message);
+}
+
+console.log('✅ Core routes loaded immediately for serverless');
+
 // Initialize application
 const initializeApp = async () => {
   try {
