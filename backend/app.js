@@ -79,6 +79,24 @@ app.options('*', (req, res) => {
   res.status(200).end()
 })
 
+// Serverless connection middleware - attempt to connect on each request if needed
+app.use('/api', async (req, res, next) => {
+  // Only attempt connection if not already connected
+  if (mongoose.connection.readyState !== 1) {
+    try {
+      // Quick connection attempt for serverless
+      if (process.env.MONGODB_URI && mongoose.connection.readyState === 0) {
+        console.log('🔄 Attempting serverless connection for request:', req.path);
+        await connectDB();
+      }
+    } catch (err) {
+      // Don't block the request if connection fails
+      console.log('⚠️ Serverless connection attempt failed:', err.message);
+    }
+  }
+  next();
+})
+
 // Logging
 if (process.env.NODE_ENV === 'production') {
   app.use(morgan('combined'))
@@ -203,7 +221,7 @@ if (process.env.RATE_LIMIT_ENABLED === 'false') {
   console.log('🚀 Production mode: Using strict rate limiting')
 }
 
-// Database connection
+// Serverless-optimized database connection
 const connectDB = async () => {
   try {
     // If already connected, return true
@@ -212,66 +230,91 @@ const connectDB = async () => {
       return true;
     }
 
+    // Serverless-optimized connection options
     const options = {
-      serverSelectionTimeoutMS: 10000,  // Reduced for Vercel (10 seconds)
-      socketTimeoutMS: 15000,          // Reduced for Vercel (15 seconds)
-      maxPoolSize: 5,                  // Reduced for serverless
-      minPoolSize: 0,                   // Reduced for serverless
-      maxIdleTimeMS: 10000,            // Reduced for serverless
+      // Connection timeouts optimized for serverless
+      serverSelectionTimeoutMS: 5000,   // 5 seconds for serverless
+      socketTimeoutMS: 10000,           // 10 seconds for serverless
+      connectTimeoutMS: 5000,           // 5 seconds for serverless
+      
+      // Connection pooling optimized for serverless
+      maxPoolSize: 1,                   // Single connection for serverless
+      minPoolSize: 0,                   // No minimum pool for serverless
+      maxIdleTimeMS: 30000,            // 30 seconds idle timeout
+      
+      // Serverless-specific options
       retryWrites: true,
       w: 'majority',
-      connectTimeoutMS: 10000          // Added connection timeout
+      bufferMaxEntries: 0,             // Disable mongoose buffering
+      bufferCommands: false,           // Disable mongoose buffering
+      
+      // Connection string options for serverless
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      
+      // Heartbeat frequency for serverless
+      heartbeatFrequencyMS: 10000,     // 10 seconds heartbeat
     };
 
-    // Log presence and masked version of the URI (do not expose credentials)
+    // Log presence and masked version of the URI
     const rawMongoUri = process.env.MONGODB_URI || '';
     const maskedUri = rawMongoUri
       ? rawMongoUri.replace(/(:\/\/)(.*@)/, '://***@').replace(/(.{50}).*(.{20})/, '$1...$2')
       : '';
-    console.log('🔄 Attempting MongoDB connection...');
+    console.log('🔄 Attempting MongoDB connection (serverless optimized)...');
     console.log('🔍 MONGODB_URI present:', !!rawMongoUri, '  masked:', maskedUri);
+    
+    // Optimize connection string for serverless
+    let optimizedUri = rawMongoUri;
+    if (optimizedUri && !optimizedUri.includes('retryWrites=true')) {
+      optimizedUri += (optimizedUri.includes('?') ? '&' : '?') + 'retryWrites=true&w=majority';
+    }
+    if (optimizedUri && !optimizedUri.includes('maxPoolSize')) {
+      optimizedUri += '&maxPoolSize=1&minPoolSize=0';
+    }
 
     try {
-      // Add timeout wrapper for Vercel
-      const connectPromise = mongoose.connect(process.env.MONGODB_URI, options);
+      // Connect with serverless-optimized timeout and URI
+      const connectPromise = mongoose.connect(optimizedUri, options);
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Connection timeout')), 12000)
+        setTimeout(() => reject(new Error('Serverless connection timeout')), 8000)
       );
       
       await Promise.race([connectPromise, timeoutPromise]);
 
-      // Simple wait for connection
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Quick connection verification
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      console.log('✅ MongoDB connected successfully');
+      console.log('✅ MongoDB connected successfully (serverless)');
       console.log('Connection state:', mongoose.connection.readyState);
+      
       // Don't log sensitive connection string in production
       if (process.env.NODE_ENV !== 'production') {
         console.log("MONGODB_URI:", process.env.MONGODB_URI);
       }
     } catch (connectErr) {
-      console.error('❌ MongoDB connection failed:', connectErr && connectErr.message ? connectErr.message : connectErr);
+      console.error('❌ MongoDB connection failed (serverless):', connectErr && connectErr.message ? connectErr.message : connectErr);
       // Print error stack for debugging
       if (connectErr && connectErr.stack) console.error('❌ MongoDB connection error stack:', connectErr.stack);
       return false;
     }
     
-    // Handle connection events
+    // Handle connection events for serverless
     mongoose.connection.on('error', (err) => {
-      console.error('❌ MongoDB connection error:', err);
+      console.error('❌ MongoDB connection error (serverless):', err);
     });
     
     mongoose.connection.on('disconnected', () => {
-      console.log('⚠️ MongoDB disconnected');
+      console.log('⚠️ MongoDB disconnected (serverless)');
     });
     
     mongoose.connection.on('reconnected', () => {
-      console.log('🔄 MongoDB reconnected');
+      console.log('🔄 MongoDB reconnected (serverless)');
     });
     
     return true; // Indicate successful connection
   } catch (err) {
-    console.error('❌ MongoDB connection failed:', err);
+    console.error('❌ MongoDB connection failed (serverless):', err);
     return false; // Indicate failed connection
   }
 };
@@ -401,15 +444,41 @@ const initializeApp = async () => {
     inventoryService.startCleanupService(30) // Clean up every 30 minutes
     console.log('🧹 Inventory cleanup service started')
     
-    // Check database connection status in background
+    // Check database connection status in background with retry
     dbConnectionPromise.then((dbConnected) => {
       if (dbConnected) {
-        console.log('✅ Database connected successfully');
+        console.log('✅ Database connected successfully (serverless)');
       } else {
-        console.log('⚠️ Database connection failed - routes will handle database errors gracefully');
+        console.log('⚠️ Database connection failed - retrying in background...');
+        // Retry connection in background
+        setTimeout(async () => {
+          try {
+            const retryConnected = await connectDB();
+            if (retryConnected) {
+              console.log('✅ Database reconnected successfully (serverless)');
+            } else {
+              console.log('⚠️ Database retry failed - routes will handle database errors gracefully');
+            }
+          } catch (retryErr) {
+            console.log('⚠️ Database retry error:', retryErr.message);
+          }
+        }, 5000); // Retry after 5 seconds
       }
     }).catch((err) => {
-      console.log('⚠️ Database connection error:', err.message);
+      console.log('⚠️ Database connection error (serverless):', err.message);
+      // Retry connection in background
+      setTimeout(async () => {
+        try {
+          const retryConnected = await connectDB();
+          if (retryConnected) {
+            console.log('✅ Database reconnected successfully (serverless)');
+          } else {
+            console.log('⚠️ Database retry failed - routes will handle database errors gracefully');
+          }
+        } catch (retryErr) {
+          console.log('⚠️ Database retry error:', retryErr.message);
+        }
+      }, 5000); // Retry after 5 seconds
     });
     
     // Update health check endpoint with WebSocket info
@@ -434,6 +503,37 @@ const initializeApp = async () => {
     
     // Import error handling middleware
     const { errorHandler, notFound } = require('./middlewares/error.middleware')
+    
+    // Serverless-specific error handler for database errors
+    app.use('/api', (err, req, res, next) => {
+      if (err.name === 'MongoNetworkError' || err.name === 'MongoTimeoutError' || err.message.includes('database')) {
+        console.log('🔄 Serverless database error, attempting reconnection...');
+        // Attempt to reconnect
+        connectDB().then((connected) => {
+          if (connected) {
+            console.log('✅ Database reconnected, retrying request...');
+            // Retry the original request
+            return next();
+          } else {
+            return res.status(503).json({
+              status: 'error',
+              message: 'Database temporarily unavailable - please try again',
+              error: 'DATABASE_CONNECTION_FAILED',
+              timestamp: new Date().toISOString()
+            });
+          }
+        }).catch((retryErr) => {
+          return res.status(503).json({
+            status: 'error',
+            message: 'Database temporarily unavailable - please try again',
+            error: 'DATABASE_CONNECTION_FAILED',
+            timestamp: new Date().toISOString()
+          });
+        });
+      } else {
+        return next(err);
+      }
+    });
     
     // 404 handler
     app.use(notFound)
