@@ -202,17 +202,31 @@ const connectDB = async () => {
       w: 'majority'
     };
 
+    // Log presence and masked version of the URI (do not expose credentials)
+    const rawMongoUri = process.env.MONGODB_URI || '';
+    const maskedUri = rawMongoUri
+      ? rawMongoUri.replace(/(:\\/\\/)(.*@)/, ':////***@').replace(/(.{50}).*(.{20})/, '$1...$2')
+      : '';
     console.log('🔄 Attempting MongoDB connection...');
-    await mongoose.connect(process.env.MONGODB_URI, options);
-    
-    // Simple wait for connection (Render doesn't need complex polling)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log('✅ MongoDB connected successfully');
-    console.log('Connection state:', mongoose.connection.readyState);
-    // Don't log sensitive connection string in production
-    if (process.env.NODE_ENV !== 'production') {
-      console.log("MONGODB_URI:", process.env.MONGODB_URI);
+    console.log('🔍 MONGODB_URI present:', !!rawMongoUri, '  masked:', maskedUri);
+
+    try {
+      await mongoose.connect(process.env.MONGODB_URI, options);
+
+      // Simple wait for connection (Render doesn't need complex polling)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('✅ MongoDB connected successfully');
+      console.log('Connection state:', mongoose.connection.readyState);
+      // Don't log sensitive connection string in production
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("MONGODB_URI:", process.env.MONGODB_URI);
+      }
+    } catch (connectErr) {
+      console.error('❌ MongoDB connection failed:', connectErr && connectErr.message ? connectErr.message : connectErr);
+      // Print error stack for debugging
+      if (connectErr && connectErr.stack) console.error('❌ MongoDB connection error stack:', connectErr.stack);
+      return false;
     }
     
     // Handle connection events
