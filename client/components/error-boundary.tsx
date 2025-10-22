@@ -120,3 +120,4 @@ export function useChunkErrorHandler() {
     return () => window.removeEventListener('error', handleChunkError)
   }, [])
 }
+
