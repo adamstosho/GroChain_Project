@@ -44,7 +44,7 @@ const corsOptions = {
         "https://gro-chain.vercel.app",
         "https://gro-chain.vercel.app/",
         "https://gro-back.vercel.app",
-        "https://gro-back.vercel.app/"
+        ""
       ]
     
     // Allow requests with no origin (mobile apps, Postman, etc.)

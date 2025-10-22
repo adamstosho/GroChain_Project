@@ -314,3 +314,4 @@ lib/
 docs/build/
 site/
 
+.vercel
