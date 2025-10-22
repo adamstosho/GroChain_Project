@@ -514,6 +514,64 @@ app.get('/api/db-test-detailed', async (req, res) => {
   }
 });
 
+// MongoDB Atlas connection test endpoint
+app.get('/api/mongodb-test', async (req, res) => {
+  try {
+    const startTime = Date.now();
+    
+    // Test direct MongoDB connection
+    const mongoose = require('mongoose');
+    
+    // Test connection with detailed error handling
+    const connectionOptions = {
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 15000,
+      connectTimeoutMS: 10000,
+      maxPoolSize: 1,
+      minPoolSize: 0,
+      retryWrites: true,
+      w: 'majority'
+    };
+    
+    console.log('🔄 Testing MongoDB Atlas connection...');
+    console.log('🔗 Connection string format:', process.env.MONGODB_URI ? 'Valid' : 'Missing');
+    
+    const connectionPromise = mongoose.connect(process.env.MONGODB_URI, connectionOptions);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection timeout after 15 seconds')), 15000)
+    );
+    
+    await Promise.race([connectionPromise, timeoutPromise]);
+    
+    const connectionTime = Date.now() - startTime;
+    const isConnected = mongoose.connection.readyState === 1;
+    
+    res.json({
+      status: 'success',
+      message: 'MongoDB Atlas connection test',
+      connected: isConnected,
+      connectionTime: `${connectionTime}ms`,
+      mongooseState: mongoose.connection.readyState,
+      host: mongoose.connection.host,
+      port: mongoose.connection.port,
+      name: mongoose.connection.name,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    const connectionTime = Date.now() - startTime;
+    res.status(500).json({
+      status: 'error',
+      message: 'MongoDB Atlas connection test failed',
+      error: error.message,
+      errorType: error.name,
+      connectionTime: `${connectionTime}ms`,
+      mongooseState: mongoose.connection.readyState,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Environment variables test endpoint (safe - no database required)
 app.get('/api/env-test', (req, res) => {
   const mongoUri = process.env.MONGODB_URI;
