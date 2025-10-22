@@ -105,8 +105,8 @@ app.use((req, res, next) => {
 
 // Serverless connection middleware - attempt to connect on each request if needed
 app.use('/api', async (req, res, next) => {
-  // Skip database connection for test endpoints
-  if (req.path.includes('/env-test') || req.path.includes('/test')) {
+  // Skip database connection for test endpoints and basic endpoints
+  if (req.path.includes('/env-test') || req.path.includes('/test') || req.path.includes('/health')) {
     return next();
   }
   
@@ -515,11 +515,16 @@ app.get('/api/db-test-detailed', async (req, res) => {
 
 // Environment variables test endpoint (safe - no database required)
 app.get('/api/env-test', (req, res) => {
+  const mongoUri = process.env.MONGODB_URI;
+  const isMongoUriValid = mongoUri && mongoUri.includes('mongodb') && mongoUri.includes('://');
+  
   res.json({
     status: 'success',
     message: 'Environment variables test',
     environment: {
-      MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Not set',
+      MONGODB_URI: mongoUri ? 'Set' : 'Not set',
+      MONGODB_URI_VALID: isMongoUriValid,
+      MONGODB_URI_FORMAT: mongoUri ? (mongoUri.includes('mongodb+srv://') ? 'Atlas (SRV)' : 'Standard') : 'Not set',
       NODE_ENV: process.env.NODE_ENV || 'Not set',
       VERCEL: process.env.VERCEL || 'Not set',
       PORT: process.env.PORT || 'Not set'
