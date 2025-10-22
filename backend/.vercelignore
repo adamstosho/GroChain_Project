@@ -1,0 +1,21 @@
+# Vercel ignore file for backend
+node_modules
+.env
+.env.local
+.env.production
+.env.development
+*.log
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+coverage/
+.nyc_output/
+test/
+tests/
+*.test.js
+*.spec.js
+docs/
+README.md
+.git/
+.gitignore

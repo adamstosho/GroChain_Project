@@ -3,7 +3,7 @@
   "name": "grochain-backend",
   "builds": [
     {
-      "src": "vercel-serverless-fix.js",
+      "src": "app.js",
       "use": "@vercel/node",
       "config": {
         "maxLambdaSize": "50mb"
@@ -13,18 +13,18 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "vercel-serverless-fix.js"
+      "dest": "app.js"
     },
     {
       "src": "/(.*)",
-      "dest": "vercel-serverless-fix.js"
+      "dest": "app.js"
     }
   ],
   "env": {
     "NODE_ENV": "production"
   },
   "functions": {
-    "vercel-serverless-fix.js": {
+    "app.js": {
       "maxDuration": 30
     }
   },
