@@ -65,7 +65,8 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  preflightContinue: false // ChatGPT's recommendation: don't continue to next middleware
 }
 
 app.use(cors(corsOptions))
@@ -96,8 +97,8 @@ app.options('*', (req, res) => {
   res.status(200).end()
 })
 
-// Import serverless database utility
-const serverlessDB = require('./utils/serverless-db');
+// Import ChatGPT's recommended MongoDB connection caching
+const { connect: connectDB, checkHealth, forceReconnect } = require('./utils/mongodb');
 
 // Fix double slash issue in URLs
 app.use((req, res, next) => {
@@ -119,36 +120,23 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Enhanced serverless connection middleware with proactive monitoring
+// ChatGPT's recommended connection middleware for serverless
 app.use('/api', async (req, res, next) => {
   const startTime = Date.now();
   const requestId = Math.random().toString(36).substr(2, 9);
   
   console.log(`🔄 [${requestId}] API request: ${req.method} ${req.path}`);
   
-  // Proactive connection health check
+  // Ensure database connection using ChatGPT's caching approach
   if (process.env.MONGODB_URI) {
-    const dbStatus = serverlessDB.getConnectionStatus();
-    
-    // If connection is unhealthy, attempt recovery
-    if (!dbStatus.connected || dbStatus.health === 'failed' || dbStatus.health === 'disconnected') {
-      console.log(`🔄 [${requestId}] Database unhealthy (${dbStatus.health}), attempting recovery...`);
-      
-      try {
-        const connected = await serverlessDB.ensureConnection();
-        const connectionTime = Date.now() - startTime;
-        
-        if (connected) {
-          console.log(`✅ [${requestId}] Database recovered for request: ${req.path} (${connectionTime}ms)`);
-        } else {
-          console.log(`⚠️ [${requestId}] Database recovery failed for request: ${req.path} (${connectionTime}ms)`);
-        }
-      } catch (err) {
-        const connectionTime = Date.now() - startTime;
-        console.log(`⚠️ [${requestId}] Database recovery error: ${err.message} (${connectionTime}ms)`);
-      }
-    } else if (dbStatus.connected && dbStatus.health === 'connected') {
-      console.log(`✅ [${requestId}] Database healthy, proceeding with request`);
+    try {
+      await connectDB(); // Uses global connection caching
+      const connectionTime = Date.now() - startTime;
+      console.log(`✅ [${requestId}] Database ready for request: ${req.path} (${connectionTime}ms)`);
+    } catch (err) {
+      const connectionTime = Date.now() - startTime;
+      console.log(`⚠️ [${requestId}] Database connection error: ${err.message} (${connectionTime}ms)`);
+      // Don't block the request - let it proceed
     }
   } else {
     console.log(`⚠️ [${requestId}] MONGODB_URI not found in environment variables`);
@@ -479,17 +467,16 @@ app.get('/api/debug/database', (req, res) => {
   }
 });
 
-// Comprehensive health monitoring endpoint
-app.get('/api/health-detailed', (req, res) => {
-  const memoryUsage = process.memoryUsage();
-  const uptime = process.uptime();
-  const dbStatus = serverlessDB.getConnectionStatus();
-  
-  res.json({
-    status: 'success',
-    message: 'Comprehensive health check',
-    timestamp: new Date().toISOString(),
-    health: {
+// ChatGPT's recommended health endpoint with DB ping
+app.get('/api/health', async (req, res) => {
+  try {
+    const dbHealth = await checkHealth();
+    const memoryUsage = process.memoryUsage();
+    const uptime = process.uptime();
+    
+    const healthStatus = {
+      ok: true,
+      timestamp: new Date().toISOString(),
       server: {
         uptime: Math.round(uptime),
         environment: process.env.NODE_ENV,
@@ -499,53 +486,115 @@ app.get('/api/health-detailed', (req, res) => {
       memory: {
         rss: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
         heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
-        heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
-        external: Math.round(memoryUsage.external / 1024 / 1024) + ' MB'
+        heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB'
       },
-      database: dbStatus,
+      database: dbHealth,
       stability: {
-        connectionHealth: dbStatus.health,
-        isStable: dbStatus.connected && dbStatus.health === 'connected',
-        lastConnection: dbStatus.lastConnection,
-        uptime: dbStatus.uptime
+        isStable: dbHealth.connected,
+        connectionState: dbHealth.state
       }
+    };
+    
+    // Return 500 if database is not connected
+    if (!dbHealth.connected) {
+      healthStatus.ok = false;
+      return res.status(500).json(healthStatus);
     }
-  });
+    
+    res.json(healthStatus);
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
-// Performance monitoring endpoint
-app.get('/api/performance', (req, res) => {
-  const memoryUsage = process.memoryUsage();
-  const uptime = process.uptime();
-  
-  res.json({
-    status: 'success',
-    message: 'Performance metrics',
-    timestamp: new Date().toISOString(),
-    performance: {
-      uptime: Math.round(uptime),
-      memory: {
-        rss: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
-        heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
-        heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
-        external: Math.round(memoryUsage.external / 1024 / 1024) + ' MB'
-      },
-      database: serverlessDB.getConnectionStatus()
-    }
-  });
+// Comprehensive health monitoring endpoint
+app.get('/api/health-detailed', async (req, res) => {
+  try {
+    const dbHealth = await checkHealth();
+    const memoryUsage = process.memoryUsage();
+    const uptime = process.uptime();
+    
+    res.json({
+      status: 'success',
+      message: 'Comprehensive health check',
+      timestamp: new Date().toISOString(),
+      health: {
+        server: {
+          uptime: Math.round(uptime),
+          environment: process.env.NODE_ENV,
+          version: '1.0.0',
+          platform: 'Vercel'
+        },
+        memory: {
+          rss: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
+          heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
+          heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
+          external: Math.round(memoryUsage.external / 1024 / 1024) + ' MB'
+        },
+        database: dbHealth,
+        stability: {
+          isStable: dbHealth.connected,
+          connectionState: dbHealth.state
+        }
+      }
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Health check failed',
+      error: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
-// Database recovery endpoint
+// Performance monitoring endpoint with ChatGPT's recommendations
+app.get('/api/performance', async (req, res) => {
+  try {
+    const memoryUsage = process.memoryUsage();
+    const uptime = process.uptime();
+    const dbHealth = await checkHealth();
+    
+    res.json({
+      status: 'success',
+      message: 'Performance metrics',
+      timestamp: new Date().toISOString(),
+      performance: {
+        uptime: Math.round(uptime),
+        memory: {
+          rss: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
+          heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
+          heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
+          external: Math.round(memoryUsage.external / 1024 / 1024) + ' MB'
+        },
+        database: dbHealth
+      }
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Performance check failed',
+      error: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// ChatGPT's recommended database recovery endpoint
 app.post('/api/recover-database', async (req, res) => {
   try {
     console.log('🔄 Manual database recovery requested');
-    const result = await serverlessDB.forceReconnect();
+    const result = await forceReconnect();
     
     res.json({
       status: result ? 'success' : 'error',
       message: result ? 'Database reconnected successfully' : 'Database reconnection failed',
       timestamp: new Date().toISOString(),
-      database: serverlessDB.getConnectionStatus()
+      database: await checkHealth()
     });
   } catch (error) {
     res.status(500).json({
@@ -558,13 +607,25 @@ app.post('/api/recover-database', async (req, res) => {
 });
 
 // Test endpoint to verify routes are working
-app.get('/api/test', (req, res) => {
-  res.json({
-    status: 'success',
-    message: 'API routes are working!',
-    timestamp: new Date().toISOString(),
-    database: serverlessDB.isConnected() ? 'connected' : 'disconnected'
-  });
+app.get('/api/test', async (req, res) => {
+  try {
+    const dbHealth = await checkHealth();
+    res.json({
+      status: 'success',
+      message: 'API routes are working!',
+      timestamp: new Date().toISOString(),
+      database: dbHealth.connected ? 'connected' : 'disconnected',
+      connectionState: dbHealth.state
+    });
+  } catch (err) {
+    res.json({
+      status: 'success',
+      message: 'API routes are working!',
+      timestamp: new Date().toISOString(),
+      database: 'error',
+      error: err.message
+    });
+  }
 });
 
 // Simple test endpoint for auth routes
