@@ -119,31 +119,48 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Optimized serverless connection middleware
+// Enhanced serverless connection middleware with proactive monitoring
 app.use('/api', async (req, res, next) => {
   const startTime = Date.now();
+  const requestId = Math.random().toString(36).substr(2, 9);
   
-  // Only attempt connection if MONGODB_URI exists and connection is not already established
-  if (process.env.MONGODB_URI && !serverlessDB.isConnected()) {
-    try {
-      console.log('🔄 Attempting optimized serverless connection for request:', req.path);
-      const connected = await serverlessDB.ensureConnection();
-      const connectionTime = Date.now() - startTime;
+  console.log(`🔄 [${requestId}] API request: ${req.method} ${req.path}`);
+  
+  // Proactive connection health check
+  if (process.env.MONGODB_URI) {
+    const dbStatus = serverlessDB.getConnectionStatus();
+    
+    // If connection is unhealthy, attempt recovery
+    if (!dbStatus.connected || dbStatus.health === 'failed' || dbStatus.health === 'disconnected') {
+      console.log(`🔄 [${requestId}] Database unhealthy (${dbStatus.health}), attempting recovery...`);
       
-      if (connected) {
-        console.log(`✅ Database connected for request: ${req.path} (${connectionTime}ms)`);
-      } else {
-        console.log(`⚠️ Database connection failed for request: ${req.path} (${connectionTime}ms)`);
+      try {
+        const connected = await serverlessDB.ensureConnection();
+        const connectionTime = Date.now() - startTime;
+        
+        if (connected) {
+          console.log(`✅ [${requestId}] Database recovered for request: ${req.path} (${connectionTime}ms)`);
+        } else {
+          console.log(`⚠️ [${requestId}] Database recovery failed for request: ${req.path} (${connectionTime}ms)`);
+        }
+      } catch (err) {
+        const connectionTime = Date.now() - startTime;
+        console.log(`⚠️ [${requestId}] Database recovery error: ${err.message} (${connectionTime}ms)`);
       }
-    } catch (err) {
-      const connectionTime = Date.now() - startTime;
-      console.log(`⚠️ Serverless connection attempt failed: ${err.message} (${connectionTime}ms)`);
+    } else if (dbStatus.connected && dbStatus.health === 'connected') {
+      console.log(`✅ [${requestId}] Database healthy, proceeding with request`);
     }
-  } else if (!process.env.MONGODB_URI) {
-    console.log('⚠️ MONGODB_URI not found in environment variables');
+  } else {
+    console.log(`⚠️ [${requestId}] MONGODB_URI not found in environment variables`);
   }
   
-  // Always proceed with the request regardless of database connection status
+  // Add request timing
+  const requestTime = Date.now() - startTime;
+  if (requestTime > 1000) {
+    console.log(`⚠️ [${requestId}] Slow request detected: ${requestTime}ms`);
+  }
+  
+  // Always proceed with the request
   next();
 })
 
@@ -462,6 +479,40 @@ app.get('/api/debug/database', (req, res) => {
   }
 });
 
+// Comprehensive health monitoring endpoint
+app.get('/api/health-detailed', (req, res) => {
+  const memoryUsage = process.memoryUsage();
+  const uptime = process.uptime();
+  const dbStatus = serverlessDB.getConnectionStatus();
+  
+  res.json({
+    status: 'success',
+    message: 'Comprehensive health check',
+    timestamp: new Date().toISOString(),
+    health: {
+      server: {
+        uptime: Math.round(uptime),
+        environment: process.env.NODE_ENV,
+        version: '1.0.0',
+        platform: 'Vercel'
+      },
+      memory: {
+        rss: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
+        heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
+        heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
+        external: Math.round(memoryUsage.external / 1024 / 1024) + ' MB'
+      },
+      database: dbStatus,
+      stability: {
+        connectionHealth: dbStatus.health,
+        isStable: dbStatus.connected && dbStatus.health === 'connected',
+        lastConnection: dbStatus.lastConnection,
+        uptime: dbStatus.uptime
+      }
+    }
+  });
+});
+
 // Performance monitoring endpoint
 app.get('/api/performance', (req, res) => {
   const memoryUsage = process.memoryUsage();
@@ -479,13 +530,31 @@ app.get('/api/performance', (req, res) => {
         heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
         external: Math.round(memoryUsage.external / 1024 / 1024) + ' MB'
       },
-      database: {
-        connected: serverlessDB.isConnected(),
-        state: serverlessDB.getConnectionState(),
-        connectionAttempts: serverlessDB.connectionAttempts
-      }
+      database: serverlessDB.getConnectionStatus()
     }
   });
+});
+
+// Database recovery endpoint
+app.post('/api/recover-database', async (req, res) => {
+  try {
+    console.log('🔄 Manual database recovery requested');
+    const result = await serverlessDB.forceReconnect();
+    
+    res.json({
+      status: result ? 'success' : 'error',
+      message: result ? 'Database reconnected successfully' : 'Database reconnection failed',
+      timestamp: new Date().toISOString(),
+      database: serverlessDB.getConnectionStatus()
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Database recovery failed',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Test endpoint to verify routes are working
@@ -903,11 +972,13 @@ const initializeApp = async () => {
     // Import error handling middleware
     const { errorHandler, notFound } = require('./middlewares/error.middleware')
     
-// Enhanced error handler with timeout recovery
+// Enhanced error handler with comprehensive recovery
 app.use('/api', (err, req, res, next) => {
+  console.log('🚨 API Error detected:', err.name, err.message);
+  
+  // Database-related errors
   if (err.name === 'MongoNetworkError' || err.name === 'MongoTimeoutError' || err.message.includes('database')) {
-    console.log('🔄 Serverless database error detected, attempting recovery...');
-    console.log('⚠️ Database error:', err.message);
+    console.log('🔄 Database error detected, attempting recovery...');
     
     // Attempt to reconnect on database errors
     if (process.env.MONGODB_URI) {
@@ -916,11 +987,39 @@ app.use('/api', (err, req, res, next) => {
       });
     }
     
-    return next(); // Continue with the request
-  } else if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') {
-    console.log('🔄 Network timeout detected, attempting recovery...');
-    return next(); // Continue with the request
-  } else {
+    // Return a proper error response instead of continuing
+    return res.status(503).json({
+      status: 'error',
+      message: 'Database temporarily unavailable, retrying...',
+      retryAfter: 2,
+      timestamp: new Date().toISOString()
+    });
+  } 
+  // Network timeout errors
+  else if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ENOTFOUND') {
+    console.log('🔄 Network error detected, attempting recovery...');
+    
+    return res.status(503).json({
+      status: 'error',
+      message: 'Network timeout, please retry',
+      retryAfter: 1,
+      timestamp: new Date().toISOString()
+    });
+  }
+  // Connection errors
+  else if (err.code === 'ECONNREFUSED' || err.code === 'EHOSTUNREACH') {
+    console.log('🔄 Connection error detected, attempting recovery...');
+    
+    return res.status(503).json({
+      status: 'error',
+      message: 'Connection failed, retrying...',
+      retryAfter: 3,
+      timestamp: new Date().toISOString()
+    });
+  }
+  // Other errors
+  else {
+    console.log('🚨 Unhandled error:', err);
     return next(err);
   }
 });

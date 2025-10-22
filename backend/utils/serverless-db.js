@@ -4,8 +4,13 @@ const mongoose = require('mongoose');
 class ServerlessDB {
   constructor() {
     this.connectionAttempts = 0;
-    this.maxRetries = 3;
+    this.maxRetries = 5; // Increased retries
     this.connectionPromise = null;
+    this.lastConnectionTime = null;
+    this.connectionHealth = 'unknown';
+    this.retryDelays = [1000, 2000, 4000, 8000, 16000]; // Exponential backoff
+    this.healthCheckInterval = null;
+    this.isConnecting = false;
   }
 
   async connect() {
@@ -27,11 +32,14 @@ class ServerlessDB {
   async _attemptConnection() {
     try {
       this.connectionAttempts++;
+      this.isConnecting = true;
       console.log(`🔄 Serverless DB connection attempt ${this.connectionAttempts}/${this.maxRetries}`);
 
       // Check if MONGODB_URI exists
       if (!process.env.MONGODB_URI) {
         console.error('❌ MONGODB_URI environment variable is not set');
+        this.connectionHealth = 'error';
+        this.isConnecting = false;
         return false;
       }
 
@@ -102,6 +110,10 @@ class ServerlessDB {
       // Verify connection
       if (mongoose.connection.readyState === 1) {
         console.log('✅ Serverless DB connected successfully');
+        this.connectionHealth = 'connected';
+        this.lastConnectionTime = Date.now();
+        this.isConnecting = false;
+        this.startHealthMonitoring();
         return true;
       } else {
         throw new Error('Connection established but readyState is not 1');
@@ -111,14 +123,17 @@ class ServerlessDB {
       console.error(`❌ Serverless DB connection failed (attempt ${this.connectionAttempts}):`, error.message);
       
       if (this.connectionAttempts < this.maxRetries) {
-        // Wait and retry with exponential backoff
-        const waitTime = Math.pow(2, this.connectionAttempts) * 1000;
+        // Wait and retry with optimized backoff
+        const waitTime = this.retryDelays[this.connectionAttempts - 1] || 16000;
         console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+        this.connectionHealth = 'retrying';
         await new Promise(resolve => setTimeout(resolve, waitTime));
         this.connectionPromise = null; // Reset for retry
         return this._attemptConnection();
       } else {
         console.error('❌ Serverless DB connection failed after all retries');
+        this.connectionHealth = 'failed';
+        this.isConnecting = false;
         this.connectionPromise = null;
         return false;
       }
@@ -144,6 +159,58 @@ class ServerlessDB {
 
   getConnectionState() {
     return mongoose.connection.readyState;
+  }
+
+  // Start health monitoring
+  startHealthMonitoring() {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+    }
+    
+    this.healthCheckInterval = setInterval(() => {
+      if (mongoose.connection.readyState !== 1) {
+        console.log('⚠️ Database connection lost, attempting reconnection...');
+        this.connectionHealth = 'disconnected';
+        this.ensureConnection().catch(err => {
+          console.log('⚠️ Health check reconnection failed:', err.message);
+        });
+      }
+    }, 30000); // Check every 30 seconds
+  }
+
+  // Get comprehensive connection status
+  getConnectionStatus() {
+    return {
+      connected: this.isConnected(),
+      health: this.connectionHealth,
+      state: this.getConnectionState(),
+      attempts: this.connectionAttempts,
+      lastConnection: this.lastConnectionTime,
+      isConnecting: this.isConnecting,
+      uptime: this.lastConnectionTime ? Date.now() - this.lastConnectionTime : 0
+    };
+  }
+
+  // Force reconnection
+  async forceReconnect() {
+    console.log('🔄 Forcing database reconnection...');
+    this.connectionHealth = 'reconnecting';
+    this.connectionAttempts = 0;
+    this.connectionPromise = null;
+    
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.disconnect();
+    }
+    
+    return await this.connect();
+  }
+
+  // Cleanup
+  cleanup() {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
   }
 }
 
