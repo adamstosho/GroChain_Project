@@ -400,6 +400,16 @@ app.get('/api/debug/database', (req, res) => {
   }
 });
 
+// Test endpoint to verify routes are working
+app.get('/api/test', (req, res) => {
+  res.json({
+    status: 'success',
+    message: 'API routes are working!',
+    timestamp: new Date().toISOString(),
+    database: serverlessDB.isConnected() ? 'connected' : 'disconnected'
+  });
+});
+
 // Initialize application
 const initializeApp = async () => {
   try {
