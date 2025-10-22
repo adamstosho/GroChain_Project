@@ -357,31 +357,14 @@ const initializeApp = async () => {
   try {
     // Connect to database first
     console.log('🚀 Initializing GroChain Backend...');
-    let dbConnected = await connectDB();
     
-    // If first attempt fails, try again with a delay
-    if (!dbConnected) {
-      console.log('🔄 First connection attempt failed, retrying...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      dbConnected = await connectDB();
-    }
+    // Start database connection in background (don't wait for it)
+    const dbConnectionPromise = connectDB();
     
-    if (!dbConnected) {
-      console.error('❌ Failed to connect to database after retry. Continuing without database...');
-      // Don't exit in serverless environment - continue with basic functionality
-    } else {
-      console.log('✅ Database connection established successfully');
-    }
+    // Set up routes immediately without waiting for database
+    console.log('📡 Setting up API routes immediately...');
 
-    // Initialize inventory cleanup service
-    const inventoryService = require('./services/inventory.service')
-    inventoryService.startCleanupService(30) // Clean up every 30 minutes
-    console.log('🧹 Inventory cleanup service started')
-    
-    // Setup routes regardless of database connection status
-    console.log('📡 Setting up API routes...');
-    
-    // Always set up routes, but add database status checks in individual route handlers
+    // Always set up routes immediately, but add database status checks in individual route handlers
     app.use('/api/auth', require('./routes/auth.routes'));
     app.use('/api/users', require('./routes/user.routes'));
     app.use('/api/partners', require('./routes/partner.routes'));
@@ -411,11 +394,23 @@ const initializeApp = async () => {
     app.use('/api/onboarding', require('./routes/onboarding.routes'));
     app.use('/api/debug', require('./routes/debug.route'));
     
-    if (!dbConnected) {
-      console.log('⚠️ Database connection failed - routes will handle database errors gracefully');
-    } else {
-      console.log('✅ Database connected - all routes fully functional');
-    }
+    console.log('✅ All API routes registered successfully');
+    
+    // Initialize inventory cleanup service
+    const inventoryService = require('./services/inventory.service')
+    inventoryService.startCleanupService(30) // Clean up every 30 minutes
+    console.log('🧹 Inventory cleanup service started')
+    
+    // Check database connection status in background
+    dbConnectionPromise.then((dbConnected) => {
+      if (dbConnected) {
+        console.log('✅ Database connected successfully');
+      } else {
+        console.log('⚠️ Database connection failed - routes will handle database errors gracefully');
+      }
+    }).catch((err) => {
+      console.log('⚠️ Database connection error:', err.message);
+    });
     
     // Update health check endpoint with WebSocket info
     app.get('/api/health', (req, res) => {
