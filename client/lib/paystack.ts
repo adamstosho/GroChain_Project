@@ -10,14 +10,15 @@ interface PaystackOptions {
   amount: number
   currency?: string
   ref?: string
-  callback?: (response: PaystackResponse) => void
+  callback?: (response: PaystackCallbackResponse) => void
   onClose?: () => void
 }
 
-interface PaystackResponse {
+interface PaystackCallbackResponse {
   status: string
   message: string
   reference: string
+  transaction?: Record<string, unknown>
 }
 
 declare global {
@@ -113,12 +114,12 @@ export const initializePaystackPayment = async (
         amount: Math.round(paymentData.amount * 100), // Convert to kobo
         currency: 'NGN',
         ref: `GROCHAIN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        callback: (response: PaystackResponse) => {
+        callback: (response: PaystackCallbackResponse) => {
           console.log('✅ Paystack payment callback:', response)
           const result: PaystackResponse = {
             status: 'success',
             reference: response.reference,
-            transaction: response
+            transaction: response as unknown as Record<string, unknown>
           }
           if (onSuccess) onSuccess(result)
           resolve(result)
@@ -148,8 +149,7 @@ export const initializePaystackPayment = async (
 
       if (typeof window !== 'undefined' && window.PaystackPop) {
         console.log('✅ Initializing Paystack payment modal...')
-        const handler = window.PaystackPop.setup(paystackConfig)
-        handler.openIframe()
+        window.PaystackPop.setup(paystackConfig)
       } else {
         throw new Error('Paystack script not available after loading')
       }
