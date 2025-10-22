@@ -1,32 +1,27 @@
 {
   "version": 2,
-  "name": "grochain-backend",
   "builds": [
     {
       "src": "app.js",
       "use": "@vercel/node",
       "config": {
-        "maxLambdaSize": "50mb"
+        "maxLambdaSize": "50mb",
+        "maxDuration": 30
       }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "app.js"
+      "source": "/api/(.*)",
+      "destination": "/app.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "app.js"
+      "source": "/(.*)",
+      "destination": "/app.js"
     }
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "app.js": {
-      "maxDuration": 30
-    }
   },
   "headers": [
     {
