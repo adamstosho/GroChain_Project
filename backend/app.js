@@ -79,15 +79,18 @@ app.options('*', (req, res) => {
   res.status(200).end()
 })
 
+// Import serverless database utility
+const serverlessDB = require('./utils/serverless-db');
+
 // Serverless connection middleware - attempt to connect on each request if needed
 app.use('/api', async (req, res, next) => {
   // Only attempt connection if not already connected
-  if (mongoose.connection.readyState !== 1) {
+  if (!serverlessDB.isConnected()) {
     try {
       // Quick connection attempt for serverless
-      if (process.env.MONGODB_URI && mongoose.connection.readyState === 0) {
+      if (process.env.MONGODB_URI) {
         console.log('🔄 Attempting serverless connection for request:', req.path);
-        await connectDB();
+        await serverlessDB.ensureConnection();
       }
     } catch (err) {
       // Don't block the request if connection fails
@@ -379,6 +382,8 @@ app.get('/api/debug/database', (req, res) => {
       mongodbUriExists: !!process.env.MONGODB_URI,
       mongodbUriProdExists: !!process.env.MONGODB_URI_PROD,
       mongooseReadyState: mongoose.connection.readyState,
+      serverlessDBConnected: serverlessDB.isConnected(),
+      serverlessDBState: serverlessDB.getConnectionState(),
       mongooseHost: mongoose.connection.host,
       mongoosePort: mongoose.connection.port,
       mongooseName: mongoose.connection.name,
@@ -402,7 +407,7 @@ const initializeApp = async () => {
     console.log('🚀 Initializing GroChain Backend...');
     
     // Start database connection in background (don't wait for it)
-    const dbConnectionPromise = connectDB();
+    const dbConnectionPromise = serverlessDB.connect();
     
     // Set up routes immediately without waiting for database
     console.log('📡 Setting up API routes immediately...');
@@ -453,7 +458,7 @@ const initializeApp = async () => {
         // Retry connection in background
         setTimeout(async () => {
           try {
-            const retryConnected = await connectDB();
+            const retryConnected = await serverlessDB.connect();
             if (retryConnected) {
               console.log('✅ Database reconnected successfully (serverless)');
             } else {
@@ -467,18 +472,18 @@ const initializeApp = async () => {
     }).catch((err) => {
       console.log('⚠️ Database connection error (serverless):', err.message);
       // Retry connection in background
-      setTimeout(async () => {
-        try {
-          const retryConnected = await connectDB();
-          if (retryConnected) {
-            console.log('✅ Database reconnected successfully (serverless)');
-          } else {
-            console.log('⚠️ Database retry failed - routes will handle database errors gracefully');
+        setTimeout(async () => {
+          try {
+            const retryConnected = await serverlessDB.connect();
+            if (retryConnected) {
+              console.log('✅ Database reconnected successfully (serverless)');
+            } else {
+              console.log('⚠️ Database retry failed - routes will handle database errors gracefully');
+            }
+          } catch (retryErr) {
+            console.log('⚠️ Database retry error:', retryErr.message);
           }
-        } catch (retryErr) {
-          console.log('⚠️ Database retry error:', retryErr.message);
-        }
-      }, 5000); // Retry after 5 seconds
+        }, 5000); // Retry after 5 seconds
     });
     
     // Update health check endpoint with WebSocket info
@@ -509,7 +514,7 @@ const initializeApp = async () => {
       if (err.name === 'MongoNetworkError' || err.name === 'MongoTimeoutError' || err.message.includes('database')) {
         console.log('🔄 Serverless database error, attempting reconnection...');
         // Attempt to reconnect
-        connectDB().then((connected) => {
+        serverlessDB.connect().then((connected) => {
           if (connected) {
             console.log('✅ Database reconnected, retrying request...');
             // Retry the original request
