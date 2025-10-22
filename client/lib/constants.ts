@@ -4,8 +4,8 @@ export const APP_CONFIG = {
   version: "1.0.0",
   api: {
     // Use environment variable for API base URL
-    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000",
-    wsUrl: process.env.NEXT_PUBLIC_WS_URL || "http://localhost:5000",
+    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "https://backend-blu022pgc-grochainng-6727s-projects.vercel.app",
+    wsUrl: process.env.NEXT_PUBLIC_WS_URL || "https://backend-blu022pgc-grochainng-6727s-projects.vercel.app",
   },
   auth: {
     tokenKey: "grochain_auth_token", // Use hardcoded secure default instead of env var
