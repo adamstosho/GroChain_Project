@@ -111,7 +111,14 @@ app.use('/api', async (req, res, next) => {
       // Quick connection attempt for serverless
       if (process.env.MONGODB_URI) {
         console.log('🔄 Attempting serverless connection for request:', req.path);
-        await serverlessDB.ensureConnection();
+        const connected = await serverlessDB.ensureConnection();
+        if (connected) {
+          console.log('✅ Database connected for request:', req.path);
+        } else {
+          console.log('⚠️ Database connection failed for request:', req.path);
+        }
+      } else {
+        console.log('⚠️ MONGODB_URI not found in environment variables');
       }
     } catch (err) {
       // Don't block the request if connection fails
@@ -458,6 +465,45 @@ app.get('/api/db-test', async (req, res) => {
       status: 'error',
       message: 'Database connection test failed',
       error: error.message,
+      mongooseState: mongoose.connection.readyState,
+      serverlessDBState: serverlessDB.getConnectionState(),
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Enhanced database connection test endpoint
+app.get('/api/db-test-detailed', async (req, res) => {
+  try {
+    const startTime = Date.now();
+    
+    // Test environment variables
+    const envVars = {
+      MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Not set',
+      NODE_ENV: process.env.NODE_ENV || 'Not set',
+      VERCEL: process.env.VERCEL || 'Not set'
+    };
+    
+    // Test connection
+    const isConnected = await serverlessDB.ensureConnection();
+    const connectionTime = Date.now() - startTime;
+    
+    res.json({
+      status: 'success',
+      message: 'Detailed database connection test',
+      connected: isConnected,
+      connectionTime: `${connectionTime}ms`,
+      mongooseState: mongoose.connection.readyState,
+      serverlessDBState: serverlessDB.getConnectionState(),
+      environment: envVars,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Detailed database connection test failed',
+      error: error.message,
+      stack: error.stack,
       mongooseState: mongoose.connection.readyState,
       serverlessDBState: serverlessDB.getConnectionState(),
       timestamp: new Date().toISOString()

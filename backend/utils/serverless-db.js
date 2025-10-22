@@ -29,17 +29,23 @@ class ServerlessDB {
       this.connectionAttempts++;
       console.log(`🔄 Serverless DB connection attempt ${this.connectionAttempts}/${this.maxRetries}`);
 
+      // Check if MONGODB_URI exists
+      if (!process.env.MONGODB_URI) {
+        console.error('❌ MONGODB_URI environment variable is not set');
+        return false;
+      }
+
       // Serverless-optimized connection options
       const options = {
         // Ultra-fast timeouts for serverless
-        serverSelectionTimeoutMS: 3000,   // 3 seconds
-        socketTimeoutMS: 5000,            // 5 seconds
-        connectTimeoutMS: 3000,           // 3 seconds
+        serverSelectionTimeoutMS: 5000,   // 5 seconds
+        socketTimeoutMS: 10000,           // 10 seconds
+        connectTimeoutMS: 5000,          // 5 seconds
         
         // Single connection for serverless
         maxPoolSize: 1,
         minPoolSize: 0,
-        maxIdleTimeMS: 10000,            // 10 seconds
+        maxIdleTimeMS: 30000,            // 30 seconds
         
         // Serverless-specific options
         retryWrites: true,
@@ -52,38 +58,57 @@ class ServerlessDB {
         useUnifiedTopology: true,
         
         // Heartbeat for serverless
-        heartbeatFrequencyMS: 5000,      // 5 seconds
+        heartbeatFrequencyMS: 10000,     // 10 seconds
+        
+        // Additional serverless optimizations
+        directConnection: false,
+        compressors: 'zlib',
+        zlibCompressionLevel: 6,
       };
 
       // Optimize connection string for serverless
       let optimizedUri = process.env.MONGODB_URI;
-      if (optimizedUri && !optimizedUri.includes('retryWrites=true')) {
-        optimizedUri += (optimizedUri.includes('?') ? '&' : '?') + 'retryWrites=true&w=majority';
-      }
-      if (optimizedUri && !optimizedUri.includes('maxPoolSize')) {
-        optimizedUri += '&maxPoolSize=1&minPoolSize=0';
-      }
+      
+      // Add serverless-specific parameters
+      const serverlessParams = [
+        'retryWrites=true',
+        'w=majority',
+        'maxPoolSize=1',
+        'minPoolSize=0',
+        'serverSelectionTimeoutMS=5000',
+        'socketTimeoutMS=10000',
+        'connectTimeoutMS=5000'
+      ];
+      
+      const separator = optimizedUri.includes('?') ? '&' : '?';
+      optimizedUri += separator + serverlessParams.join('&');
 
-      // Connect with ultra-fast timeout
+      console.log('🔗 Connecting to MongoDB with optimized URI...');
+
+      // Connect with timeout
       const connectPromise = mongoose.connect(optimizedUri, options);
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Serverless connection timeout')), 5000)
+        setTimeout(() => reject(new Error('Serverless connection timeout')), 10000)
       );
       
       await Promise.race([connectPromise, timeoutPromise]);
 
-      // Quick verification
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      console.log('✅ Serverless DB connected successfully');
-      return true;
+      // Verify connection
+      if (mongoose.connection.readyState === 1) {
+        console.log('✅ Serverless DB connected successfully');
+        return true;
+      } else {
+        throw new Error('Connection established but readyState is not 1');
+      }
 
     } catch (error) {
       console.error(`❌ Serverless DB connection failed (attempt ${this.connectionAttempts}):`, error.message);
       
       if (this.connectionAttempts < this.maxRetries) {
-        // Wait and retry
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait and retry with exponential backoff
+        const waitTime = Math.pow(2, this.connectionAttempts) * 1000;
+        console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
         this.connectionPromise = null; // Reset for retry
         return this._attemptConnection();
       } else {
