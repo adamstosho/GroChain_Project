@@ -9,7 +9,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "https://backend-7m1v6i0p8-grochainng-6727s-projects.vercel.app/api/$1"
+      "dest": "https://backend-blu022pgc-grochainng-6727s-projects.vercel.app/api/$1"
     },
     {
       "src": "/(.*)",
