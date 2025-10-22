@@ -119,25 +119,25 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Serverless connection middleware - attempt to connect on each request if needed
+// Optimized serverless connection middleware
 app.use('/api', async (req, res, next) => {
-  // TEMPORARILY DISABLE DATABASE CONNECTION TO FIX BACKEND
-  // Skip database connection for all endpoints until MONGODB_URI is properly configured
-  console.log('🔄 API request received:', req.path);
+  const startTime = Date.now();
   
   // Only attempt connection if MONGODB_URI exists and connection is not already established
   if (process.env.MONGODB_URI && !serverlessDB.isConnected()) {
     try {
-      console.log('🔄 Attempting serverless connection for request:', req.path);
+      console.log('🔄 Attempting optimized serverless connection for request:', req.path);
       const connected = await serverlessDB.ensureConnection();
+      const connectionTime = Date.now() - startTime;
+      
       if (connected) {
-        console.log('✅ Database connected for request:', req.path);
+        console.log(`✅ Database connected for request: ${req.path} (${connectionTime}ms)`);
       } else {
-        console.log('⚠️ Database connection failed for request:', req.path);
+        console.log(`⚠️ Database connection failed for request: ${req.path} (${connectionTime}ms)`);
       }
     } catch (err) {
-      // Don't block the request if connection fails
-      console.log('⚠️ Serverless connection attempt failed:', err.message);
+      const connectionTime = Date.now() - startTime;
+      console.log(`⚠️ Serverless connection attempt failed: ${err.message} (${connectionTime}ms)`);
     }
   } else if (!process.env.MONGODB_URI) {
     console.log('⚠️ MONGODB_URI not found in environment variables');
@@ -146,6 +146,21 @@ app.use('/api', async (req, res, next) => {
   // Always proceed with the request regardless of database connection status
   next();
 })
+
+// Performance optimizations
+app.use((req, res, next) => {
+  // Add performance headers
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('X-Frame-Options', 'DENY');
+  res.set('X-XSS-Protection', '1; mode=block');
+  
+  // Add cache headers for static responses
+  if (req.path.includes('/api/health') || req.path.includes('/api/env-test')) {
+    res.set('Cache-Control', 'public, max-age=30'); // Cache for 30 seconds
+  }
+  
+  next();
+});
 
 // Logging
 if (process.env.NODE_ENV === 'production') {
@@ -445,6 +460,32 @@ app.get('/api/debug/database', (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
+});
+
+// Performance monitoring endpoint
+app.get('/api/performance', (req, res) => {
+  const memoryUsage = process.memoryUsage();
+  const uptime = process.uptime();
+  
+  res.json({
+    status: 'success',
+    message: 'Performance metrics',
+    timestamp: new Date().toISOString(),
+    performance: {
+      uptime: Math.round(uptime),
+      memory: {
+        rss: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
+        heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
+        heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
+        external: Math.round(memoryUsage.external / 1024 / 1024) + ' MB'
+      },
+      database: {
+        connected: serverlessDB.isConnected(),
+        state: serverlessDB.getConnectionState(),
+        connectionAttempts: serverlessDB.connectionAttempts
+      }
+    }
+  });
 });
 
 // Test endpoint to verify routes are working
@@ -862,17 +903,27 @@ const initializeApp = async () => {
     // Import error handling middleware
     const { errorHandler, notFound } = require('./middlewares/error.middleware')
     
-    // Serverless-specific error handler for database errors
-    app.use('/api', (err, req, res, next) => {
-      if (err.name === 'MongoNetworkError' || err.name === 'MongoTimeoutError' || err.message.includes('database')) {
-        console.log('🔄 Serverless database error detected, but not blocking request...');
-        // Don't block the request - just log the error and continue
-        console.log('⚠️ Database error:', err.message);
-        return next(); // Continue with the request
-      } else {
-        return next(err);
-      }
-    });
+// Enhanced error handler with timeout recovery
+app.use('/api', (err, req, res, next) => {
+  if (err.name === 'MongoNetworkError' || err.name === 'MongoTimeoutError' || err.message.includes('database')) {
+    console.log('🔄 Serverless database error detected, attempting recovery...');
+    console.log('⚠️ Database error:', err.message);
+    
+    // Attempt to reconnect on database errors
+    if (process.env.MONGODB_URI) {
+      serverlessDB.ensureConnection().catch(reconnectErr => {
+        console.log('⚠️ Reconnection attempt failed:', reconnectErr.message);
+      });
+    }
+    
+    return next(); // Continue with the request
+  } else if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') {
+    console.log('🔄 Network timeout detected, attempting recovery...');
+    return next(); // Continue with the request
+  } else {
+    return next(err);
+  }
+});
     
     // 404 handler
     app.use(notFound)

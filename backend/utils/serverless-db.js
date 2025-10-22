@@ -35,19 +35,19 @@ class ServerlessDB {
         return false;
       }
 
-      // Serverless-optimized connection options
+      // Ultra-optimized connection options for serverless
       const options = {
         // Ultra-fast timeouts for serverless
-        serverSelectionTimeoutMS: 5000,   // 5 seconds
-        socketTimeoutMS: 10000,           // 10 seconds
-        connectTimeoutMS: 5000,          // 5 seconds
+        serverSelectionTimeoutMS: 3000,   // 3 seconds
+        socketTimeoutMS: 5000,             // 5 seconds
+        connectTimeoutMS: 3000,          // 3 seconds
         
-        // Single connection for serverless
+        // Optimized connection pooling for serverless
         maxPoolSize: 1,
         minPoolSize: 0,
-        maxIdleTimeMS: 30000,            // 30 seconds
+        maxIdleTimeMS: 10000,            // 10 seconds
         
-        // Serverless-specific options
+        // Serverless-specific optimizations
         retryWrites: true,
         w: 'majority',
         bufferMaxEntries: 0,
@@ -57,13 +57,19 @@ class ServerlessDB {
         useNewUrlParser: true,
         useUnifiedTopology: true,
         
-        // Heartbeat for serverless
-        heartbeatFrequencyMS: 10000,     // 10 seconds
+        // Optimized heartbeat for serverless
+        heartbeatFrequencyMS: 5000,      // 5 seconds
         
-        // Additional serverless optimizations
+        // Performance optimizations
         directConnection: false,
         compressors: 'zlib',
         zlibCompressionLevel: 6,
+        
+        // Additional serverless optimizations
+        maxStalenessSeconds: 90,
+        readPreference: 'primaryPreferred',
+        readConcern: { level: 'majority' },
+        writeConcern: { w: 'majority', j: true }
       };
 
       // Optimize connection string for serverless
