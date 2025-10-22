@@ -1,87 +1,31 @@
 {
   "version": 2,
+  "name": "grochain-backend",
   "builds": [
     {
       "src": "app.js",
       "use": "@vercel/node",
       "config": {
-        "maxLambdaSize": "50mb",
-        "maxDuration": 30,
-        "memory": 1024
+        "maxLambdaSize": "50mb"
       }
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/app.js"
+      "src": "/api/(.*)",
+      "dest": "app.js"
     },
     {
-      "source": "/(.*)",
-      "destination": "/app.js"
-    }
-  ],
-  "redirects": [
-    {
-      "source": "//api/(.*)",
-      "destination": "/api/$1",
-      "permanent": false
-    },
-    {
-      "source": "//(.*)",
-      "destination": "/$1",
-      "permanent": false
+      "src": "/(.*)",
+      "dest": "app.js"
     }
   ],
   "env": {
     "NODE_ENV": "production"
   },
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "https://gro-chain.vercel.app"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization, X-Requested-With, Accept, Origin"
-        },
-        {
-          "key": "Access-Control-Allow-Credentials",
-          "value": "true"
-        },
-        {
-          "key": "Access-Control-Max-Age",
-          "value": "86400"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "https://gro-chain.vercel.app"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization, X-Requested-With, Accept, Origin"
-        },
-        {
-          "key": "Access-Control-Allow-Credentials",
-          "value": "true"
-        }
-      ]
+  "functions": {
+    "app.js": {
+      "maxDuration": 30
     }
-  ]
+  }
 }

@@ -41,131 +41,23 @@ const corsOptions = {
         'http://127.0.0.1:3002',
         'http://127.0.0.1:4000',
         'http://127.0.0.1:5000',
-        "https://gro-chain.vercel.app",
-        "https://gro-chain.vercel.app/",
-        "https://gro-back.vercel.app",
-        ""
+        "https://gro-chain.vercel.app"
       ]
     
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true)
     
-    // Allow all Vercel preview deployments
-    if (origin && origin.includes('.vercel.app')) {
-      return callback(null, true)
-    }
-    
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true)
     } else {
-      console.log('CORS blocked origin:', origin)
       callback(new Error('Not allowed by CORS'))
     }
   },
   credentials: true,
-  optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  preflightContinue: false // ChatGPT's recommendation: don't continue to next middleware
+  optionsSuccessStatus: 200
 }
 
 app.use(cors(corsOptions))
-
-// Handle preflight OPTIONS requests for serverless
-app.options('*', (req, res) => {
-  const origin = req.headers.origin
-  const allowedOrigins = [
-    'https://gro-chain.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:3001'
-  ]
-  
-  console.log('🔄 Handling OPTIONS request for origin:', origin);
-  
-  if (allowedOrigins.includes(origin) || (origin && origin.includes('.vercel.app'))) {
-    res.header('Access-Control-Allow-Origin', origin)
-  } else {
-    res.header('Access-Control-Allow-Origin', '*')
-  }
-  
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
-  res.header('Access-Control-Allow-Credentials', 'true')
-  res.header('Access-Control-Max-Age', '86400') // Cache preflight for 24 hours
-  
-  // Don't redirect - just return 200
-  res.status(200).end()
-})
-
-// Import ChatGPT's recommended MongoDB connection caching
-const { connect: connectDB, checkHealth, forceReconnect } = require('./utils/mongodb');
-
-// Fix double slash issue in URLs
-app.use((req, res, next) => {
-  if (req.url.includes('//')) {
-    const originalUrl = req.url;
-    req.url = req.url.replace(/\/+/g, '/');
-    console.log('🔧 Fixed double slash URL:', originalUrl, '->', req.url);
-  }
-  next();
-});
-
-// Additional middleware to handle double slash in API routes specifically
-app.use('/api', (req, res, next) => {
-  if (req.url.includes('//')) {
-    const originalUrl = req.url;
-    req.url = req.url.replace(/\/+/g, '/');
-    console.log('🔧 Fixed API double slash URL:', originalUrl, '->', req.url);
-  }
-  next();
-});
-
-// ChatGPT's recommended connection middleware for serverless
-app.use('/api', async (req, res, next) => {
-  const startTime = Date.now();
-  const requestId = Math.random().toString(36).substr(2, 9);
-  
-  console.log(`🔄 [${requestId}] API request: ${req.method} ${req.path}`);
-  
-  // Ensure database connection using ChatGPT's caching approach
-  if (process.env.MONGODB_URI) {
-    try {
-      await connectDB(); // Uses global connection caching
-      const connectionTime = Date.now() - startTime;
-      console.log(`✅ [${requestId}] Database ready for request: ${req.path} (${connectionTime}ms)`);
-    } catch (err) {
-      const connectionTime = Date.now() - startTime;
-      console.log(`⚠️ [${requestId}] Database connection error: ${err.message} (${connectionTime}ms)`);
-      // Don't block the request - let it proceed
-    }
-  } else {
-    console.log(`⚠️ [${requestId}] MONGODB_URI not found in environment variables`);
-  }
-  
-  // Add request timing
-  const requestTime = Date.now() - startTime;
-  if (requestTime > 1000) {
-    console.log(`⚠️ [${requestId}] Slow request detected: ${requestTime}ms`);
-  }
-  
-  // Always proceed with the request
-  next();
-})
-
-// Performance optimizations
-app.use((req, res, next) => {
-  // Add performance headers
-  res.set('X-Content-Type-Options', 'nosniff');
-  res.set('X-Frame-Options', 'DENY');
-  res.set('X-XSS-Protection', '1; mode=block');
-  
-  // Add cache headers for static responses
-  if (req.path.includes('/api/health') || req.path.includes('/api/env-test')) {
-    res.set('Cache-Control', 'public, max-age=30'); // Cache for 30 seconds
-  }
-  
-  next();
-});
 
 // Logging
 if (process.env.NODE_ENV === 'production') {
@@ -291,7 +183,7 @@ if (process.env.RATE_LIMIT_ENABLED === 'false') {
   console.log('🚀 Production mode: Using strict rate limiting')
 }
 
-// Serverless-optimized database connection
+// Database connection
 const connectDB = async () => {
   try {
     // If already connected, return true
@@ -300,91 +192,57 @@ const connectDB = async () => {
       return true;
     }
 
-    // Serverless-optimized connection options
     const options = {
-      // Connection timeouts optimized for serverless
-      serverSelectionTimeoutMS: 5000,   // 5 seconds for serverless
-      socketTimeoutMS: 10000,           // 10 seconds for serverless
-      connectTimeoutMS: 5000,           // 5 seconds for serverless
-      
-      // Connection pooling optimized for serverless
-      maxPoolSize: 1,                   // Single connection for serverless
-      minPoolSize: 0,                   // No minimum pool for serverless
-      maxIdleTimeMS: 30000,            // 30 seconds idle timeout
-      
-      // Serverless-specific options
+      serverSelectionTimeoutMS: 30000,  // Restored for Render
+      socketTimeoutMS: 45000,
+      maxPoolSize: 10,  // Restored for Render
+      minPoolSize: 1,   // Restored for Render
+      maxIdleTimeMS: 30000,  // Restored for Render
       retryWrites: true,
-      w: 'majority',
-      bufferMaxEntries: 0,             // Disable mongoose buffering
-      bufferCommands: false,           // Disable mongoose buffering
-      
-      // Connection string options for serverless
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      
-      // Heartbeat frequency for serverless
-      heartbeatFrequencyMS: 10000,     // 10 seconds heartbeat
+      w: 'majority'
     };
 
-    // Log presence and masked version of the URI
+    // Log presence and masked version of the URI (do not expose credentials)
     const rawMongoUri = process.env.MONGODB_URI || '';
-    const maskedUri = rawMongoUri
-      ? rawMongoUri.replace(/(:\/\/)(.*@)/, '://***@').replace(/(.{50}).*(.{20})/, '$1...$2')
-      : '';
-    console.log('🔄 Attempting MongoDB connection (serverless optimized)...');
+   const maskedUri = rawMongoUri  ? rawMongoUri.replace(/(:\/\/)([^@]+)@/, '://***@').replace(/(.{50}).*(.{20})/, '$1...$2')  : '';
+    console.log('🔄 Attempting MongoDB connection...');
     console.log('🔍 MONGODB_URI present:', !!rawMongoUri, '  masked:', maskedUri);
-    
-    // Optimize connection string for serverless
-    let optimizedUri = rawMongoUri;
-    if (optimizedUri && !optimizedUri.includes('retryWrites=true')) {
-      optimizedUri += (optimizedUri.includes('?') ? '&' : '?') + 'retryWrites=true&w=majority';
-    }
-    if (optimizedUri && !optimizedUri.includes('maxPoolSize')) {
-      optimizedUri += '&maxPoolSize=1&minPoolSize=0';
-    }
 
     try {
-      // Connect with serverless-optimized timeout and URI
-      const connectPromise = mongoose.connect(optimizedUri, options);
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Serverless connection timeout')), 8000)
-      );
-      
-      await Promise.race([connectPromise, timeoutPromise]);
+      await mongoose.connect(process.env.MONGODB_URI, options);
 
-      // Quick connection verification
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Simple wait for connection (Render doesn't need complex polling)
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      console.log('✅ MongoDB connected successfully (serverless)');
+      console.log('✅ MongoDB connected successfully');
       console.log('Connection state:', mongoose.connection.readyState);
-      
       // Don't log sensitive connection string in production
       if (process.env.NODE_ENV !== 'production') {
         console.log("MONGODB_URI:", process.env.MONGODB_URI);
       }
     } catch (connectErr) {
-      console.error('❌ MongoDB connection failed (serverless):', connectErr && connectErr.message ? connectErr.message : connectErr);
+      console.error('❌ MongoDB connection failed:', connectErr && connectErr.message ? connectErr.message : connectErr);
       // Print error stack for debugging
       if (connectErr && connectErr.stack) console.error('❌ MongoDB connection error stack:', connectErr.stack);
       return false;
     }
     
-    // Handle connection events for serverless
+    // Handle connection events
     mongoose.connection.on('error', (err) => {
-      console.error('❌ MongoDB connection error (serverless):', err);
+      console.error('❌ MongoDB connection error:', err);
     });
     
     mongoose.connection.on('disconnected', () => {
-      console.log('⚠️ MongoDB disconnected (serverless)');
+      console.log('⚠️ MongoDB disconnected');
     });
     
     mongoose.connection.on('reconnected', () => {
-      console.log('🔄 MongoDB reconnected (serverless)');
+      console.log('🔄 MongoDB reconnected');
     });
     
     return true; // Indicate successful connection
   } catch (err) {
-    console.error('❌ MongoDB connection failed (serverless):', err);
+    console.error('❌ MongoDB connection failed:', err);
     return false; // Indicate failed connection
   }
 };
@@ -411,12 +269,7 @@ app.get('/', (req, res) => {
       metrics: '/metrics'
     },
     database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    uptime: process.uptime(),
-    cors: {
-      origin: req.headers.origin || 'none',
-      method: req.method,
-      headers: req.headers
-    }
+    uptime: process.uptime()
   })
 });
 
@@ -449,8 +302,6 @@ app.get('/api/debug/database', (req, res) => {
       mongodbUriExists: !!process.env.MONGODB_URI,
       mongodbUriProdExists: !!process.env.MONGODB_URI_PROD,
       mongooseReadyState: mongoose.connection.readyState,
-      serverlessDBConnected: false, // Deprecated - using new connection system
-      serverlessDBState: 'deprecated', // Deprecated - using new connection system
       mongooseHost: mongoose.connection.host,
       mongoosePort: mongoose.connection.port,
       mongooseName: mongoose.connection.name,
@@ -467,548 +318,76 @@ app.get('/api/debug/database', (req, res) => {
   }
 });
 
-// ChatGPT's recommended health endpoint with DB ping
-app.get('/api/health', async (req, res) => {
-  try {
-    const dbHealth = await checkHealth();
-    const memoryUsage = process.memoryUsage();
-    const uptime = process.uptime();
-    
-    const healthStatus = {
-      ok: true,
-      timestamp: new Date().toISOString(),
-      server: {
-        uptime: Math.round(uptime),
-        environment: process.env.NODE_ENV,
-        version: '1.0.0',
-        platform: 'Vercel'
-      },
-      memory: {
-        rss: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
-        heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
-        heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB'
-      },
-      database: dbHealth,
-      stability: {
-        isStable: dbHealth.connected,
-        connectionState: dbHealth.state
-      }
-    };
-    
-    // Return 500 if database is not connected
-    if (!dbHealth.connected) {
-      healthStatus.ok = false;
-      return res.status(500).json(healthStatus);
-    }
-    
-    res.json(healthStatus);
-  } catch (err) {
-    res.status(500).json({
-      ok: false,
-      error: err.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// Comprehensive health monitoring endpoint
-app.get('/api/health-detailed', async (req, res) => {
-  try {
-    const dbHealth = await checkHealth();
-    const memoryUsage = process.memoryUsage();
-    const uptime = process.uptime();
-    
-    res.json({
-      status: 'success',
-      message: 'Comprehensive health check',
-      timestamp: new Date().toISOString(),
-      health: {
-        server: {
-          uptime: Math.round(uptime),
-          environment: process.env.NODE_ENV,
-          version: '1.0.0',
-          platform: 'Vercel'
-        },
-        memory: {
-          rss: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
-          heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
-          heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
-          external: Math.round(memoryUsage.external / 1024 / 1024) + ' MB'
-        },
-        database: dbHealth,
-        stability: {
-          isStable: dbHealth.connected,
-          connectionState: dbHealth.state
-        }
-      }
-    });
-  } catch (err) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Health check failed',
-      error: err.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// Performance monitoring endpoint with ChatGPT's recommendations
-app.get('/api/performance', async (req, res) => {
-  try {
-    const memoryUsage = process.memoryUsage();
-    const uptime = process.uptime();
-    const dbHealth = await checkHealth();
-    
-    res.json({
-      status: 'success',
-      message: 'Performance metrics',
-      timestamp: new Date().toISOString(),
-      performance: {
-        uptime: Math.round(uptime),
-        memory: {
-          rss: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
-          heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
-          heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
-          external: Math.round(memoryUsage.external / 1024 / 1024) + ' MB'
-        },
-        database: dbHealth
-      }
-    });
-  } catch (err) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Performance check failed',
-      error: err.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// ChatGPT's recommended database recovery endpoint
-app.post('/api/recover-database', async (req, res) => {
-  try {
-    console.log('🔄 Manual database recovery requested');
-    const result = await forceReconnect();
-    
-    res.json({
-      status: result ? 'success' : 'error',
-      message: result ? 'Database reconnected successfully' : 'Database reconnection failed',
-      timestamp: new Date().toISOString(),
-      database: await checkHealth()
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Database recovery failed',
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// Test endpoint to verify routes are working
-app.get('/api/test', async (req, res) => {
-  try {
-    const dbHealth = await checkHealth();
-    res.json({
-      status: 'success',
-      message: 'API routes are working!',
-      timestamp: new Date().toISOString(),
-      database: dbHealth.connected ? 'connected' : 'disconnected',
-      connectionState: dbHealth.state
-    });
-  } catch (err) {
-    res.json({
-      status: 'success',
-      message: 'API routes are working!',
-      timestamp: new Date().toISOString(),
-      database: 'error',
-      error: err.message
-    });
-  }
-});
-
-// Simple test endpoint for auth routes
-app.post('/api/auth/test', (req, res) => {
-  res.json({
-    status: 'success',
-    message: 'Auth routes are working!',
-    timestamp: new Date().toISOString(),
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-  });
-});
-
-// Database connection test endpoint
-app.get('/api/db-test', async (req, res) => {
-  try {
-    const isConnected = await connectDB();
-    res.json({
-      status: 'success',
-      message: 'Database connection test',
-      connected: isConnected,
-      mongooseState: mongoose.connection.readyState,
-      serverlessDBState: 'deprecated', // Using new connection system
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Database connection test failed',
-      error: error.message,
-      mongooseState: mongoose.connection.readyState,
-      serverlessDBState: 'deprecated', // Using new connection system
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// Enhanced database connection test endpoint
-app.get('/api/db-test-detailed', async (req, res) => {
-  try {
-    const startTime = Date.now();
-    
-    // Test environment variables
-    const envVars = {
-      MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Not set',
-      NODE_ENV: process.env.NODE_ENV || 'Not set',
-      VERCEL: process.env.VERCEL || 'Not set'
-    };
-    
-    // Test connection
-    const isConnected = await connectDB();
-    const connectionTime = Date.now() - startTime;
-    
-    res.json({
-      status: 'success',
-      message: 'Detailed database connection test',
-      connected: isConnected,
-      connectionTime: `${connectionTime}ms`,
-      mongooseState: mongoose.connection.readyState,
-      serverlessDBState: 'deprecated', // Using new connection system
-      environment: envVars,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Detailed database connection test failed',
-      error: error.message,
-      stack: error.stack,
-      mongooseState: mongoose.connection.readyState,
-      serverlessDBState: 'deprecated', // Using new connection system
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// MongoDB Atlas connection test endpoint
-app.get('/api/mongodb-test', async (req, res) => {
-  try {
-    const startTime = Date.now();
-    
-    // Test direct MongoDB connection
-    const mongoose = require('mongoose');
-    
-    // Test connection with detailed error handling
-    const connectionOptions = {
-      serverSelectionTimeoutMS: 10000,
-      socketTimeoutMS: 15000,
-      connectTimeoutMS: 10000,
-      maxPoolSize: 1,
-      minPoolSize: 0,
-      retryWrites: true,
-      w: 'majority'
-    };
-    
-    console.log('🔄 Testing MongoDB Atlas connection...');
-    console.log('🔗 Connection string format:', process.env.MONGODB_URI ? 'Valid' : 'Missing');
-    
-    const connectionPromise = mongoose.connect(process.env.MONGODB_URI, connectionOptions);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Connection timeout after 15 seconds')), 15000)
-    );
-    
-    await Promise.race([connectionPromise, timeoutPromise]);
-    
-    const connectionTime = Date.now() - startTime;
-    const isConnected = mongoose.connection.readyState === 1;
-    
-    res.json({
-      status: 'success',
-      message: 'MongoDB Atlas connection test',
-      connected: isConnected,
-      connectionTime: `${connectionTime}ms`,
-      mongooseState: mongoose.connection.readyState,
-      host: mongoose.connection.host,
-      port: mongoose.connection.port,
-      name: mongoose.connection.name,
-      timestamp: new Date().toISOString()
-    });
-    
-  } catch (error) {
-    const connectionTime = Date.now() - startTime;
-    res.status(500).json({
-      status: 'error',
-      message: 'MongoDB Atlas connection test failed',
-      error: error.message,
-      errorType: error.name,
-      connectionTime: `${connectionTime}ms`,
-      mongooseState: mongoose.connection.readyState,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// Environment variables test endpoint (safe - no database required)
-app.get('/api/env-test', (req, res) => {
-  const mongoUri = process.env.MONGODB_URI;
-  const isMongoUriValid = mongoUri && mongoUri.includes('mongodb') && mongoUri.includes('://');
-  
-  res.json({
-    status: 'success',
-    message: 'Environment variables test',
-    environment: {
-      MONGODB_URI: mongoUri ? 'Set' : 'Not set',
-      MONGODB_URI_VALID: isMongoUriValid,
-      MONGODB_URI_FORMAT: mongoUri ? (mongoUri.includes('mongodb+srv://') ? 'Atlas (SRV)' : 'Standard') : 'Not set',
-      NODE_ENV: process.env.NODE_ENV || 'Not set',
-      VERCEL: process.env.VERCEL || 'Not set',
-      PORT: process.env.PORT || 'Not set'
-    },
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Create required directories for serverless
-const fs = require('fs');
-const path = require('path');
-
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, 'uploads');
-const avatarsDir = path.join(uploadsDir, 'avatars');
-
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log('✅ Created uploads directory');
-}
-
-if (!fs.existsSync(avatarsDir)) {
-  fs.mkdirSync(avatarsDir, { recursive: true });
-  console.log('✅ Created uploads/avatars directory');
-}
-
-// Load routes immediately outside of initialization
-console.log('🚀 Loading routes immediately for serverless...');
-
-// Core routes with error handling
-try {
-  app.use('/api/auth', require('./routes/auth.routes'));
-  console.log('✅ Auth routes loaded immediately');
-} catch (error) {
-  console.error('❌ Auth routes failed to load:', error.message);
-}
-
-try {
-  app.use('/api/users', require('./routes/user.routes'));
-  console.log('✅ User routes loaded immediately');
-} catch (error) {
-  console.error('❌ User routes failed to load:', error.message);
-}
-
-try {
-  app.use('/api/partners', require('./routes/partner.routes'));
-  console.log('✅ Partner routes loaded immediately');
-} catch (error) {
-  console.error('❌ Partner routes failed to load:', error.message);
-}
-
-try {
-  app.use('/api/farmers', require('./routes/farmer.routes'));
-  console.log('✅ Farmer routes loaded immediately');
-} catch (error) {
-  console.error('❌ Farmer routes failed to load:', error.message);
-}
-
-try {
-  app.use('/api/harvests', require('./routes/harvest.routes'));
-  console.log('✅ Harvest routes loaded immediately');
-} catch (error) {
-  console.error('❌ Harvest routes failed to load:', error.message);
-}
-
-try {
-  app.use('/api/marketplace', require('./routes/marketplace.routes'));
-  console.log('✅ Marketplace routes loaded immediately');
-} catch (error) {
-  console.error('❌ Marketplace routes failed to load:', error.message);
-}
-
-try {
-  app.use('/api/payments', require('./routes/payment.routes'));
-  console.log('✅ Payment routes loaded immediately');
-} catch (error) {
-  console.error('❌ Payment routes failed to load:', error.message);
-}
-
-console.log('✅ Core routes loaded immediately for serverless');
-
 // Initialize application
 const initializeApp = async () => {
   try {
     // Connect to database first
     console.log('🚀 Initializing GroChain Backend...');
+    let dbConnected = await connectDB();
     
-    // Start database connection in background (don't wait for it)
-    const dbConnectionPromise = connectDB();
-    
-    // Set up routes immediately without waiting for database
-    console.log('📡 Setting up API routes immediately...');
-
-    // Set up routes with error handling for serverless
-    try {
-      console.log('📡 Loading API routes...');
-      
-      // Core routes
-      app.use('/api/auth', require('./routes/auth.routes'));
-      console.log('✅ Auth routes loaded');
-      
-      app.use('/api/users', require('./routes/user.routes'));
-      console.log('✅ User routes loaded');
-      
-      app.use('/api/partners', require('./routes/partner.routes'));
-      console.log('✅ Partner routes loaded');
-      
-      app.use('/api/farmers', require('./routes/farmer.routes'));
-      console.log('✅ Farmer routes loaded');
-      
-      app.use('/api/harvests', require('./routes/harvest.routes'));
-      console.log('✅ Harvest routes loaded');
-      
-      app.use('/api/harvest-approval', require('./routes/harvest-approval.routes'));
-      console.log('✅ Harvest approval routes loaded');
-      
-      app.use('/api/marketplace', require('./routes/marketplace.routes'));
-      console.log('✅ Marketplace routes loaded');
-      
-      app.use('/api/upload', require('./routes/upload.routes'));
-      console.log('✅ Upload routes loaded');
-      
-      app.use('/api/fintech', require('./routes/fintech.routes'));
-      console.log('✅ Fintech routes loaded');
-      
-      app.use('/api/weather', require('./routes/weather.routes'));
-      console.log('✅ Weather routes loaded');
-      
-      app.use('/api/analytics', require('./routes/analytics.routes'));
-      console.log('✅ Analytics routes loaded');
-      
-      app.use('/api/notifications', require('./routes/notification.routes'));
-      console.log('✅ Notification routes loaded');
-      
-      app.use('/api/payments', require('./routes/payment.routes'));
-      console.log('✅ Payment routes loaded');
-      
-      app.use('/api/qr-codes', require('./routes/qrCode.routes'));
-      console.log('✅ QR Code routes loaded');
-      
-      app.use('/api/verify', require('./routes/verify.routes'));
-      console.log('✅ Verify routes loaded');
-      
-      app.use('/api/referrals', require('./routes/referral.routes'));
-      console.log('✅ Referral routes loaded');
-      
-      app.use('/api/commissions', require('./routes/commission.routes'));
-      console.log('✅ Commission routes loaded');
-      
-      app.use('/api/shipments', require('./routes/shipment.routes'));
-      console.log('✅ Shipment routes loaded');
-      
-      app.use('/api/shipping-update', require('./routes/shipping-update.routes'));
-      console.log('✅ Shipping update routes loaded');
-      
-      app.use('/api/export-import', require('./routes/exportImport.routes'));
-      console.log('✅ Export/Import routes loaded');
-      
-      app.use('/api/auth/google', require('./routes/googleAuth.routes'));
-      console.log('✅ Google Auth routes loaded');
-      
-      app.use('/api/admin', require('./routes/admin'));
-      console.log('✅ Admin routes loaded');
-      
-      app.use('/api/inventory', require('./routes/inventory.routes'));
-      console.log('✅ Inventory routes loaded');
-      
-      app.use('/api/reviews', require('./routes/review.routes'));
-      console.log('✅ Review routes loaded');
-      
-      app.use('/api/price-alerts', require('./routes/price-alert.routes'));
-      console.log('✅ Price alert routes loaded');
-      
-      app.use('/api/onboarding', require('./routes/onboarding.routes'));
-      console.log('✅ Onboarding routes loaded');
-      
-      app.use('/api/debug', require('./routes/debug.route'));
-      console.log('✅ Debug routes loaded');
-      
-      console.log('✅ All API routes registered successfully');
-      
-    } catch (routeError) {
-      console.error('❌ Error loading routes:', routeError);
-      console.error('❌ Route error details:', routeError.message);
-      console.error('❌ Route error stack:', routeError.stack);
-      
-      // Add fallback route for debugging
-      app.use('/api/*', (req, res) => {
-        res.status(500).json({
-          status: 'error',
-          message: 'Route loading failed',
-          error: routeError.message,
-          timestamp: new Date().toISOString()
-        });
-      });
+    // If first attempt fails, try again with a delay
+    if (!dbConnected) {
+      console.log('🔄 First connection attempt failed, retrying...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      dbConnected = await connectDB();
     }
     
+    if (!dbConnected) {
+      console.error('❌ Failed to connect to database after retry. Continuing without database...');
+      // Don't exit in serverless environment - continue with basic functionality
+    } else {
+      console.log('✅ Database connection established successfully');
+    }
+
     // Initialize inventory cleanup service
     const inventoryService = require('./services/inventory.service')
     inventoryService.startCleanupService(30) // Clean up every 30 minutes
     console.log('🧹 Inventory cleanup service started')
     
-    // Check database connection status in background with retry
-    dbConnectionPromise.then((dbConnected) => {
-      if (dbConnected) {
-        console.log('✅ Database connected successfully (serverless)');
-      } else {
-        console.log('⚠️ Database connection failed - retrying in background...');
-        // Retry connection in background
-        setTimeout(async () => {
-          try {
-            const retryConnected = await connectDB();
-            if (retryConnected) {
-              console.log('✅ Database reconnected successfully (serverless)');
-            } else {
-              console.log('⚠️ Database retry failed - routes will handle database errors gracefully');
-            }
-          } catch (retryErr) {
-            console.log('⚠️ Database retry error:', retryErr.message);
-          }
-        }, 5000); // Retry after 5 seconds
-      }
-    }).catch((err) => {
-      console.log('⚠️ Database connection error (serverless):', err.message);
-      // Retry connection in background
-        setTimeout(async () => {
-          try {
-            const retryConnected = await connectDB();
-            if (retryConnected) {
-              console.log('✅ Database reconnected successfully (serverless)');
-            } else {
-              console.log('⚠️ Database retry failed - routes will handle database errors gracefully');
-            }
-          } catch (retryErr) {
-            console.log('⚠️ Database retry error:', retryErr.message);
-          }
-        }, 5000); // Retry after 5 seconds
-    });
+    // Setup routes only after database connection
+    if (dbConnected) {
+      console.log('📡 Setting up API routes...');
+      app.use('/api/auth', require('./routes/auth.routes'));
+      app.use('/api/users', require('./routes/user.routes'));
+      app.use('/api/partners', require('./routes/partner.routes'));
+      app.use('/api/farmers', require('./routes/farmer.routes'));
+      app.use('/api/harvests', require('./routes/harvest.routes'));
+      app.use('/api/harvest-approval', require('./routes/harvest-approval.routes'));
+      app.use('/api/marketplace', require('./routes/marketplace.routes'));
+      app.use('/api/upload', require('./routes/upload.routes'));
+      app.use('/api/fintech', require('./routes/fintech.routes'));
+      app.use('/api/weather', require('./routes/weather.routes'));
+      app.use('/api/analytics', require('./routes/analytics.routes'));
+      app.use('/api/notifications', require('./routes/notification.routes'));
+      app.use('/api/payments', require('./routes/payment.routes'));
+      app.use('/api/qr-codes', require('./routes/qrCode.routes'));
+      console.log('✅ Registered /api/verify routes (PUBLIC - no auth required)');
+      app.use('/api/verify', require('./routes/verify.routes'));
+      app.use('/api/referrals', require('./routes/referral.routes'));
+      app.use('/api/commissions', require('./routes/commission.routes'));
+      app.use('/api/shipments', require('./routes/shipment.routes'));
+      app.use('/api/shipping-update', require('./routes/shipping-update.routes'));
+      app.use('/api/export-import', require('./routes/exportImport.routes'));
+      app.use('/api/auth/google', require('./routes/googleAuth.routes'));
+      app.use('/api/admin', require('./routes/admin'));
+      app.use('/api/inventory', require('./routes/inventory.routes'));
+      app.use('/api/reviews', require('./routes/review.routes'));
+      app.use('/api/price-alerts', require('./routes/price-alert.routes'));
+      app.use('/api/onboarding', require('./routes/onboarding.routes'));
+      app.use('/api/debug', require('./routes/debug.route'));
+    } else {
+      console.log('⚠️ Skipping route setup due to database connection failure');
+      
+      // Add a fallback route for database-dependent endpoints
+      app.use('/api/*', (req, res) => {
+        res.status(503).json({
+          status: 'error',
+          message: 'Service temporarily unavailable - Database connection failed',
+          error: 'DATABASE_CONNECTION_FAILED',
+          timestamp: new Date().toISOString()
+        });
+      });
+    }
     
     // Update health check endpoint with WebSocket info
     app.get('/api/health', (req, res) => {
@@ -1032,58 +411,6 @@ const initializeApp = async () => {
     
     // Import error handling middleware
     const { errorHandler, notFound } = require('./middlewares/error.middleware')
-    
-// Enhanced error handler with comprehensive recovery
-app.use('/api', (err, req, res, next) => {
-  console.log('🚨 API Error detected:', err.name, err.message);
-  
-  // Database-related errors
-  if (err.name === 'MongoNetworkError' || err.name === 'MongoTimeoutError' || err.message.includes('database')) {
-    console.log('🔄 Database error detected, attempting recovery...');
-    
-    // Attempt to reconnect on database errors
-    if (process.env.MONGODB_URI) {
-      connectDB().catch(reconnectErr => {
-        console.log('⚠️ Reconnection attempt failed:', reconnectErr.message);
-      });
-    }
-    
-    // Return a proper error response instead of continuing
-    return res.status(503).json({
-      status: 'error',
-      message: 'Database temporarily unavailable, retrying...',
-      retryAfter: 2,
-      timestamp: new Date().toISOString()
-    });
-  } 
-  // Network timeout errors
-  else if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ENOTFOUND') {
-    console.log('🔄 Network error detected, attempting recovery...');
-    
-    return res.status(503).json({
-      status: 'error',
-      message: 'Network timeout, please retry',
-      retryAfter: 1,
-      timestamp: new Date().toISOString()
-    });
-  }
-  // Connection errors
-  else if (err.code === 'ECONNREFUSED' || err.code === 'EHOSTUNREACH') {
-    console.log('🔄 Connection error detected, attempting recovery...');
-    
-    return res.status(503).json({
-      status: 'error',
-      message: 'Connection failed, retrying...',
-      retryAfter: 3,
-      timestamp: new Date().toISOString()
-    });
-  }
-  // Other errors
-  else {
-    console.log('🚨 Unhandled error:', err);
-    return next(err);
-  }
-});
     
     // 404 handler
     app.use(notFound)
