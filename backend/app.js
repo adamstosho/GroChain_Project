@@ -41,23 +41,43 @@ const corsOptions = {
         'http://127.0.0.1:3002',
         'http://127.0.0.1:4000',
         'http://127.0.0.1:5000',
-        "https://gro-chain.vercel.app"
+        "https://gro-chain.vercel.app",
+        "https://gro-chain.vercel.app/",
+        "https://gro-back.vercel.app",
+        "https://gro-back.vercel.app/"
       ]
     
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true)
     
+    // Allow all Vercel preview deployments
+    if (origin && origin.includes('.vercel.app')) {
+      return callback(null, true)
+    }
+    
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true)
     } else {
+      console.log('CORS blocked origin:', origin)
       callback(new Error('Not allowed by CORS'))
     }
   },
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }
 
 app.use(cors(corsOptions))
+
+// Handle preflight OPTIONS requests
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
+  res.header('Access-Control-Allow-Credentials', 'true')
+  res.status(200).end()
+})
 
 // Logging
 if (process.env.NODE_ENV === 'production') {
@@ -193,27 +213,34 @@ const connectDB = async () => {
     }
 
     const options = {
-      serverSelectionTimeoutMS: 30000,  // Restored for Render
-      socketTimeoutMS: 45000,
-      maxPoolSize: 10,  // Restored for Render
-      minPoolSize: 1,   // Restored for Render
-      maxIdleTimeMS: 30000,  // Restored for Render
+      serverSelectionTimeoutMS: 10000,  // Reduced for Vercel (10 seconds)
+      socketTimeoutMS: 15000,          // Reduced for Vercel (15 seconds)
+      maxPoolSize: 5,                  // Reduced for serverless
+      minPoolSize: 0,                   // Reduced for serverless
+      maxIdleTimeMS: 10000,            // Reduced for serverless
       retryWrites: true,
-      w: 'majority'
+      w: 'majority',
+      connectTimeoutMS: 10000          // Added connection timeout
     };
 
     // Log presence and masked version of the URI (do not expose credentials)
     const rawMongoUri = process.env.MONGODB_URI || '';
     const maskedUri = rawMongoUri
-      ? rawMongoUri.replace(/(:\\/\\/)(.*@)/, ':////***@').replace(/(.{50}).*(.{20})/, '$1...$2')
+      ? rawMongoUri.replace(/(:\/\/)(.*@)/, '://***@').replace(/(.{50}).*(.{20})/, '$1...$2')
       : '';
     console.log('🔄 Attempting MongoDB connection...');
     console.log('🔍 MONGODB_URI present:', !!rawMongoUri, '  masked:', maskedUri);
 
     try {
-      await mongoose.connect(process.env.MONGODB_URI, options);
+      // Add timeout wrapper for Vercel
+      const connectPromise = mongoose.connect(process.env.MONGODB_URI, options);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timeout')), 12000)
+      );
+      
+      await Promise.race([connectPromise, timeoutPromise]);
 
-      // Simple wait for connection (Render doesn't need complex polling)
+      // Simple wait for connection
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       console.log('✅ MongoDB connected successfully');
@@ -271,7 +298,12 @@ app.get('/', (req, res) => {
       metrics: '/metrics'
     },
     database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    cors: {
+      origin: req.headers.origin || 'none',
+      method: req.method,
+      headers: req.headers
+    }
   })
 });
 
@@ -346,49 +378,43 @@ const initializeApp = async () => {
     inventoryService.startCleanupService(30) // Clean up every 30 minutes
     console.log('🧹 Inventory cleanup service started')
     
-    // Setup routes only after database connection
-    if (dbConnected) {
-      console.log('📡 Setting up API routes...');
-      app.use('/api/auth', require('./routes/auth.routes'));
-      app.use('/api/users', require('./routes/user.routes'));
-      app.use('/api/partners', require('./routes/partner.routes'));
-      app.use('/api/farmers', require('./routes/farmer.routes'));
-      app.use('/api/harvests', require('./routes/harvest.routes'));
-      app.use('/api/harvest-approval', require('./routes/harvest-approval.routes'));
-      app.use('/api/marketplace', require('./routes/marketplace.routes'));
-      app.use('/api/upload', require('./routes/upload.routes'));
-      app.use('/api/fintech', require('./routes/fintech.routes'));
-      app.use('/api/weather', require('./routes/weather.routes'));
-      app.use('/api/analytics', require('./routes/analytics.routes'));
-      app.use('/api/notifications', require('./routes/notification.routes'));
-      app.use('/api/payments', require('./routes/payment.routes'));
-      app.use('/api/qr-codes', require('./routes/qrCode.routes'));
-      console.log('✅ Registered /api/verify routes (PUBLIC - no auth required)');
-      app.use('/api/verify', require('./routes/verify.routes'));
-      app.use('/api/referrals', require('./routes/referral.routes'));
-      app.use('/api/commissions', require('./routes/commission.routes'));
-      app.use('/api/shipments', require('./routes/shipment.routes'));
-      app.use('/api/shipping-update', require('./routes/shipping-update.routes'));
-      app.use('/api/export-import', require('./routes/exportImport.routes'));
-      app.use('/api/auth/google', require('./routes/googleAuth.routes'));
-      app.use('/api/admin', require('./routes/admin'));
-      app.use('/api/inventory', require('./routes/inventory.routes'));
-      app.use('/api/reviews', require('./routes/review.routes'));
-      app.use('/api/price-alerts', require('./routes/price-alert.routes'));
-      app.use('/api/onboarding', require('./routes/onboarding.routes'));
-      app.use('/api/debug', require('./routes/debug.route'));
+    // Setup routes regardless of database connection status
+    console.log('📡 Setting up API routes...');
+    
+    // Always set up routes, but add database status checks in individual route handlers
+    app.use('/api/auth', require('./routes/auth.routes'));
+    app.use('/api/users', require('./routes/user.routes'));
+    app.use('/api/partners', require('./routes/partner.routes'));
+    app.use('/api/farmers', require('./routes/farmer.routes'));
+    app.use('/api/harvests', require('./routes/harvest.routes'));
+    app.use('/api/harvest-approval', require('./routes/harvest-approval.routes'));
+    app.use('/api/marketplace', require('./routes/marketplace.routes'));
+    app.use('/api/upload', require('./routes/upload.routes'));
+    app.use('/api/fintech', require('./routes/fintech.routes'));
+    app.use('/api/weather', require('./routes/weather.routes'));
+    app.use('/api/analytics', require('./routes/analytics.routes'));
+    app.use('/api/notifications', require('./routes/notification.routes'));
+    app.use('/api/payments', require('./routes/payment.routes'));
+    app.use('/api/qr-codes', require('./routes/qrCode.routes'));
+    console.log('✅ Registered /api/verify routes (PUBLIC - no auth required)');
+    app.use('/api/verify', require('./routes/verify.routes'));
+    app.use('/api/referrals', require('./routes/referral.routes'));
+    app.use('/api/commissions', require('./routes/commission.routes'));
+    app.use('/api/shipments', require('./routes/shipment.routes'));
+    app.use('/api/shipping-update', require('./routes/shipping-update.routes'));
+    app.use('/api/export-import', require('./routes/exportImport.routes'));
+    app.use('/api/auth/google', require('./routes/googleAuth.routes'));
+    app.use('/api/admin', require('./routes/admin'));
+    app.use('/api/inventory', require('./routes/inventory.routes'));
+    app.use('/api/reviews', require('./routes/review.routes'));
+    app.use('/api/price-alerts', require('./routes/price-alert.routes'));
+    app.use('/api/onboarding', require('./routes/onboarding.routes'));
+    app.use('/api/debug', require('./routes/debug.route'));
+    
+    if (!dbConnected) {
+      console.log('⚠️ Database connection failed - routes will handle database errors gracefully');
     } else {
-      console.log('⚠️ Skipping route setup due to database connection failure');
-      
-      // Add a fallback route for database-dependent endpoints
-      app.use('/api/*', (req, res) => {
-        res.status(503).json({
-          status: 'error',
-          message: 'Service temporarily unavailable - Database connection failed',
-          error: 'DATABASE_CONNECTION_FAILED',
-          timestamp: new Date().toISOString()
-        });
-      });
+      console.log('✅ Database connected - all routes fully functional');
     }
     
     // Update health check endpoint with WebSocket info
