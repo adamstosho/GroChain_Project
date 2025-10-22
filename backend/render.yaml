@@ -18,9 +18,9 @@ services:
         value: https://gro-chain.vercel.app
       - key: FRONTEND_URL
         value: https://gro-chain.vercel.app
-      # Email Configuration - Using SMTP for reliability
+      # Email Configuration - Using SendGrid for reliability
       - key: EMAIL_PROVIDER
-        value: smtp
+        value: sendgrid
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT
