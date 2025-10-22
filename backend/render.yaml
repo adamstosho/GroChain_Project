@@ -33,3 +33,10 @@ services:
         sync: false  # Set your Gmail app password in Render dashboard
       - key: SMTP_FROM
         value: grochain.ng@gmail.com  # Your Gmail address
+      # SendGrid Configuration (Backup) - Set these in Render dashboard
+      - key: SENDGRID_API_KEY
+        sync: false  # Set your SendGrid API key in Render dashboard
+      - key: SENDGRID_FROM_EMAIL
+        value: grochain.ng@gmail.com
+      - key: SENDGRID_FROM_NAME
+        value: GroChain
