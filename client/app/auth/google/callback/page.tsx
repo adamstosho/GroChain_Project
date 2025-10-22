@@ -59,7 +59,7 @@ function GoogleCallbackContent() {
         // Exchange code for tokens
         console.log('Sending request to backend with code:', code)
         console.log('API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL)
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend-alg2sispw-grochainng-6727s-projects.vercel.app'
         console.log('Full URL:', `${apiBaseUrl}/api/auth/google/callback`)
         const response = await fetch(`${apiBaseUrl}/api/auth/google/callback`, {
           method: 'POST',

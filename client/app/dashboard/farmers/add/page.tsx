@@ -105,7 +105,7 @@ export default function AddFarmerPage() {
     try {
       setIsSubmitting(true)
 
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend-alg2sispw-grochainng-6727s-projects.vercel.app'
       const token = localStorage.getItem(APP_CONFIG.auth.tokenKey)
       if (!token) {
         toast({

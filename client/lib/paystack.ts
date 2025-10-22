@@ -97,7 +97,7 @@ export const initializePaystackPayment = async (
   return new Promise(async (resolve, reject) => {
     try {
       // Get Paystack configuration
-      const configResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/payments/config`)
+      const configResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend-alg2sispw-grochainng-6727s-projects.vercel.app'}/api/payments/config`)
       const config = await configResponse.json()
 
       // Use the public key from the config or fallback to the correct test key
@@ -179,7 +179,7 @@ export const processOrderPayment = async (
     console.log('💳 Initializing payment with backend...')
     console.log('📤 Payment init data:', { orderId, amount, email })
 
-    const initResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/payments/initialize`, {
+    const initResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend-alg2sispw-grochainng-6727s-projects.vercel.app'}/api/payments/initialize`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -250,7 +250,7 @@ export const processOrderPayment = async (
  */
 export const getPaymentConfig = async () => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/payments/config`)
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend-alg2sispw-grochainng-6727s-projects.vercel.app'}/api/payments/config`)
     return await response.json()
   } catch (error) {
     console.error('❌ Failed to get payment config:', error)
