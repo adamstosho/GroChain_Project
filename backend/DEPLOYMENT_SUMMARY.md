@@ -90,7 +90,7 @@ git push origin main
 ### 1. Check Basic Endpoints
 ```bash
 # Root endpoint
-curl https://gro-back.vercel.app/
+curl https://gro-back.vercel.app
 
 # Health check
 curl https://gro-back.vercel.app/api/health

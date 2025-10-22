@@ -44,7 +44,7 @@ SENDGRID_API_KEY=your_sendgrid_key
    - Or it will auto-deploy from your git push
 
 3. **Test the deployment:**
-   - Visit: `https://gro-back.vercel.app/`
+   - Visit: `https://gro-back.vercel.app`
    - Check health: `https://gro-back.vercel.app/api/health`
    - Test CORS: `https://gro-back.vercel.app/api/auth/login` (OPTIONS request)
 
