@@ -140,9 +140,16 @@ class EmailQueueService {
         to: mailOptions.to,
         subject: mailOptions.subject
       })
-      await this.transport.sendMail(mailOptions)
-      console.log('✅ EmailQueue: SMTP email sent successfully to:', job.to)
-      return
+      
+      try {
+        const result = await this.transport.sendMail(mailOptions)
+        console.log('✅ EmailQueue: SMTP email sent successfully to:', job.to)
+        console.log('📧 EmailQueue: SMTP result:', result.messageId)
+        return result
+      } catch (error) {
+        console.error('❌ EmailQueue: SMTP send failed:', error.message)
+        throw error
+      }
     }
 
     // Dev fallback: log only
