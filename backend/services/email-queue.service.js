@@ -38,7 +38,16 @@ class EmailQueueService {
         secure: String(process.env.SMTP_SECURE) === 'true',
         auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
       })
-      console.log('✅ EmailQueue: SMTP transporter initialized (fallback)')
+      console.log('✅ EmailQueue: SMTP transporter initialized (EMAIL_PROVIDER=smtp)')
+      
+      // Test SMTP connection
+      this.transport.verify((error, success) => {
+        if (error) {
+          console.error('❌ EmailQueue: SMTP connection failed:', error.message)
+        } else {
+          console.log('✅ EmailQueue: SMTP connection verified successfully')
+        }
+      })
     } else {
       console.warn('⚠️ EmailQueue: No email provider configured; emails will be logged only')
       console.warn('⚠️ EmailQueue: Check EMAIL_PROVIDER, SENDGRID_API_KEY, or SMTP settings')
