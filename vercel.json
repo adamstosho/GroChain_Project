@@ -9,7 +9,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "https://backend-alg2sispw-grochainng-6727s-projects.vercel.app/api/$1"
+      "dest": "https://gro-back.vercel.app/api/$1"
     },
     {
       "src": "/(.*)",

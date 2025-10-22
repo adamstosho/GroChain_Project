@@ -516,7 +516,7 @@ export function SettingsForm() {
                     <img
                       src={user.profile.avatar.startsWith('http')
                         ? `${user.profile.avatar}?t=${Date.now()}`
-                        : `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend-alg2sispw-grochainng-6727s-projects.vercel.app'}/api/users/avatar/${user.profile.avatar}?t=${Date.now()}`
+                        : `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/users/avatar/${user.profile.avatar}?t=${Date.now()}`
                       }
                       alt="Profile"
                       className="w-full h-full object-cover"
@@ -533,7 +533,7 @@ export function SettingsForm() {
 
                         // Try fallback to direct static URL if it's not already a full URL
                         if (!user?.profile?.avatar?.startsWith('http') && !target.src.includes('/api/users/avatar/')) {
-                          const fallbackSrc = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend-alg2sispw-grochainng-6727s-projects.vercel.app'}/api/users/avatar/${user?.profile?.avatar}?t=${Date.now()}`
+                          const fallbackSrc = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/users/avatar/${user?.profile?.avatar}?t=${Date.now()}`
                           console.log('Trying fallback URL:', fallbackSrc)
                           target.src = fallbackSrc
                         }

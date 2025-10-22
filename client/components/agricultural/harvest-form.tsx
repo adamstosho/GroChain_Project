@@ -301,7 +301,7 @@ export function HarvestForm({
           formData.append('file', file)
 
           // Make direct request to backend (since ApiService expects JSON)
-          const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend-alg2sispw-grochainng-6727s-projects.vercel.app'
+          const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
           const uploadUrl = `${backendUrl}/api/upload/image`
 
           console.log('📤 Upload URL:', uploadUrl)
