@@ -449,8 +449,8 @@ app.get('/api/debug/database', (req, res) => {
       mongodbUriExists: !!process.env.MONGODB_URI,
       mongodbUriProdExists: !!process.env.MONGODB_URI_PROD,
       mongooseReadyState: mongoose.connection.readyState,
-      serverlessDBConnected: serverlessDB.isConnected(),
-      serverlessDBState: serverlessDB.getConnectionState(),
+      serverlessDBConnected: false, // Deprecated - using new connection system
+      serverlessDBState: 'deprecated', // Deprecated - using new connection system
       mongooseHost: mongoose.connection.host,
       mongoosePort: mongoose.connection.port,
       mongooseName: mongoose.connection.name,
@@ -634,20 +634,20 @@ app.post('/api/auth/test', (req, res) => {
     status: 'success',
     message: 'Auth routes are working!',
     timestamp: new Date().toISOString(),
-    database: serverlessDB.isConnected() ? 'connected' : 'disconnected'
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
   });
 });
 
 // Database connection test endpoint
 app.get('/api/db-test', async (req, res) => {
   try {
-    const isConnected = await serverlessDB.ensureConnection();
+    const isConnected = await connectDB();
     res.json({
       status: 'success',
       message: 'Database connection test',
       connected: isConnected,
       mongooseState: mongoose.connection.readyState,
-      serverlessDBState: serverlessDB.getConnectionState(),
+      serverlessDBState: 'deprecated', // Using new connection system
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -656,7 +656,7 @@ app.get('/api/db-test', async (req, res) => {
       message: 'Database connection test failed',
       error: error.message,
       mongooseState: mongoose.connection.readyState,
-      serverlessDBState: serverlessDB.getConnectionState(),
+      serverlessDBState: 'deprecated', // Using new connection system
       timestamp: new Date().toISOString()
     });
   }
@@ -675,7 +675,7 @@ app.get('/api/db-test-detailed', async (req, res) => {
     };
     
     // Test connection
-    const isConnected = await serverlessDB.ensureConnection();
+    const isConnected = await connectDB();
     const connectionTime = Date.now() - startTime;
     
     res.json({
@@ -684,7 +684,7 @@ app.get('/api/db-test-detailed', async (req, res) => {
       connected: isConnected,
       connectionTime: `${connectionTime}ms`,
       mongooseState: mongoose.connection.readyState,
-      serverlessDBState: serverlessDB.getConnectionState(),
+      serverlessDBState: 'deprecated', // Using new connection system
       environment: envVars,
       timestamp: new Date().toISOString()
     });
@@ -695,7 +695,7 @@ app.get('/api/db-test-detailed', async (req, res) => {
       error: error.message,
       stack: error.stack,
       mongooseState: mongoose.connection.readyState,
-      serverlessDBState: serverlessDB.getConnectionState(),
+      serverlessDBState: 'deprecated', // Using new connection system
       timestamp: new Date().toISOString()
     });
   }
@@ -859,7 +859,7 @@ const initializeApp = async () => {
     console.log('🚀 Initializing GroChain Backend...');
     
     // Start database connection in background (don't wait for it)
-    const dbConnectionPromise = serverlessDB.connect();
+    const dbConnectionPromise = connectDB();
     
     // Set up routes immediately without waiting for database
     console.log('📡 Setting up API routes immediately...');
@@ -982,7 +982,7 @@ const initializeApp = async () => {
         // Retry connection in background
         setTimeout(async () => {
           try {
-            const retryConnected = await serverlessDB.connect();
+            const retryConnected = await connectDB();
             if (retryConnected) {
               console.log('✅ Database reconnected successfully (serverless)');
             } else {
@@ -998,7 +998,7 @@ const initializeApp = async () => {
       // Retry connection in background
         setTimeout(async () => {
           try {
-            const retryConnected = await serverlessDB.connect();
+            const retryConnected = await connectDB();
             if (retryConnected) {
               console.log('✅ Database reconnected successfully (serverless)');
             } else {
@@ -1043,7 +1043,7 @@ app.use('/api', (err, req, res, next) => {
     
     // Attempt to reconnect on database errors
     if (process.env.MONGODB_URI) {
-      serverlessDB.ensureConnection().catch(reconnectErr => {
+      connectDB().catch(reconnectErr => {
         console.log('⚠️ Reconnection attempt failed:', reconnectErr.message);
       });
     }
