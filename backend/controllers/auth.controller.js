@@ -77,33 +77,6 @@ async function sendEmail(to, subject, html) {
       await sgMail.send(msg)
       console.log('✅ SendGrid email sent successfully to:', to)
       return true
-      console.log('📧 Using SMTP...')
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT || 587),
-        secure: String(process.env.SMTP_SECURE) === 'true',
-        auth: { 
-          user: process.env.SMTP_USER, 
-          pass: process.env.SMTP_PASS 
-        },
-      })
-      
-      const mailOptions = {
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
-        to,
-        subject,
-        html
-      }
-      
-      console.log('📧 SMTP mail options:', {
-        from: mailOptions.from,
-        to: mailOptions.to,
-        subject: mailOptions.subject
-      })
-      
-      await transporter.sendMail(mailOptions)
-      console.log('✅ SMTP email sent successfully to:', to)
-      return true
       
     } else {
       // Development fallback - log the email but also try to send

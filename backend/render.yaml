@@ -28,8 +28,8 @@ services:
       - key: SMTP_SECURE
         value: "false"
       - key: SMTP_USER
-        sync: false  # Set your Gmail in Render dashboard
+        value: grochain.ng@gmail.com  # Your Gmail address
       - key: SMTP_PASS
         sync: false  # Set your Gmail app password in Render dashboard
       - key: SMTP_FROM
-        sync: false  # Set your Gmail in Render dashboard
+        value: grochain.ng@gmail.com  # Your Gmail address
