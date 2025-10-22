@@ -121,9 +121,25 @@ class EmailQueueService {
         from: msg.from.email,
         subject: msg.subject
       })
-      await this.sendgrid.send(msg)
-      console.log('✅ EmailQueue: SendGrid email sent successfully to:', job.to)
-      return
+      try {
+        const response = await this.sendgrid.send(msg)
+        // Response may be an array (one per recipient)
+        try {
+          const resp = Array.isArray(response) ? response[0] : response
+          console.log('✅ EmailQueue: SendGrid email sent successfully to:', job.to, 'status:', resp.statusCode)
+          if (resp.headers) console.log('📨 EmailQueue: SendGrid response headers:', resp.headers)
+        } catch (inner) {
+          console.log('✅ EmailQueue: SendGrid send returned unstructured response:', response)
+        }
+        return
+      } catch (sgError) {
+        console.error('❌ EmailQueue: SendGrid send failed:', sgError && sgError.message ? sgError.message : sgError)
+        if (sgError?.response?.body) {
+          console.error('❌ EmailQueue: SendGrid response body:', JSON.stringify(sgError.response.body))
+        }
+        // Re-throw so retry/backoff logic can handle it
+        throw sgError
+      }
     }
 
     if (this.transport) {
