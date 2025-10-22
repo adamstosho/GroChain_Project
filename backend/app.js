@@ -70,17 +70,38 @@ const corsOptions = {
 
 app.use(cors(corsOptions))
 
-// Handle preflight OPTIONS requests
+// Handle preflight OPTIONS requests for serverless
 app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*')
+  const origin = req.headers.origin
+  const allowedOrigins = [
+    'https://gro-chain.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ]
+  
+  if (allowedOrigins.includes(origin) || (origin && origin.includes('.vercel.app'))) {
+    res.header('Access-Control-Allow-Origin', origin)
+  } else {
+    res.header('Access-Control-Allow-Origin', '*')
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
   res.header('Access-Control-Allow-Credentials', 'true')
+  res.header('Access-Control-Max-Age', '86400') // Cache preflight for 24 hours
   res.status(200).end()
 })
 
 // Import serverless database utility
 const serverlessDB = require('./utils/serverless-db');
+
+// Fix double slash issue in URLs
+app.use((req, res, next) => {
+  if (req.url.includes('//')) {
+    req.url = req.url.replace(/\/+/g, '/');
+  }
+  next();
+});
 
 // Serverless connection middleware - attempt to connect on each request if needed
 app.use('/api', async (req, res, next) => {
