@@ -79,6 +79,8 @@ app.options('*', (req, res) => {
     'http://localhost:3001'
   ]
   
+  console.log('🔄 Handling OPTIONS request for origin:', origin);
+  
   if (allowedOrigins.includes(origin) || (origin && origin.includes('.vercel.app'))) {
     res.header('Access-Control-Allow-Origin', origin)
   } else {
@@ -89,6 +91,8 @@ app.options('*', (req, res) => {
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
   res.header('Access-Control-Allow-Credentials', 'true')
   res.header('Access-Control-Max-Age', '86400') // Cache preflight for 24 hours
+  
+  // Don't redirect - just return 200
   res.status(200).end()
 })
 
@@ -98,7 +102,19 @@ const serverlessDB = require('./utils/serverless-db');
 // Fix double slash issue in URLs
 app.use((req, res, next) => {
   if (req.url.includes('//')) {
+    const originalUrl = req.url;
     req.url = req.url.replace(/\/+/g, '/');
+    console.log('🔧 Fixed double slash URL:', originalUrl, '->', req.url);
+  }
+  next();
+});
+
+// Additional middleware to handle double slash in API routes specifically
+app.use('/api', (req, res, next) => {
+  if (req.url.includes('//')) {
+    const originalUrl = req.url;
+    req.url = req.url.replace(/\/+/g, '/');
+    console.log('🔧 Fixed API double slash URL:', originalUrl, '->', req.url);
   }
   next();
 });
