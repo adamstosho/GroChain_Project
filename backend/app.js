@@ -199,7 +199,9 @@ const connectDB = async () => {
       minPoolSize: 1,   // Restored for Render
       maxIdleTimeMS: 30000,  // Restored for Render
       retryWrites: true,
-      w: 'majority'
+      w: 'majority',
+      bufferCommands: false, // Disable mongoose buffering
+      bufferMaxEntries: 0 // Disable mongoose buffering
     };
 
     console.log('🔄 Attempting MongoDB connection...');
