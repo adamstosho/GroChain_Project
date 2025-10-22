@@ -410,6 +410,40 @@ app.get('/api/test', (req, res) => {
   });
 });
 
+// Simple test endpoint for auth routes
+app.post('/api/auth/test', (req, res) => {
+  res.json({
+    status: 'success',
+    message: 'Auth routes are working!',
+    timestamp: new Date().toISOString(),
+    database: serverlessDB.isConnected() ? 'connected' : 'disconnected'
+  });
+});
+
+// Database connection test endpoint
+app.get('/api/db-test', async (req, res) => {
+  try {
+    const isConnected = await serverlessDB.ensureConnection();
+    res.json({
+      status: 'success',
+      message: 'Database connection test',
+      connected: isConnected,
+      mongooseState: mongoose.connection.readyState,
+      serverlessDBState: serverlessDB.getConnectionState(),
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Database connection test failed',
+      error: error.message,
+      mongooseState: mongoose.connection.readyState,
+      serverlessDBState: serverlessDB.getConnectionState(),
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Initialize application
 const initializeApp = async () => {
   try {
@@ -422,37 +456,109 @@ const initializeApp = async () => {
     // Set up routes immediately without waiting for database
     console.log('📡 Setting up API routes immediately...');
 
-    // Always set up routes immediately, but add database status checks in individual route handlers
-    app.use('/api/auth', require('./routes/auth.routes'));
-    app.use('/api/users', require('./routes/user.routes'));
-    app.use('/api/partners', require('./routes/partner.routes'));
-    app.use('/api/farmers', require('./routes/farmer.routes'));
-    app.use('/api/harvests', require('./routes/harvest.routes'));
-    app.use('/api/harvest-approval', require('./routes/harvest-approval.routes'));
-    app.use('/api/marketplace', require('./routes/marketplace.routes'));
-    app.use('/api/upload', require('./routes/upload.routes'));
-    app.use('/api/fintech', require('./routes/fintech.routes'));
-    app.use('/api/weather', require('./routes/weather.routes'));
-    app.use('/api/analytics', require('./routes/analytics.routes'));
-    app.use('/api/notifications', require('./routes/notification.routes'));
-    app.use('/api/payments', require('./routes/payment.routes'));
-    app.use('/api/qr-codes', require('./routes/qrCode.routes'));
-    console.log('✅ Registered /api/verify routes (PUBLIC - no auth required)');
-    app.use('/api/verify', require('./routes/verify.routes'));
-    app.use('/api/referrals', require('./routes/referral.routes'));
-    app.use('/api/commissions', require('./routes/commission.routes'));
-    app.use('/api/shipments', require('./routes/shipment.routes'));
-    app.use('/api/shipping-update', require('./routes/shipping-update.routes'));
-    app.use('/api/export-import', require('./routes/exportImport.routes'));
-    app.use('/api/auth/google', require('./routes/googleAuth.routes'));
-    app.use('/api/admin', require('./routes/admin'));
-    app.use('/api/inventory', require('./routes/inventory.routes'));
-    app.use('/api/reviews', require('./routes/review.routes'));
-    app.use('/api/price-alerts', require('./routes/price-alert.routes'));
-    app.use('/api/onboarding', require('./routes/onboarding.routes'));
-    app.use('/api/debug', require('./routes/debug.route'));
-    
-    console.log('✅ All API routes registered successfully');
+    // Set up routes with error handling for serverless
+    try {
+      console.log('📡 Loading API routes...');
+      
+      // Core routes
+      app.use('/api/auth', require('./routes/auth.routes'));
+      console.log('✅ Auth routes loaded');
+      
+      app.use('/api/users', require('./routes/user.routes'));
+      console.log('✅ User routes loaded');
+      
+      app.use('/api/partners', require('./routes/partner.routes'));
+      console.log('✅ Partner routes loaded');
+      
+      app.use('/api/farmers', require('./routes/farmer.routes'));
+      console.log('✅ Farmer routes loaded');
+      
+      app.use('/api/harvests', require('./routes/harvest.routes'));
+      console.log('✅ Harvest routes loaded');
+      
+      app.use('/api/harvest-approval', require('./routes/harvest-approval.routes'));
+      console.log('✅ Harvest approval routes loaded');
+      
+      app.use('/api/marketplace', require('./routes/marketplace.routes'));
+      console.log('✅ Marketplace routes loaded');
+      
+      app.use('/api/upload', require('./routes/upload.routes'));
+      console.log('✅ Upload routes loaded');
+      
+      app.use('/api/fintech', require('./routes/fintech.routes'));
+      console.log('✅ Fintech routes loaded');
+      
+      app.use('/api/weather', require('./routes/weather.routes'));
+      console.log('✅ Weather routes loaded');
+      
+      app.use('/api/analytics', require('./routes/analytics.routes'));
+      console.log('✅ Analytics routes loaded');
+      
+      app.use('/api/notifications', require('./routes/notification.routes'));
+      console.log('✅ Notification routes loaded');
+      
+      app.use('/api/payments', require('./routes/payment.routes'));
+      console.log('✅ Payment routes loaded');
+      
+      app.use('/api/qr-codes', require('./routes/qrCode.routes'));
+      console.log('✅ QR Code routes loaded');
+      
+      app.use('/api/verify', require('./routes/verify.routes'));
+      console.log('✅ Verify routes loaded');
+      
+      app.use('/api/referrals', require('./routes/referral.routes'));
+      console.log('✅ Referral routes loaded');
+      
+      app.use('/api/commissions', require('./routes/commission.routes'));
+      console.log('✅ Commission routes loaded');
+      
+      app.use('/api/shipments', require('./routes/shipment.routes'));
+      console.log('✅ Shipment routes loaded');
+      
+      app.use('/api/shipping-update', require('./routes/shipping-update.routes'));
+      console.log('✅ Shipping update routes loaded');
+      
+      app.use('/api/export-import', require('./routes/exportImport.routes'));
+      console.log('✅ Export/Import routes loaded');
+      
+      app.use('/api/auth/google', require('./routes/googleAuth.routes'));
+      console.log('✅ Google Auth routes loaded');
+      
+      app.use('/api/admin', require('./routes/admin'));
+      console.log('✅ Admin routes loaded');
+      
+      app.use('/api/inventory', require('./routes/inventory.routes'));
+      console.log('✅ Inventory routes loaded');
+      
+      app.use('/api/reviews', require('./routes/review.routes'));
+      console.log('✅ Review routes loaded');
+      
+      app.use('/api/price-alerts', require('./routes/price-alert.routes'));
+      console.log('✅ Price alert routes loaded');
+      
+      app.use('/api/onboarding', require('./routes/onboarding.routes'));
+      console.log('✅ Onboarding routes loaded');
+      
+      app.use('/api/debug', require('./routes/debug.route'));
+      console.log('✅ Debug routes loaded');
+      
+      console.log('✅ All API routes registered successfully');
+      
+    } catch (routeError) {
+      console.error('❌ Error loading routes:', routeError);
+      console.error('❌ Route error details:', routeError.message);
+      console.error('❌ Route error stack:', routeError.stack);
+      
+      // Add fallback route for debugging
+      app.use('/api/*', (req, res) => {
+        res.status(500).json({
+          status: 'error',
+          message: 'Route loading failed',
+          error: routeError.message,
+          timestamp: new Date().toISOString()
+        });
+      });
+    }
     
     // Initialize inventory cleanup service
     const inventoryService = require('./services/inventory.service')
