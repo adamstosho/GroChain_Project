@@ -592,6 +592,24 @@ app.get('/api/env-test', (req, res) => {
   });
 });
 
+// Create required directories for serverless
+const fs = require('fs');
+const path = require('path');
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+const avatarsDir = path.join(uploadsDir, 'avatars');
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('✅ Created uploads directory');
+}
+
+if (!fs.existsSync(avatarsDir)) {
+  fs.mkdirSync(avatarsDir, { recursive: true });
+  console.log('✅ Created uploads/avatars directory');
+}
+
 // Load routes immediately outside of initialization
 console.log('🚀 Loading routes immediately for serverless...');
 
