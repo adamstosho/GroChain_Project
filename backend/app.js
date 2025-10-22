@@ -105,6 +105,11 @@ app.use((req, res, next) => {
 
 // Serverless connection middleware - attempt to connect on each request if needed
 app.use('/api', async (req, res, next) => {
+  // Skip database connection for test endpoints
+  if (req.path.includes('/env-test') || req.path.includes('/test')) {
+    return next();
+  }
+  
   // Only attempt connection if not already connected and MONGODB_URI exists
   if (!serverlessDB.isConnected() && process.env.MONGODB_URI) {
     try {
