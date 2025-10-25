@@ -2,6 +2,7 @@ const Joi = require('joi')
 const User = require('../models/user.model')
 const { signAccess, signRefresh, verifyRefresh } = require('../utils/jwt')
 const nodemailer = require('nodemailer')
+const { sendEmailViaSendGrid } = require('../utils/sendgrid-direct')
 // crypto is built-in to Node.js, no need to require it
 
 const registerSchema = Joi.object({
@@ -23,8 +24,47 @@ async function sendEmail(to, subject, html) {
   console.log('📧 SMTP host exists:', !!process.env.SMTP_HOST)
   
   try {
-    // Check if we should use SMTP (Gmail) first
-    // BUT prioritize SendGrid if EMAIL_PROVIDER=sendgrid
+    // PRIORITY: Try SendGrid HTTP API first (works on Render, bypasses port blocking)
+    if (process.env.SENDGRID_API_KEY) {
+      console.log('📧 Using SendGrid HTTP API (direct)...')
+      try {
+        await sendEmailViaSendGrid(to, subject, html)
+        console.log('✅ SendGrid HTTP API email sent successfully to:', to)
+        return true
+      } catch (sgError) {
+        console.error('❌ SendGrid HTTP API failed:', sgError.message)
+        console.log('📧 Falling back to SMTP or @sendgrid/mail...')
+        // Fall through to try other methods
+      }
+    }
+    
+    // FALLBACK 1: Try @sendgrid/mail package
+    if (process.env.EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      console.log('📧 Using @sendgrid/mail package...')
+      try {
+        const sgMail = require('@sendgrid/mail')
+        sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+        
+        const msg = {
+          to,
+          from: {
+            email: process.env.SENDGRID_FROM_EMAIL || 'grochain.ng@gmail.com',
+            name: process.env.SENDGRID_FROM_NAME || 'GroChain'
+          },
+          subject,
+          html
+        }
+        
+        await sgMail.send(msg)
+        console.log('✅ @sendgrid/mail email sent successfully to:', to)
+        return true
+      } catch (sgError) {
+        console.error('❌ @sendgrid/mail failed:', sgError.message)
+        // Don't throw, try SMTP next
+      }
+    }
+    
+    // FALLBACK 2: Try SMTP (Gmail or other)
     if (process.env.EMAIL_PROVIDER !== 'sendgrid' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
       console.log('📧 Using SMTP (Gmail)...')
       const transporter = nodemailer.createTransport({
@@ -58,81 +98,20 @@ async function sendEmail(to, subject, html) {
         console.log('✅ SMTP email sent successfully to:', to)
         return true
       } catch (smtpError) {
-        // If SMTP fails with connection/timeout error, fallback to SendGrid
-        if (smtpError.code === 'ETIMEDOUT' || smtpError.code === 'ECONNREFUSED' || smtpError.message?.includes('timeout')) {
-          console.warn('⚠️ SMTP connection failed (likely blocked), falling back to SendGrid:', smtpError.message)
-          if (process.env.SENDGRID_API_KEY) {
-            console.log('📧 Attempting SendGrid fallback...')
-            // Fall through to SendGrid code below
-          } else {
-            throw smtpError
-          }
-        } else {
-          throw smtpError
-        }
+        // If SMTP fails with connection/timeout error, log and throw
+        console.error('❌ SMTP connection failed:', smtpError.message)
+        throw smtpError
       }
-      
-    } else if (process.env.EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
-      console.log('📧 Using SendGrid...')
-      const sgMail = require('@sendgrid/mail')
-      sgMail.setApiKey(process.env.SENDGRID_API_KEY)
-      
-      const msg = {
-        to,
-        from: {
-          email: process.env.SENDGRID_FROM_EMAIL || 'grochain.ng@gmail.com',
-          name: process.env.SENDGRID_FROM_NAME || 'GroChain'
-        },
-        subject,
-        html
-      }
-      
-      console.log('📧 SendGrid message config:', {
-        to: msg.to,
-        from: msg.from,
-        subject: msg.subject
-      })
-      
-      await sgMail.send(msg)
-      console.log('✅ SendGrid email sent successfully to:', to)
-      return true
-      
-    } else {
-      // Development fallback - log the email but also try to send
-      console.log('⚠️  No email provider configured, falling back to console logging')
-      console.log('[DEV-EMAIL]', { to, subject })
-      
-      // Try to use SendGrid even if EMAIL_PROVIDER is not set
-      if (process.env.SENDGRID_API_KEY) {
-        console.log('📧 Attempting to use SendGrid as fallback...')
-        try {
-          const sgMail = require('@sendgrid/mail')
-          sgMail.setApiKey(process.env.SENDGRID_API_KEY)
-          
-          const msg = {
-            to,
-            from: {
-              email: process.env.SENDGRID_FROM_EMAIL || 'grochain.ng@gmail.com',
-              name: process.env.SENDGRID_FROM_NAME || 'GroChain'
-            },
-            subject,
-            html
-          }
-          
-          await sgMail.send(msg)
-          console.log('✅ SendGrid fallback email sent successfully to:', to)
-          return true
-        } catch (fallbackError) {
-          console.error('❌ SendGrid fallback failed:', fallbackError.message)
-        }
-      }
-      
-      // If all else fails, just log the verification link
-      const verificationLink = html.match(/href="([^"]+)"/)?.[1] || 'NO_LINK_FOUND'
-      console.log('[DEV-EMAIL] Verification link:', verificationLink)
-      console.log('[DEV-EMAIL] Full HTML:', html)
-      return false
     }
+    
+    // If we get here, no email method worked
+    console.error('❌ All email sending methods failed')
+    
+    // Development fallback - log the verification link
+    const verificationLink = html.match(/href="([^"]+)"/)?.[1] || 'NO_LINK_FOUND'
+    console.log('[DEV-EMAIL] Verification link:', verificationLink)
+    console.log('[DEV-EMAIL] Full HTML:', html)
+    return false
   } catch (error) {
     console.error('❌ Email sending failed:', error.message)
     console.error('❌ Full error:', error)
