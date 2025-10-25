@@ -29,9 +29,13 @@ export function LoginForm() {
   const emailFromUrl = searchParams.get("email")
   const { login } = useAuthStore()
 
-  // Pre-fill email if provided in URL
+  // Pre-fill email from localStorage if remember me was checked
   useEffect(() => {
-    if (emailFromUrl && !formData.email) {
+    // Check if email was saved from previous session
+    const savedEmail = localStorage.getItem('grochain_remember_email')
+    if (savedEmail && !formData.email) {
+      setFormData(prev => ({ ...prev, email: savedEmail, rememberMe: true }))
+    } else if (emailFromUrl && !formData.email) {
       setFormData(prev => ({ ...prev, email: emailFromUrl }))
     }
   }, [emailFromUrl])
@@ -42,6 +46,15 @@ export function LoginForm() {
 
     try {
       await login(formData.email, formData.password)
+
+      // Handle "Remember Me" functionality
+      if (formData.rememberMe) {
+        // Save email to localStorage for future logins
+        localStorage.setItem('grochain_remember_email', formData.email)
+      } else {
+        // Remove saved email if "Remember Me" is unchecked
+        localStorage.removeItem('grochain_remember_email')
+      }
 
       // Check for redirect URL in query parameters
       const redirectUrl = searchParams.get('redirect') || "/dashboard"
