@@ -18,9 +18,19 @@ services:
         value: https://gro-chain.vercel.app
       - key: FRONTEND_URL
         value: https://gro-chain.vercel.app
-      # Email Configuration - Using SendGrid for reliability
+      # Email Configuration - Using SendGrid API (NOT SMTP) for Render compatibility
+      # Render blocks outbound SMTP ports, so we MUST use SendGrid HTTP API
       - key: EMAIL_PROVIDER
         value: sendgrid
+      # SendGrid Configuration - REQUIRED for production
+      # Set SENDGRID_API_KEY in Render dashboard: Settings > Environment
+      - key: SENDGRID_API_KEY
+        sync: false  # IMPORTANT: Set this in Render dashboard!
+      - key: SENDGRID_FROM_EMAIL
+        value: grochain.ng@gmail.com
+      - key: SENDGRID_FROM_NAME
+        value: GroChain
+      # SMTP Configuration (kept as fallback, but won't work on Render free tier)
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT
@@ -28,15 +38,8 @@ services:
       - key: SMTP_SECURE
         value: "false"
       - key: SMTP_USER
-        value: grochain.ng@gmail.com  # Your Gmail address
-      - key: SMTP_PASS
-        sync: false  # Set your Gmail app password in Render dashboard
-      - key: SMTP_FROM
-        value: grochain.ng@gmail.com  # Your Gmail address
-      # SendGrid Configuration (Backup) - Set these in Render dashboard
-      - key: SENDGRID_API_KEY
-        sync: false  # Set your SendGrid API key in Render dashboard
-      - key: SENDGRID_FROM_EMAIL
         value: grochain.ng@gmail.com
-      - key: SENDGRID_FROM_NAME
-        value: GroChain
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        value: grochain.ng@gmail.com

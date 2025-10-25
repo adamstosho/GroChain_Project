@@ -24,7 +24,8 @@ async function sendEmail(to, subject, html) {
   
   try {
     // Check if we should use SMTP (Gmail) first
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    // BUT prioritize SendGrid if EMAIL_PROVIDER=sendgrid
+    if (process.env.EMAIL_PROVIDER !== 'sendgrid' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
       console.log('📧 Using SMTP (Gmail)...')
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
@@ -34,6 +35,9 @@ async function sendEmail(to, subject, html) {
           user: process.env.SMTP_USER, 
           pass: process.env.SMTP_PASS 
         },
+        // Add connection timeout to detect blocking quickly
+        connectionTimeout: 5000,
+        greetingTimeout: 5000
       })
       
       const mailOptions = {
@@ -49,9 +53,24 @@ async function sendEmail(to, subject, html) {
         subject: mailOptions.subject
       })
       
-      await transporter.sendMail(mailOptions)
-      console.log('✅ SMTP email sent successfully to:', to)
-      return true
+      try {
+        await transporter.sendMail(mailOptions)
+        console.log('✅ SMTP email sent successfully to:', to)
+        return true
+      } catch (smtpError) {
+        // If SMTP fails with connection/timeout error, fallback to SendGrid
+        if (smtpError.code === 'ETIMEDOUT' || smtpError.code === 'ECONNREFUSED' || smtpError.message?.includes('timeout')) {
+          console.warn('⚠️ SMTP connection failed (likely blocked), falling back to SendGrid:', smtpError.message)
+          if (process.env.SENDGRID_API_KEY) {
+            console.log('📧 Attempting SendGrid fallback...')
+            // Fall through to SendGrid code below
+          } else {
+            throw smtpError
+          }
+        } else {
+          throw smtpError
+        }
+      }
       
     } else if (process.env.EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
       console.log('📧 Using SendGrid...')
