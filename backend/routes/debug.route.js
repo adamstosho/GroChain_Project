@@ -111,8 +111,9 @@ router.get('/diag-email', async (req, res) => {
   const errors = []
   const now = new Date().toISOString()
 
+  const RESEND_API_KEY = process.env.RESEND_API_KEY
   const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY
-  const EMAIL_FROM = process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM || 'grochain.ng@gmail.com'
+  const EMAIL_FROM = process.env.RESEND_FROM_EMAIL || process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM || 'grochain.ng@gmail.com'
   const APP_URL = process.env.FRONTEND_URL
   const SMTP_HOST = process.env.SMTP_HOST
   const SMTP_PORT = process.env.SMTP_PORT
@@ -122,6 +123,8 @@ router.get('/diag-email', async (req, res) => {
     ok: false,
     timestamp: now,
     env: {
+      RESEND_API_KEY_present: Boolean(RESEND_API_KEY),
+      RESEND_API_KEY_length: RESEND_API_KEY ? RESEND_API_KEY.length : 0,
       SENDGRID_API_KEY_present: Boolean(SENDGRID_API_KEY),
       SENDGRID_API_KEY_length: SENDGRID_API_KEY ? SENDGRID_API_KEY.length : 0,
       EMAIL_FROM_present: Boolean(EMAIL_FROM),
@@ -134,6 +137,7 @@ router.get('/diag-email', async (req, res) => {
       EMAIL_PROVIDER: process.env.EMAIL_PROVIDER
     },
     tcpTest: null,
+    resendTest: null,
     sendgridTest: null,
     errors: []
   }
@@ -161,7 +165,50 @@ router.get('/diag-email', async (req, res) => {
     }
   }
 
-  // 2) SendGrid API test
+  // 2) Resend API test (FREE and recommended)
+  if (RESEND_API_KEY && EMAIL_FROM) {
+    try {
+      console.log('📧 Testing Resend API...')
+      const body = {
+        from: EMAIL_FROM,
+        to: [EMAIL_FROM],
+        subject: 'Diag: test email from GroChain Backend',
+        html: `<p>This is a test email from your GroChain backend.</p><p>Timestamp: ${now}</p>`
+      }
+
+      const resp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      })
+
+      const text = await resp.text().catch(() => '')
+      let parsed = {}
+      try { parsed = text ? JSON.parse(text) : {} } catch {}
+
+      result.resendTest = { status: resp.status, body: parsed }
+      
+      if (resp.ok) {
+        console.log('✅ Resend API test successful')
+      } else {
+        console.error('❌ Resend API error:', resp.status, parsed)
+        errors.push(`Resend API returned ${resp.status}: ${JSON.stringify(parsed)}`)
+      }
+    } catch (err) {
+      console.error('❌ Resend API exception:', err.message)
+      result.resendTest = { error: err?.message ?? String(err) }
+      errors.push(`Resend API error: ${err?.message ?? String(err)}`)
+    }
+  } else {
+    if (!RESEND_API_KEY) {
+      console.log('⚠️ RESEND_API_KEY not set (recommended for Render)')
+    }
+  }
+
+  // 3) SendGrid API test (backup)
   if (SENDGRID_API_KEY && EMAIL_FROM) {
     try {
       console.log('📧 Testing SendGrid API...')
@@ -204,12 +251,14 @@ router.get('/diag-email', async (req, res) => {
       errors.push(`SendGrid API error: ${err?.message ?? String(err)}`)
     }
   } else {
-    if (!SENDGRID_API_KEY) errors.push('SENDGRID_API_KEY missing')
-    if (!EMAIL_FROM) errors.push('EMAIL_FROM missing')
+    if (!SENDGRID_API_KEY && !RESEND_API_KEY) {
+      console.log('⚠️ Neither RESEND_API_KEY nor SENDGRID_API_KEY is set')
+    }
   }
 
   result.errors = errors
-  result.ok = errors.length === 0
+  // Success if no errors or if Resend is working
+  result.ok = errors.length === 0 || (result.resendTest && result.resendTest.status === 200)
   
   console.log('📊 Email diagnostics result:', JSON.stringify(result, null, 2))
   

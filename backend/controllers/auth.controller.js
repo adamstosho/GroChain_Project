@@ -3,6 +3,7 @@ const User = require('../models/user.model')
 const { signAccess, signRefresh, verifyRefresh } = require('../utils/jwt')
 const nodemailer = require('nodemailer')
 const { sendEmailViaSendGrid } = require('../utils/sendgrid-direct')
+const { sendEmailViaResend } = require('../utils/resend-direct')
 // crypto is built-in to Node.js, no need to require it
 
 const registerSchema = Joi.object({
@@ -24,7 +25,21 @@ async function sendEmail(to, subject, html) {
   console.log('📧 SMTP host exists:', !!process.env.SMTP_HOST)
   
   try {
-    // PRIORITY: Try SendGrid HTTP API first (works on Render, bypasses port blocking)
+    // PRIORITY 1: Try Resend (FREE, works on Render, best option)
+    if (process.env.RESEND_API_KEY) {
+      console.log('📧 Using Resend HTTP API (direct)...')
+      try {
+        await sendEmailViaResend(to, subject, html)
+        console.log('✅ Resend HTTP API email sent successfully to:', to)
+        return true
+      } catch (resendError) {
+        console.error('❌ Resend HTTP API failed:', resendError.message)
+        console.log('📧 Falling back to SendGrid...')
+        // Fall through to try SendGrid
+      }
+    }
+    
+    // PRIORITY 2: Try SendGrid HTTP API (works on Render, bypasses port blocking)
     if (process.env.SENDGRID_API_KEY) {
       console.log('📧 Using SendGrid HTTP API (direct)...')
       try {
@@ -33,7 +48,7 @@ async function sendEmail(to, subject, html) {
         return true
       } catch (sgError) {
         console.error('❌ SendGrid HTTP API failed:', sgError.message)
-        console.log('📧 Falling back to SMTP or @sendgrid/mail...')
+        console.log('📧 Falling back to SMTP...')
         // Fall through to try other methods
       }
     }
