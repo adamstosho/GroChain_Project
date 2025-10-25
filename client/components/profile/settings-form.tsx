@@ -474,15 +474,15 @@ export function SettingsForm() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Settings Header */}
+    <div className="profile-container space-y-4 sm:space-y-6">
+      {/* Settings Header - Responsive */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Settings className="h-5 w-5 mr-2" />
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <Settings className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Farmer Settings
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Manage your profile, preferences, notifications, and security settings
           </CardDescription>
         </CardHeader>
@@ -1092,21 +1092,21 @@ export function SettingsForm() {
         </CardContent>
       </Card>
 
-      {/* Password Change */}
+      {/* Password Change - Responsive */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Lock className="h-5 w-5 mr-2" />
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <Lock className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Change Password
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Update your account password for enhanced security
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
+              <Label htmlFor="currentPassword" className="text-sm font-medium">Current Password</Label>
               <div className="relative">
                 <Input
                   id="currentPassword"
@@ -1120,6 +1120,7 @@ export function SettingsForm() {
                     }
                   })}
                   placeholder="Enter current password"
+                  className="h-9 sm:h-10"
                 />
                 <Button
                   type="button"
@@ -1133,7 +1134,7 @@ export function SettingsForm() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
+              <Label htmlFor="newPassword" className="text-sm font-medium">New Password</Label>
               <Input
                 id="newPassword"
                 type={showPassword ? "text" : "password"}
@@ -1146,10 +1147,11 @@ export function SettingsForm() {
                   }
                 })}
                 placeholder="Enter new password"
+                className="h-9 sm:h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm New Password</Label>
               <Input
                 id="confirmPassword"
                 type={showPassword ? "text" : "password"}
@@ -1162,17 +1164,19 @@ export function SettingsForm() {
                   }
                 })}
                 placeholder="Confirm new password"
+                className="h-9 sm:h-10"
               />
             </div>
-            <div className="flex items-end">
-              <Button
-                onClick={handlePasswordChange}
-                disabled={isSaving || !settings.passwordData.currentPassword || !settings.passwordData.newPassword || !settings.passwordData.confirmPassword}
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                {isSaving ? 'Changing...' : 'Change Password'}
-              </Button>
-            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button
+              onClick={handlePasswordChange}
+              disabled={isSaving || !settings.passwordData.currentPassword || !settings.passwordData.newPassword || !settings.passwordData.confirmPassword}
+              className="w-full sm:w-auto"
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              {isSaving ? 'Changing...' : 'Change Password'}
+            </Button>
           </div>
         </CardContent>
       </Card>

@@ -1062,6 +1062,30 @@ class ApiService {
     });
   }
 
+  // Partner-specific profile methods
+  async getPartnerProfile() {
+    return this.request('/api/users/profile/me');
+  }
+
+  async updatePartnerProfile(data: any) {
+    return this.request('/api/users/profile/me', {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  // Farmer-specific profile methods  
+  async getFarmerProfile() {
+    return this.request('/api/users/profile/me');
+  }
+
+  async updateFarmerProfile(data: any) {
+    return this.request('/api/users/profile/me', {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
   async getMyPreferences() {
     return this.request('/api/users/preferences/me');
   }

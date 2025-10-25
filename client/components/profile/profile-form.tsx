@@ -162,8 +162,8 @@ export function ProfileForm() {
             phone: profileData.phone,
             role: profileData.role,
             status: profileData.status,
-            organization: profileData.partner?.name || '',
-            organizationType: profileData.partner?.type || 'cooperative',
+            organization: profileData.organization || profileData.partner?.name || '',
+            organizationType: profileData.organizationType || profileData.partner?.type || 'cooperative',
             address: {
               street: profileData.profile?.address || '',
               city: profileData.profile?.city || '',
@@ -419,33 +419,35 @@ export function ProfileForm() {
   const partnerProfile = profile as PartnerProfile
 
   return (
-    <div className="space-y-6">
-      {/* Profile Header */}
+    <div className="profile-container space-y-4 sm:space-y-6">
+      {/* Profile Header - Fully Responsive */}
       <Card>
         <CardHeader className="pb-4">
-          <div className="flex items-center space-x-6">
-            <AvatarUpload
-              currentAvatar={partnerProfile.logo}
-              userName={partnerProfile.name}
-              onAvatarUpdate={handleAvatarUpdate}
-              disabled={!isEditing}
-              size="lg"
-            />
-            <div className="flex-1">
-              <CardTitle className="text-2xl">{partnerProfile.name}</CardTitle>
-              <CardDescription className="text-lg">
-                {partnerProfile.organization || 'No organization'} {partnerProfile.organizationType && `• ${partnerProfile.organizationType.replace('_', ' ')}`}
-              </CardDescription>
-              <div className="flex items-center space-x-2 mt-2">
-                <Badge variant={partnerProfile.status === 'active' ? 'default' : 'secondary'}>
-                  {partnerProfile.status || 'unknown'}
-                </Badge>
-                <Badge variant="outline">
-                  Partner since {partnerProfile.createdAt ? new Date(partnerProfile.createdAt).getFullYear() : 'N/A'}
-                </Badge>
+          <div className="profile-header">
+            <div className="profile-avatar-section">
+              <AvatarUpload
+                currentAvatar={partnerProfile.logo}
+                userName={partnerProfile.name}
+                onAvatarUpdate={handleAvatarUpdate}
+                disabled={!isEditing}
+                size="lg"
+              />
+              <div className="profile-info">
+                <CardTitle className="profile-title">{partnerProfile.name}</CardTitle>
+                <CardDescription className="profile-subtitle">
+                  {partnerProfile.organization || 'No organization'} {partnerProfile.organizationType && `• ${partnerProfile.organizationType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`}
+                </CardDescription>
+                <div className="profile-badges">
+                  <Badge variant={partnerProfile.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                    {partnerProfile.status || 'unknown'}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    Partner since {partnerProfile.createdAt ? new Date(partnerProfile.createdAt).getFullYear() : 'N/A'}
+                  </Badge>
+                </div>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+            <div className="profile-actions">
               <Button
                 variant="outline"
                 size="sm"
@@ -471,57 +473,61 @@ export function ProfileForm() {
         </CardHeader>
       </Card>
 
-      {/* Personal Information */}
+      {/* Personal Information - Responsive Grid */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <User className="h-5 w-5 mr-2" />
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <User className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Personal Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="profile-grid">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name" className="profile-label">Full Name</Label>
               <Input
                 id="name"
                 value={partnerProfile.name}
                 onChange={(e) => setProfile({ ...partnerProfile, name: e.target.value })}
                 disabled={!isEditing}
+                className="profile-input"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email" className="profile-label">Email Address</Label>
               <Input
                 id="email"
                 type="email"
                 value={partnerProfile.email}
                 onChange={(e) => setProfile({ ...partnerProfile, email: e.target.value })}
                 disabled={!isEditing}
+                className="profile-input"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="phone" className="profile-label">Phone Number</Label>
               <Input
                 id="phone"
                 value={partnerProfile.phone}
                 onChange={(e) => setProfile({ ...partnerProfile, phone: e.target.value })}
                 disabled={!isEditing}
+                className="profile-input"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
+              <Label htmlFor="website" className="profile-label">Website</Label>
               <Input
                 id="website"
                 value={partnerProfile.website || ''}
                 onChange={(e) => setProfile({ ...partnerProfile, website: e.target.value })}
                 disabled={!isEditing}
                 placeholder="https://example.com"
+                className="profile-input"
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description" className="profile-label">Description</Label>
             <Textarea
               id="description"
               value={partnerProfile.description || ''}
@@ -529,100 +535,106 @@ export function ProfileForm() {
               disabled={!isEditing}
               placeholder="Tell us about your organization..."
               rows={3}
+              className="resize-none"
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Address Information */}
+      {/* Address Information - Responsive Grid */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <MapPin className="h-5 w-5 mr-2" />
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Address Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="street">Street Address</Label>
-                             <Input
-                 id="street"
-                 value={profile.address?.street || ''}
-                 onChange={(e) => setProfile({
-                   ...profile,
-                   address: { ...profile.address, street: e.target.value }
-                 })}
-                 disabled={!isEditing}
-               />
+              <Label htmlFor="street" className="text-sm font-medium">Street Address</Label>
+              <Input
+                id="street"
+                value={partnerProfile.address?.street || ''}
+                onChange={(e) => setProfile({
+                  ...partnerProfile,
+                  address: { ...partnerProfile.address, street: e.target.value }
+                })}
+                disabled={!isEditing}
+                className="h-9 sm:h-10"
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-                             <Input
-                 id="city"
-                 value={profile.address?.city || ''}
-                 onChange={(e) => setProfile({
-                   ...profile,
-                   address: { ...profile.address, city: e.target.value }
-                 })}
-                 disabled={!isEditing}
-               />
+              <Label htmlFor="city" className="text-sm font-medium">City</Label>
+              <Input
+                id="city"
+                value={partnerProfile.address?.city || ''}
+                onChange={(e) => setProfile({
+                  ...partnerProfile,
+                  address: { ...partnerProfile.address, city: e.target.value }
+                })}
+                disabled={!isEditing}
+                className="h-9 sm:h-10"
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-                             <Input
-                 id="state"
-                 value={profile.address?.state || ''}
-                 onChange={(e) => setProfile({
-                   ...profile,
-                   address: { ...profile.address, state: e.target.value }
-                 })}
-                 disabled={!isEditing}
-               />
+              <Label htmlFor="state" className="text-sm font-medium">State</Label>
+              <Input
+                id="state"
+                value={partnerProfile.address?.state || ''}
+                onChange={(e) => setProfile({
+                  ...partnerProfile,
+                  address: { ...partnerProfile.address, state: e.target.value }
+                })}
+                disabled={!isEditing}
+                className="h-9 sm:h-10"
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="postalCode">Postal Code</Label>
-                             <Input
-                 id="postalCode"
-                 value={profile.address?.postalCode || ''}
-                 onChange={(e) => setProfile({
-                   ...profile,
-                   address: { ...profile.address, postalCode: e.target.value }
-                 })}
-                 disabled={!isEditing}
-               />
+              <Label htmlFor="postalCode" className="text-sm font-medium">Postal Code</Label>
+              <Input
+                id="postalCode"
+                value={partnerProfile.address?.postalCode || ''}
+                onChange={(e) => setProfile({
+                  ...partnerProfile,
+                  address: { ...partnerProfile.address, postalCode: e.target.value }
+                })}
+                disabled={!isEditing}
+                className="h-9 sm:h-10"
+              />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Organization Details */}
+      {/* Organization Details - Responsive Layout */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Building className="h-5 w-5 mr-2" />
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <Building className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Organization Details
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="organization">Organization Name</Label>
+              <Label htmlFor="organization" className="text-sm font-medium">Organization Name</Label>
               <Input
                 id="organization"
-                value={profile.organization || ''}
-                onChange={(e) => setProfile({ ...profile, organization: e.target.value })}
+                value={partnerProfile.organization || ''}
+                onChange={(e) => setProfile({ ...partnerProfile, organization: e.target.value })}
                 disabled={!isEditing}
+                className="h-9 sm:h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="organizationType">Organization Type</Label>
+              <Label htmlFor="organizationType" className="text-sm font-medium">Organization Type</Label>
               <Select
-                value={profile.organizationType || ''}
-                onValueChange={(value: any) => setProfile({ ...profile, organizationType: value })}
+                value={partnerProfile.organizationType || ''}
+                onValueChange={(value: any) => setProfile({ ...partnerProfile, organizationType: value })}
                 disabled={!isEditing}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -639,55 +651,59 @@ export function ProfileForm() {
           <Separator />
 
           <div className="space-y-4">
-            <Label>Contact Person</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Label className="text-sm font-medium">Contact Person</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
-                <Label htmlFor="contactName">Name</Label>
+                <Label htmlFor="contactName" className="text-sm font-medium">Name</Label>
                 <Input
                   id="contactName"
-                  value={profile.contactPerson?.name || ''}
+                  value={partnerProfile.contactPerson?.name || ''}
                   onChange={(e) => setProfile({
-                    ...profile,
-                    contactPerson: { ...profile.contactPerson, name: e.target.value }
+                    ...partnerProfile,
+                    contactPerson: { ...partnerProfile.contactPerson, name: e.target.value }
                   })}
                   disabled={!isEditing}
+                  className="h-9 sm:h-10"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contactPosition">Position</Label>
+                <Label htmlFor="contactPosition" className="text-sm font-medium">Position</Label>
                 <Input
                   id="contactPosition"
-                  value={profile.contactPerson?.position || ''}
+                  value={partnerProfile.contactPerson?.position || ''}
                   onChange={(e) => setProfile({
-                    ...profile,
-                    contactPerson: { ...profile.contactPerson, position: e.target.value }
+                    ...partnerProfile,
+                    contactPerson: { ...partnerProfile.contactPerson, position: e.target.value }
                   })}
                   disabled={!isEditing}
+                  className="h-9 sm:h-10"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contactPhone">Phone</Label>
+                <Label htmlFor="contactPhone" className="text-sm font-medium">Phone</Label>
                 <Input
                   id="contactPhone"
-                  value={profile.contactPerson?.phone || ''}
+                  value={partnerProfile.contactPerson?.phone || ''}
                   onChange={(e) => setProfile({
-                    ...profile,
-                    contactPerson: { ...profile.contactPerson, phone: e.target.value }
+                    ...partnerProfile,
+                    contactPerson: { ...partnerProfile.contactPerson, phone: e.target.value }
                   })}
                   disabled={!isEditing}
+                  className="h-9 sm:h-10"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contactEmail">Email</Label>
+                <Label htmlFor="contactEmail" className="text-sm font-medium">Email</Label>
                 <Input
                   id="contactEmail"
                   type="email"
-                  value={profile.contactPerson?.email || ''}
+                  value={partnerProfile.contactPerson?.email || ''}
                   onChange={(e) => setProfile({
-                    ...profile,
-                    contactPerson: { ...profile.contactPerson, email: e.target.value }
+                    ...partnerProfile,
+                    contactPerson: { ...partnerProfile.contactPerson, email: e.target.value }
                   })}
                   disabled={!isEditing}
+                  className="h-9 sm:h-10"
                 />
               </div>
             </div>
@@ -696,41 +712,43 @@ export function ProfileForm() {
           <Separator />
 
           <div className="space-y-4">
-            <Label>Services & Coverage</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Services Offered</Label>
+            <Label className="text-sm font-medium">Services & Coverage</Label>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Services Offered</Label>
                 <div className="space-y-2">
                   {['Training', 'Extension', 'Marketing', 'Finance', 'Technology'].map((service) => (
                     <div key={service} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
                         id={service}
-                        checked={(profile.services || []).includes(service.toLowerCase())}
+                        checked={(partnerProfile.services || []).includes(service.toLowerCase())}
                         onChange={(e) => {
                           const newServices = e.target.checked
-                            ? [...(profile.services || []), service.toLowerCase()]
-                            : (profile.services || []).filter(s => s !== service.toLowerCase())
-                          setProfile({ ...profile, services: newServices })
+                            ? [...(partnerProfile.services || []), service.toLowerCase()]
+                            : (partnerProfile.services || []).filter(s => s !== service.toLowerCase())
+                          setProfile({ ...partnerProfile, services: newServices })
                         }}
                         disabled={!isEditing}
+                        className="h-4 w-4"
                       />
-                      <Label htmlFor={service}>{service}</Label>
+                      <Label htmlFor={service} className="text-sm">{service}</Label>
                     </div>
                   ))}
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Coverage Areas</Label>
+                <Label className="text-sm font-medium">Coverage Areas</Label>
                 <Textarea
-                  value={(profile.coverageAreas || []).join(', ')}
+                  value={(partnerProfile.coverageAreas || []).join(', ')}
                   onChange={(e) => setProfile({
-                    ...profile,
+                    ...partnerProfile,
                     coverageAreas: e.target.value.split(',').map(area => area.trim()).filter(Boolean)
                   })}
                   disabled={!isEditing}
                   placeholder="Enter coverage areas separated by commas"
                   rows={4}
+                  className="resize-none"
                 />
               </div>
             </div>
@@ -936,33 +954,35 @@ function FarmerProfileView() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Farmer Profile Header */}
+    <div className="profile-container space-y-4 sm:space-y-6">
+      {/* Farmer Profile Header - Fully Responsive */}
       <Card>
         <CardHeader className="pb-4">
-          <div className="flex items-center space-x-6">
-            <AvatarUpload
-              currentAvatar={profile.avatar}
-              userName={profile.name}
-              onAvatarUpdate={handleAvatarUpdate}
-              disabled={!isEditing}
-              size="lg"
-            />
-            <div className="flex-1">
-              <CardTitle className="text-2xl">{profile.name}</CardTitle>
-              <CardDescription className="text-lg">
-                Farmer • {profile.location || 'Location not set'}
-              </CardDescription>
-              <div className="flex items-center space-x-2 mt-2">
-                <Badge variant={profile.status === 'active' ? 'default' : 'secondary'}>
-                  {profile.status}
-                </Badge>
-                <Badge variant="outline">
-                  Farmer since {new Date(profile.createdAt).getFullYear()}
-                </Badge>
+          <div className="profile-header">
+            <div className="profile-avatar-section">
+              <AvatarUpload
+                currentAvatar={profile.avatar}
+                userName={profile.name}
+                onAvatarUpdate={handleAvatarUpdate}
+                disabled={!isEditing}
+                size="lg"
+              />
+              <div className="profile-info">
+                <CardTitle className="profile-title">{profile.name}</CardTitle>
+                <CardDescription className="profile-subtitle">
+                  Farmer • {profile.location || 'Location not set'}
+                </CardDescription>
+                <div className="profile-badges">
+                  <Badge variant={profile.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                    {profile.status}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    Farmer since {new Date(profile.createdAt).getFullYear()}
+                  </Badge>
+                </div>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+            <div className="profile-actions">
               <Button
                 variant="outline"
                 size="sm"
@@ -988,51 +1008,51 @@ function FarmerProfileView() {
         </CardHeader>
       </Card>
 
-      {/* Farmer Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Farmer Stats - Responsive Grid */}
+      <div className="profile-grid-4">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="profile-card">
             <div className="flex items-center space-x-2">
-              <Building className="h-5 w-5 text-green-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total Harvests</p>
-                <p className="text-2xl font-bold">{profile.stats.totalHarvests}</p>
+              <Building className="profile-icon text-green-500" />
+              <div className="min-w-0">
+                <p className="profile-text text-muted-foreground truncate">Total Harvests</p>
+                <p className="profile-text-lg font-bold">{profile.stats.totalHarvests}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="profile-card">
             <div className="flex items-center space-x-2">
-              <Banknote className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">₦{profile.stats.totalRevenue.toLocaleString()}</p>
+              <Banknote className="profile-icon text-blue-500" />
+              <div className="min-w-0">
+                <p className="profile-text text-muted-foreground truncate">Total Revenue</p>
+                <p className="profile-text-lg font-bold">₦{profile.stats.totalRevenue.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="profile-card">
             <div className="flex items-center space-x-2">
-              <ShoppingCart className="h-5 w-5 text-purple-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Active Listings</p>
-                <p className="text-2xl font-bold">{profile.stats.totalListings}</p>
+              <ShoppingCart className="profile-icon text-purple-500" />
+              <div className="min-w-0">
+                <p className="profile-text text-muted-foreground truncate">Active Listings</p>
+                <p className="profile-text-lg font-bold">{profile.stats.totalListings}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="profile-card">
             <div className="flex items-center space-x-2">
-              <Activity className="h-5 w-5 text-orange-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total Orders</p>
-                <p className="text-2xl font-bold">{profile.stats.totalOrders}</p>
+              <Activity className="profile-icon text-orange-500" />
+              <div className="min-w-0">
+                <p className="profile-text text-muted-foreground truncate">Total Orders</p>
+                <p className="profile-text-lg font-bold">{profile.stats.totalOrders}</p>
               </div>
             </div>
           </CardContent>

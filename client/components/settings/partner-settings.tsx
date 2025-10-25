@@ -369,35 +369,35 @@ export function PartnerSettings() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Partner Settings</h1>
-          <p className="text-muted-foreground">
+    <div className="profile-container space-y-4 sm:space-y-6">
+      {/* Header - Responsive */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Partner Settings</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Customize your organizational operations and preferences
           </p>
         </div>
-        <Button onClick={handleSaveSettings} disabled={saving}>
+        <Button onClick={handleSaveSettings} disabled={saving} className="w-full sm:w-auto">
           <Save className="mr-2 h-4 w-4" />
           {saving ? "Saving..." : "Save Settings"}
         </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Notifications */}
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
+        {/* Notifications - Responsive */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
               Notifications
             </CardTitle>
-            <CardDescription>Manage your notification preferences</CardDescription>
+            <CardDescription className="text-sm">Manage your notification preferences</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 sm:space-y-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label htmlFor="email-notifications">Email Notifications</Label>
+                <Label htmlFor="email-notifications" className="text-sm font-medium">Email Notifications</Label>
                 <Switch
                   id="email-notifications"
                   checked={settings.notifications.email}
@@ -410,7 +410,7 @@ export function PartnerSettings() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="sms-notifications">SMS Notifications</Label>
+                <Label htmlFor="sms-notifications" className="text-sm font-medium">SMS Notifications</Label>
                 <Switch
                   id="sms-notifications"
                   checked={settings.notifications.sms}
@@ -423,7 +423,7 @@ export function PartnerSettings() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="push-notifications">Push Notifications</Label>
+                <Label htmlFor="push-notifications" className="text-sm font-medium">Push Notifications</Label>
                 <Switch
                   id="push-notifications"
                   checked={settings.notifications.push}
@@ -437,7 +437,7 @@ export function PartnerSettings() {
               </div>
               <Separator />
               <div className="flex items-center justify-between">
-                <Label htmlFor="farmer-updates">Farmer Updates</Label>
+                <Label htmlFor="farmer-updates" className="text-sm font-medium">Farmer Updates</Label>
                 <Switch
                   id="farmer-updates"
                   checked={settings.notifications.farmerUpdates}
@@ -450,7 +450,7 @@ export function PartnerSettings() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="project-updates">Project Updates</Label>
+                <Label htmlFor="project-updates" className="text-sm font-medium">Project Updates</Label>
                 <Switch
                   id="project-updates"
                   checked={settings.notifications.projectUpdates}
@@ -463,7 +463,7 @@ export function PartnerSettings() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="grant-opportunities">Grant Opportunities</Label>
+                <Label htmlFor="grant-opportunities" className="text-sm font-medium">Grant Opportunities</Label>
                 <Switch
                   id="grant-opportunities"
                   checked={settings.notifications.grantOpportunities}
@@ -479,19 +479,19 @@ export function PartnerSettings() {
           </CardContent>
         </Card>
 
-        {/* Privacy & Security */}
+        {/* Privacy & Security - Responsive */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
               Privacy & Security
             </CardTitle>
-            <CardDescription>Control your data visibility and security</CardDescription>
+            <CardDescription className="text-sm">Control your data visibility and security</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 sm:space-y-4">
             <div className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="profile-visibility">Profile Visibility</Label>
+                <Label htmlFor="profile-visibility" className="text-sm font-medium">Profile Visibility</Label>
                 <Select
                   value={settings.privacy.profileVisibility}
                   onValueChange={(value: 'public' | 'private' | 'farmers') =>
@@ -501,7 +501,7 @@ export function PartnerSettings() {
                     } : null)
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 sm:h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -512,7 +512,7 @@ export function PartnerSettings() {
                 </Select>
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="show-location">Show Location</Label>
+                <Label htmlFor="show-location" className="text-sm font-medium">Show Location</Label>
                 <Switch
                   id="show-location"
                   checked={settings.privacy.showLocation}
@@ -525,7 +525,7 @@ export function PartnerSettings() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="show-farmer-count">Show Farmer Count</Label>
+                <Label htmlFor="show-farmer-count" className="text-sm font-medium">Show Farmer Count</Label>
                 <Switch
                   id="show-farmer-count"
                   checked={settings.privacy.showFarmerCount}
@@ -538,7 +538,7 @@ export function PartnerSettings() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="two-factor">Two-Factor Authentication</Label>
+                <Label htmlFor="two-factor" className="text-sm font-medium">Two-Factor Authentication</Label>
                 <Switch
                   id="two-factor"
                   checked={settings.security.twoFactorEnabled}
@@ -726,19 +726,19 @@ export function PartnerSettings() {
         </Card>
       </div>
 
-      {/* Password Change */}
+      {/* Password Change - Responsive */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lock className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Lock className="h-4 w-4 sm:h-5 sm:w-5" />
             Change Password
           </CardTitle>
-          <CardDescription>Update your account password</CardDescription>
+          <CardDescription className="text-sm">Update your account password</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="current-password">Current Password</Label>
+              <Label htmlFor="current-password" className="text-sm font-medium">Current Password</Label>
               <div className="relative">
                 <Input
                   id="current-password"
@@ -746,6 +746,7 @@ export function PartnerSettings() {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="Enter current password"
+                  className="h-9 sm:h-10"
                 />
                 <Button
                   type="button"
@@ -759,47 +760,49 @@ export function PartnerSettings() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-password">New Password</Label>
+              <Label htmlFor="new-password" className="text-sm font-medium">New Password</Label>
               <Input
                 id="new-password"
                 type={showPassword ? "text" : "password"}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter new password"
+                className="h-9 sm:h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Label htmlFor="confirm-password" className="text-sm font-medium">Confirm Password</Label>
               <Input
                 id="confirm-password"
                 type={showPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
+                className="h-9 sm:h-10"
               />
             </div>
           </div>
-          <Button onClick={handleChangePassword} disabled={saving || !currentPassword || !newPassword || !confirmPassword}>
+          <Button onClick={handleChangePassword} disabled={saving || !currentPassword || !newPassword || !confirmPassword} className="w-full sm:w-auto">
             <Lock className="mr-2 h-4 w-4" />
             {saving ? "Changing..." : "Change Password"}
           </Button>
         </CardContent>
       </Card>
 
-      {/* Data Management */}
+      {/* Data Management - Responsive */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Database className="h-4 w-4 sm:h-5 sm:w-5" />
             Data Management
           </CardTitle>
-          <CardDescription>Manage your organizational data and exports</CardDescription>
+          <CardDescription className="text-sm">Manage your organizational data and exports</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label htmlFor="auto-backup">Auto Backup</Label>
+                <Label htmlFor="auto-backup" className="text-sm font-medium">Auto Backup</Label>
                 <Switch
                   id="auto-backup"
                   checked={settings.data.autoBackup}
@@ -812,7 +815,7 @@ export function PartnerSettings() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="sync-farmers">Sync with Farmers</Label>
+                <Label htmlFor="sync-farmers" className="text-sm font-medium">Sync with Farmers</Label>
                 <Switch
                   id="sync-farmers"
                   checked={settings.data.syncWithFarmers}
@@ -825,7 +828,7 @@ export function PartnerSettings() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="data-sharing">Data Sharing</Label>
+                <Label htmlFor="data-sharing" className="text-sm font-medium">Data Sharing</Label>
                 <Switch
                   id="data-sharing"
                   checked={settings.data.dataSharing}
@@ -840,7 +843,7 @@ export function PartnerSettings() {
             </div>
             <div className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="export-format">Export Format</Label>
+                <Label htmlFor="export-format" className="text-sm font-medium">Export Format</Label>
                 <Select
                   value={settings.data.exportFormat}
                   onValueChange={(value: 'csv' | 'json' | 'pdf') =>
@@ -850,7 +853,7 @@ export function PartnerSettings() {
                     } : null)
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 sm:h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

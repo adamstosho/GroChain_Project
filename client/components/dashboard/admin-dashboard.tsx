@@ -222,23 +222,28 @@ export function AdminDashboard() {
 
   return (
     <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
-      {/* Dashboard Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Admin Dashboard</h2>
-          <p className="text-muted-foreground">Manage platform users and monitor system performance</p>
+      {/* Dashboard Header - Enhanced Responsive Design */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Database className="h-4 w-4 text-primary" />
+            </div>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Admin Dashboard</h2>
+          </div>
+          <p className="text-sm sm:text-base text-muted-foreground">Manage platform users and monitor system performance</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
           {lastUpdated && (
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-              Last updated: {lastUpdated.toLocaleTimeString()}
+              <span className="text-xs sm:text-sm">Last updated: {lastUpdated.toLocaleTimeString()}</span>
             </div>
           )}
           {isLoading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-              Loading...
+              <span className="text-xs sm:text-sm">Loading...</span>
             </div>
           )}
           <Button 
@@ -246,16 +251,16 @@ export function AdminDashboard() {
             disabled={isRefreshing || isLoading}
             variant="outline" 
             size="sm"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            <span className="text-xs sm:text-sm">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
           </Button>
         </div>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+      {/* Stats Overview - Enhanced Responsive Grid */}
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
         <StatsCard
           title="Total Users"
           value={stats?.totalUsers || 0}
@@ -307,29 +312,32 @@ export function AdminDashboard() {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3">
+        {/* Main Content - Enhanced Responsive */}
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Quick Actions */}
           <QuickActions actions={quickActions} />
 
-          {/* Platform Overview */}
+          {/* Platform Overview - Enhanced Responsive */}
           <Card>
             <CardHeader>
-              <CardTitle>Platform Overview</CardTitle>
-              <CardDescription>Key metrics and performance indicators</CardDescription>
+              <CardTitle className="flex items-center text-base sm:text-lg">
+                <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                Platform Overview
+              </CardTitle>
+              <CardDescription className="text-sm">Key metrics and performance indicators</CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="users" className="space-y-4">
-                <TabsList>
-                  <TabsTrigger value="users">Users</TabsTrigger>
-                  <TabsTrigger value="transactions">Transactions</TabsTrigger>
-                  <TabsTrigger value="commissions">Commissions</TabsTrigger>
-                  <TabsTrigger value="system">System</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+                  <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
+                  <TabsTrigger value="transactions" className="text-xs sm:text-sm">Transactions</TabsTrigger>
+                  <TabsTrigger value="commissions" className="text-xs sm:text-sm">Commissions</TabsTrigger>
+                  <TabsTrigger value="system" className="text-xs sm:text-sm">System</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="users" className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
                     {(() => {
                       const totalUsers = stats?.totalUsers || 1
                       const farmers = stats?.userDistribution?.farmers || 0
@@ -514,50 +522,82 @@ export function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Recent Users */}
+          {/* Recent Users - Enhanced Responsive */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Recent Users</CardTitle>
-                <CardDescription>Latest user registrations</CardDescription>
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 sm:pb-4">
+              <div className="min-w-0 flex-1">
+                <CardTitle className="flex items-center text-base sm:text-lg mb-1">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
+                  <span className="truncate">Recent Users</span>
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm text-muted-foreground">
+                  Latest user registrations
+                </CardDescription>
               </div>
-              <Button asChild size="sm">
-                <Link href="/dashboard/users">View All</Link>
+              <Button asChild size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9">
+                <Link href="/dashboard/users">
+                  <span className="hidden sm:inline">View All</span>
+                  <span className="sm:hidden">View All Users</span>
+                </Link>
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {recentUsers.length > 0 ? (
                   recentUsers.map((user) => (
-                    <div key={user._id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Users className="h-5 w-5 text-primary" />
+                    <div key={user._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg gap-3 sm:gap-4">
+                      {/* User Info - Responsive Layout */}
+                      <div className="flex items-start sm:items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
+                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                         </div>
-                        <div>
-                          <p className="font-medium">{user.name || user.firstName + ' ' + user.lastName || 'Unknown User'}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {user.email} • Joined {new Date(user.createdAt).toLocaleDateString()}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm sm:text-base truncate">
+                            {user.name || user.firstName + ' ' + user.lastName || 'Unknown User'}
+                          </p>
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                            {user.email}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Joined {new Date(user.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="secondary" className="capitalize">
-                          {user.role}
-                        </Badge>
-                        <Badge variant={user.status === "active" ? "default" : "destructive"}>
-                          {user.status || "inactive"}
-                        </Badge>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/dashboard/users/${user._id}`}>View</Link>
+                      
+                      {/* User Actions - Responsive Layout */}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2">
+                        {/* Badges - Responsive Stack */}
+                        <div className="flex flex-wrap gap-1 sm:gap-2">
+                          <Badge variant="secondary" className="capitalize text-xs px-2 py-1">
+                            {user.role}
+                          </Badge>
+                          <Badge 
+                            variant={user.status === "active" ? "default" : "destructive"} 
+                            className="text-xs px-2 py-1"
+                          >
+                            {user.status || "inactive"}
+                          </Badge>
+                        </div>
+                        
+                        {/* View Button - Responsive */}
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          asChild
+                          className="text-xs sm:text-sm h-8 sm:h-9 w-full sm:w-auto"
+                        >
+                          <Link href={`/dashboard/users/${user._id}`}>
+                            <span className="hidden sm:inline">View</span>
+                            <span className="sm:hidden">View Details</span>
+                          </Link>
                         </Button>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No recent users</p>
+                  <div className="text-center py-6 sm:py-8">
+                    <Users className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                    <p className="text-sm sm:text-base text-muted-foreground">No recent users</p>
                   </div>
                 )}
               </div>
@@ -565,15 +605,18 @@ export function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
+        {/* Sidebar - Enhanced Responsive */}
+        <div className="space-y-4 sm:space-y-6">
           <RecentActivity />
 
-          {/* System Health */}
+          {/* System Health - Enhanced Responsive */}
           <Card>
             <CardHeader>
-              <CardTitle>System Health</CardTitle>
-              <CardDescription>Platform performance metrics</CardDescription>
+              <CardTitle className="flex items-center text-base sm:text-lg">
+                <Database className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                System Health
+              </CardTitle>
+              <CardDescription className="text-sm">Platform performance metrics</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -608,28 +651,31 @@ export function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
+          {/* Admin Actions - Enhanced Responsive */}
           <Card>
             <CardHeader>
-              <CardTitle>Admin Actions</CardTitle>
+              <CardTitle className="flex items-center text-base sm:text-lg">
+                <Settings className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                Admin Actions
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <Button variant="outline" size="sm" className="w-full justify-start bg-transparent" asChild>
+                <Button variant="outline" size="sm" className="w-full justify-start bg-transparent text-xs sm:text-sm" asChild>
                   <Link href="/dashboard/system">
-                    <Database className="mr-2 h-4 w-4" />
+                    <Database className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     System Management
                   </Link>
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start bg-transparent" asChild>
+                <Button variant="outline" size="sm" className="w-full justify-start bg-transparent text-xs sm:text-sm" asChild>
                   <Link href="/dashboard/settings">
-                    <Settings className="mr-2 h-4 w-4" />
+                    <Settings className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     System Settings
                   </Link>
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start bg-transparent" asChild>
+                <Button variant="outline" size="sm" className="w-full justify-start bg-transparent text-xs sm:text-sm" asChild>
                   <Link href="/dashboard/reports">
-                    <FileText className="mr-2 h-4 w-4" />
+                    <FileText className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Generate Reports
                   </Link>
                 </Button>
