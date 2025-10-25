@@ -359,6 +359,12 @@ exports.login = async (req, res) => {
       })
     }
     
+    // Update lastLogin timestamp and lastActive in stats
+    user.lastLogin = new Date()
+    user.stats = user.stats || {}
+    user.stats.lastActive = new Date()
+    await user.save()
+    
     // Use the getAuthData method for consistent JWT payload
     const userAuthData = user.getAuthData()
 

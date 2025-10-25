@@ -29,6 +29,7 @@ const UserSchema = new mongoose.Schema({
   smsOtpExpires: { type: Date },
   smsOtpAttempts: { type: Number, default: 0 },
   pushToken: { type: String },
+  lastLogin: { type: Date },
   notificationPreferences: {
     websocket: { type: Boolean, default: true },
     email: { type: Boolean, default: true },
@@ -103,6 +104,7 @@ UserSchema.index({ status: 1 })
 UserSchema.index({ partner: 1 })
 UserSchema.index({ location: 1 })
 UserSchema.index({ createdAt: -1 })
+UserSchema.index({ lastLogin: -1 })
 
 // Pre-save middleware to hash password
 UserSchema.pre('save', async function(next) {

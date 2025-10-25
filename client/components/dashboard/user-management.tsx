@@ -51,11 +51,10 @@ import Link from "next/link"
 
 interface User {
   _id: string
-  firstName: string
-  lastName: string
+  name: string  // Backend uses 'name' not 'firstName'/'lastName'
   email: string
   role: 'farmer' | 'buyer' | 'partner' | 'admin'
-  status: 'active' | 'suspended' | 'pending' | 'verified'
+  status: 'active' | 'suspended' | 'inactive'  // Backend uses 'active', 'inactive', 'suspended'
   emailVerified: boolean
   phone?: string
   location?: string
@@ -84,7 +83,7 @@ interface User {
 interface UserFilters {
   search: string
   role: 'all' | 'farmer' | 'buyer' | 'partner' | 'admin'
-  status: 'all' | 'active' | 'suspended' | 'pending' | 'verified'
+  status: 'all' | 'active' | 'suspended' | 'inactive'  // Match backend status values
   emailVerified: 'all' | 'verified' | 'unverified'
   dateRange: 'all' | 'today' | 'week' | 'month' | 'year'
 }
@@ -131,6 +130,8 @@ export function UserManagement() {
   })
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isUserModalOpen, setIsUserModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -139,7 +140,7 @@ export function UserManagement() {
 
   useEffect(() => {
     applyFilters()
-  }, [users, filters])
+  }, [users, filters, activeTab])
 
   const fetchUsers = async () => {
     try {
@@ -188,7 +189,7 @@ export function UserManagement() {
     const stats = {
       totalUsers: usersData.length,
       activeUsers: usersData.filter(u => u.status === 'active').length,
-      pendingUsers: usersData.filter(u => u.status === 'pending').length,
+      pendingUsers: usersData.filter(u => u.status === 'inactive').length,
       suspendedUsers: usersData.filter(u => u.status === 'suspended').length,
       farmers: usersData.filter(u => u.role === 'farmer').length,
       buyers: usersData.filter(u => u.role === 'buyer').length,
@@ -206,7 +207,7 @@ export function UserManagement() {
     // Search filter
     if (filters.search) {
       filtered = filtered.filter(user =>
-        `${user.firstName} ${user.lastName}`.toLowerCase().includes(filters.search.toLowerCase()) ||
+        user.name.toLowerCase().includes(filters.search.toLowerCase()) ||
         user.email.toLowerCase().includes(filters.search.toLowerCase()) ||
         user.location?.toLowerCase().includes(filters.search.toLowerCase()) ||
         user.phone?.includes(filters.search)
@@ -353,6 +354,45 @@ export function UserManagement() {
     setIsUserModalOpen(true)
   }
 
+  const handleEditUser = (user: User) => {
+    setEditingUser(user)
+    setIsEditModalOpen(true)
+    setIsUserModalOpen(false) // Close the view modal
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingUser) return
+
+    try {
+      // Call the API to update the user
+      await apiService.updateAdminUser(editingUser._id, {
+        name: editingUser.name,
+        email: editingUser.email,
+        phone: editingUser.phone,
+        role: editingUser.role,
+        status: editingUser.status,
+        location: editingUser.location,
+        emailVerified: editingUser.emailVerified
+      })
+
+      toast({
+        title: "Success",
+        description: "User updated successfully",
+        variant: "default"
+      })
+      
+      setIsEditModalOpen(false)
+      setEditingUser(null)
+      fetchUsers() // Refresh the list
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user",
+        variant: "destructive"
+      })
+    }
+  }
+
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'farmer':
@@ -374,8 +414,8 @@ export function UserManagement() {
         return <Badge className="bg-green-100 text-green-800 border-green-200"><CheckCircle className="h-3 w-3 mr-1" />Active</Badge>
       case 'suspended':
         return <Badge className="bg-red-100 text-red-800 border-red-200"><Ban className="h-3 w-3 mr-1" />Suspended</Badge>
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200"><Clock className="h-3 w-3 mr-1" />Pending</Badge>
+      case 'inactive':
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200"><Clock className="h-3 w-3 mr-1" />Inactive</Badge>
       case 'verified':
         return <Badge className="bg-blue-100 text-blue-800 border-blue-200"><UserCheck className="h-3 w-3 mr-1" />Verified</Badge>
       default:
@@ -589,8 +629,7 @@ export function UserManagement() {
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="suspended">Suspended</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="verified">Verified</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
 
@@ -672,14 +711,16 @@ export function UserManagement() {
       )}
 
       {/* Users Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="all">All Users</TabsTrigger>
-          <TabsTrigger value="farmers">Farmers</TabsTrigger>
-          <TabsTrigger value="buyers">Buyers</TabsTrigger>
-          <TabsTrigger value="partners">Partners</TabsTrigger>
-          <TabsTrigger value="admins">Admins</TabsTrigger>
-        </TabsList>
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 bg-muted/50">
+              <TabsTrigger value="all" className="text-xs sm:text-sm py-2.5">All Users</TabsTrigger>
+              <TabsTrigger value="farmers" className="text-xs sm:text-sm py-2.5">Farmers</TabsTrigger>
+              <TabsTrigger value="buyers" className="text-xs sm:text-sm py-2.5">Buyers</TabsTrigger>
+              <TabsTrigger value="partners" className="text-xs sm:text-sm py-2.5">Partners</TabsTrigger>
+              <TabsTrigger value="admins" className="text-xs sm:text-sm py-2.5">Admins</TabsTrigger>
+            </TabsList>
 
         <TabsContent value={activeTab} className="space-y-4">
           {/* Users List */}
@@ -746,7 +787,7 @@ export function UserManagement() {
                             </div>
                             <div className="ml-3 lg:ml-4 min-w-0">
                               <div className="text-sm font-medium text-gray-900 truncate">
-                                {user.firstName} {user.lastName}
+                                {user.name}
                               </div>
                               <div className="text-sm text-gray-500 truncate">{user.email}</div>
                               {user.phone && (
@@ -782,7 +823,12 @@ export function UserManagement() {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0"
+                              onClick={() => handleEditUser(user)}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
                             {user.status === 'active' ? (
@@ -841,30 +887,32 @@ export function UserManagement() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+          </Tabs>
+        </CardContent>
+      </Card>
 
       {/* User Details Modal */}
       <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>User Details</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">User Details</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               View detailed information about this user
             </DialogDescription>
           </DialogHeader>
           {selectedUser && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* User Basic Info */}
-              <div className="flex items-start space-x-4">
-                <div className="h-16 w-16 rounded-full bg-gray-200 flex items-center justify-center">
+              <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
                   {getRoleIcon(selectedUser.role)}
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold">
-                    {selectedUser.firstName} {selectedUser.lastName}
+                <div className="flex-1 min-w-0 w-full">
+                  <h3 className="text-base sm:text-lg font-semibold truncate">
+                    {selectedUser.name}
                   </h3>
-                  <p className="text-gray-600">{selectedUser.email}</p>
-                  <div className="flex items-center space-x-2 mt-2">
+                  <p className="text-sm text-gray-600 truncate break-all">{selectedUser.email}</p>
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
                     {getRoleBadge(selectedUser.role)}
                     {getStatusBadge(selectedUser.status)}
                   </div>
@@ -872,51 +920,183 @@ export function UserManagement() {
               </div>
 
               {/* User Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Phone</Label>
-                  <p className="text-sm">{selectedUser.phone || 'N/A'}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1 sm:space-y-2">
+                  <Label className="text-xs sm:text-sm font-medium text-gray-500">Phone</Label>
+                  <p className="text-xs sm:text-sm break-all">{selectedUser.phone || 'N/A'}</p>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Location</Label>
-                  <p className="text-sm">{selectedUser.location || selectedUser.city || 'N/A'}</p>
+                <div className="space-y-1 sm:space-y-2">
+                  <Label className="text-xs sm:text-sm font-medium text-gray-500">Location</Label>
+                  <p className="text-xs sm:text-sm truncate">{selectedUser.location || selectedUser.city || 'N/A'}</p>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Email Verified</Label>
-                  <p className="text-sm">
+                <div className="space-y-1 sm:space-y-2">
+                  <Label className="text-xs sm:text-sm font-medium text-gray-500">Email Verified</Label>
+                  <p className="text-xs sm:text-sm">
                     {selectedUser.emailVerified ? (
-                      <Badge className="bg-green-100 text-green-800">Verified</Badge>
+                      <Badge className="bg-green-100 text-green-800 text-xs">Verified</Badge>
                     ) : (
-                      <Badge className="bg-red-100 text-red-800">Unverified</Badge>
+                      <Badge className="bg-red-100 text-red-800 text-xs">Unverified</Badge>
                     )}
                   </p>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Joined</Label>
-                  <p className="text-sm">{new Date(selectedUser.createdAt).toLocaleDateString()}</p>
+                <div className="space-y-1 sm:space-y-2">
+                  <Label className="text-xs sm:text-sm font-medium text-gray-500">Joined</Label>
+                  <p className="text-xs sm:text-sm">{new Date(selectedUser.createdAt).toLocaleDateString()}</p>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Last Login</Label>
-                  <p className="text-sm">
+                <div className="space-y-1 sm:space-y-2">
+                  <Label className="text-xs sm:text-sm font-medium text-gray-500">Last Login</Label>
+                  <p className="text-xs sm:text-sm">
                     {selectedUser.lastLogin ? new Date(selectedUser.lastLogin).toLocaleDateString() : 'Never'}
                   </p>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Total Revenue</Label>
-                  <p className="text-sm">
+                <div className="space-y-1 sm:space-y-2">
+                  <Label className="text-xs sm:text-sm font-medium text-gray-500">Total Revenue</Label>
+                  <p className="text-xs sm:text-sm">
                     {selectedUser.totalRevenue ? formatCurrency(selectedUser.totalRevenue) : 'N/A'}
                   </p>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end space-x-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => setIsUserModalOpen(false)}>
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-2 pt-3 sm:pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsUserModalOpen(false)}
+                  className="w-full sm:w-auto"
+                >
                   Close
                 </Button>
-                <Button>
+                <Button 
+                  className="w-full sm:w-auto"
+                  onClick={() => selectedUser && handleEditUser(selectedUser)}
+                >
                   <Edit className="h-4 w-4 mr-2" />
-                  Edit User
+                  <span className="hidden sm:inline">Edit</span>
+                  <span className="sm:hidden">Edit User</span>
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-xl">Edit User</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
+              Update user information
+            </DialogDescription>
+          </DialogHeader>
+          {editingUser && (
+            <div className="space-y-4 sm:space-y-6">
+              {/* User Basic Info */}
+              <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name" className="text-xs sm:text-sm">Full Name</Label>
+                  <Input
+                    id="edit-name"
+                    value={editingUser.name}
+                    onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                    className="text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email" className="text-xs sm:text-sm">Email</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={editingUser.email}
+                    onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                    className="text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-phone" className="text-xs sm:text-sm">Phone</Label>
+                  <Input
+                    id="edit-phone"
+                    value={editingUser.phone || ''}
+                    onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
+                    className="text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-role" className="text-xs sm:text-sm">Role</Label>
+                    <Select
+                      value={editingUser.role}
+                      onValueChange={(value) => setEditingUser({ ...editingUser, role: value as User['role'] })}
+                    >
+                      <SelectTrigger className="text-xs sm:text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="farmer">Farmer</SelectItem>
+                        <SelectItem value="buyer">Buyer</SelectItem>
+                        <SelectItem value="partner">Partner</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-status" className="text-xs sm:text-sm">Status</Label>
+                    <Select
+                      value={editingUser.status}
+                      onValueChange={(value) => setEditingUser({ ...editingUser, status: value as User['status'] })}
+                    >
+                      <SelectTrigger className="text-xs sm:text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                        <SelectItem value="suspended">Suspended</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-location" className="text-xs sm:text-sm">Location</Label>
+                  <Input
+                    id="edit-location"
+                    value={editingUser.location || editingUser.city || ''}
+                    onChange={(e) => setEditingUser({ ...editingUser, location: e.target.value })}
+                    className="text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="edit-emailVerified"
+                    checked={editingUser.emailVerified}
+                    onCheckedChange={(checked) => setEditingUser({ ...editingUser, emailVerified: checked as boolean })}
+                  />
+                  <Label htmlFor="edit-emailVerified" className="text-xs sm:text-sm cursor-pointer">
+                    Email Verified
+                  </Label>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row justify-end gap-2 pt-3 sm:pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="w-full sm:w-auto"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveEdit}
+                  className="w-full sm:w-auto"
+                >
+                  Save Changes
                 </Button>
               </div>
             </div>

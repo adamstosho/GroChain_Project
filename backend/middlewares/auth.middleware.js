@@ -21,32 +21,34 @@ async function authenticate(req, res, next) {
 
     const decoded = verifyAccess(token)
 
-    // Create a basic user object from JWT data
-    // This avoids async database calls that might be causing issues
-    req.user = {
-      _id: decoded.id,  // Use _id to match MongoDB convention
-      id: decoded.id,
-      role: decoded.role,
-      email: decoded.email || undefined, // Keep as undefined if not in token
-      name: decoded.name || 'User',
-      phone: undefined,
-      location: undefined
+    // Fetch user data from database to check status
+    const User = require('../models/user.model')
+    const user = await User.findById(decoded.id)
+    
+    if (!user) {
+      return res.status(401).json({ status: 'error', message: 'User not found' })
     }
-
-    // For marketplace routes, fetch complete user data to include phone/location
-    if (req.path.includes('/marketplace') || req.path.includes('/favorites')) {
-      try {
-        const User = require('../models/user.model')
-        const fullUser = await User.findById(decoded.id).select('phone location profile')
-        if (fullUser) {
-          req.user.phone = fullUser.phone
-          req.user.location = fullUser.location
-          req.user.profile = fullUser.profile
-        }
-      } catch (dbError) {
-        console.log('⚠️ Could not fetch complete user data for marketplace:', dbError.message)
-        // Continue with basic user data
-      }
+    
+    // Check if user is suspended
+    if (user.status === 'suspended') {
+      return res.status(403).json({ 
+        status: 'error', 
+        message: 'Account suspended. Please contact support.',
+        suspensionReason: user.suspensionReason || 'Account has been suspended by an administrator'
+      })
+    }
+    
+    // Create user object for the request
+    req.user = {
+      _id: user._id.toString(),
+      id: user._id.toString(),
+      role: user.role,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+      location: user.location,
+      status: user.status,
+      profile: user.profile
     }
 
     console.log('🔌 JWT decoded successfully:', {

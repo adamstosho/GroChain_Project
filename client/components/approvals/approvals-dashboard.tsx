@@ -58,6 +58,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
   const [itemsPerPage] = useState(10)
   const [rejectionReason, setRejectionReason] = useState("")
   const [approvalNotes, setApprovalNotes] = useState("")
+  const [isProcessing, setIsProcessing] = useState(false)
 
   const { user } = useAuthStore()
   const { toast } = useToast()
@@ -125,20 +126,29 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
   }
 
   const handleApprove = async (approvalId: string) => {
+    if (isProcessing) return // Prevent double-clicks
+    
     console.log('Starting approval process for harvest:', approvalId)
+    
+    setIsProcessing(true)
+    
+    // Close dialog immediately for better UX
+    setIsApprovalDialogOpen(false)
+    setApprovalNotes("")
+    setSelectedApproval(null)
+    
     try {
       await approveHarvest(approvalId, approvalNotes)
-
-      setIsApprovalDialogOpen(false)
-      setApprovalNotes("")
-      setSelectedApproval(null)
-
+      
+      // Refresh data to ensure UI is updated
+      await refreshData()
+      
       toast({
         title: "Harvest Approved",
         description: "The harvest has been approved successfully",
       })
 
-      console.log('Approval completed successfully - UI updated automatically')
+      console.log('Approval completed successfully - UI updated')
     } catch (error: any) {
       console.error('Error approving harvest:', error)
       const errorMessage = error?.message || "Failed to approve harvest. Please try again."
@@ -158,10 +168,14 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
           })
         }, 3000)
       }
+    } finally {
+      setIsProcessing(false)
     }
   }
 
   const handleReject = async (approvalId: string) => {
+    if (isProcessing) return // Prevent double-clicks
+    
     if (!rejectionReason.trim()) {
       toast({
         title: "Rejection Reason Required",
@@ -172,20 +186,27 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
     }
 
     console.log('Starting rejection process for harvest:', approvalId)
+    
+    setIsProcessing(true)
+    
+    // Close dialog immediately for better UX
+    setIsApprovalDialogOpen(false)
+    setRejectionReason("")
+    setApprovalNotes("")
+    setSelectedApproval(null)
+    
     try {
       await rejectHarvest(approvalId, rejectionReason, approvalNotes)
-
-      setIsApprovalDialogOpen(false)
-      setRejectionReason("")
-      setApprovalNotes("")
-      setSelectedApproval(null)
-
+      
+      // Refresh data to ensure UI is updated
+      await refreshData()
+      
       toast({
         title: "Harvest Rejected",
         description: "The harvest has been rejected with the provided reason",
       })
 
-      console.log('Rejection completed successfully - UI updated automatically')
+      console.log('Rejection completed successfully - UI updated')
     } catch (error: any) {
       console.error('Error rejecting harvest:', error)
       const errorMessage = error?.message || "Failed to reject harvest. Please try again."
@@ -205,10 +226,14 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
           })
         }, 3000)
       }
+    } finally {
+      setIsProcessing(false)
     }
   }
 
   const handleBatchAction = async (action: 'approve' | 'reject') => {
+    if (isProcessing) return // Prevent double-clicks
+    
     if (selectedApprovals.length === 0) {
       toast({
         title: "No Approvals Selected",
@@ -227,21 +252,33 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
       return
     }
 
+    setIsProcessing(true)
+
+    // Close dialog immediately for better UX
+    setIsBatchDialogOpen(false)
+    setApprovalNotes("")
+    setRejectionReason("")
+
+    // Store the count for the success message
+    const count = selectedApprovals.length
+    const approvalIds = [...selectedApprovals]
+    
     try {
       if (action === 'approve') {
-        await batchProcess('approve', selectedApprovals, approvalNotes)
+        await batchProcess('approve', approvalIds, approvalNotes)
       } else {
-        await batchProcess('reject', selectedApprovals, approvalNotes, rejectionReason)
+        await batchProcess('reject', approvalIds, approvalNotes, rejectionReason)
       }
 
+      // Clear selections after successful processing
       setSelectedApprovals([])
-      setIsBatchDialogOpen(false)
-      setApprovalNotes("")
-      setRejectionReason("")
+      
+      // Refresh data to ensure UI is updated
+      await refreshData()
 
       toast({
         title: `Batch ${action.charAt(0).toUpperCase() + action.slice(1)} Complete`,
-        description: `${selectedApprovals.length} harvests have been ${action}d successfully`,
+        description: `${count} harvests have been ${action}d successfully`,
       })
     } catch (error: any) {
       console.error(`Error in batch ${action}:`, error)
@@ -250,6 +287,8 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
         description: error.message || `Failed to process batch ${action}`,
         variant: "destructive",
       })
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -784,22 +823,25 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                     setRejectionReason("")
                     setSelectedApproval(null)
                   }}
+                  disabled={isProcessing}
                 >
                   Cancel
                 </Button>
                 <Button
                   variant="destructive"
                   onClick={() => handleReject(selectedApproval._id)}
+                  disabled={isProcessing}
                 >
                   <ThumbsDown className="w-4 h-4 mr-2" />
-                  Reject
+                  {isProcessing ? 'Processing...' : 'Reject'}
                 </Button>
                 <Button
                   onClick={() => handleApprove(selectedApproval._id)}
                   className="bg-green-600 hover:bg-green-700"
+                  disabled={isProcessing}
                 >
                   <ThumbsUp className="w-4 h-4 mr-2" />
-                  Approve
+                  {isProcessing ? 'Processing...' : 'Approve'}
                 </Button>
               </div>
             </div>
@@ -848,18 +890,20 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
               <Button
                 className="w-full bg-green-600 hover:bg-green-700"
                 onClick={() => handleBatchAction('approve')}
+                disabled={isProcessing}
               >
                 <ThumbsUp className="w-4 h-4 mr-2" />
-                Batch Approve All
+                {isProcessing ? 'Processing...' : 'Batch Approve All'}
               </Button>
               
               <Button
                 variant="destructive"
                 className="w-full"
                 onClick={() => handleBatchAction('reject')}
+                disabled={isProcessing}
               >
                 <ThumbsDown className="w-4 h-4 mr-2" />
-                Batch Reject All
+                {isProcessing ? 'Processing...' : 'Batch Reject All'}
               </Button>
             </div>
           </div>
