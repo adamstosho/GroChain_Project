@@ -94,28 +94,28 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Pending</Badge>
+        return <Badge variant="secondary" className="text-xs whitespace-nowrap"><Clock className="w-3 h-3 mr-1" />Pending</Badge>
       case "approved":
-        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>
+        return <Badge variant="default" className="bg-green-100 text-green-800 text-xs whitespace-nowrap"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>
       case "rejected":
-        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>
+        return <Badge variant="destructive" className="text-xs whitespace-nowrap"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>
       case "under_review":
-        return <Badge variant="outline"><AlertTriangle className="w-3 h-3 mr-1" />Under Review</Badge>
+        return <Badge variant="outline" className="text-xs whitespace-nowrap"><AlertTriangle className="w-3 h-3 mr-1" />Under Review</Badge>
       default:
-        return <Badge variant="secondary">{status}</Badge>
+        return <Badge variant="secondary" className="text-xs whitespace-nowrap">{status}</Badge>
     }
   }
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case "high":
-        return <Badge variant="destructive">High</Badge>
+        return <Badge variant="destructive" className="text-xs whitespace-nowrap">High</Badge>
       case "medium":
-        return <Badge variant="default">Medium</Badge>
+        return <Badge variant="default" className="text-xs whitespace-nowrap">Medium</Badge>
       case "low":
-        return <Badge variant="secondary">Low</Badge>
+        return <Badge variant="secondary" className="text-xs whitespace-nowrap">Low</Badge>
       default:
-        return <Badge variant="secondary">{priority}</Badge>
+        return <Badge variant="secondary" className="text-xs whitespace-nowrap">{priority}</Badge>
     }
   }
 
@@ -534,76 +534,101 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
           <CardDescription>Review and manage farmer harvest submissions</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="all">All ({approvals.length})</TabsTrigger>
-              <TabsTrigger value="pending">Pending ({stats.pending || 0})</TabsTrigger>
-              <TabsTrigger value="approved">Approved ({stats.approved || 0})</TabsTrigger>
-              <TabsTrigger value="rejected">Rejected ({stats.rejected || 0})</TabsTrigger>
-              <TabsTrigger value="under_review">Review ({stats.underReview || 0})</TabsTrigger>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto p-1 bg-muted/50">
+              <TabsTrigger 
+                value="all" 
+                className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
+              >
+                All ({approvals.length})
+              </TabsTrigger>
+              <TabsTrigger 
+                value="pending" 
+                className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
+              >
+                Pending ({stats.pending || 0})
+              </TabsTrigger>
+              <TabsTrigger 
+                value="approved" 
+                className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
+              >
+                Approved ({stats.approved || 0})
+              </TabsTrigger>
+              <TabsTrigger 
+                value="rejected" 
+                className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
+              >
+                Rejected ({stats.rejected || 0})
+              </TabsTrigger>
+              <TabsTrigger 
+                value="under_review" 
+                className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
+              >
+                Review ({stats.underReview || 0})
+              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value={activeTab} className="space-y-4 mt-6">
+            <TabsContent value={activeTab} className="space-y-4">
               {/* Approvals List */}
               <div className="space-y-4">
                 {getPaginatedApprovals().map((approval) => (
                   <Card key={approval._id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-4 flex-1">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                        <div className="flex items-start space-x-3 sm:space-x-4 flex-1 min-w-0">
                           {/* Checkbox for batch selection */}
                           <input
                             type="checkbox"
                             checked={selectedApprovals.includes(approval._id)}
                             onChange={() => toggleApprovalSelection(approval._id)}
-                            className="mt-2 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
+                            className="mt-2 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary flex-shrink-0"
                           />
                           
                           {/* Farmer Info */}
-                          <Avatar className="h-12 w-12">
+                          <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
                             <AvatarImage src={approval.farmer.avatar} />
                             <AvatarFallback>
                               {approval.farmer.name.split(' ').map((n: string) => n[0]).join('')}
                             </AvatarFallback>
                           </Avatar>
                           
-                          <div className="flex-1 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h3 className="font-semibold text-lg">{approval.farmer.name}</h3>
-                                <p className="text-sm text-muted-foreground">{approval.farmer.email}</p>
+                          <div className="flex-1 space-y-3 min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-base sm:text-lg truncate">{approval.farmer.name}</h3>
+                                <p className="text-xs sm:text-sm text-muted-foreground truncate">{approval.farmer.email}</p>
                               </div>
-                              <div className="flex items-center space-x-2">
+                              <div className="flex items-center flex-wrap gap-2 flex-shrink-0">
                                 {getStatusBadge(approval.status)}
                                 {getPriorityBadge(approval.priority)}
                               </div>
                             </div>
                             
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                              <div className="flex items-center space-x-2">
-                                <Package className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                              <div className="flex items-start space-x-2 min-w-0">
+                                <Package className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                                <span className="text-xs sm:text-sm truncate">
                                   {approval.harvest.cropType} - {approval.harvest.quantity} {approval.harvest.unit}
                                 </span>
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <Calendar className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm">
+                              <div className="flex items-start space-x-2 min-w-0">
+                                <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                                <span className="text-xs sm:text-sm truncate">
                                   {new Date(approval.harvest.harvestDate).toLocaleDateString()}
                                 </span>
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <MapPin className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm">{typeof approval.location === 'string' ? approval.location : `${(approval.location as any)?.city || 'Unknown'}, ${(approval.location as any)?.state || 'Unknown State'}`}</span>
+                              <div className="flex items-start space-x-2 min-w-0">
+                                <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                                <span className="text-xs sm:text-sm truncate">{typeof approval.location === 'string' ? approval.location : `${(approval.location as any)?.city || 'Unknown'}, ${(approval.location as any)?.state || 'Unknown State'}`}</span>
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <Scale className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm">₦{approval.estimatedValue.toLocaleString()}</span>
+                              <div className="flex items-start space-x-2 min-w-0">
+                                <Scale className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                                <span className="text-xs sm:text-sm truncate">₦{approval.estimatedValue.toLocaleString()}</span>
                               </div>
                             </div>
                             
                             {approval.harvest.description && (
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
                                 {approval.harvest.description}
                               </p>
                             )}
@@ -611,8 +636,8 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                             {/* Quality Score */}
                             {approval.harvest.qualityScore && (
                               <div className="flex items-center space-x-2">
-                                <Star className="w-4 h-4 text-yellow-500" />
-                                <span className={`text-sm font-medium ${getQualityScoreColor(approval.harvest.qualityScore)}`}>
+                                <Star className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                                <span className={`text-xs sm:text-sm font-medium ${getQualityScoreColor(approval.harvest.qualityScore)}`}>
                                   Quality Score: {approval.harvest.qualityScore}/10
                                 </span>
                               </div>
@@ -621,7 +646,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                             {/* Approval Notes or Rejection Reason */}
                             {approval.approvalNotes && (
                               <div className="bg-green-50 p-3 rounded-lg">
-                                <p className="text-sm text-green-800">
+                                <p className="text-xs sm:text-sm text-green-800 break-words">
                                   <strong>Approval Notes:</strong> {approval.approvalNotes}
                                 </p>
                               </div>
@@ -629,7 +654,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                             
                             {approval.rejectionReason && (
                               <div className="bg-red-50 p-3 rounded-lg">
-                                <p className="text-sm text-red-800">
+                                <p className="text-xs sm:text-sm text-red-800 break-words">
                                   <strong>Rejection Reason:</strong> {approval.rejectionReason}
                                 </p>
                               </div>
@@ -638,7 +663,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                         </div>
                         
                         {/* Action Buttons */}
-                        <div className="flex flex-col space-y-2 ml-4">
+                        <div className="grid grid-cols-2 sm:flex sm:flex-col gap-2 w-full sm:w-auto">
                           <Button
                             variant="outline"
                             size="sm"
@@ -646,11 +671,10 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                               setSelectedApproval(approval)
                               setIsApprovalDialogOpen(true)
                             }}
-                            className="w-full sm:w-auto"
+                            className="w-full"
                           >
-                            <Eye className="w-4 h-4 mr-2" />
-                            <span className="hidden sm:inline">Review</span>
-                            <span className="sm:hidden">👁️</span>
+                            <Eye className="w-4 h-4 mr-1 sm:mr-2" />
+                            <span className="text-xs sm:text-sm">Review</span>
                           </Button>
                           
                           {approval.status === 'pending' && (
@@ -659,11 +683,10 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                                 variant="default"
                                 size="sm"
                                 onClick={() => handleApprove(approval._id)}
-                                className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+                                className="bg-green-600 hover:bg-green-700 w-full"
                               >
-                                <ThumbsUp className="w-4 h-4 mr-2" />
-                                <span className="hidden sm:inline">Approve</span>
-                                <span className="sm:hidden">👍</span>
+                                <ThumbsUp className="w-4 h-4 mr-1 sm:mr-2" />
+                                <span className="text-xs sm:text-sm">Approve</span>
                               </Button>
                               <Button
                                 variant="destructive"
@@ -672,19 +695,17 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                                   setSelectedApproval(approval)
                                   setIsApprovalDialogOpen(true)
                                 }}
-                                className="w-full sm:w-auto"
+                                className="w-full"
                               >
-                                <ThumbsDown className="w-4 h-4 mr-2" />
-                                <span className="hidden sm:inline">Reject</span>
-                                <span className="sm:hidden">👎</span>
+                                <ThumbsDown className="w-4 h-4 mr-1 sm:mr-2" />
+                                <span className="text-xs sm:text-sm">Reject</span>
                               </Button>
                             </>
                           )}
                           
-                          <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                            <MessageSquare className="w-4 h-4 mr-2" />
-                            <span className="hidden sm:inline">Message</span>
-                            <span className="sm:hidden">💬</span>
+                          <Button variant="outline" size="sm" className="w-full col-span-2 sm:col-span-1">
+                            <MessageSquare className="w-4 h-4 mr-1 sm:mr-2" />
+                            <span className="text-xs sm:text-sm">Message</span>
                           </Button>
                         </div>
                       </div>

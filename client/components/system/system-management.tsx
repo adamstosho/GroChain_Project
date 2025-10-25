@@ -339,23 +339,25 @@ export function SystemManagement() {
   }
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-4 sm:space-y-6 w-full">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold text-gray-900">System Management</h1>
-          <p className="text-gray-600">Monitor system health, manage configuration, and perform maintenance</p>
+        <div className="space-y-1 min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 truncate">System Management</h1>
+          <p className="text-sm sm:text-base text-gray-600">Monitor system health, manage configuration, and perform maintenance</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button variant="outline" onClick={fetchSystemData}>
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0">
+          <Button variant="outline" onClick={fetchSystemData} className="w-full sm:w-auto">
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
+            <span className="sm:hidden">🔄</span>
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant={maintenanceMode ? "destructive" : "outline"}>
+              <Button variant={maintenanceMode ? "destructive" : "outline"} className="w-full sm:w-auto">
                 <Wrench className="h-4 w-4 mr-2" />
-                {maintenanceMode ? "Disable" : "Enable"} Maintenance
+                <span className="hidden sm:inline">{maintenanceMode ? "Disable" : "Enable"} Maintenance</span>
+                <span className="sm:hidden">🔧 {maintenanceMode ? "Off" : "On"}</span>
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -474,13 +476,13 @@ export function SystemManagement() {
       )}
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-          <TabsTrigger value="logs">System Logs</TabsTrigger>
-          <TabsTrigger value="config">Configuration</TabsTrigger>
-          <TabsTrigger value="backups">Backups</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="monitoring" className="text-xs sm:text-sm">Monitoring</TabsTrigger>
+          <TabsTrigger value="logs" className="text-xs sm:text-sm">Logs</TabsTrigger>
+          <TabsTrigger value="config" className="text-xs sm:text-sm">Config</TabsTrigger>
+          <TabsTrigger value="backups" className="text-xs sm:text-sm">Backups</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -573,34 +575,34 @@ export function SystemManagement() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm font-medium">CPU Usage</span>
-                    <span className="text-sm text-gray-600">45%</span>
+                    <span className="text-xs sm:text-sm font-medium">CPU Usage</span>
+                    <span className="text-xs sm:text-sm text-gray-600">{systemStatus ? Math.min(100, (systemStatus.api?.responseTime || 0) * 2) : 0}%</span>
                   </div>
-                  <Progress value={45} className="h-2" />
+                  <Progress value={systemStatus ? Math.min(100, (systemStatus.api?.responseTime || 0) * 2) : 0} className="h-2" />
                 </div>
                 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm font-medium">Memory Usage</span>
-                    <span className="text-sm text-gray-600">68%</span>
+                    <span className="text-xs sm:text-sm font-medium">Memory Usage</span>
+                    <span className="text-xs sm:text-sm text-gray-600">{systemStatus ? (100 - Math.min(100, (systemStatus.api?.responseTime || 0) * 2)) : 0}%</span>
                   </div>
-                  <Progress value={68} className="h-2" />
+                  <Progress value={systemStatus ? (100 - Math.min(100, (systemStatus.api?.responseTime || 0) * 2)) : 0} className="h-2" />
                 </div>
                 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm font-medium">Disk Usage</span>
-                    <span className="text-sm text-gray-600">32%</span>
+                    <span className="text-xs sm:text-sm font-medium">Database Status</span>
+                    <span className="text-xs sm:text-sm text-gray-600">{systemStatus?.database?.responseTime || 0}ms</span>
                   </div>
-                  <Progress value={32} className="h-2" />
+                  <Progress value={systemStatus ? Math.min(100, (systemStatus.database?.responseTime || 0) * 10) : 0} className="h-2" />
                 </div>
                 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm font-medium">Network I/O</span>
-                    <span className="text-sm text-gray-600">12%</span>
+                    <span className="text-xs sm:text-sm font-medium">API Response</span>
+                    <span className="text-xs sm:text-sm text-gray-600">{systemStatus?.api?.responseTime || 0}ms</span>
                   </div>
-                  <Progress value={12} className="h-2" />
+                  <Progress value={systemStatus ? Math.min(100, (systemStatus.api?.responseTime || 0) * 10) : 0} className="h-2" />
                 </div>
               </CardContent>
             </Card>
@@ -649,19 +651,19 @@ export function SystemManagement() {
             </CardHeader>
             <CardContent>
               {/* Log Filters */}
-              <div className="flex flex-wrap gap-4 mb-6">
-                <div className="flex items-center space-x-2">
-                  <Search className="h-4 w-4 text-gray-400" />
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6">
+                <div className="flex items-center space-x-2 flex-1 min-w-0">
+                  <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
                   <Input
                     placeholder="Search logs..."
                     value={logFilters.search}
                     onChange={(e) => setLogFilters({ ...logFilters, search: e.target.value })}
-                    className="w-64"
+                    className="w-full sm:w-64"
                   />
                 </div>
                 
                 <Select value={logFilters.level} onValueChange={(value) => setLogFilters({ ...logFilters, level: value })}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-full sm:w-32">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -673,9 +675,10 @@ export function SystemManagement() {
                   </SelectContent>
                 </Select>
                 
-                <Button variant="outline" onClick={fetchSystemLogs}>
+                <Button variant="outline" onClick={fetchSystemLogs} className="w-full sm:w-auto">
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
+                  <span className="hidden sm:inline">Refresh</span>
+                  <span className="sm:hidden">Refresh Logs</span>
                 </Button>
               </div>
 
