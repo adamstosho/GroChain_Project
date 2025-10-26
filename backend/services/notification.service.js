@@ -11,9 +11,15 @@ class NotificationService {
       this.twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
     }
 
-    // Initialize email service - prioritize SMTP like auth controller
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-      // Initialize SMTP transporter (preferred)
+    // Initialize email service - prioritize SendGrid over SMTP for production (works on Render)
+    if (process.env.EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      // Initialize SendGrid first (works on Render)
+      const sgMail = require('@sendgrid/mail')
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+      this.sendgridClient = sgMail
+      console.log('✅ SendGrid email service initialized (EMAIL_PROVIDER=sendgrid)')
+    } else if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      // Initialize SMTP as fallback (for local development)
       this.emailTransporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: process.env.SMTP_PORT || 587,
@@ -23,13 +29,7 @@ class NotificationService {
           pass: process.env.SMTP_PASS
         }
       })
-      console.log('✅ SMTP email service initialized')
-    } else if (process.env.EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
-      // Initialize SendGrid as fallback
-      const sgMail = require('@sendgrid/mail')
-      sgMail.setApiKey(process.env.SENDGRID_API_KEY)
-      this.sendgridClient = sgMail
-      console.log('✅ SendGrid email service initialized')
+      console.log('✅ SMTP email service initialized (for local development)')
     } else {
       console.warn('⚠️ No email service configured')
     }
