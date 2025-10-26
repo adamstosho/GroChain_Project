@@ -26,7 +26,7 @@ async function sendEmail(to, subject, html) {
   
   try {
     // PRIORITY 1: Try Resend (FREE, works on Render, best option)
-    if (process.env.RESEND_API_KEY) {
+    if (process.env.EMAIL_PROVIDER === 'resend' && process.env.RESEND_API_KEY) {
       console.log('📧 Using Resend HTTP API (direct)...')
       try {
         await sendEmailViaResend(to, subject, html)
@@ -40,7 +40,7 @@ async function sendEmail(to, subject, html) {
     }
     
     // PRIORITY 2: Try SendGrid HTTP API (works on Render, bypasses port blocking)
-    if (process.env.SENDGRID_API_KEY) {
+    if (process.env.EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
       console.log('📧 Using SendGrid HTTP API (direct)...')
       try {
         await sendEmailViaSendGrid(to, subject, html)
@@ -50,6 +50,19 @@ async function sendEmail(to, subject, html) {
         console.error('❌ SendGrid HTTP API failed:', sgError.message)
         console.log('📧 Falling back to SMTP...')
         // Fall through to try other methods
+      }
+    }
+    
+    // FALLBACK: Try Resend if SendGrid is configured as primary but fails
+    if (process.env.EMAIL_PROVIDER === 'sendgrid' && process.env.RESEND_API_KEY) {
+      console.log('📧 SendGrid failed, trying Resend as fallback...')
+      try {
+        await sendEmailViaResend(to, subject, html)
+        console.log('✅ Resend fallback email sent successfully to:', to)
+        return true
+      } catch (resendError) {
+        console.error('❌ Resend fallback failed:', resendError.message)
+        // Continue to other fallbacks
       }
     }
     

@@ -18,14 +18,19 @@ services:
         value: https://gro-chain.vercel.app
       - key: FRONTEND_URL
         value: https://gro-chain.vercel.app
-      # Email Configuration - Using SendGrid API (NOT SMTP) for Render compatibility
-      # Render blocks outbound SMTP ports, so we MUST use SendGrid HTTP API
+      # Email Configuration - Using Resend API (FREE, works on Render)
+      # Render blocks outbound SMTP ports, so we MUST use HTTP API
       - key: EMAIL_PROVIDER
-        value: sendgrid
-      # SendGrid Configuration - REQUIRED for production
-      # Set SENDGRID_API_KEY in Render dashboard: Settings > Environment
-      - key: SENDGRID_API_KEY
+        value: resend
+      # Resend Configuration - FREE, 100 emails/day, no credit card required
+      # Set RESEND_API_KEY in Render dashboard: Settings > Environment
+      - key: RESEND_API_KEY
         sync: false  # IMPORTANT: Set this in Render dashboard!
+      - key: RESEND_FROM_EMAIL
+        value: onboarding@resend.dev
+      # SendGrid Configuration - Fallback (keep for backup)
+      - key: SENDGRID_API_KEY
+        sync: false  # Set in Render dashboard if needed
       - key: SENDGRID_FROM_EMAIL
         value: grochain.ng@gmail.com
       - key: SENDGRID_FROM_NAME
