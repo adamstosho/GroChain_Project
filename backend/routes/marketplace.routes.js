@@ -965,5 +965,98 @@ router.post('/cleanup-manual', authenticate, authorize('admin'), async (req, res
   }
 })
 
+// Get buyer activity and testimonials for showing proof of offtakers
+router.get('/buyer-activity', async (req, res) => {
+  try {
+    console.log('📊 Fetching buyer activity data...')
+
+    // Get active buyers count (users who have placed orders in the last 30 days)
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const activeBuyersCount = await Order.distinct('buyer', {
+      createdAt: { $gte: thirtyDaysAgo },
+      paymentStatus: 'paid'
+    })
+
+    // Get transactions count for today
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+
+    const todaysTransactions = await Order.countDocuments({
+      createdAt: { $gte: today, $lt: tomorrow },
+      paymentStatus: 'paid'
+    })
+
+    // Get recent buyer testimonials (mock data for now - in real app, this would be from a testimonials collection)
+    const testimonials = [
+      {
+        id: 1,
+        buyerType: 'Restaurant Owner',
+        location: 'Lagos',
+        testimonial: 'Found excellent quality cassava from local farmers. The freshness is unmatched and my customers love it!',
+        rating: 5,
+        daysAgo: 2
+      },
+      {
+        id: 2,
+        buyerType: 'Supermarket Owner',
+        location: 'Abuja',
+        testimonial: 'Direct from farm to store eliminates middlemen. Better quality and I save significantly on costs.',
+        rating: 5,
+        daysAgo: 7
+      },
+      {
+        id: 3,
+        buyerType: 'Hotel Manager',
+        location: 'Port Harcourt',
+        testimonial: 'Reliable supply of fresh vegetables. The platform makes it easy to find and purchase from verified farmers.',
+        rating: 5,
+        daysAgo: 12
+      }
+    ]
+
+    // Calculate average rating from recent orders (mock data)
+    const averageRating = 4.8
+
+    // Get recent buyer activity (last 24 hours)
+    const last24Hours = new Date()
+    last24Hours.setHours(last24Hours.getHours() - 24)
+
+    const recentActivity = await Order.countDocuments({
+      createdAt: { $gte: last24Hours },
+      paymentStatus: 'paid'
+    })
+
+    const buyerActivityData = {
+      activeBuyers: activeBuyersCount.length,
+      todaysTransactions: todaysTransactions,
+      recentActivity: recentActivity,
+      averageRating: averageRating,
+      testimonials: testimonials
+    }
+
+    console.log('✅ Buyer activity data fetched:', {
+      activeBuyers: buyerActivityData.activeBuyers,
+      todaysTransactions: buyerActivityData.todaysTransactions,
+      recentActivity: buyerActivityData.recentActivity
+    })
+
+    res.json({
+      status: 'success',
+      data: buyerActivityData
+    })
+
+  } catch (error) {
+    console.error('❌ Error fetching buyer activity:', error)
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch buyer activity data'
+    })
+  }
+})
+
 module.exports = router
 

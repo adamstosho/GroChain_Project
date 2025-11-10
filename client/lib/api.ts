@@ -1130,6 +1130,10 @@ class ApiService {
     return this.request(`/api/marketplace/listings?${queryString}`)
   }
 
+  async getBuyerActivity() {
+    return this.request('/api/marketplace/buyer-activity')
+  }
+
   async getProductDetails(productId: string) {
     return this.request(`/api/marketplace/listings/${productId}`)
   }
