@@ -4,6 +4,32 @@ const Order = require('../models/order.model')
 const User = require('../models/user.model')
 const Listing = require('../models/listing.model')
 const Notification = require('../models/notification.model')
+const webSocketService = require('../services/websocket.service')
+
+const normalizeUserId = (user) => {
+  if (!user) return undefined
+  if (typeof user === 'string') return user
+  if (user._id) return user._id.toString()
+  if (typeof user.toString === 'function') return user.toString()
+  return undefined
+}
+
+const emitShipmentUpdate = (shipmentId, status, buyer, seller) => {
+  if (!webSocketService || typeof webSocketService.sendShipmentUpdate !== 'function') {
+    return
+  }
+
+  try {
+    webSocketService.sendShipmentUpdate(
+      shipmentId,
+      status,
+      normalizeUserId(buyer),
+      normalizeUserId(seller)
+    )
+  } catch (socketError) {
+    console.warn('⚠️ Failed to emit shipment update:', socketError?.message || socketError)
+  }
+}
 
 const shipmentController = {
   // Create new shipment
@@ -148,7 +174,7 @@ const shipmentController = {
       console.log('✅ Shipment created successfully:', shipment._id)
 
       // Add initial tracking event
-      await shipment.addTrackingEvent(
+      const shipmentWithEvent = await shipment.addTrackingEvent(
         'pending',
         'Shipment created',
         'Shipment has been created and is pending confirmation'
@@ -159,16 +185,23 @@ const shipmentController = {
       await Notification.create({
         user: order.buyer._id,
         title: 'Shipment Created',
-        message: `Your order #${orderNumber} has been shipped. Track your delivery with shipment #${shipment.shipmentNumber}`,
+        message: `Your order #${orderNumber} has been shipped. Track your delivery with shipment #${shipmentWithEvent.shipmentNumber}`,
         type: 'info',
         category: 'shipment',
-        data: { shipmentId: shipment._id, orderId: order._id }
+        data: { shipmentId: shipmentWithEvent._id, orderId: order._id }
       })
+
+      emitShipmentUpdate(
+        shipmentWithEvent._id,
+        shipmentWithEvent.status,
+        shipmentWithEvent.buyer,
+        shipmentWithEvent.seller
+      )
 
       res.status(201).json({
         status: 'success',
         message: 'Shipment created successfully',
-        data: shipment
+        data: shipmentWithEvent
       })
     } catch (error) {
       console.error('❌ Error creating shipment:', error)
@@ -388,24 +421,31 @@ const shipmentController = {
       }
 
       // Add tracking event
-      await shipment.addTrackingEvent(status, location, description, coordinates)
+      const updatedShipment = await shipment.addTrackingEvent(status, location, description, coordinates)
 
       // Create notification for buyer
       const order = await Order.findById(shipment.order)
       const orderNumber = order?.orderNumber || `ORD-${shipment.order?.toString().slice(-6).toUpperCase() || 'UNKNOWN'}`
       await Notification.create({
-        user: shipment.buyer,
+        user: updatedShipment.buyer,
         title: 'Shipment Update',
-        message: `Your order #${orderNumber} shipment #${shipment.shipmentNumber} status: ${status} - ${description}`,
+        message: `Your order #${orderNumber} shipment #${updatedShipment.shipmentNumber} status: ${status} - ${description}`,
         type: 'info',
         category: 'shipment',
-        data: { shipmentId: shipment._id, status, location }
+        data: { shipmentId: updatedShipment._id, status, location }
       })
+
+      emitShipmentUpdate(
+        updatedShipment._id,
+        status,
+        updatedShipment.buyer,
+        updatedShipment.seller
+      )
 
       res.json({
         status: 'success',
         message: 'Shipment status updated successfully',
-        data: shipment
+        data: updatedShipment
       })
     } catch (error) {
       console.error('Error updating shipment status:', error)
@@ -440,7 +480,7 @@ const shipmentController = {
       }
 
       // Update delivery status
-      await shipment.updateDeliveryStatus('delivered', {
+      const deliveredShipment = await shipment.updateDeliveryStatus('delivered', {
         signature,
         photo,
         notes,
@@ -449,26 +489,26 @@ const shipmentController = {
       })
 
       // Add tracking event
-      await shipment.addTrackingEvent(
+      const shipmentWithTracking = await deliveredShipment.addTrackingEvent(
         'delivered',
-        shipment.destination.city,
+        deliveredShipment.destination.city,
         'Package delivered successfully',
-        shipment.destination.coordinates
+        deliveredShipment.destination.coordinates
       )
 
       // Create notification for buyer and seller
       const notifications = [
         {
-          user: shipment.buyer,
+          user: shipmentWithTracking.buyer,
           title: 'Package Delivered',
-          message: `Your shipment #${shipment.shipmentNumber} has been delivered successfully!`,
+          message: `Your shipment #${shipmentWithTracking.shipmentNumber} has been delivered successfully!`,
           type: 'success',
           category: 'shipment'
         },
         {
-          user: shipment.seller,
+          user: shipmentWithTracking.seller,
           title: 'Delivery Confirmed',
-          message: `Shipment #${shipment.shipmentNumber} has been delivered to the buyer.`,
+          message: `Shipment #${shipmentWithTracking.shipmentNumber} has been delivered to the buyer.`,
           type: 'success',
           category: 'shipment'
         }
@@ -476,10 +516,17 @@ const shipmentController = {
 
       await Notification.insertMany(notifications)
 
+      emitShipmentUpdate(
+        shipmentWithTracking._id,
+        'delivered',
+        shipmentWithTracking.buyer,
+        shipmentWithTracking.seller
+      )
+
       res.json({
         status: 'success',
         message: 'Delivery confirmed successfully',
-        data: shipment
+        data: shipmentWithTracking
       })
     } catch (error) {
       console.error('Error confirming delivery:', error)

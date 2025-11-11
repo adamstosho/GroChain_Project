@@ -267,11 +267,10 @@ export default function ShipmentsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All methods</SelectItem>
-                    <SelectItem value="road">Road</SelectItem>
-                    <SelectItem value="rail">Rail</SelectItem>
-                    <SelectItem value="air">Air</SelectItem>
-                    <SelectItem value="sea">Sea</SelectItem>
-                    <SelectItem value="courier">Courier</SelectItem>
+                    <SelectItem value="road_standard">Road Transport (Standard)</SelectItem>
+                    <SelectItem value="road_express">Road Transport (Express)</SelectItem>
+                    <SelectItem value="air">Air Freight</SelectItem>
+                    <SelectItem value="courier">Courier Service</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

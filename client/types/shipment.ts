@@ -95,7 +95,7 @@ export interface Shipment {
   items: ShipmentItem[]
   origin: ShipmentLocation
   destination: ShipmentLocation
-  shippingMethod: 'road' | 'rail' | 'air' | 'sea' | 'courier'
+  shippingMethod: 'road_standard' | 'road_express' | 'air' | 'courier'
   carrier: string
   trackingNumber?: string
   estimatedDelivery: string
@@ -129,7 +129,7 @@ export interface Shipment {
 
 export interface CreateShipmentRequest {
   orderId: string
-  shippingMethod: 'road' | 'rail' | 'air' | 'sea' | 'courier'
+  shippingMethod: 'road_standard' | 'road_express' | 'air' | 'courier'
   carrier: string
   estimatedDelivery: string
   shippingCost: number
@@ -180,7 +180,7 @@ export interface ShipmentFilters {
   page?: number
   limit?: number
   status?: string
-  shippingMethod?: string
+  shippingMethod?: 'road_standard' | 'road_express' | 'air' | 'courier'
   carrier?: string
   origin?: string
   destination?: string
