@@ -300,9 +300,12 @@ The codebase includes both **fully implemented features** and **planned/partial*
    - Rich sustainability dashboards with trend lines and alerts.
 
 3. **Long Term**
+   - Standard real-time tracking system
+   - Advanced and standard quality assurance system
    - AI-assisted decision-making (yield predictions, risk scoring).
    - Gradual introduction of blockchain-backed traceability where appropriate.
    - IoT and satellite integrations for field-level monitoring.
+   - Loan facility for farmers.
 
 ---
 
