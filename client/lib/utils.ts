@@ -57,14 +57,25 @@ export const safeStorage = {
 export function suppressDatadogWarnings() {
   if (typeof window !== 'undefined') {
     const originalWarn = console.warn
+    const originalLog = console.log
+    const originalError = console.error
+
+    const isDatadogMessage = (msg: unknown) =>
+      typeof msg === 'string' && (msg.includes('Datadog Browser SDK') || msg.includes('No storage available'))
+
     console.warn = (...args) => {
-      // Suppress Datadog storage warnings
-      if (args[0] && typeof args[0] === 'string' &&
-          (args[0].includes('Datadog Browser SDK') ||
-           args[0].includes('No storage available'))) {
-        return // Suppress the warning
-      }
+      if (args[0] && isDatadogMessage(args[0])) return
       originalWarn.apply(console, args)
+    }
+
+    console.log = (...args) => {
+      if (args[0] && isDatadogMessage(args[0])) return
+      originalLog.apply(console, args)
+    }
+
+    console.error = (...args) => {
+      if (args[0] && isDatadogMessage(args[0])) return
+      originalError.apply(console, args)
     }
   }
 }

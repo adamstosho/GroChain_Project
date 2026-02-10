@@ -13,15 +13,15 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { 
-  ArrowLeft, 
-  Target, 
-  Plus, 
-  TrendingUp, 
-  Calendar, 
-  Banknote, 
-  CheckCircle, 
-  Clock, 
+import {
+  ArrowLeft,
+  Target,
+  Plus,
+  TrendingUp,
+  Calendar,
+  Banknote,
+  CheckCircle,
+  Clock,
   AlertCircle,
   Edit,
   Trash2,
@@ -63,7 +63,7 @@ interface GoalFormData {
 
 const goalTypes = [
   "savings",
-  "investment", 
+  "investment",
   "debt_reduction",
   "business_expansion",
   "equipment_purchase",
@@ -88,7 +88,7 @@ const getGoalTypeIcon = (type: string) => {
 }
 
 const getGoalTypeLabel = (type: string) => {
-  return type.split('_').map(word => 
+  return type.split('_').map(word =>
     word.charAt(0).toUpperCase() + word.slice(1)
   ).join(' ')
 }
@@ -147,7 +147,7 @@ export default function FinancialGoalsPage() {
     priority: 'medium',
     category: 'medium_term'
   })
-  
+
   const { toast } = useToast()
 
   useEffect(() => {
@@ -180,7 +180,7 @@ export default function FinancialGoalsPage() {
           progress: goal.targetAmount > 0 ? Math.round((goal.currentAmount / goal.targetAmount) * 100) : 0,
           category: goal.category || (goal.targetDate ?
             (new Date(goal.targetDate).getTime() - new Date().getTime() > 365 * 24 * 60 * 60 * 1000 ? 'long_term' :
-             new Date(goal.targetDate).getTime() - new Date().getTime() > 90 * 24 * 60 * 60 * 1000 ? 'medium_term' : 'short_term')
+              new Date(goal.targetDate).getTime() - new Date().getTime() > 90 * 24 * 60 * 60 * 1000 ? 'medium_term' : 'short_term')
             : 'medium_term')
         }))
 
@@ -219,7 +219,7 @@ export default function FinancialGoalsPage() {
 
   const handleCreateGoal = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.title || !formData.type || !formData.targetAmount || !formData.targetDate) {
       toast({
         title: "Validation Error",
@@ -240,11 +240,11 @@ export default function FinancialGoalsPage() {
         status: 'active',
         progress: 0
       }
-      
+
       setGoals(prev => [...prev, newGoal])
       setShowCreateDialog(false)
       resetForm()
-      
+
       toast({
         title: "Goal Created Successfully! 🎯",
         description: "Your financial goal has been set and is now being tracked.",
@@ -262,7 +262,7 @@ export default function FinancialGoalsPage() {
 
   const handleUpdateGoal = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!editingGoal || !formData.title || !formData.type || !formData.targetAmount || !formData.targetDate) {
       toast({
         title: "Validation Error",
@@ -278,14 +278,14 @@ export default function FinancialGoalsPage() {
         ...editingGoal,
         ...formData
       }
-      
-      setGoals(prev => prev.map(goal => 
+
+      setGoals(prev => prev.map(goal =>
         goal._id === editingGoal._id ? updatedGoal : goal
       ))
-      
+
       setEditingGoal(null)
       resetForm()
-      
+
       toast({
         title: "Goal Updated Successfully! ✨",
         description: "Your financial goal has been updated.",
@@ -303,14 +303,14 @@ export default function FinancialGoalsPage() {
 
   const handleDeleteGoal = async () => {
     if (!deletingGoal) return
-    
+
     try {
       setLoading(true)
       // Mock deletion - replace with actual API call
       setGoals(prev => prev.filter(goal => goal._id !== deletingGoal._id))
       setShowDeleteDialog(false)
       setDeletingGoal(null)
-      
+
       toast({
         title: "Goal Deleted",
         description: "Your financial goal has been removed.",
@@ -418,7 +418,7 @@ export default function FinancialGoalsPage() {
               Set, track, and achieve your financial objectives
             </p>
           </div>
-          
+
           <Button onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Set New Goal
@@ -520,7 +520,7 @@ export default function FinancialGoalsPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-sm text-gray-600 line-clamp-2">{goal.description}</p>
-                  
+
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Progress:</span>
@@ -545,7 +545,7 @@ export default function FinancialGoalsPage() {
                       {goal.status.charAt(0).toUpperCase() + goal.status.slice(1)}
                     </Badge>
                     <Badge className={getCategoryColor(goal.category)}>
-                      {goal.category.split('_').map(word => 
+                      {goal.category.split('_').map(word =>
                         word.charAt(0).toUpperCase() + word.slice(1)
                       ).join(' ')}
                     </Badge>
@@ -593,13 +593,13 @@ export default function FinancialGoalsPage() {
                 {editingGoal ? "Edit Financial Goal" : "Create New Financial Goal"}
               </DialogTitle>
               <DialogDescription>
-                {editingGoal 
+                {editingGoal
                   ? "Update your financial goal details and objectives."
                   : "Set a new financial goal with clear targets and timeline."
                 }
               </DialogDescription>
             </DialogHeader>
-            
+
             <form onSubmit={editingGoal ? handleUpdateGoal : handleCreateGoal} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -612,11 +612,11 @@ export default function FinancialGoalsPage() {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="type">Goal Type *</Label>
-                  <Select 
-                    value={formData.type} 
+                  <Select
+                    value={formData.type}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
                   >
                     <SelectTrigger>
@@ -658,7 +658,7 @@ export default function FinancialGoalsPage() {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="targetDate">Target Date *</Label>
                   <Input
@@ -674,8 +674,8 @@ export default function FinancialGoalsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>
-                  <Select 
-                    value={formData.priority} 
+                  <Select
+                    value={formData.priority}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
                   >
                     <SelectTrigger>
@@ -690,11 +690,11 @@ export default function FinancialGoalsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="category">Time Category</Label>
-                  <Select 
-                    value={formData.category} 
+                  <Select
+                    value={formData.category}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
                   >
                     <SelectTrigger>
@@ -703,7 +703,7 @@ export default function FinancialGoalsPage() {
                     <SelectContent>
                       {categories.map((category) => (
                         <SelectItem key={category} value={category}>
-                          {category.split('_').map(word => 
+                          {category.split('_').map(word =>
                             word.charAt(0).toUpperCase() + word.slice(1)
                           ).join(' ')}
                         </SelectItem>
@@ -714,9 +714,9 @@ export default function FinancialGoalsPage() {
               </div>
 
               <div className="flex gap-3 justify-end pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => {
                     setShowCreateDialog(false)
                     setEditingGoal(null)
@@ -739,15 +739,15 @@ export default function FinancialGoalsPage() {
             <DialogHeader>
               <DialogTitle>Delete Financial Goal</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete "{deletingGoal?.title}"? This action cannot be undone and will remove all progress tracking for this goal.
+                Are you sure you want to delete &quot;{deletingGoal?.title}&quot;? This action cannot be undone and will remove all progress tracking for this goal.
               </DialogDescription>
             </DialogHeader>
             <div className="flex gap-3 justify-end">
               <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
                 Cancel
               </Button>
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 onClick={handleDeleteGoal}
                 disabled={loading}
               >

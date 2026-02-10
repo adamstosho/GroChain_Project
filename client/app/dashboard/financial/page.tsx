@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -93,14 +93,12 @@ export default function FinancialServicesPage() {
 
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchFinancialData()
-  }, [])
 
-  const fetchFinancialData = async () => {
+
+  const fetchFinancialData = useCallback(async () => {
     try {
       setLoading(true)
-      
+
       // Fetch real data from backend
       const [financialResponse, farmerAnalytics] = await Promise.all([
         apiService.getFinancialDashboard(),
@@ -126,7 +124,7 @@ export default function FinancialServicesPage() {
         const transactionsData: RecentTransaction[] = ((data as any).recentTransactions || []).map((transaction: any) => ({
           _id: transaction._id,
           type: transaction.type === 'payment' || transaction.type === 'commission' ? 'income' :
-                transaction.type === 'withdrawal' ? 'expense' : transaction.type,
+            transaction.type === 'withdrawal' ? 'expense' : transaction.type,
           amount: transaction.amount,
           description: transaction.description,
           date: transaction.date,
@@ -191,7 +189,11 @@ export default function FinancialServicesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchFinancialData()
+  }, [fetchFinancialData])
 
   const getRiskLevelColor = (riskLevel: string) => {
     switch (riskLevel) {
@@ -264,7 +266,7 @@ export default function FinancialServicesPage() {
               Manage your finances, loans, insurance, and financial goals
             </p>
           </div>
-          
+
           <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
             <Button variant="outline" asChild size="sm" className="w-full xs:w-auto">
               <Link href="/dashboard/financial/loans/apply">

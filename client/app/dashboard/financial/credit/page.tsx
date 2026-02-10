@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -88,11 +88,7 @@ export default function CreditScorePage() {
   const [showDetails, setShowDetails] = useState(false)
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchCreditScore()
-  }, [])
-
-  const fetchCreditScore = async () => {
+  const fetchCreditScore = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -209,7 +205,11 @@ export default function CreditScorePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchCreditScore()
+  }, [fetchCreditScore])
 
   const handleRefresh = async () => {
     await fetchCreditScore()
@@ -224,7 +224,7 @@ export default function CreditScorePage() {
     try {
       // Mock download - replace with actual API call
       console.log('Downloading credit report...')
-      
+
       toast({
         title: "Download Started",
         description: "Your credit report is being prepared for download.",
@@ -303,7 +303,7 @@ export default function CreditScorePage() {
               Monitor your credit health and eligibility for financial services
             </p>
           </div>
-          
+
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleRefresh}>
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -351,7 +351,7 @@ export default function CreditScorePage() {
                     <span className="text-gray-600">Excellent</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div 
+                    <div
                       className={`h-3 rounded-full ${getScoreBackground(creditScore.score)}`}
                       style={{ width: `${(creditScore.score / 850) * 100}%` }}
                     ></div>
@@ -516,11 +516,10 @@ export default function CreditScorePage() {
                   <p className="text-xs text-gray-600">{factor.description}</p>
                   <div className="mt-2">
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full ${
-                          factor.impact === 'positive' ? 'bg-emerald-500' : 
+                      <div
+                        className={`h-2 rounded-full ${factor.impact === 'positive' ? 'bg-emerald-500' :
                           factor.impact === 'negative' ? 'bg-red-500' : 'bg-gray-500'
-                        }`}
+                          }`}
                         style={{ width: `${factor.weight}%` }}
                       ></div>
                     </div>
@@ -543,11 +542,10 @@ export default function CreditScorePage() {
             <div className="space-y-4">
               {creditScore.recommendations.map((recommendation, index) => (
                 <div key={index} className="flex items-start gap-4 p-4 border border-gray-100 rounded-lg">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    recommendation.priority === 'high' ? 'bg-red-100 text-red-600' :
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${recommendation.priority === 'high' ? 'bg-red-100 text-red-600' :
                     recommendation.priority === 'medium' ? 'bg-amber-100 text-amber-600' :
-                    'bg-blue-100 text-blue-600'
-                  }`}>
+                      'bg-blue-100 text-blue-600'
+                    }`}>
                     {recommendation.priority === 'high' ? (
                       <AlertCircle className="h-4 w-4" />
                     ) : recommendation.priority === 'medium' ? (

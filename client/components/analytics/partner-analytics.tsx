@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -114,58 +114,43 @@ export function PartnerAnalytics() {
   const { toast } = useToast()
   const exportService = useExportService()
 
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        setIsLoading(true)
-        setError(null)
-
-        // Fetch partner analytics data with period parameter
-        const response = await apiService.getPartnerMetrics({ period: timeRange })
-        const data = response.data || response
-
-        if (data && typeof data === 'object') {
-          setAnalyticsData(data as PartnerAnalyticsData)
-        } else {
-          throw new Error('Invalid data format received from API')
-        }
-      } catch (error: any) {
-        console.error('Analytics fetch error:', error)
-        setError(error.message || 'Failed to load analytics data')
-
-        toast({
-          title: "Error loading analytics",
-          description: error.message || 'Failed to load analytics data. Please try again.',
-          variant: "destructive",
-        })
-
-        // Set empty data to prevent crashes
-        setAnalyticsData(null)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchAnalytics()
-  }, [toast, timeRange])
-
-  const handleRefresh = async () => {
-    setIsLoading(true)
+  const fetchAnalytics = useCallback(async () => {
     try {
+      setIsLoading(true)
+      setError(null)
+
+      // Fetch partner analytics data with period parameter
       const response = await apiService.getPartnerMetrics({ period: timeRange })
       const data = response.data || response
-      setAnalyticsData(data as PartnerAnalyticsData)
-      setError(null)
+
+      if (data && typeof data === 'object') {
+        setAnalyticsData(data as PartnerAnalyticsData)
+      } else {
+        throw new Error('Invalid data format received from API')
+      }
     } catch (error: any) {
-      setError(error.message || 'Failed to refresh analytics data')
+      console.error('Analytics fetch error:', error)
+      setError(error.message || 'Failed to load analytics data')
+
       toast({
-        title: "Error refreshing analytics",
-        description: error.message || 'Failed to refresh analytics data',
+        title: "Error loading analytics",
+        description: error.message || 'Failed to load analytics data. Please try again.',
         variant: "destructive",
       })
+
+      // Set empty data to prevent crashes
+      setAnalyticsData(null)
     } finally {
       setIsLoading(false)
     }
+  }, [timeRange, toast])
+
+  useEffect(() => {
+    fetchAnalytics()
+  }, [fetchAnalytics])
+
+  const handleRefresh = async () => {
+    await fetchAnalytics()
   }
 
   const handleExport = async () => {
@@ -614,7 +599,7 @@ export function PartnerAnalytics() {
             Monitor your farmer network performance, commission earnings, and regional impact
           </p>
         </div>
-        
+
         {/* Controls - Mobile First Design */}
         <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="flex flex-col xs:flex-row gap-2">
@@ -630,10 +615,10 @@ export function PartnerAnalytics() {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="flex flex-row gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleRefresh}
               className="flex-1 sm:flex-none min-w-[100px]"
               size="sm"
@@ -642,8 +627,8 @@ export function PartnerAnalytics() {
               <span className="hidden xs:inline">Refresh</span>
               <span className="xs:hidden">↻</span>
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleExport}
               className="flex-1 sm:flex-none min-w-[100px]"
               size="sm"
@@ -734,29 +719,29 @@ export function PartnerAnalytics() {
       {/* Charts Section */}
       <Tabs defaultValue="overview" className="space-y-4 sm:space-y-6">
         <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto p-1 bg-muted/50">
-          <TabsTrigger 
-            value="overview" 
+          <TabsTrigger
+            value="overview"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Overview</span>
             <span className="xs:hidden">📊</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="farmers" 
+          <TabsTrigger
+            value="farmers"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Farmer Network</span>
             <span className="xs:hidden">👥</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="regional" 
+          <TabsTrigger
+            value="regional"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Regional Analysis</span>
             <span className="xs:hidden">🗺️</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="performance" 
+          <TabsTrigger
+            value="performance"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Performance Metrics</span>
@@ -901,11 +886,11 @@ export function PartnerAnalytics() {
                             <Badge
                               variant={
                                 farmer.status === 'active' ? "default" :
-                                farmer.status === 'inactive' ? "secondary" : "outline"
+                                  farmer.status === 'inactive' ? "secondary" : "outline"
                               }
                             >
                               {farmer.status === 'active' ? "Active" :
-                               farmer.status === 'inactive' ? "Inactive" : "Pending"}
+                                farmer.status === 'inactive' ? "Inactive" : "Pending"}
                             </Badge>
                           </td>
                         </tr>

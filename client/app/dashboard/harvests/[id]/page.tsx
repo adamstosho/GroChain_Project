@@ -84,38 +84,38 @@ export default function HarvestDetailPage() {
 
   if (loading) {
     return (
-        <div className="max-w-4xl mx-auto px-4">
-          <Card className="border-0 shadow-lg">
-            <CardContent className="p-8 sm:p-16">
-              <div className="text-center space-y-4 sm:space-y-6">
-                <div className="h-12 w-12 sm:h-16 sm:w-16 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2">Loading Harvest Details</h2>
-                  <p className="text-sm sm:text-base text-gray-600">Please wait while we fetch your harvest information...</p>
-                </div>
+      <div className="max-w-4xl mx-auto px-4">
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-8 sm:p-16">
+            <div className="text-center space-y-4 sm:space-y-6">
+              <div className="h-12 w-12 sm:h-16 sm:w-16 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
+              <div>
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2">Loading Harvest Details</h2>
+                <p className="text-sm sm:text-base text-gray-600">Please wait while we fetch your harvest information...</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
   if (!harvest) {
     return (
-        <div className="max-w-4xl mx-auto text-center">
-          <Card className="border-0 shadow-lg">
-            <CardContent className="p-16">
-              <div className="space-y-6">
-                <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
-                <h2 className="text-2xl font-semibold text-gray-900">Harvest Not Found</h2>
-                <p className="text-gray-600">The harvest you're looking for doesn't exist or has been removed.</p>
-                <Button asChild>
-                  <Link href="/dashboard/harvests">Back to Harvests</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="max-w-4xl mx-auto text-center">
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-16">
+            <div className="space-y-6">
+              <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
+              <h2 className="text-2xl font-semibold text-gray-900">Harvest Not Found</h2>
+              <p className="text-gray-600">The harvest you&apos;re looking for doesn&apos;t exist or has been removed.</p>
+              <Button asChild>
+                <Link href="/dashboard/harvests">Back to Harvests</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
@@ -249,7 +249,7 @@ export default function HarvestDetailPage() {
                     onClick={async () => {
                       // Construct the proper verification URL
                       const verificationUrl = `${window.location.origin}/verify/${harvest.batchId}`
-                      
+
                       const shareData = {
                         title: 'GroChain Harvest Verification',
                         text: `Verify this ${harvest.cropType} harvest - Batch ${harvest.batchId}`,

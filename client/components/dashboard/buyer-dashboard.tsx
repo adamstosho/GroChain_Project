@@ -28,10 +28,60 @@ interface DashboardStats {
   favorites: number
 }
 
+interface BuyerOrder {
+  _id?: string
+  id?: string
+  orderNumber?: string
+  total?: number
+  totalAmount?: number
+  status?: string
+  createdAt?: string
+}
+
+interface BuyerProduct {
+  _id?: string
+  id?: string
+  cropName?: string
+  name?: string
+  category?: string
+  cropType?: string
+  variety?: string
+  description?: string
+  basePrice?: number
+  price?: number
+  unit?: string
+  quantity?: number
+  availableQuantity?: number
+  qualityGrade?: string
+  quality?: string
+  organic?: boolean
+  createdAt?: string
+  location?: string
+  farmer?: {
+    _id?: string
+    farmerId?: string
+    name?: string
+    profile?: {
+      avatar?: string
+    }
+    rating?: number
+    emailVerified?: boolean
+    location?: string
+  }
+  farmerId?: string
+  farmerName?: string
+  rating?: number
+  images?: string[]
+  certifications?: string[]
+  qrCode?: string
+  tags?: string[]
+  reviewCount?: number
+}
+
 export function BuyerDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [recentOrders, setRecentOrders] = useState<any[]>([])
-  const [featuredProducts, setFeaturedProducts] = useState<any[]>([])
+  const [recentOrders, setRecentOrders] = useState<BuyerOrder[]>([])
+  const [featuredProducts, setFeaturedProducts] = useState<BuyerProduct[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
@@ -41,7 +91,7 @@ export function BuyerDashboard() {
   // Optimistic updates for immediate UI feedback
   const handleOptimisticUpdate = useCallback((action: string, data: any) => {
     console.log(`⚡ Optimistic update: ${action}`, data)
-    
+
     switch (action) {
       case 'order_placed':
         // Immediately update stats
@@ -61,7 +111,7 @@ export function BuyerDashboard() {
           variant: "default",
         })
         break
-        
+
       case 'favorite_added':
         setStats(prev => ({
           totalOrders: prev?.totalOrders || 0,
@@ -74,7 +124,7 @@ export function BuyerDashboard() {
           favorites: (prev?.favorites || 0) + 1
         }))
         break
-        
+
       case 'favorite_removed':
         setStats(prev => ({
           totalOrders: prev?.totalOrders || 0,
@@ -88,14 +138,14 @@ export function BuyerDashboard() {
         }))
         break
     }
-    
+
     // Trigger a refresh to sync with server
     setTimeout(() => {
       fetchDashboardData('optimistic_sync')
     }, 1000)
   }, [toast])
 
-  const fetchDashboardData = async (reason: string = 'manual') => {
+  const fetchDashboardData = useCallback(async (reason: string = 'manual') => {
     try {
       setIsLoading(true)
       console.log(`🔄 Fetching dashboard data (${reason})...`)
@@ -142,8 +192,8 @@ export function BuyerDashboard() {
       if (ordersResponse.status === 'fulfilled') {
         const response = ordersResponse.value
         console.log('📋 Orders API response:', response)
-        ordersData = Array.isArray(response?.data) ? response.data : 
-                   Array.isArray(response) ? response : []
+        ordersData = Array.isArray(response?.data) ? response.data :
+          Array.isArray(response) ? response : []
         console.log('✅ Orders data received:', ordersData.length, 'orders')
         console.log('📋 Orders data:', ordersData)
       } else {
@@ -162,9 +212,9 @@ export function BuyerDashboard() {
       if (listingsResponse.status === 'fulfilled') {
         const response = listingsResponse.value
         listingsData = (response as any)?.data?.listings ||
-                      (response as any)?.data ||
-                      (response as any)?.listings ||
-                      response || []
+          (response as any)?.data ||
+          (response as any)?.listings ||
+          response || []
         console.log('✅ Listings data received:', listingsData.length, 'products')
       } else {
         console.error('❌ Listings data failed:', listingsResponse.reason)
@@ -197,7 +247,7 @@ export function BuyerDashboard() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [toast])
 
   // Smart event-driven refresh system
   const { refresh, optimisticUpdate } = useDashboardRefresh({
@@ -207,7 +257,7 @@ export function BuyerDashboard() {
 
   useEffect(() => {
     fetchDashboardData()
-  }, []) // Remove toast dependency to prevent re-renders
+  }, [fetchDashboardData]) // Added fetchDashboardData dependency
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true)
@@ -392,10 +442,10 @@ export function BuyerDashboard() {
               Loading...
             </div>
           )}
-          <Button 
-            onClick={handleManualRefresh} 
+          <Button
+            onClick={handleManualRefresh}
             disabled={isRefreshing || isLoading}
-            variant="outline" 
+            variant="outline"
             size="sm"
             className="flex items-center gap-2"
           >

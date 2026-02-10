@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -178,7 +178,7 @@ const calculateStatsFromOrders = (orders: Order[]): OrderStats => {
     else if (order.status === 'shipped') stats.shipped++
     else if (order.status === 'delivered') stats.delivered++
     else if (order.status === 'cancelled') stats.cancelled++
-    
+
     // Calculate total spent from paid orders only
     if (order.paymentStatus === 'paid') {
       stats.totalSpent += order.total
@@ -217,35 +217,10 @@ export default function OrdersPage() {
   const [exporting, setExporting] = useState(false)
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchOrdersData()
-
-    // Check if user came from payment verification
-    const urlParams = new URLSearchParams(window.location.search)
-    const fromPayment = urlParams.get('from_payment')
-    const paymentRef = urlParams.get('payment_ref')
-
-    if (fromPayment === 'true' && paymentRef) {
-      console.log('🔄 User returned from payment verification, refreshing data...')
-      // Force refresh after a short delay to ensure backend has processed everything
-      setTimeout(() => {
-        fetchOrdersData()
-      }, 2000)
-    }
-  }, [])
-
-  const fetchOrdersData = async (page = 1, status?: string, paymentStatus?: string) => {
+  const fetchOrdersData = useCallback(async (page = 1, status?: string, paymentStatus?: string) => {
     try {
       setLoading(true)
       console.log('📦 Fetching orders from backend...')
-
-      const queryParams = new URLSearchParams({
-        page: page.toString(),
-        limit: '20'
-      })
-
-      if (status && status !== 'all') queryParams.append('status', status)
-      if (paymentStatus && paymentStatus !== 'all') queryParams.append('paymentStatus', paymentStatus)
 
       const response = await apiService.getUserOrders({
         page: page.toString(),
@@ -267,13 +242,13 @@ export default function OrdersPage() {
           cancelled: 0,
           totalSpent: 0
         }
-        
+
         // If backend stats are not available or all zeros, calculate from orders data
         if (!(response.data as any).stats || (statsData.confirmed === 0 && statsData.totalSpent === 0 && ordersData.length > 0)) {
           console.log('📊 Calculating stats from orders data...')
           statsData = calculateStatsFromOrders(ordersData)
         }
-        
+
         const paginationData = (response.data as any).pagination || {
           page: 1,
           limit: 20,
@@ -302,7 +277,7 @@ export default function OrdersPage() {
       }
     } catch (error) {
       console.error('❌ Failed to fetch orders:', error)
-      
+
       // Try to get orders from a different endpoint or use mock data
       try {
         console.log('🔄 Attempting to fetch orders from alternative endpoint...')
@@ -338,9 +313,27 @@ export default function OrdersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
 
-  const handleRefresh = async () => {
+  useEffect(() => {
+    fetchOrdersData()
+
+    // Check if user came from payment verification
+    const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+    const fromPayment = urlParams.get('from_payment')
+    const paymentRef = urlParams.get('payment_ref')
+
+    if (fromPayment === 'true' && paymentRef) {
+      console.log('🔄 User returned from payment verification, refreshing data...')
+      // Force refresh after a short delay to ensure backend has processed everything
+      const timer = setTimeout(() => {
+        fetchOrdersData()
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [fetchOrdersData])
+
+  const handleRefresh = useCallback(async () => {
     try {
       setRefreshing(true)
       await fetchOrdersData(1, filters.status, filters.paymentStatus)
@@ -353,35 +346,36 @@ export default function OrdersPage() {
     } finally {
       setRefreshing(false)
     }
-  }
+  }, [fetchOrdersData, filters.status, filters.paymentStatus, toast])
 
-  const handleOrderUpdate = (orderId: string, newStatus: string) => {
+  const handleOrderUpdate = useCallback((orderId: string, newStatus: string) => {
     // Update the order in the local state
-    setOrders(prevOrders => 
-      prevOrders.map(order => 
-        order._id === orderId 
+    setOrders(prevOrders =>
+      prevOrders.map(order =>
+        order._id === orderId
           ? { ...order, status: newStatus as OrderStatus }
           : order
       )
     )
-    
-    // Recalculate stats
-    const updatedOrders = orders.map(order => 
-      order._id === orderId 
-        ? { ...order, status: newStatus as OrderStatus }
-        : order
-    )
-    const newStats = calculateStatsFromOrders(updatedOrders)
-    setStats(newStats)
-  }
+
+    // Recalculate stats using the updated orders
+    setStats(prevStats => {
+      // Re-calculate based on current orders + the one update
+      // This is safer than using the 'orders' closure which might be stale
+      // But simpler: just use compute from current orders state
+      return calculateStatsFromOrders(orders.map(order =>
+        order._id === orderId ? { ...order, status: newStatus as OrderStatus } : order
+      ))
+    })
+  }, [orders])
 
   const exportOrders = async (format: 'csv' | 'json' | 'pdf' = 'csv') => {
     try {
       setExporting(true)
-      
+
       // Use filtered orders for export
       const ordersToExport = filteredOrders
-      
+
       if (ordersToExport.length === 0) {
         toast({
           title: "No orders to export",
@@ -621,7 +615,7 @@ export default function OrdersPage() {
     URL.revokeObjectURL(url)
   }
 
-    // Use useMemo for filtered orders to prevent infinite loops
+  // Use useMemo for filtered orders to prevent infinite loops
   const filteredOrders = useMemo(() => {
     let filtered = [...orders]
 
@@ -838,9 +832,9 @@ export default function OrdersPage() {
                 <span className="hidden sm:inline">{refreshing ? 'Refreshing...' : 'Refresh'}</span>
                 <span className="sm:hidden">Refresh</span>
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => exportOrders('csv')}
                 disabled={exporting || filteredOrders.length === 0}
                 className="h-8 sm:h-9 text-xs sm:text-sm flex-1 xs:flex-none"
@@ -857,9 +851,9 @@ export default function OrdersPage() {
             <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     disabled={exporting || filteredOrders.length === 0}
                     className="h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3"
                   >
@@ -1012,11 +1006,11 @@ export default function OrdersPage() {
                       className="w-full sm:max-w-md h-8 sm:h-9 text-xs sm:text-sm"
                     />
                   </div>
-                  
+
                   {/* Filter Controls */}
                   <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
-                    <Select 
-                      value={filters.status} 
+                    <Select
+                      value={filters.status}
                       onValueChange={(value) => setFilters({ ...filters, status: value as OrderStatus })}
                     >
                       <SelectTrigger className="w-full h-8 sm:h-9 text-xs sm:text-sm">
@@ -1034,8 +1028,8 @@ export default function OrdersPage() {
                         <SelectItem value="refunded">Refunded</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Select 
-                      value={filters.paymentStatus} 
+                    <Select
+                      value={filters.paymentStatus}
                       onValueChange={(value) => setFilters({ ...filters, paymentStatus: value as PaymentStatus })}
                     >
                       <SelectTrigger className="w-full h-8 sm:h-9 text-xs sm:text-sm">
@@ -1130,8 +1124,8 @@ export default function OrdersPage() {
                 ) : (
                   <div className="space-y-4">
                     {filteredOrders.map((order) => (
-                      <OrderCard 
-                        key={order._id} 
+                      <OrderCard
+                        key={order._id}
                         order={order}
                         getStatusColor={getStatusColor}
                         getPaymentStatusColor={getPaymentStatusColor}
@@ -1178,15 +1172,15 @@ function OrderCard({
     try {
       setCancelling(true)
       console.log('🚫 Cancelling order:', order._id)
-      
+
       const response = await apiService.cancelOrder(order._id)
-      
+
       if (response?.status === 'success') {
         toast({
           title: "Order Cancelled",
           description: "Your order has been cancelled successfully.",
         })
-        
+
         // Update the order status in the parent component
         if (onOrderUpdate) {
           onOrderUpdate(order._id, 'cancelled')
@@ -1212,20 +1206,20 @@ function OrderCard({
   const handleDownloadReceipt = async () => {
     try {
       console.log('📄 Starting receipt generation for order:', order._id)
-      
+
       toast({
         title: "Generating receipt...",
         description: "Please wait while we prepare your receipt.",
       })
 
       const response = await apiService.downloadOrderReceipt(order._id)
-      
+
       console.log('📄 Receipt API response:', response)
-      
+
       if (response?.status === 'success' && response?.data) {
         console.log('📄 Generating PDF with data:', response.data)
         await ReceiptGenerator.generatePDF(response.data as any)
-        
+
         toast({
           title: "Receipt generated!",
           description: "Your receipt has been prepared for download.",
@@ -1242,7 +1236,7 @@ function OrderCard({
         endpoint: error.endpoint,
         orderId: order._id
       })
-      
+
       toast({
         title: "Failed to generate receipt",
         description: error.message || "Please try again later.",
@@ -1257,18 +1251,18 @@ function OrderCard({
         <div className="flex flex-col space-y-3 mb-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center space-x-2">
-              {getStatusIcon(order.status)}
+              <div className="flex items-center space-x-2">
+                {getStatusIcon(order.status)}
                 <Badge className={`${getStatusColor(order.status)} font-medium text-xs`}>
-                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-              </Badge>
-            </div>
-            <div className="flex items-center space-x-2">
+                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                </Badge>
+              </div>
+              <div className="flex items-center space-x-2">
                 <Badge variant="outline" className={`${getPaymentStatusColor(order.paymentStatus)} font-medium text-xs`}>
-                {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
-              </Badge>
+                  {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
+                </Badge>
+              </div>
             </div>
-          </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
               <span className="text-xs sm:text-sm text-muted-foreground">Order:</span>
               <span className="font-mono font-semibold text-primary text-xs sm:text-sm break-all">{order.orderNumber || `ORD-${order._id.slice(-6).toUpperCase()}`}</span>
@@ -1322,7 +1316,7 @@ function OrderCard({
                 // Priority: order.seller (authoritative) > items[0].listing.farmer (fallback)
                 const sellerFromOrder = typeof order.seller === 'object' ? order.seller : null
                 const sellerFromListing = order.items[0]?.listing?.farmer
-                
+
                 // Debug logging (can be removed in production)
                 if (process.env.NODE_ENV === 'development') {
                   console.log('🔍 Seller Info Debug:', {
@@ -1334,9 +1328,9 @@ function OrderCard({
                     hasFarmer: !!order.items[0]?.listing?.farmer
                   })
                 }
-                
+
                 const seller = sellerFromOrder || sellerFromListing
-                
+
                 if (seller) {
                   return (
                     <>
@@ -1360,9 +1354,9 @@ function OrderCard({
                   )
                 } else {
                   return (
-                <div className="text-sm text-muted-foreground">
-                  Seller information not available
-                </div>
+                    <div className="text-sm text-muted-foreground">
+                      Seller information not available
+                    </div>
                   )
                 }
               })()}
@@ -1486,8 +1480,8 @@ function OrderCard({
           )}
 
           {order.status === 'pending' && (
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               size="sm"
               onClick={handleCancelOrder}
               disabled={cancelling}

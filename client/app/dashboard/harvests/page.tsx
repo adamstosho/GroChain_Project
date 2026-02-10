@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -84,7 +84,7 @@ export default function FarmerHarvestsPage() {
   const [cropFilter, setCropFilter] = useState("all")
   const [qualityFilter, setQualityFilter] = useState("all")
   const [organicFilter, setOrganicFilter] = useState("all")
-  const [dateRange, setDateRange] = useState<{from?: Date, to?: Date}>({})
+  const [dateRange, setDateRange] = useState<{ from?: Date, to?: Date }>({})
   const [sortBy, setSortBy] = useState("newest")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [selectedHarvests, setSelectedHarvests] = useState<string[]>([])
@@ -103,23 +103,37 @@ export default function FarmerHarvestsPage() {
   const [statsLoading, setStatsLoading] = useState(false)
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchHarvests()
-    fetchStats()
+  const fetchStats = useCallback(async () => {
+    try {
+      setStatsLoading(true)
+      const response: any = await apiService.getHarvestStats()
+      const data = response.data || response || {}
+
+      setStats({
+        total: data.totalHarvests || 0,
+        pending: data.pendingHarvests || 0,
+        approved: data.approvedHarvests || 0,
+        rejected: data.rejectedHarvests || 0,
+        totalQuantity: data.totalQuantity || 0,
+        totalValue: data.totalValue || 0
+      })
+    } catch (error) {
+      console.error("Failed to fetch harvest stats:", error)
+      // Set default values if API fails
+      setStats({
+        total: 0,
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        totalQuantity: 0,
+        totalValue: 0
+      })
+    } finally {
+      setStatsLoading(false)
+    }
   }, [])
 
-  // Refetch when filters change
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (!loading) {
-        fetchHarvests()
-      }
-    }, 300) // Debounce search
-
-    return () => clearTimeout(timeoutId)
-  }, [searchQuery, statusFilter, cropFilter, qualityFilter, organicFilter, sortBy, dateRange])
-
-  const fetchHarvests = async () => {
+  const fetchHarvests = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -193,83 +207,25 @@ export default function FarmerHarvestsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [searchQuery, statusFilter, cropFilter, qualityFilter, organicFilter, sortBy, dateRange, toast, fetchStats])
 
-  const fetchStats = async () => {
-    try {
-      setStatsLoading(true)
-      console.log("🔄 Fetching harvest stats...")
+  useEffect(() => {
+    fetchHarvests()
+    fetchStats()
+  }, [fetchHarvests, fetchStats])
 
-      const response: any = await apiService.getHarvestStats()
-      console.log("📊 Raw Stats API Response:", response)
-
-      // Handle nested data structure: response.data
-      let statsData
-      if (response?.status === 'success' && response?.data) {
-        statsData = response.data
-        console.log("✅ Found stats in response.data")
-      } else if (response?.data) {
-        statsData = response.data
-        console.log("✅ Found stats in response.data (direct)")
-      } else {
-        statsData = response
-        console.log("⚠️ Using response directly as stats data")
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (!loading) {
+        fetchHarvests()
       }
+    }, 300)
 
-      console.log("🔍 Parsed stats data:", statsData)
-      console.log("📈 Individual values:",
-        "total:", statsData?.totalHarvests,
-        "pending:", statsData?.pendingHarvests,
-        "approved:", statsData?.approvedHarvests,
-        "rejected:", statsData?.rejectedHarvests,
-        "quantity:", statsData?.totalQuantity,
-        "value:", statsData?.totalValue
-      )
+    return () => clearTimeout(timeoutId)
+  }, [fetchHarvests, loading])
 
-      const newStats = {
-        total: statsData?.totalHarvests || 0,
-        pending: statsData?.pendingHarvests || 0,
-        approved: statsData?.approvedHarvests || 0,
-        rejected: statsData?.rejectedHarvests || 0,
-        totalQuantity: statsData?.totalQuantity || 0,
-        totalValue: statsData?.totalValue || 0
-      }
 
-      console.log("💾 Setting new stats state:", newStats)
-      setStats(newStats)
 
-      // Force a re-render by updating state again after a delay
-      setTimeout(() => {
-        console.log("🔄 Forcing stats re-render")
-        setStats(prev => ({ ...prev }))
-      }, 100)
-
-    } catch (error) {
-      console.error("❌ Failed to fetch stats:", error)
-      console.error("❌ Error details:", {
-        message: (error as any).message,
-        stack: (error as any).stack,
-        name: (error as any).name
-      })
-
-      // Try to get more details about the error
-      if ((error as any).response) {
-        console.error("❌ Response error:", (error as any).response.status, (error as any).response.data)
-      }
-
-      // Set default values if API fails
-      setStats({
-        total: 0,
-        pending: 0,
-        approved: 0,
-        rejected: 0,
-        totalQuantity: 0,
-        totalValue: 0
-      })
-    } finally {
-      setStatsLoading(false)
-    }
-  }
 
   const handleDelete = async () => {
     if (!selectedHarvest) return
@@ -340,6 +296,7 @@ export default function FarmerHarvestsPage() {
       setDeleting(false)
     }
   }
+
 
   const handleBulkExport = async () => {
     try {
@@ -418,11 +375,11 @@ export default function FarmerHarvestsPage() {
 
   const filteredHarvests = harvests.filter(harvest => {
     const matchesSearch = harvest.cropType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (typeof harvest.location === 'string' ? harvest.location.toLowerCase() : `${harvest.location?.city || ''} ${harvest.location?.state || ''}`.toLowerCase()).includes(searchQuery.toLowerCase()) ||
-                         (harvest.variety && harvest.variety.toLowerCase().includes(searchQuery.toLowerCase()))
+      (typeof harvest.location === 'string' ? harvest.location.toLowerCase() : `${harvest.location?.city || ''} ${harvest.location?.state || ''}`.toLowerCase()).includes(searchQuery.toLowerCase()) ||
+      (harvest.variety && harvest.variety.toLowerCase().includes(searchQuery.toLowerCase()))
     const matchesStatus = statusFilter === "all" || harvest.status === statusFilter
     const matchesCrop = cropFilter === "all" || harvest.cropType === cropFilter
-    
+
     return matchesSearch && matchesStatus && matchesCrop
   })
 
@@ -446,7 +403,7 @@ export default function FarmerHarvestsPage() {
             <Leaf className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
           </div>
         )}
-        
+
         <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
           <Badge className={`${getStatusColor(harvest.status)} text-xs`}>
             {harvest.status.charAt(0).toUpperCase() + harvest.status.slice(1)}
@@ -475,7 +432,7 @@ export default function FarmerHarvestsPage() {
                 {harvest.quantity} {harvest.unit}
               </p>
             </div>
-            
+
             <div className="space-y-1">
               <div className="flex items-center gap-1 sm:gap-2 text-xs text-gray-500">
                 <Calendar className="h-3 w-3 flex-shrink-0" />
@@ -523,24 +480,24 @@ export default function FarmerHarvestsPage() {
                   <span className="hidden sm:inline">View</span>
                 </Link>
               </Button>
-                             <Button size="sm" variant="outline" asChild className="text-xs h-7 sm:h-8 px-2 sm:px-3">
-                 <Link href={`/dashboard/harvests/${harvest._id}/edit`}>
-                   <Edit className="h-3 w-3 mr-1" />
-                   <span className="hidden sm:inline">Edit</span>
-                 </Link>
-               </Button>
-               
-               {/* List on Marketplace Button - Only show for approved harvests */}
-               {harvest.status === "approved" && (
-                 <Button size="sm" variant="outline" asChild className="text-xs h-7 sm:h-8 px-2 sm:px-3">
-                   <Link href={`/dashboard/marketplace/new?harvestId=${harvest._id}`}>
-                     <Banknote className="h-3 w-3 mr-1" />
-                     <span className="hidden sm:inline">List</span>
-                   </Link>
-                 </Button>
-               )}
-             </div>
-            
+              <Button size="sm" variant="outline" asChild className="text-xs h-7 sm:h-8 px-2 sm:px-3">
+                <Link href={`/dashboard/harvests/${harvest._id}/edit`}>
+                  <Edit className="h-3 w-3 mr-1" />
+                  <span className="hidden sm:inline">Edit</span>
+                </Link>
+              </Button>
+
+              {/* List on Marketplace Button - Only show for approved harvests */}
+              {harvest.status === "approved" && (
+                <Button size="sm" variant="outline" asChild className="text-xs h-7 sm:h-8 px-2 sm:px-3">
+                  <Link href={`/dashboard/marketplace/new?harvestId=${harvest._id}`}>
+                    <Banknote className="h-3 w-3 mr-1" />
+                    <span className="hidden sm:inline">List</span>
+                  </Link>
+                </Button>
+              )}
+            </div>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="ghost" className="h-7 w-7 sm:h-8 sm:w-8 p-0 flex-shrink-0">
@@ -554,33 +511,33 @@ export default function FarmerHarvestsPage() {
                     View Details
                   </Link>
                 </DropdownMenuItem>
-                                 <DropdownMenuItem asChild>
-                   <Link href={`/dashboard/harvests/${harvest._id}/edit`}>
-                     <Edit className="h-4 w-4 mr-2" />
-                     Edit Harvest
-                   </Link>
-                 </DropdownMenuItem>
-                 
-                 {/* List on Marketplace - Only show for approved harvests */}
-                 {harvest.status === "approved" && (
-                   <DropdownMenuItem asChild>
-                     <Link href={`/dashboard/marketplace/new?harvestId=${harvest._id}`}>
-                       <Banknote className="h-4 w-4 mr-2" />
-                       List on Marketplace
-                     </Link>
-                   </DropdownMenuItem>
-                 )}
-                 
-                 <DropdownMenuItem>
-                   <QrCode className="h-4 w-4 mr-2" />
-                   Generate QR Code
-                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/dashboard/harvests/${harvest._id}/edit`}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Harvest
+                  </Link>
+                </DropdownMenuItem>
+
+                {/* List on Marketplace - Only show for approved harvests */}
+                {harvest.status === "approved" && (
+                  <DropdownMenuItem asChild>
+                    <Link href={`/dashboard/marketplace/new?harvestId=${harvest._id}`}>
+                      <Banknote className="h-4 w-4 mr-2" />
+                      List on Marketplace
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+
+                <DropdownMenuItem>
+                  <QrCode className="h-4 w-4 mr-2" />
+                  Generate QR Code
+                </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Download className="h-4 w-4 mr-2" />
                   Export Data
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   className="text-red-600"
                   onClick={() => {
                     setSelectedHarvest(harvest)
@@ -609,7 +566,7 @@ export default function FarmerHarvestsPage() {
               Track and manage your agricultural harvests for better yields and market access
             </p>
           </div>
-          
+
           <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 flex-shrink-0">
             <Button asChild size="sm" className="w-full xs:w-auto">
               <Link href="/dashboard/harvests/new">
@@ -753,7 +710,7 @@ export default function FarmerHarvestsPage() {
                   className="pl-9 h-8 sm:h-9 text-xs sm:text-sm"
                 />
               </div>
-              
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
                   <SelectValue placeholder="Filter by status" />
@@ -858,8 +815,8 @@ export default function FarmerHarvestsPage() {
                 </div>
                 <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-2">No harvests found</h3>
                 <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
-                  {searchQuery || statusFilter !== "all" || cropFilter !== "all" 
-                    ? "Try adjusting your search or filters" 
+                  {searchQuery || statusFilter !== "all" || cropFilter !== "all"
+                    ? "Try adjusting your search or filters"
                     : "Start by logging your first harvest to track your agricultural progress"}
                 </p>
                 {!searchQuery && statusFilter === "all" && cropFilter === "all" && (
@@ -997,9 +954,9 @@ export default function FarmerHarvestsPage() {
             <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDelete} 
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
               disabled={deleting}
             >
               {deleting ? "Deleting..." : "Delete Harvest"}

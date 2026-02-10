@@ -398,20 +398,20 @@ export default function QRCodesPage() {
   const filteredQRCodes = qrCodes.filter(qrCode => {
     if (filters.status !== 'all' && qrCode.status !== filters.status) return false
     if (filters.cropType !== 'all' && qrCode.cropType !== filters.cropType) return false
-    if (filters.search && !qrCode.code.toLowerCase().includes(filters.search.toLowerCase()) && 
-        !qrCode.cropType.toLowerCase().includes(filters.search.toLowerCase())) return false
+    if (filters.search && !qrCode.code.toLowerCase().includes(filters.search.toLowerCase()) &&
+      !qrCode.cropType.toLowerCase().includes(filters.search.toLowerCase())) return false
     return true
   })
 
   const sortedQRCodes = [...filteredQRCodes].sort((a, b) => {
     let aValue: any = a[sortBy as keyof QRCode]
     let bValue: any = b[sortBy as keyof QRCode]
-    
+
     if (sortBy === 'createdAt' || sortBy === 'harvestDate' || sortBy === 'lastScanned') {
       aValue = new Date(aValue).getTime()
       bValue = new Date(bValue).getTime()
     }
-    
+
     if (sortOrder === 'asc') {
       return aValue > bValue ? 1 : -1
     } else {
@@ -465,81 +465,81 @@ export default function QRCodesPage() {
 
         {/* QR Code Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
-            <Card className="border border-gray-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total QR Codes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
-                  {stats.totalCodes}
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <TrendingUp className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm text-blue-600">+1 from last month</span>
-                </div>
-              </CardContent>
-            </Card>
+          <Card className="border border-gray-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">Total QR Codes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">
+                {stats.totalCodes}
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <TrendingUp className="h-4 w-4 text-blue-500" />
+                <span className="text-sm text-blue-600">+1 from last month</span>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card className="border border-gray-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Active Codes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-emerald-600">
-                  {stats.activeCodes}
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <CheckCircle className="h-4 w-4 text-emerald-500" />
-                  <span className="text-sm text-emerald-600">Ready for scanning</span>
-                </div>
-              </CardContent>
-            </Card>
+          <Card className="border border-gray-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">Active Codes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-emerald-600">
+                {stats.activeCodes}
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
+                <span className="text-sm text-emerald-600">Ready for scanning</span>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card className="border border-gray-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Verified Codes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
-                  {stats.verifiedCodes}
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <CheckCircle className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm text-blue-600">Successfully verified</span>
-                </div>
-              </CardContent>
-            </Card>
+          <Card className="border border-gray-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">Verified Codes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">
+                {stats.verifiedCodes}
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <CheckCircle className="h-4 w-4 text-blue-500" />
+                <span className="text-sm text-blue-600">Successfully verified</span>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card className="border border-gray-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Downloads</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-purple-600">
-                  {stats.totalDownloads || 0}
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <Download className="h-4 w-4 text-purple-500" />
-                  <span className="text-sm text-purple-600">QR codes downloaded</span>
-                </div>
-              </CardContent>
-            </Card>
+          <Card className="border border-gray-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">Total Downloads</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600">
+                {stats.totalDownloads || 0}
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <Download className="h-4 w-4 text-purple-500" />
+                <span className="text-sm text-purple-600">QR codes downloaded</span>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card className="border border-gray-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Scans</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-orange-600">
-                  {stats.totalScans}
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <Eye className="h-4 w-4 text-orange-500" />
-                  <span className="text-sm text-orange-600">Across all codes</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="border border-gray-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">Total Scans</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">
+                {stats.totalScans}
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <Eye className="h-4 w-4 text-orange-500" />
+                <span className="text-sm text-orange-600">Across all codes</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Filters */}
         <Card className="border border-gray-200">
@@ -624,7 +624,7 @@ export default function QRCodesPage() {
                 <p className="text-gray-600 mb-4 max-w-sm mx-auto">
                   {filters.status !== 'all' || filters.cropType !== 'all' || filters.search
                     ? "Try adjusting your filters to see more QR codes."
-                    : "You don't have any QR codes yet."}
+                    : "You don&apos;t have any QR codes yet."}
                 </p>
                 {!filters.status && !filters.cropType && !filters.search && (
                   <Button onClick={handleGenerateQR} className="w-full sm:w-auto">
@@ -999,8 +999,8 @@ export default function QRCodesPage() {
                             </div>
                             <Badge className={
                               scan.verificationResult === 'success' ? 'bg-emerald-100 text-emerald-800' :
-                              scan.verificationResult === 'failed' ? 'bg-red-100 text-red-800' :
-                              'bg-amber-100 text-amber-800'
+                                scan.verificationResult === 'failed' ? 'bg-red-100 text-red-800' :
+                                  'bg-amber-100 text-amber-800'
                             }>
                               {scan.verificationResult}
                             </Badge>

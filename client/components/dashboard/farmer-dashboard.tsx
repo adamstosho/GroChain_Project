@@ -33,6 +33,20 @@ interface FarmerStats {
   totalOrders: number
 }
 
+interface CreditScoreData {
+  score: number | "N/A"
+  status: string
+  factors?: {
+    paymentHistory?: number
+    harvestConsistency?: number
+    businessStability?: number
+    marketReputation?: number
+    consistency?: number
+    stability?: number
+    reputation?: number
+  }
+}
+
 export function FarmerDashboard() {
   const [stats, setStats] = useState<FarmerStats | null>(null)
   const [recentHarvests, setRecentHarvests] = useState<any[]>([])
@@ -40,7 +54,7 @@ export function FarmerDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const { toast } = useToast()
-  const [credit, setCredit] = useState<any>(null)
+  const [credit, setCredit] = useState<CreditScoreData | null>(null)
 
   const fetchDashboardData = useCallback(async (reason: string = 'manual') => {
     try {
@@ -84,7 +98,7 @@ export function FarmerDashboard() {
       // Handle credit score data
       if (creditResp.status === 'fulfilled') {
         console.log('✅ Credit score data received:', creditResp.value.data)
-        setCredit(creditResp.value.data)
+        setCredit(creditResp.value.data as CreditScoreData)
       } else {
         console.error('❌ Credit score failed:', creditResp.reason)
       }
@@ -96,7 +110,7 @@ export function FarmerDashboard() {
           totalHarvests: prevStats?.totalHarvests || 0,
           pendingApprovals: prevStats?.pendingApprovals || 0,
           activeListings: (analyticsData as any).totalListings || 0,
-          monthlyRevenue: (analyticsData as any).monthlyTrends?.length > 0 
+          monthlyRevenue: (analyticsData as any).monthlyTrends?.length > 0
             ? (analyticsData as any).monthlyTrends[(analyticsData as any).monthlyTrends.length - 1]?.revenue || 0
             : 0,
           totalRevenue: (analyticsData as any).totalRevenue || 0,
@@ -286,10 +300,10 @@ export function FarmerDashboard() {
               <span className="sm:hidden">Loading...</span>
             </div>
           )}
-          <Button 
-            onClick={handleManualRefresh} 
+          <Button
+            onClick={handleManualRefresh}
             disabled={isRefreshing || isLoading}
-            variant="outline" 
+            variant="outline"
             size="sm"
             className="flex items-center gap-2 w-full sm:w-auto"
           >

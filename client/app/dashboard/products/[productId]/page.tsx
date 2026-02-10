@@ -126,7 +126,7 @@ export default function ProductDetailPage() {
           } else if ((userFavorites as any).favorites) {
             favoritesData = (userFavorites as any).favorites
           }
-          
+
           console.log('📋 Product detail: Favorites data structure:', favoritesData)
           console.log('📋 Product detail: Is array?', Array.isArray(favoritesData))
 
@@ -309,7 +309,7 @@ export default function ProductDetailPage() {
                 {error || "Product Not Found"}
               </h1>
               <p className="text-gray-600">
-                The product you're looking for doesn't exist or has been removed.
+                The product you&apos;re looking for doesn&apos;t exist or has been removed.
               </p>
             </div>
 
@@ -373,9 +373,8 @@ export default function ProductDetailPage() {
                     <button
                       key={index}
                       onClick={() => setSelectedImage(index)}
-                      className={`flex-shrink-0 w-20 h-20 rounded border-2 overflow-hidden ${
-                        selectedImage === index ? 'border-green-500' : 'border-gray-200'
-                      }`}
+                      className={`flex-shrink-0 w-20 h-20 rounded border-2 overflow-hidden ${selectedImage === index ? 'border-green-500' : 'border-gray-200'
+                        }`}
                     >
                       <Image
                         src={image}
@@ -428,9 +427,8 @@ export default function ProductDetailPage() {
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`h-4 w-4 ${
-                          i < 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                        }`}
+                        className={`h-4 w-4 ${i < 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                          }`}
                       />
                     ))}
                   </div>

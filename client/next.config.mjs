@@ -8,9 +8,11 @@ const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+/*
   eslint: {
     ignoreDuringBuilds: true, // Temporarily disable ESLint checks for deployment
   },
+*/
   typescript: {
     ignoreBuildErrors: true, // Temporarily disable TypeScript checks for deployment
   },

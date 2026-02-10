@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -95,11 +95,9 @@ export default function LoansPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchLoansData()
-  }, [])
 
-  const fetchLoansData = async () => {
+
+  const fetchLoansData = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -176,7 +174,11 @@ export default function LoansPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchLoansData()
+  }, [fetchLoansData])
 
   const handleRefresh = async () => {
     await fetchLoansData()
@@ -238,7 +240,7 @@ export default function LoansPage() {
               Track your loan applications and manage active loans
             </p>
           </div>
-          
+
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleRefresh}>
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -345,7 +347,7 @@ export default function LoansPage() {
                         <div className="text-right">
                           <div className="text-sm font-medium">{formatDate(app.submittedDate)}</div>
                           <div className="text-xs text-gray-500">
-                            {app.status === 'approved' && app.decisionDate && 
+                            {app.status === 'approved' && app.decisionDate &&
                               `Approved: ${formatDate(app.decisionDate)}`
                             }
                           </div>
@@ -426,12 +428,12 @@ export default function LoansPage() {
                       <span>Apply for Loan</span>
                     </Link>
                   </Button>
-                  
+
                   <Button variant="outline" className="h-auto p-4 flex-col gap-2">
                     <Calculator className="h-6 w-6 text-green-500" />
                     <span>Loan Calculator</span>
                   </Button>
-                  
+
                   <Button variant="outline" className="h-auto p-4 flex-col gap-2">
                     <Download className="h-6 w-6 text-purple-500" />
                     <span>Download Statement</span>
@@ -448,7 +450,7 @@ export default function LoansPage() {
                 <h3 className="text-lg font-medium text-gray-900">Loan Applications</h3>
                 <p className="text-sm text-gray-600">Track all your loan applications and their status</p>
               </div>
-              
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Filter by status" />
@@ -486,12 +488,12 @@ export default function LoansPage() {
                               </span>
                             )}
                           </div>
-                          
+
                           <div>
                             <h4 className="font-medium text-gray-900">{app.purpose}</h4>
                             <p className="text-sm text-gray-600 mt-1">{app.description}</p>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
                               <span className="text-gray-500">Amount:</span>
@@ -510,7 +512,7 @@ export default function LoansPage() {
                               <div className="font-medium">{app.interestRate}%</div>
                             </div>
                           </div>
-                          
+
                           {app.collateral && (
                             <div className="text-sm">
                               <span className="text-gray-500">Collateral:</span>
@@ -518,7 +520,7 @@ export default function LoansPage() {
                             </div>
                           )}
                         </div>
-                        
+
                         <div className="flex flex-col gap-2">
                           <Button variant="outline" size="sm">
                             <Eye className="h-4 w-4 mr-2" />
@@ -535,14 +537,14 @@ export default function LoansPage() {
                     </CardContent>
                   </Card>
                 ))}
-              
+
               {applications.filter(app => statusFilter === 'all' || app.status === statusFilter).length === 0 && (
                 <Card className="border border-gray-200">
                   <CardContent className="p-12 text-center">
                     <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No applications found</h3>
                     <p className="text-gray-600 mb-4">
-                      {statusFilter === 'all' 
+                      {statusFilter === 'all'
                         ? "You haven't submitted any loan applications yet."
                         : `No applications with status "${statusFilter}" found.`
                       }
@@ -580,7 +582,7 @@ export default function LoansPage() {
                             </Badge>
                             <span className="text-sm text-gray-500">Loan #{loan.id}</span>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div>
                               <span className="text-sm text-gray-500">Original Amount:</span>
@@ -599,7 +601,7 @@ export default function LoansPage() {
                               <div className="font-medium">{loan.interestRate}%</div>
                             </div>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div>
                               <span className="text-sm text-gray-500">Next Payment:</span>
@@ -619,7 +621,7 @@ export default function LoansPage() {
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex flex-col gap-2">
                           <Button variant="outline" size="sm">
                             <Eye className="h-4 w-4 mr-2" />
@@ -645,7 +647,7 @@ export default function LoansPage() {
                   <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Loans</h3>
                   <p className="text-gray-600 mb-4">
-                    You don't have any active loans at the moment.
+                    You don&apos;t have any active loans at the moment.
                   </p>
                   <Button asChild>
                     <Link href="/dashboard/financial/loans/apply">

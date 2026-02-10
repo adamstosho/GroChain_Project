@@ -25,6 +25,12 @@ export default function EditHarvestPage() {
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
+  useEffect(() => {
+    if (harvestId && harvestId !== 'undefined' && params.id) {
+      fetchHarvestData()
+    }
+  }, [harvestId])
+
   // Validate harvest ID
   if (!harvestId || harvestId === 'undefined' || !params.id) {
     return (
@@ -49,17 +55,13 @@ export default function EditHarvestPage() {
     )
   }
 
-  useEffect(() => {
-    fetchHarvestData()
-  }, [harvestId])
-
   const fetchHarvestData = async () => {
     try {
       setFetching(true)
       const response = await apiService.getHarvestById(harvestId)
       const harvest = (response as any)?.harvest || (response as any)?.data?.harvest || response
-      
-            if (harvest) {
+
+      if (harvest) {
         // Map backend data to our form format with better type safety
         const formData: Partial<HarvestFormData> = {
           cropType: harvest.cropType || "",
@@ -112,16 +114,16 @@ export default function EditHarvestPage() {
   const handleSubmit = async (data: HarvestFormData) => {
     try {
       setLoading(true)
-      
+
       // Map our form data to backend schema
       const payload = {
         cropType: data.cropType,
         variety: data.variety,
         quantity: data.quantity,
         date: data.harvestDate,
-        geoLocation: { 
-          lat: data.coordinates?.latitude || 6.5244, 
-          lng: data.coordinates?.longitude || 3.3792 
+        geoLocation: {
+          lat: data.coordinates?.latitude || 6.5244,
+          lng: data.coordinates?.longitude || 3.3792
         },
         unit: data.unit,
         location: data.location,
@@ -161,10 +163,10 @@ export default function EditHarvestPage() {
       }
     } catch (error) {
       console.error("Failed to update harvest:", error)
-      toast({ 
-        title: "Failed to update harvest", 
-        description: (error as any)?.message || "Please try again.", 
-        variant: "destructive" 
+      toast({
+        title: "Failed to update harvest",
+        description: (error as any)?.message || "Please try again.",
+        variant: "destructive"
       })
     } finally {
       setLoading(false)

@@ -11,7 +11,7 @@ class ApiService {
     this.loadTokenFromStorage()
   }
 
-  private safeStringify(obj: any): string {
+  private safeStringify(obj: unknown): string {
     try {
       return JSON.stringify(obj, null, 2)
     } catch (error) {
@@ -76,18 +76,18 @@ class ApiService {
     // Normalize incoming headers into a plain record
     if (options.headers) {
       if (Array.isArray(options.headers)) {
-        for (const [k, v] of options.headers as any) headers[k] = String(v)
+        for (const [k, v] of options.headers as Iterable<[string, string]>) headers[k] = String(v)
       } else if (options.headers instanceof Headers) {
         (options.headers as Headers).forEach((v, k) => (headers[k] = v))
       } else {
-        Object.assign(headers, options.headers as any)
+        Object.assign(headers, options.headers as Record<string, string>)
       }
     }
 
     // Check if this is a public endpoint that shouldn't have Authorization header
     const publicEndpoints = ['/api/verify', '/api/marketplace/listings']
     const isPublicEndpoint = publicEndpoints.some(publicEndpoint => endpoint.includes(publicEndpoint))
-    
+
     // Only add Authorization header for non-public endpoints
     if (!isPublicEndpoint) {
       if (this.token && this.token !== 'undefined') {
@@ -127,7 +127,7 @@ class ApiService {
       if (contentType && contentType.includes("application/json")) {
         try {
           data = await response.json()
-          
+
           // Handle empty response objects
           if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
             data = { message: "Empty response from server" }
@@ -146,7 +146,7 @@ class ApiService {
         // Handle 401 Unauthorized - try to refresh token (only for protected endpoints)
         if (response.status === 401 && endpoint !== '/api/auth/refresh' && endpoint !== '/api/auth/login' && !isPublicEndpoint) {
           console.log('🔄 401 Error on protected endpoint:', endpoint, 'attempting refresh...')
-          
+
           const refreshSuccess = await this.refreshTokenIfNeeded()
           if (refreshSuccess) {
             console.log('✅ Token refreshed successfully, retrying request...')
@@ -157,7 +157,7 @@ class ApiService {
             console.log('❌ Token refresh failed for endpoint:', endpoint)
             // Clear all auth data
             this.clearToken()
-            
+
             // Redirect to login for protected endpoints
             if (typeof window !== 'undefined') {
               console.log('🚨 REDIRECTING TO LOGIN for protected endpoint:', endpoint)
@@ -172,7 +172,7 @@ class ApiService {
         }
 
         let errorMessage = data.message || `HTTP ${response.status}: ${response.statusText}`
-        
+
         // Include validation errors if available
         if (data.errors && Array.isArray(data.errors)) {
           errorMessage += `\nValidation errors: ${data.errors.join(', ')}`
@@ -202,7 +202,7 @@ class ApiService {
           errorMessage = "Authorization error: " + (data.message || "Access denied")
         }
 
-        const err: any = new Error(errorMessage)
+        const err = new Error(errorMessage) as Error & { status?: number; payload?: string; endpoint?: string }
         err.status = response.status
         err.payload = this.safeStringify(data)
         err.endpoint = endpoint
@@ -286,7 +286,7 @@ class ApiService {
 
       this.isRefreshing = false
 
-      const envelope: any = response || {}
+      const envelope = (response || {}) as Record<string, any>
       const data = envelope.data || envelope
       const newAccessToken = data.accessToken || data.token || envelope.accessToken || envelope.token
       const newRefreshToken = data.refreshToken || envelope.refreshToken
@@ -294,7 +294,7 @@ class ApiService {
       if (newAccessToken) {
         console.log('✅ New access token received')
         this.setToken(newAccessToken)
-        
+
         // Update auth store if available
         if (typeof window !== "undefined") {
           try {
@@ -309,7 +309,7 @@ class ApiService {
             console.warn('Could not update auth store:', error)
           }
         }
-        
+
         return true
       }
 
@@ -341,8 +341,8 @@ class ApiService {
   }) {
     console.log("[API] Register request to:", `${this.baseUrl}/api/auth/register`)
     console.log("[API] Register data:", userData)
-    
-    return this.request<{ 
+
+    return this.request<{
       status: string
       message: string
       requiresVerification: boolean
@@ -1076,11 +1076,11 @@ class ApiService {
 
   // Farmer-specific profile methods  
   async getFarmerProfile() {
-    return this.request('/api/users/profile/me');
+    return this.request('/api/farmers/profile/me');
   }
 
   async updateFarmerProfile(data: any) {
-    return this.request('/api/users/profile/me', {
+    return this.request('/api/farmers/profile/me', {
       method: 'PUT',
       body: JSON.stringify(data)
     });
@@ -1393,9 +1393,10 @@ class ApiService {
     }>(`/partners/farmers?${queryString}`)
   }
 
-  async getPartnerMetrics() {
-    console.log('🔍 Calling getPartnerMetrics API endpoint');
+  async getPartnerMetrics(filters?: { period?: string }) {
+    console.log('🔍 Calling getPartnerMetrics API endpoint', filters);
     try {
+      const queryParams = filters?.period ? `?period=${filters.period}` : '';
       const result = await this.request<{
         totalFarmers: number
         activeFarmers: number
@@ -1411,7 +1412,7 @@ class ApiService {
           commissionsEarnedThisMonth: number
           averageCommissionPerFarmer: number
         }
-      }>("/partners/metrics")
+      }>(`/partners/metrics${queryParams}`)
       console.log('✅ getPartnerMetrics response:', result);
       return result;
     } catch (error) {
@@ -1439,7 +1440,7 @@ class ApiService {
           totalEarned: number
         }
       }>("/api/partners/commission")
-      
+
       console.log('✅ Partner commission data fetched successfully', result);
       return result;
     } catch (error) {
@@ -1808,29 +1809,7 @@ class ApiService {
     })
   }
 
-  async getFarmerProfile() {
-    return this.request('/api/farmers/profile/me')
-  }
 
-  async updateFarmerProfile(profileData: any) {
-    return this.request('/api/farmers/profile/me', {
-      method: 'PUT',
-      body: JSON.stringify(profileData),
-    })
-  }
-
-
-
-  async getPartnerProfile() {
-    return this.request('/api/users/profile/me')
-  }
-
-  async updatePartnerProfile(profileData: any) {
-    return this.request('/api/users/profile/me', {
-      method: 'PUT',
-      body: JSON.stringify(profileData),
-    })
-  }
 
 
 
@@ -2002,11 +1981,11 @@ class ApiService {
         "Authorization": `Bearer ${this.token}`
       }
     })
-    
+
     if (!response.ok) {
       throw new Error(`Export failed: ${response.statusText}`)
     }
-    
+
     return response.blob()
   }
 
@@ -2089,7 +2068,7 @@ class ApiService {
         headers["Authorization"] = `Bearer ${this.token}`
       }
     }
-    
+
     const response = await fetch(url, {
       ...options,
       method: 'POST',

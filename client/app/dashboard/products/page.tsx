@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -103,7 +103,7 @@ export default function ProductsPage() {
   }, [user, fetchFavorites])
 
   // Centralized favorite handler to prevent race conditions
-  const handleFavoriteToggle = async (productId: string, productName: string) => {
+  const handleFavoriteToggle = useCallback(async (productId: string, productName: string) => {
     // Prevent multiple operations on the same product
     if (favoriteProcessing.has(productId)) {
       console.log('Operation already in progress for product:', productId)
@@ -155,32 +155,18 @@ export default function ProductsPage() {
         return newSet
       })
     }
-  }
+  }, [favoriteProcessing, favorites, removeFromFavorites, addToFavorites, fetchFavorites, toast])
 
-  // Check for refresh flag and update products if needed
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const needsRefresh = localStorage.getItem('marketplace_refresh_needed')
-      if (needsRefresh === 'true') {
-        console.log('🔄 Refreshing dashboard products after checkout...')
-        localStorage.removeItem('marketplace_refresh_needed')
-        fetchProducts()
-      }
-    }
-  }, [])
 
-  useEffect(() => {
-    fetchProducts()
-  }, [filters, searchQuery])
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true)
 
       // Check if we need to refresh due to recent order completion
-      const needsRefresh = typeof window !== 'undefined' && 
+      const needsRefresh = typeof window !== 'undefined' &&
         localStorage.getItem('marketplace_refresh_needed') === 'true'
-      
+
       if (needsRefresh) {
         console.log('🔄 Refreshing products due to recent order completion')
         localStorage.removeItem('marketplace_refresh_needed')
@@ -307,12 +293,28 @@ export default function ProductsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters, searchQuery, toast])
+
+  // Check for refresh flag and update products if needed
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const needsRefresh = localStorage.getItem('marketplace_refresh_needed')
+      if (needsRefresh === 'true') {
+        console.log('🔄 Refreshing dashboard products after checkout...')
+        localStorage.removeItem('marketplace_refresh_needed')
+        fetchProducts()
+      }
+    }
+  }, [fetchProducts])
+
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
 
   // No client-side filtering needed since we filter on the backend
   // The filteredProducts are set directly from the API response
 
-  const handleAddToCart = async (product: ProductListing) => {
+  const handleAddToCart = useCallback(async (product: ProductListing) => {
     try {
       // Validate product data before processing
       if (!product || !product._id || !product.cropName) {
@@ -365,7 +367,7 @@ export default function ProductsPage() {
         variant: "destructive",
       })
     }
-  }
+  }, [addToCart, toast])
 
   // Favorites are now handled directly in the ProductCard component
   // using the buyer store, so we don't need this function anymore
@@ -375,7 +377,7 @@ export default function ProductsPage() {
     return filteredProducts.map(product => {
       // Use the actual available quantity from the database
       const availableQuantity = product.availableQuantity || (product as any).stockQuantity || product.quantity || 0
-      
+
       // Find cart item for display purposes only (not for quantity calculation)
       const cartItem = cart.find(item =>
         item.listingId === product._id ||
@@ -699,7 +701,7 @@ function ProductCard({
     const listingId = fav.listingId || fav.listing?._id || fav.listing
     const productId = product._id
     const isMatch = listingId === productId
-    
+
     // Debug logging (remove in production)
     if (process.env.NODE_ENV === 'development') {
       console.log('Favorite check:', {
@@ -709,7 +711,7 @@ function ProductCard({
         favorite: fav
       })
     }
-    
+
     return isMatch
   })
 
@@ -767,13 +769,13 @@ function ProductCard({
                     {isProcessing ? (
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-red-500" />
                     ) : (
-                      <Heart 
+                      <Heart
                         className={cn(
-                          "h-4 w-4 transition-all duration-200", 
-                          isWishlisted 
-                            ? "fill-red-500 text-red-500 scale-110" 
+                          "h-4 w-4 transition-all duration-200",
+                          isWishlisted
+                            ? "fill-red-500 text-red-500 scale-110"
                             : "text-gray-600 hover:text-red-500 hover:scale-105"
-                        )} 
+                        )}
                       />
                     )}
                   </Button>
@@ -881,7 +883,7 @@ function ProductCard({
           </Badge>
         </div>
       </CardHeader>
-      
+
       <CardContent className="p-3 pt-0 flex-1 flex flex-col">
         <div className="space-y-2 flex-1">
           <div>
@@ -959,13 +961,13 @@ function ProductCard({
               {isProcessing ? (
                 <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-red-500" />
               ) : (
-                <Heart 
+                <Heart
                   className={cn(
-                    "h-3 w-3 transition-all duration-200", 
-                    isWishlisted 
-                      ? "fill-red-500 text-red-500 scale-110" 
+                    "h-3 w-3 transition-all duration-200",
+                    isWishlisted
+                      ? "fill-red-500 text-red-500 scale-110"
                       : "text-gray-600 hover:text-red-500 hover:scale-105"
-                  )} 
+                  )}
                 />
               )}
             </Button>

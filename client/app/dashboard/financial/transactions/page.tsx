@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -116,11 +116,9 @@ export default function TransactionsPage() {
   const { toast } = useToast()
   const exportService = useExportService()
 
-  useEffect(() => {
-    fetchTransactions()
-  }, [filters, sortBy, sortOrder, currentPage])
 
-  const fetchTransactions = async () => {
+
+  const fetchTransactions = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -137,7 +135,7 @@ export default function TransactionsPage() {
         const transformedTransactions: Transaction[] = transactionsData.map((txn: any) => ({
           id: txn._id || txn.id,
           type: txn.type === 'payment' || txn.type === 'commission' ? 'income' :
-                txn.type === 'withdrawal' ? 'expense' : txn.type,
+            txn.type === 'withdrawal' ? 'expense' : txn.type,
           category: txn.category || txn.type,
           amount: txn.amount,
           currency: txn.currency || 'NGN',
@@ -146,8 +144,8 @@ export default function TransactionsPage() {
           status: txn.status,
           reference: txn.reference,
           source: txn.source || (txn.type === 'payment' ? 'marketplace' :
-                   txn.type === 'commission' ? 'marketplace' :
-                   txn.type === 'withdrawal' ? 'other' : 'other'),
+            txn.type === 'commission' ? 'marketplace' :
+              txn.type === 'withdrawal' ? 'other' : 'other'),
           metadata: txn.metadata || {}
         }))
 
@@ -210,7 +208,7 @@ export default function TransactionsPage() {
           const transformedTransactions: Transaction[] = recentTransactions.map((txn: any) => ({
             id: txn._id,
             type: txn.type === 'payment' || txn.type === 'commission' ? 'income' :
-                  txn.type === 'withdrawal' ? 'expense' : txn.type,
+              txn.type === 'withdrawal' ? 'expense' : txn.type,
             category: txn.type,
             amount: txn.amount,
             currency: 'NGN',
@@ -247,7 +245,11 @@ export default function TransactionsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchTransactions()
+  }, [fetchTransactions, filters, sortBy, sortOrder, currentPage])
 
   const handleExport = async () => {
     await exportService.exportTransactions(filters, 'csv')
@@ -313,12 +315,12 @@ export default function TransactionsPage() {
   const sortedTransactions = [...filteredTransactions].sort((a, b) => {
     let aValue: any = a[sortBy as keyof Transaction]
     let bValue: any = b[sortBy as keyof Transaction]
-    
+
     if (sortBy === 'date') {
       aValue = new Date(aValue).getTime()
       bValue = new Date(bValue).getTime()
     }
-    
+
     if (sortOrder === 'asc') {
       return aValue > bValue ? 1 : -1
     } else {
@@ -367,7 +369,7 @@ export default function TransactionsPage() {
               View and manage your financial transaction history
             </p>
           </div>
-          
+
           <Button onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
             Export Report
@@ -611,9 +613,8 @@ export default function TransactionsPage() {
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className={`text-sm font-medium ${
-                          transaction.type === 'income' ? 'text-emerald-600' : 'text-red-600'
-                        }`}>
+                        <div className={`text-sm font-medium ${transaction.type === 'income' ? 'text-emerald-600' : 'text-red-600'
+                          }`}>
                           {transaction.type === 'income' ? '+' : '-'}₦{transaction.amount.toLocaleString()}
                         </div>
                         <div className="text-xs text-gray-500">{transaction.currency}</div>

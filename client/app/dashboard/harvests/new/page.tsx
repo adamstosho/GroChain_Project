@@ -21,16 +21,16 @@ export default function NewHarvestPage() {
   const handleSubmit = async (data: HarvestFormData) => {
     try {
       setLoading(true)
-      
+
       // Map our form data to backend schema
       const payload = {
         cropType: data.cropType,
         variety: data.variety,
         quantity: data.quantity,
         date: data.harvestDate,
-        geoLocation: { 
-          lat: data.coordinates?.latitude || 6.5244, 
-          lng: data.coordinates?.longitude || 3.3792 
+        geoLocation: {
+          lat: data.coordinates?.latitude || 6.5244,
+          lng: data.coordinates?.longitude || 3.3792
         },
         unit: data.unit,
         location: data.location,
@@ -50,12 +50,12 @@ export default function NewHarvestPage() {
 
       // Use offline-aware API
       const result = await createHarvest(payload)
-      
+
       if (result.success && !result.queued) {
         // Only navigate if successfully saved to server
         const created = result.data?.harvest || result.data
         const id = created?._id || created?.id
-        
+
         if (id) {
           router.push(`/dashboard/harvests/${id}`)
         } else {
@@ -67,10 +67,10 @@ export default function NewHarvestPage() {
       }
     } catch (error) {
       console.error("Failed to create harvest:", error)
-      toast({ 
-        title: "Failed to log harvest", 
-        description: (error as any)?.message || "Please try again.", 
-        variant: "destructive" 
+      toast({
+        title: "Failed to log harvest",
+        description: (error as any)?.message || "Please try again.",
+        variant: "destructive"
       })
     } finally {
       setLoading(false)
@@ -121,7 +121,7 @@ export default function NewHarvestPage() {
                 <h3 className="font-medium text-xs sm:text-sm text-gray-900">Basic Information</h3>
                 <p className="text-xs text-gray-600 leading-tight">Crop type, quantity, and harvest date</p>
               </div>
-              
+
               <div className="text-center space-y-1 sm:space-y-2 p-1 sm:p-2 lg:p-0">
                 <div className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 rounded-full bg-blue-50 flex items-center justify-center mx-auto">
                   <span className="text-blue-600 font-bold text-xs sm:text-sm">2</span>
@@ -129,7 +129,7 @@ export default function NewHarvestPage() {
                 <h3 className="font-medium text-xs sm:text-sm text-gray-900">Quality Assessment</h3>
                 <p className="text-xs text-gray-600 leading-tight">Grade, moisture content, and organic status</p>
               </div>
-              
+
               <div className="text-center space-y-1 sm:space-y-2 p-1 sm:p-2 lg:p-0">
                 <div className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 rounded-full bg-blue-50 flex items-center justify-center mx-auto">
                   <span className="text-blue-600 font-bold text-xs sm:text-sm">3</span>
@@ -137,7 +137,7 @@ export default function NewHarvestPage() {
                 <h3 className="font-medium text-xs sm:text-sm text-gray-900">Advanced Details</h3>
                 <p className="text-xs text-gray-600 leading-tight">Soil type, irrigation, and pest management</p>
               </div>
-              
+
               <div className="text-center space-y-1 sm:space-y-2 p-1 sm:p-2 lg:p-0">
                 <div className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 rounded-full bg-blue-50 flex items-center justify-center mx-auto">
                   <span className="text-blue-600 font-bold text-xs sm:text-sm">4</span>
@@ -181,8 +181,8 @@ export default function NewHarvestPage() {
           <CardContent className="px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4">
             <div className="text-center space-y-2 sm:space-y-3">
               <p className="text-gray-600 text-xs sm:text-sm">
-                If you have questions about logging your harvest or need assistance with best practices, 
-                don't hesitate to reach out to our support team.
+                If you have questions about logging your harvest or need assistance with best practices,
+                don&apos;t hesitate to reach out to our support team.
               </p>
               <div className="flex flex-col xs:flex-row items-center justify-center gap-2 sm:gap-3">
                 <Button variant="outline" asChild size="sm" className="w-full xs:w-auto text-xs sm:text-sm h-8 sm:h-9">

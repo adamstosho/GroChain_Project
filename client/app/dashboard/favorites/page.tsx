@@ -103,12 +103,12 @@ export default function FavoritesPage() {
       try {
         setLoading(true)
         setError(null)
-        
+
         await fetchFavorites()
-        
+
         // Get favorites from the store after fetching
         const storeFavorites = useBuyerStore.getState().favorites
-        
+
         if (Array.isArray(storeFavorites)) {
           setFavorites(storeFavorites)
           setFilteredFavorites(storeFavorites)
@@ -169,12 +169,12 @@ export default function FavoritesPage() {
         unit: product.listing.unit,
         availableQuantity: product.listing.quantity,
         farmer: product.listing.farmer.name,
-        location: typeof product.listing.location === 'string' 
-          ? product.listing.location 
+        location: typeof product.listing.location === 'string'
+          ? product.listing.location
           : `${product.listing.location?.city || 'Unknown'}, ${product.listing.location?.state || 'Unknown State'}`,
         image: product.listing.images[0] || "/placeholder.svg"
       }
-      
+
       addToCart(cartProduct, 1)
       toast({
         title: "Added to cart",
@@ -246,18 +246,18 @@ export default function FavoritesPage() {
 
   const handleRefresh = async () => {
     if (!user) return
-    
+
     try {
       setLoading(true)
       setError(null)
       await fetchFavorites()
-      
+
       const storeFavorites = useBuyerStore.getState().favorites
       if (Array.isArray(storeFavorites)) {
         setFavorites(storeFavorites)
         setFilteredFavorites(storeFavorites)
       }
-      
+
       toast({
         title: "Refreshed",
         description: "Your favorites have been updated",
@@ -289,7 +289,7 @@ export default function FavoritesPage() {
         format: 'csv',
         filename: `favorites-export-${new Date().toISOString().split('T')[0]}.csv`
       })
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Export failed')
       }
@@ -377,9 +377,9 @@ export default function FavoritesPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleRefresh}
               disabled={loading}
               className="flex-shrink-0"
@@ -390,9 +390,9 @@ export default function FavoritesPage() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="flex-shrink-0"
                     onClick={handleExportFavorites}
                     disabled={isExporting || favorites.length === 0}
@@ -403,8 +403,8 @@ export default function FavoritesPage() {
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>
-                    {favorites.length === 0 
-                      ? 'No favorites to export' 
+                    {favorites.length === 0
+                      ? 'No favorites to export'
                       : `Export ${favorites.length} favorites to CSV`
                     }
                   </p>
@@ -542,8 +542,8 @@ export default function FavoritesPage() {
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>
-                          {favorites.length === 0 
-                            ? 'No favorites to export' 
+                          {favorites.length === 0
+                            ? 'No favorites to export'
                             : `Export ${favorites.length} favorites to CSV`
                           }
                         </p>
@@ -578,15 +578,15 @@ export default function FavoritesPage() {
                   {searchQuery ? 'No matching favorites found' : 'No favorites found'}
                 </h3>
                 <p className="text-muted-foreground mb-4">
-                  {searchQuery 
+                  {searchQuery
                     ? 'Try adjusting your search terms or clear the search to see all favorites.'
                     : 'You haven\'t added any products to your favorites yet.'
                   }
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2 justify-center">
                   {searchQuery && (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => setSearchQuery('')}
                     >
                       Clear Search
@@ -600,8 +600,8 @@ export default function FavoritesPage() {
                 </div>
               </div>
             ) : (
-              <div className={viewMode === 'grid' 
-                ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3' 
+              <div className={viewMode === 'grid'
+                ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3'
                 : 'space-y-4'
               }>
                 {filteredFavorites.map((product) => (
@@ -747,9 +747,9 @@ function FavoriteCard({
                     View
                   </Link>
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="h-7 text-xs"
                   onClick={() => onAlertClick(product)}
                 >
@@ -775,7 +775,7 @@ function FavoriteCard({
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-200"
           />
-          
+
           {/* Badges */}
           <div className="absolute top-1.5 left-1.5 flex flex-col gap-1">
             {listing.organic && (
@@ -811,7 +811,7 @@ function FavoriteCard({
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="p-3 flex-1 flex flex-col">
         <div className="space-y-1.5 flex-1">
           {/* Title */}
@@ -824,7 +824,7 @@ function FavoriteCard({
             </p>
             {product.notes && (
               <p className="text-xs text-blue-600 italic line-clamp-1">
-                "{product.notes}"
+                &quot;{product.notes}&quot;
               </p>
             )}
           </div>
@@ -861,9 +861,9 @@ function FavoriteCard({
                 View
               </Link>
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="h-6 text-xs"
               onClick={() => onAlertClick(product)}
             >

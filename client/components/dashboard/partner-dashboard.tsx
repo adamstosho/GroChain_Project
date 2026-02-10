@@ -15,12 +15,54 @@ import { useCommissionUpdates } from "@/hooks/use-commission-updates"
 import { Users, Shield, TrendingUp, Banknote, UserPlus, FileCheck, BarChart3, Upload, RefreshCw, AlertCircle } from "lucide-react"
 import Link from "next/link"
 
+interface PartnerDashboardData {
+  totalFarmers: number
+  activeFarmers: number
+  totalCommission?: number
+  monthlyCommission?: number
+  commissionRate?: number
+  approvalRate?: number
+  recentActivity?: any[]
+  commissionBreakdown?: {
+    pending: number
+    paid: number
+    total: number
+  }
+}
+
+interface PartnerFarmersData {
+  farmers: any[]
+  total: number
+}
+
+interface PartnerCommissionData {
+  totalEarned: number
+  commissionRate: number
+  pendingAmount: number
+  paidAmount: number
+  summary: {
+    thisMonth: number
+    lastMonth: number
+    totalEarned: number
+  }
+  monthlyBreakdown: any[]
+}
+
+interface PartnerMetricsData {
+  performanceMetrics: {
+    farmersOnboardedThisMonth: number
+  }
+  approvalRate: number
+  commissionRate: number
+  totalFarmers: number
+}
+
 export function PartnerDashboard() {
   // State for all dashboard data
-  const [dashboardData, setDashboardData] = useState<any>(null)
-  const [farmersData, setFarmersData] = useState<any>(null)
-  const [commissionData, setCommissionData] = useState<any>(null)
-  const [metricsData, setMetricsData] = useState<any>(null)
+  const [dashboardData, setDashboardData] = useState<PartnerDashboardData | null>(null)
+  const [farmersData, setFarmersData] = useState<PartnerFarmersData | null>(null)
+  const [commissionData, setCommissionData] = useState<PartnerCommissionData | null>(null)
+  const [metricsData, setMetricsData] = useState<PartnerMetricsData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -33,7 +75,7 @@ export function PartnerDashboard() {
   // Stable callback for commission updates
   const handleCommissionUpdate = useCallback((update: any) => {
     console.log('💰 Real-time commission update received:', update);
-    
+
     // Update local state with new commission data
     setDashboardData((prev: any) => {
       if (!prev) return prev;
@@ -75,10 +117,10 @@ export function PartnerDashboard() {
   }, [toast]);
 
   // Real-time commission updates
-  const { 
-    isConnected: isCommissionConnected, 
+  const {
+    isConnected: isCommissionConnected,
     lastUpdate: lastCommissionUpdate,
-    error: commissionError 
+    error: commissionError
   } = useCommissionUpdates({
     onCommissionUpdate: handleCommissionUpdate,
     onError: handleCommissionError
@@ -109,11 +151,11 @@ export function PartnerDashboard() {
 
       // Handle dashboard data - REAL DATABASE DATA ONLY
       if (dashboardResponse.status === 'fulfilled') {
-        setDashboardData(dashboardResponse.value.data);
+        setDashboardData(dashboardResponse.value.data as PartnerDashboardData);
       } else {
         const errorMessage = dashboardResponse.reason?.response?.data?.message ||
-                           dashboardResponse.reason?.message ||
-                           'Failed to load dashboard data from database'
+          dashboardResponse.reason?.message ||
+          'Failed to load dashboard data from database'
         setError(errorMessage)
         setDashboardData(null)
       }
@@ -121,7 +163,7 @@ export function PartnerDashboard() {
       // Handle farmers data - REAL DATABASE DATA ONLY
       if (farmersResponse.status === 'fulfilled') {
         console.log('✅ Farmers data loaded from database');
-        setFarmersData(farmersResponse.value.data)
+        setFarmersData(farmersResponse.value.data as PartnerFarmersData)
       } else {
         console.error('❌ Farmers fetch failed:', farmersResponse.reason?.message || farmersResponse.reason)
         setFarmersData(null)
@@ -131,7 +173,7 @@ export function PartnerDashboard() {
       if (commissionResponse.status === 'fulfilled') {
         const commissionDataValue = commissionResponse.value?.data;
         console.log('✅ Commission data received:', commissionDataValue);
-        
+
         if (commissionDataValue && typeof commissionDataValue === 'object') {
           // Ensure all needed fields exist
           setCommissionData({
@@ -176,7 +218,7 @@ export function PartnerDashboard() {
           },
           monthlyBreakdown: []
         });
-        
+
         // Display a non-blocking toast notification
         toast({
           title: "Commission data not available",
@@ -193,7 +235,7 @@ export function PartnerDashboard() {
           approvalRate: metricsResponse.value.data?.approvalRate,
           commissionRate: metricsResponse.value.data?.commissionRate
         });
-        setMetricsData(metricsResponse.value.data)
+        setMetricsData(metricsResponse.value.data as PartnerMetricsData)
       } else {
         console.error('❌ Metrics fetch failed:', metricsResponse.reason?.message || metricsResponse.reason)
         setMetricsData(null)
@@ -461,10 +503,10 @@ export function PartnerDashboard() {
               {lastUpdated.toLocaleTimeString()}
             </div>
           )}
-          <Button 
-            onClick={handleRefresh} 
-            disabled={isRefreshing} 
-            size="sm" 
+          <Button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            size="sm"
             className="h-8 sm:h-9 text-xs sm:text-sm w-full xs:w-auto"
           >
             <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -640,8 +682,8 @@ export function PartnerDashboard() {
                     <div className="flex justify-between items-center text-xs sm:text-sm">
                       <span className="text-muted-foreground">Farmers Onboarded</span>
                       <span className="font-medium">
-                        {metricsData?.performanceMetrics?.farmersOnboardedThisMonth ?? 
-                         dashboardData?.totalFarmers ?? 0}
+                        {metricsData?.performanceMetrics?.farmersOnboardedThisMonth ??
+                          dashboardData?.totalFarmers ?? 0}
                       </span>
                     </div>
                     <Progress
@@ -663,9 +705,9 @@ export function PartnerDashboard() {
                         })()}
                       </span>
                     </div>
-                    <Progress 
-                      value={metricsData?.approvalRate ?? dashboardData?.approvalRate ?? 0} 
-                      className="h-1.5 sm:h-2" 
+                    <Progress
+                      value={metricsData?.approvalRate ?? dashboardData?.approvalRate ?? 0}
+                      className="h-1.5 sm:h-2"
                     />
                   </div>
                   <div className="space-y-1.5 sm:space-y-2">
@@ -747,7 +789,7 @@ export function PartnerDashboard() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Commission Rate</span>
-                    <span className="font-medium">{(commissionData?.commissionRate || dashboardData?.commissionRate) ? `${((commissionData?.commissionRate || dashboardData?.commissionRate) * 100).toFixed(1)}%` : '0%'}</span>
+                    <span className="font-medium">{((commissionData?.commissionRate || dashboardData?.commissionRate || 0) * 100).toFixed(1)}%</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">This Month</span>

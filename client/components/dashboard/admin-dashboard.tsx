@@ -15,9 +15,40 @@ import { useDashboardRefresh } from "@/hooks/use-dashboard-refresh"
 import { Users, TrendingUp, Banknote, Database, UserCheck, Settings, BarChart3, FileText, RefreshCw } from "lucide-react"
 import Link from "next/link"
 
+interface AdminStats {
+  totalUsers: number
+  totalRevenue: number
+  activeTransactions: number
+  totalHarvests: number
+  pendingApprovals: number
+  activeListings: number
+  monthlyRevenue: number
+  userDistribution: Record<string, number>
+  approvalRate: number
+  commissionStats?: {
+    totalCommissions: number
+    pendingCommissions: number
+    paidCommissions: number
+    totalCommissionAmount: number
+    pendingCommissionAmount: number
+    paidCommissionAmount: number
+    commissionRate: number
+  }
+}
+
+interface SystemHealth {
+  uptime: string
+  responseTime: string
+  activeUsers: number
+  errorRate: string
+  status?: string
+  memory?: any
+  timestamp?: string
+}
+
 export function AdminDashboard() {
-  const [stats, setStats] = useState<any>(null)
-  const [systemHealth, setSystemHealth] = useState<any>(null)
+  const [stats, setStats] = useState<AdminStats | null>(null)
+  const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null)
   const [recentUsers, setRecentUsers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -141,7 +172,7 @@ export function AdminDashboard() {
     } finally {
       setIsLoading(false)
     }
-  }, [toast])
+  }, [toast, stats?.totalUsers])
 
   // Smart event-driven refresh system
   const { refresh } = useDashboardRefresh({
@@ -246,10 +277,10 @@ export function AdminDashboard() {
               <span className="text-xs sm:text-sm">Loading...</span>
             </div>
           )}
-          <Button 
-            onClick={handleManualRefresh} 
+          <Button
+            onClick={handleManualRefresh}
             disabled={isRefreshing || isLoading}
-            variant="outline" 
+            variant="outline"
             size="sm"
             className="flex items-center gap-2 w-full sm:w-auto"
           >
@@ -344,7 +375,7 @@ export function AdminDashboard() {
                       const buyers = stats?.userDistribution?.buyers || 0
                       const partners = stats?.userDistribution?.partners || 0
                       const admins = stats?.userDistribution?.admins || 0
-                      
+
                       const farmersPercent = Math.round((farmers / totalUsers) * 100)
                       const buyersPercent = Math.round((buyers / totalUsers) * 100)
                       const partnersPercent = Math.round((partners / totalUsers) * 100)
@@ -563,7 +594,7 @@ export function AdminDashboard() {
                           </p>
                         </div>
                       </div>
-                      
+
                       {/* User Actions - Responsive Layout */}
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2">
                         {/* Badges - Responsive Stack */}
@@ -571,18 +602,18 @@ export function AdminDashboard() {
                           <Badge variant="secondary" className="capitalize text-xs px-2 py-1">
                             {user.role}
                           </Badge>
-                          <Badge 
-                            variant={user.status === "active" ? "default" : "destructive"} 
+                          <Badge
+                            variant={user.status === "active" ? "default" : "destructive"}
                             className="text-xs px-2 py-1"
                           >
                             {user.status || "inactive"}
                           </Badge>
                         </div>
-                        
+
                         {/* View Button - Responsive */}
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           asChild
                           className="text-xs sm:text-sm h-8 sm:h-9 w-full sm:w-auto"
                         >

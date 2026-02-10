@@ -11,7 +11,7 @@ import {
   TrendingUp,
   Banknote,
   Package,
-  Leaf, 
+  Leaf,
   BarChart3,
   PieChart,
   Activity,
@@ -185,16 +185,10 @@ export function FarmerAnalytics() {
       setIsLoading(false)
       setIsRefreshing(false)
     }
-  }, [toast])
+  }, [toast, timeRange])
 
   useEffect(() => {
-    fetchAnalytics()
-  }, [fetchAnalytics])
-
-  useEffect(() => {
-    if (timeRange) {
-      fetchAnalytics(timeRange)
-    }
+    fetchAnalytics(timeRange)
   }, [timeRange, fetchAnalytics])
 
   const handleRefresh = async () => {
@@ -249,7 +243,7 @@ export function FarmerAnalytics() {
     if (!isValidData(data)) {
       return fallback
     }
-    
+
     try {
       switch (chartType) {
         case 'line':
@@ -261,17 +255,17 @@ export function FarmerAnalytics() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="harvests" 
-                  stroke="#3b82f6" 
+                <Line
+                  type="monotone"
+                  dataKey="harvests"
+                  stroke="#3b82f6"
                   strokeWidth={2}
                   name="Harvests"
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="#10b981" 
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#10b981"
                   strokeWidth={2}
                   name="Revenue (₦)"
                 />
@@ -287,21 +281,21 @@ export function FarmerAnalytics() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Area 
-                  type="monotone" 
-                  dataKey="harvests" 
-                  stackId="1" 
-                  stroke="#3b82f6" 
-                  fill="#3b82f6" 
+                <Area
+                  type="monotone"
+                  dataKey="harvests"
+                  stackId="1"
+                  stroke="#3b82f6"
+                  fill="#3b82f6"
                   fillOpacity={0.6}
                   name="Harvests"
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stackId="2" 
-                  stroke="#10b981" 
-                  fill="#10b981" 
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stackId="2"
+                  stroke="#10b981"
+                  fill="#10b981"
                   fillOpacity={0.6}
                   name="Revenue (₦)"
                 />
@@ -445,7 +439,7 @@ export function FarmerAnalytics() {
             Monitor your harvest performance, earnings, and farm productivity
           </p>
         </div>
-        
+
         {/* Controls - Mobile First Design */}
         <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           {/* Time Range and Export Format */}
@@ -488,7 +482,7 @@ export function FarmerAnalytics() {
               </SelectContent>
             </Select>
           </div>
-          
+
           {/* Action Buttons */}
           <div className="flex flex-row gap-2">
             <Button
@@ -607,29 +601,29 @@ export function FarmerAnalytics() {
       {/* Charts Section */}
       <Tabs defaultValue="overview" className="space-y-4 sm:space-y-6">
         <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto p-1 bg-muted/50">
-          <TabsTrigger 
-            value="overview" 
+          <TabsTrigger
+            value="overview"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Overview</span>
             <span className="xs:hidden">📊</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="harvests" 
+          <TabsTrigger
+            value="harvests"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Harvests</span>
             <span className="xs:hidden">🌾</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="crops" 
+          <TabsTrigger
+            value="crops"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Crops</span>
             <span className="xs:hidden">🥕</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="quality" 
+          <TabsTrigger
+            value="quality"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Quality</span>
@@ -740,19 +734,19 @@ export function FarmerAnalytics() {
                 <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">
                   {analyticsData?.monthlyTrends?.length && analyticsData?.monthlyTrends.length > 0
                     ? analyticsData.monthlyTrends.reduce((best, current) =>
-                        current.revenue > best.revenue ? current : best
-                      ).month
+                      current.revenue > best.revenue ? current : best
+                    ).month
                     : 'N/A'
                   }
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                   {analyticsData?.monthlyTrends?.length && analyticsData?.monthlyTrends.length > 0
                     ? (() => {
-                        const best = analyticsData?.monthlyTrends?.reduce((best, current) =>
-                          current.revenue > best.revenue ? current : best
-                        )
-                        return `${best.harvests} harvests • ${formatCurrency(best.revenue)} • ${best.quality}% quality`
-                      })()
+                      const best = analyticsData?.monthlyTrends?.reduce((best, current) =>
+                        current.revenue > best.revenue ? current : best
+                      )
+                      return `${best.harvests} harvests • ${formatCurrency(best.revenue)} • ${best.quality}% quality`
+                    })()
                     : 'No data available'
                   }
                 </p>
@@ -1145,8 +1139,8 @@ export function FarmerAnalytics() {
                     <div key={crop.name} className="p-3 sm:p-4 border rounded-lg bg-gradient-to-br from-background to-muted/20">
                       <div className="flex items-start justify-between mb-2 sm:mb-3">
                         <div className="flex items-center gap-2 sm:gap-3">
-                          <div 
-                            className="w-3 h-3 sm:w-4 sm:h-4 rounded-full flex-shrink-0" 
+                          <div
+                            className="w-3 h-3 sm:w-4 sm:h-4 rounded-full flex-shrink-0"
                             style={{ backgroundColor: crop.color }}
                           />
                           <div>
@@ -1160,7 +1154,7 @@ export function FarmerAnalytics() {
                           {crop.value >= 20 ? "High" : crop.value >= 10 ? "Medium" : "Low"}
                         </Badge>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
                         <div>
                           <span className="text-muted-foreground">Quantity:</span>
@@ -1182,11 +1176,11 @@ export function FarmerAnalytics() {
 
                       <div className="mt-2 sm:mt-3 p-2 bg-muted/30 rounded text-xs">
                         <p className="text-muted-foreground">
-                          {crop.value >= 20 
+                          {crop.value >= 20
                             ? "💡 Consider expanding production of this high-performing crop"
                             : crop.value >= 10
-                            ? "📈 This crop shows good performance, monitor for growth opportunities"
-                            : "🔍 Evaluate market demand and consider optimizing production"
+                              ? "📈 This crop shows good performance, monitor for growth opportunities"
+                              : "🔍 Evaluate market demand and consider optimizing production"
                           }
                         </p>
                       </div>
@@ -1254,8 +1248,8 @@ export function FarmerAnalytics() {
                       <div key={quality.name} className="space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
+                            <div
+                              className="w-3 h-3 rounded-full"
                               style={{ backgroundColor: quality.color }}
                             />
                             <span className="text-sm font-medium">{quality.name}</span>
@@ -1268,7 +1262,7 @@ export function FarmerAnalytics() {
                         <div className="w-full bg-muted rounded-full h-2">
                           <div
                             className="h-2 rounded-full transition-all duration-300"
-                            style={{ 
+                            style={{
                               width: `${quality.value}%`,
                               backgroundColor: quality.color
                             }}
@@ -1331,9 +1325,9 @@ export function FarmerAnalytics() {
                         formatter={(value: any, name: string) => {
                           if (name.includes('_count')) {
                             const quality = name.replace('_count', '')
-                            const qualityLabel = quality === 'excellent' ? 'Excellent' : 
-                                               quality === 'good' ? 'Good' : 
-                                               quality === 'fair' ? 'Fair' : 'Poor'
+                            const qualityLabel = quality === 'excellent' ? 'Excellent' :
+                              quality === 'good' ? 'Good' :
+                                quality === 'fair' ? 'Fair' : 'Poor'
                             return [`${value} harvests`, qualityLabel]
                           }
                           return [value, name]
@@ -1413,10 +1407,10 @@ export function FarmerAnalytics() {
                     <div key={insight.quality} className="p-3 sm:p-4 border rounded-lg bg-gradient-to-br from-background to-muted/20">
                       <div className="flex items-start justify-between mb-2 sm:mb-3">
                         <div className="flex items-center gap-2 sm:gap-3">
-                          <div 
-                            className="w-3 h-3 sm:w-4 sm:h-4 rounded-full flex-shrink-0" 
-                            style={{ 
-                              backgroundColor: insight.isHighQuality ? '#22c55e' : '#f59e0b' 
+                          <div
+                            className="w-3 h-3 sm:w-4 sm:h-4 rounded-full flex-shrink-0"
+                            style={{
+                              backgroundColor: insight.isHighQuality ? '#22c55e' : '#f59e0b'
                             }}
                           />
                           <div>
@@ -1430,7 +1424,7 @@ export function FarmerAnalytics() {
                           {insight.percentage >= 50 ? "High" : insight.percentage >= 25 ? "Medium" : "Low"}
                         </Badge>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
                         <div>
                           <span className="text-muted-foreground">Count:</span>
@@ -1470,10 +1464,10 @@ export function FarmerAnalytics() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
-                  {analyticsData?.qualityDistribution?.insights 
+                  {analyticsData?.qualityDistribution?.insights
                     ? Math.round(analyticsData.qualityDistribution.insights
-                        .filter(q => q.isHighQuality)
-                        .reduce((sum, q) => sum + q.percentage, 0))
+                      .filter(q => q.isHighQuality)
+                      .reduce((sum, q) => sum + q.percentage, 0))
                     : 0}%
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -1488,14 +1482,14 @@ export function FarmerAnalytics() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-blue-600">
-                  {analyticsData?.qualityDistribution?.insights?.length 
+                  {analyticsData?.qualityDistribution?.insights?.length
                     ? (() => {
-                        const avgScore = analyticsData.qualityDistribution.insights.reduce((sum, q) => {
-                          const score = q.quality === 'Excellent' ? 4 : q.quality === 'Good' ? 3 : q.quality === 'Fair' ? 2 : 1
-                          return sum + (score * q.percentage / 100)
-                        }, 0)
-                        return Math.round(avgScore * 100) / 100
-                      })()
+                      const avgScore = analyticsData.qualityDistribution.insights.reduce((sum, q) => {
+                        const score = q.quality === 'Excellent' ? 4 : q.quality === 'Good' ? 3 : q.quality === 'Fair' ? 2 : 1
+                        return sum + (score * q.percentage / 100)
+                      }, 0)
+                      return Math.round(avgScore * 100) / 100
+                    })()
                     : 0}/5
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -1510,7 +1504,7 @@ export function FarmerAnalytics() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-purple-600">
-                  {analyticsData?.qualityDistribution?.insights 
+                  {analyticsData?.qualityDistribution?.insights
                     ? analyticsData.qualityDistribution.insights.reduce((sum, q) => sum + q.count, 0)
                     : 0}
                 </div>
@@ -1547,13 +1541,13 @@ export function FarmerAnalytics() {
               <p className="text-xs sm:text-sm text-green-700 leading-relaxed">
                 {analyticsData?.monthlyTrends?.length && analyticsData?.monthlyTrends.length >= 2
                   ? (() => {
-                      const first = analyticsData?.monthlyTrends?.[0]?.revenue
-                      const last = analyticsData?.monthlyTrends?.[analyticsData?.monthlyTrends?.length - 1]?.revenue
-                      const growth = Math.round(((last - first) / first) * 100)
-                      return growth >= 0
-                        ? `Your revenue has grown by ${growth}% this period. Keep up the excellent work!`
-                        : `Revenue decreased by ${Math.abs(growth)}%. Consider reviewing your pricing strategy.`
-                    })()
+                    const first = analyticsData?.monthlyTrends?.[0]?.revenue
+                    const last = analyticsData?.monthlyTrends?.[analyticsData?.monthlyTrends?.length - 1]?.revenue
+                    const growth = Math.round(((last - first) / first) * 100)
+                    return growth >= 0
+                      ? `Your revenue has grown by ${growth}% this period. Keep up the excellent work!`
+                      : `Revenue decreased by ${Math.abs(growth)}%. Consider reviewing your pricing strategy.`
+                  })()
                   : 'Start logging harvests to see revenue growth insights.'
                 }
               </p>
@@ -1570,11 +1564,11 @@ export function FarmerAnalytics() {
               <p className="text-xs sm:text-sm text-blue-700 leading-relaxed">
                 {analyticsData?.monthlyTrends?.length && analyticsData?.monthlyTrends.length > 0
                   ? (() => {
-                      const avgQuality = analyticsData?.monthlyTrends?.reduce((sum, item) => sum + item.quality, 0) / analyticsData?.monthlyTrends?.length
-                      if (avgQuality >= 90) return 'Excellent quality standards! Your products are premium grade.'
-                      if (avgQuality >= 75) return 'Good quality performance. Focus on consistent harvesting practices.'
-                      return 'Quality improvement needed. Review harvesting and storage techniques.'
-                    })()
+                    const avgQuality = analyticsData?.monthlyTrends?.reduce((sum, item) => sum + item.quality, 0) / analyticsData?.monthlyTrends?.length
+                    if (avgQuality >= 90) return 'Excellent quality standards! Your products are premium grade.'
+                    if (avgQuality >= 75) return 'Good quality performance. Focus on consistent harvesting practices.'
+                    return 'Quality improvement needed. Review harvesting and storage techniques.'
+                  })()
                   : 'Quality insights will appear as you log more harvests.'
                 }
               </p>

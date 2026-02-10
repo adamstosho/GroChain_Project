@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -106,14 +106,12 @@ export default function MarketplacePage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [refreshing, setRefreshing] = useState(false)
-
+  const [buyerActivityData, setBuyerActivityData] = useState<any>(null)
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchMarketplaceData()
-  }, [])
 
-  const fetchMarketplaceData = async () => {
+
+  const fetchMarketplaceData = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -121,13 +119,15 @@ export default function MarketplacePage() {
       console.log("🔄 Fetching marketplace data...")
 
       // Fetch farmer-specific marketplace data
-      const [farmerDashboard, farmerListings, farmerOrders, farmerAnalytics, buyerActivityData] = await Promise.all([
+      const [farmerDashboard, farmerListings, farmerOrders, farmerAnalytics, buyerActivityResponse] = await Promise.all([
         apiService.getFarmerDashboard(), // Get farmer dashboard data
         apiService.getFarmerListings({ limit: 10 }), // Get farmer's own listings
         apiService.getFarmerOrders({ limit: 10 }), // Get farmer's orders
         apiService.getFarmerAnalytics().catch(() => ({ data: {} })), // Get farmer-specific analytics for accurate revenue
         apiService.getBuyerActivity().catch(() => ({ data: null })) // Get buyer activity data
       ])
+
+      setBuyerActivityData(buyerActivityResponse)
 
       console.log("📊 Farmer Dashboard Response:", farmerDashboard)
       console.log("📦 Farmer Listings Response:", farmerListings)
@@ -148,8 +148,8 @@ export default function MarketplacePage() {
           monthlyRevenue: (dashboardData as any).monthlyRevenue || 0,
           totalCustomers: 0, // Will be calculated from orders
           averageRating: 0, // Not available in dashboard
-          activeBuyers: buyerActivityData?.data?.activeBuyers || Math.floor(Math.random() * 50) + 10,
-          recentBuyerActivity: buyerActivityData?.data?.recentActivity || Math.floor(Math.random() * 20) + 5
+          activeBuyers: (buyerActivityResponse?.data as any)?.activeBuyers || Math.floor(Math.random() * 50) + 10,
+          recentBuyerActivity: (buyerActivityResponse?.data as any)?.recentActivity || Math.floor(Math.random() * 20) + 5
         }
 
         setStats(processedStats)
@@ -262,7 +262,11 @@ export default function MarketplacePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchMarketplaceData()
+  }, [fetchMarketplaceData])
 
   const handleRefresh = async () => {
     try {
@@ -379,10 +383,10 @@ export default function MarketplacePage() {
 
   const filteredListings = listings.filter(listing => {
     const matchesSearch = listing.cropName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         listing.description.toLowerCase().includes(searchQuery.toLowerCase())
+      listing.description.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = statusFilter === 'all' || listing.status === statusFilter
     const matchesCategory = categoryFilter === 'all' || listing.category === categoryFilter
-    
+
     return matchesSearch && matchesStatus && matchesCategory
   })
 
@@ -419,7 +423,7 @@ export default function MarketplacePage() {
               Manage your product listings, track orders, and monitor sales performance
             </p>
           </div>
-          
+
           <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 flex-shrink-0">
             <Button
               variant="outline"
@@ -653,7 +657,7 @@ export default function MarketplacePage() {
                         {buyerActivityData?.data?.testimonials?.slice(0, 2).map((testimonial: any, index: number) => (
                           <div key={testimonial.id || index} className={`p-2 rounded border ${index === 0 ? 'bg-blue-50 border-blue-100' : 'bg-purple-50 border-purple-100'}`}>
                             <p className={`text-xs italic ${index === 0 ? 'text-blue-800' : 'text-purple-800'}`}>
-                              "{testimonial.testimonial}"
+                              &quot;{testimonial.testimonial}&quot;
                             </p>
                             <p className={`text-xs mt-1 ${index === 0 ? 'text-blue-600' : 'text-purple-600'}`}>
                               - {testimonial.location} {testimonial.buyerType}
@@ -665,11 +669,11 @@ export default function MarketplacePage() {
                         {(!buyerActivityData?.data?.testimonials || buyerActivityData.data.testimonials.length === 0) && (
                           <>
                             <div className="p-2 bg-blue-50 rounded border border-blue-100">
-                              <p className="text-xs text-blue-800 italic">"Found excellent quality maize from local farmers. Great platform!"</p>
+                              <p className="text-xs text-blue-800 italic">&quot;Found excellent quality maize from local farmers. Great platform!&quot;</p>
                               <p className="text-xs text-blue-600 mt-1">- Lagos Restaurant Owner</p>
                             </div>
                             <div className="p-2 bg-purple-50 rounded border border-purple-100">
-                              <p className="text-xs text-purple-800 italic">"Fresh vegetables directly from farms. Much better than markets."</p>
+                              <p className="text-xs text-purple-800 italic">&quot;Fresh vegetables directly from farms. Much better than markets.&quot;</p>
                               <p className="text-xs text-purple-600 mt-1">- Abuja Supermarket</p>
                             </div>
                           </>
@@ -790,7 +794,7 @@ export default function MarketplacePage() {
                       </div>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-4 pb-3 sm:pb-4">
                     <div className="space-y-1.5 sm:space-y-2">
                       <div className="flex justify-between text-xs sm:text-sm">
@@ -896,7 +900,7 @@ export default function MarketplacePage() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="space-y-1.5 sm:space-y-2 mb-2 sm:mb-3">
                         {order.products.map((product, index) => (
                           <div key={index} className="flex justify-between text-xs sm:text-sm">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -83,46 +83,34 @@ export function BuyerAnalytics() {
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
 
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        setIsLoading(true)
-        // Fetch buyer analytics data with period
-        const response = await apiService.getBuyerAnalyticsWithPeriod(undefined, timeRange)
-        setAnalyticsData(response.data as any)
-      } catch (error: any) {
-        console.error('Error fetching buyer analytics:', error)
-        toast({
-          title: "Error loading analytics",
-          description: error.message || "Failed to load analytics data",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchAnalytics()
-  }, [toast, timeRange])
-
-  const handleRefresh = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setIsLoading(true)
+      // Fetch buyer analytics data with period
       const response = await apiService.getBuyerAnalyticsWithPeriod(undefined, timeRange)
-      setAnalyticsData(response.data as BuyerAnalyticsData)
-      toast({
-        title: "Analytics refreshed",
-        description: "Your analytics data has been updated.",
-      })
+      setAnalyticsData(response.data as any)
     } catch (error: any) {
+      console.error('Error fetching buyer analytics:', error)
       toast({
-        title: "Refresh failed",
-        description: error.message || "Failed to refresh analytics data",
+        title: "Error loading analytics",
+        description: error.message || "Failed to load analytics data",
         variant: "destructive",
       })
     } finally {
       setIsLoading(false)
     }
+  }, [toast, timeRange])
+
+  useEffect(() => {
+    fetchAnalytics()
+  }, [fetchAnalytics])
+
+  const handleRefresh = async () => {
+    await fetchAnalytics()
+    toast({
+      title: "Analytics refreshed",
+      description: "Your analytics data has been updated.",
+    })
   }
 
 
@@ -241,7 +229,7 @@ export function BuyerAnalytics() {
             Track your purchasing patterns, spending analysis, and supplier performance
           </p>
         </div>
-        
+
         {/* Controls - Mobile First Design */}
         <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="flex flex-col xs:flex-row gap-2 sm:gap-3">
@@ -257,10 +245,10 @@ export function BuyerAnalytics() {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="flex flex-row gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleRefresh}
               className="flex-1 sm:flex-none min-w-[100px] h-8 sm:h-9 text-xs sm:text-sm"
               size="sm"
@@ -351,29 +339,29 @@ export function BuyerAnalytics() {
       {/* Charts Section */}
       <Tabs defaultValue="overview" className="space-y-4 sm:space-y-6">
         <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto p-1 bg-muted/50">
-          <TabsTrigger 
-            value="overview" 
+          <TabsTrigger
+            value="overview"
             className="text-xs sm:text-sm py-2 px-2 sm:px-3 lg:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[36px] sm:min-h-[40px]"
           >
             <span className="hidden sm:inline">Overview</span>
             <span className="sm:hidden">📊</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="purchases" 
+          <TabsTrigger
+            value="purchases"
             className="text-xs sm:text-sm py-2 px-2 sm:px-3 lg:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[36px] sm:min-h-[40px]"
           >
             <span className="hidden sm:inline">Purchase Analysis</span>
             <span className="sm:hidden">🛒</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="categories" 
+          <TabsTrigger
+            value="categories"
             className="text-xs sm:text-sm py-2 px-2 sm:px-3 lg:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[36px] sm:min-h-[40px]"
           >
             <span className="hidden sm:inline">Category Spending</span>
             <span className="sm:hidden">📂</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="suppliers" 
+          <TabsTrigger
+            value="suppliers"
             className="text-xs sm:text-sm py-2 px-2 sm:px-3 lg:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[36px] sm:min-h-[40px]"
           >
             <span className="hidden sm:inline">Supplier Performance</span>
@@ -399,8 +387,8 @@ export function BuyerAnalytics() {
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={prepareMonthlySpendingData()}>
                       <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                      <XAxis 
-                        dataKey="name" 
+                      <XAxis
+                        dataKey="name"
                         fontSize={10}
                         tickLine={false}
                         axisLine={false}
@@ -778,8 +766,8 @@ export function BuyerAnalytics() {
                         <Badge
                           variant={
                             order.status === 'delivered' ? 'default' :
-                            order.status === 'shipped' ? 'secondary' :
-                            order.status === 'processing' ? 'outline' : 'destructive'
+                              order.status === 'shipped' ? 'secondary' :
+                                order.status === 'processing' ? 'outline' : 'destructive'
                           }
                           className="text-xs mt-1"
                         >

@@ -1,17 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Banknote, 
-  Users, 
+import {
+  TrendingUp,
+  TrendingDown,
+  Banknote,
+  Users,
   Package,
   Calendar,
   BarChart3,
@@ -26,21 +26,21 @@ import {
   AlertTriangle,
   CheckCircle
 } from "lucide-react"
-import { 
-  LineChart, 
-  Line, 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  PieChart as RechartsPieChart, 
-  Cell, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  Pie, 
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart as RechartsPieChart,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Pie,
   Legend,
   ComposedChart
 } from "recharts"
@@ -111,14 +111,10 @@ export function AdminAnalytics() {
   const { toast } = useToast()
   const exportService = useExportService()
 
-  useEffect(() => {
-    fetchAllAnalytics()
-  }, [timeRange])
-
-  const fetchAllAnalytics = async () => {
+  const fetchAllAnalytics = useCallback(async () => {
     try {
       setIsLoading(true)
-      
+
       // Fetch dashboard metrics and overview data in parallel
       const [dashboardResponse, overviewResponse] = await Promise.allSettled([
         apiService.getAdminDashboard(),
@@ -158,7 +154,11 @@ export function AdminAnalytics() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [timeRange, toast])
+
+  useEffect(() => {
+    fetchAllAnalytics()
+  }, [fetchAllAnalytics])
 
   const fetchTabData = async (tab: string) => {
     try {
@@ -232,11 +232,11 @@ export function AdminAnalytics() {
 
   const processChartData = (data: any[], format: 'monthly' | 'combined' = 'monthly') => {
     if (!Array.isArray(data) || data.length === 0) return []
-    
+
     if (format === 'combined') {
       // Combine data from different sources
       const combinedMap = new Map()
-      
+
       data.forEach(item => {
         const month = item._id
         if (!combinedMap.has(month)) {
@@ -249,10 +249,10 @@ export function AdminAnalytics() {
           }
         })
       })
-      
+
       return Array.from(combinedMap.values()).sort((a, b) => a.name.localeCompare(b.name))
     }
-    
+
     return data.map(item => ({
       name: item._id,
       value: item.count || item.users || item.harvests || item.revenue || 0,
@@ -262,12 +262,12 @@ export function AdminAnalytics() {
 
   const getUserDistributionData = () => {
     if (!analyticsData?.userDistribution) return []
-    
+
     const { farmers, buyers, partners, admins } = analyticsData.userDistribution
     const total = farmers + buyers + partners + admins
-    
+
     if (total === 0) return []
-    
+
     return [
       { name: 'Farmers', value: Math.round((farmers / total) * 100), count: farmers, color: '#22c55e' },
       { name: 'Buyers', value: Math.round((buyers / total) * 100), count: buyers, color: '#3b82f6' },
@@ -278,9 +278,9 @@ export function AdminAnalytics() {
 
   const getQualityDistributionData = () => {
     if (!qualityData?.qualityDistribution) return []
-    
+
     const total = qualityData.qualityDistribution.reduce((sum: number, item: any) => sum + item.count, 0)
-    
+
     return qualityData.qualityDistribution.map((item: any) => ({
       quality: item._id || 'Unknown',
       percentage: total > 0 ? Math.round((item.count / total) * 100) : 0,
@@ -306,7 +306,7 @@ export function AdminAnalytics() {
             Platform-wide insights, user growth, and system performance metrics
           </p>
         </div>
-        
+
         {/* Controls - Mobile First Design */}
         <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="flex flex-col xs:flex-row gap-2">
@@ -322,11 +322,11 @@ export function AdminAnalytics() {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="flex flex-row gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleRefresh} 
+            <Button
+              variant="outline"
+              onClick={handleRefresh}
               disabled={isLoading}
               className="flex-1 sm:flex-none min-w-[100px]"
               size="sm"
@@ -335,8 +335,8 @@ export function AdminAnalytics() {
               <span className="hidden xs:inline">Refresh</span>
               <span className="xs:hidden">↻</span>
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleExport}
               className="flex-1 sm:flex-none min-w-[100px]"
               size="sm"
@@ -425,29 +425,29 @@ export function AdminAnalytics() {
       {/* Charts Section */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
         <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto p-1 bg-muted/50">
-          <TabsTrigger 
-            value="overview" 
+          <TabsTrigger
+            value="overview"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Overview</span>
             <span className="xs:hidden">📊</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="users" 
+          <TabsTrigger
+            value="users"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">User Analytics</span>
             <span className="xs:hidden">👥</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="regional" 
+          <TabsTrigger
+            value="regional"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Regional Data</span>
             <span className="xs:hidden">🗺️</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="quality" 
+          <TabsTrigger
+            value="quality"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Quality Metrics</span>
@@ -473,16 +473,16 @@ export function AdminAnalytics() {
                   <ComposedChart data={processChartData(overviewData.monthlyGrowth)}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
-                    <YAxis 
+                    <YAxis
                       yAxisId="left"
                       tickFormatter={(value) => formatNumber(value)}
                     />
-                    <YAxis 
-                      yAxisId="right" 
+                    <YAxis
+                      yAxisId="right"
                       orientation="right"
                       tickFormatter={(value) => formatCurrency(value)}
                     />
-                    <Tooltip 
+                    <Tooltip
                       formatter={(value: any, name: string) => [
                         name === 'revenue' ? formatCurrency(value) : formatNumber(value),
                         name === 'users' ? 'Users' : name === 'harvests' ? 'Harvests' : name === 'orders' ? 'Orders' : 'Revenue'
@@ -646,8 +646,8 @@ export function AdminAnalytics() {
                               status._id === "suspended" && "bg-red-500",
                               status._id === "verified" && "bg-blue-500"
                             )}
-                            style={{ 
-                              width: `${Math.min(100, (status.count / (analyticsData?.totalUsers || 1)) * 100)}%` 
+                            style={{
+                              width: `${Math.min(100, (status.count / (analyticsData?.totalUsers || 1)) * 100)}%`
                             }}
                           />
                         </div>
@@ -687,7 +687,7 @@ export function AdminAnalytics() {
                     <XAxis dataKey="region" />
                     <YAxis yAxisId="left" tickFormatter={(value) => formatNumber(value)} />
                     <YAxis yAxisId="right" orientation="right" tickFormatter={(value) => formatCurrency(value)} />
-                    <Tooltip 
+                    <Tooltip
                       formatter={(value: any, name: string) => [
                         name === 'revenue' ? formatCurrency(value) : formatNumber(value),
                         name === 'revenue' ? 'Revenue' : name === 'harvests' ? 'Harvests' : 'Users'
@@ -817,12 +817,12 @@ export function AdminAnalytics() {
                   <div className="w-full bg-muted rounded-full h-2">
                     <div
                       className="h-2 rounded-full bg-blue-500 transition-all duration-300"
-                      style={{ 
-                        width: `${analyticsData?.totalUsers && analyticsData.totalUsers > 0 ? (analyticsData.activeUsers / analyticsData.totalUsers) * 100 : 0}%` 
+                      style={{
+                        width: `${analyticsData?.totalUsers && analyticsData.totalUsers > 0 ? (analyticsData.activeUsers / analyticsData.totalUsers) * 100 : 0}%`
                       }}
                     />
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Approval Rate</span>
                     <span className="text-sm text-muted-foreground">
@@ -835,7 +835,7 @@ export function AdminAnalytics() {
                       style={{ width: `${analyticsData?.approvalRate || 0}%` }}
                     />
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Credit Score</span>
                     <span className="text-sm text-muted-foreground">
@@ -860,8 +860,8 @@ export function AdminAnalytics() {
                       <div className="w-full bg-muted rounded-full h-2">
                         <div
                           className="h-2 rounded-full bg-green-500 transition-all duration-300"
-                          style={{ 
-                            width: `${qualityData.approvalMetrics.total > 0 ? (qualityData.approvalMetrics.approved / qualityData.approvalMetrics.total) * 100 : 0}%` 
+                          style={{
+                            width: `${qualityData.approvalMetrics.total > 0 ? (qualityData.approvalMetrics.approved / qualityData.approvalMetrics.total) * 100 : 0}%`
                           }}
                         />
                       </div>
