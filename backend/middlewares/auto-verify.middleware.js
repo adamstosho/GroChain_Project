@@ -4,6 +4,15 @@ const Transaction = require('../models/transaction.model')
 
 const autoVerifyPayments = async (req, res, next) => {
   try {
+    const featureEnabled = process.env.ENABLE_AUTO_VERIFY_MIDDLEWARE === 'true'
+    if (!featureEnabled) {
+      return next()
+    }
+
+    if (process.env.NODE_ENV === 'production') {
+      return next()
+    }
+
     // Only run for order-related endpoints
     if (req.path.includes('/orders') || req.path.includes('/payments')) {
       // Check if we have any pending orders that need verification

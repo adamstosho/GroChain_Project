@@ -35,7 +35,7 @@ router.post('/export/partners',
 
 router.post('/export/shipments', 
   authenticate, 
-  authorize('admin','partner'), 
+  authorize('admin','partner','farmer'), 
   ExportImportController.exportShipments
 )
 
@@ -43,6 +43,12 @@ router.post('/export/transactions',
   authenticate, 
   authorize('admin'), 
   ExportImportController.exportTransactions
+)
+
+router.post('/export/orders', 
+  authenticate, 
+  authorize('admin','partner'), 
+  ExportImportController.exportOrders
 )
 
 router.post('/export/analytics', 

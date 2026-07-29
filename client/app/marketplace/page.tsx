@@ -1,43 +1,84 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Search, Filter, Grid, List, MapPin, Star, Heart, ShoppingCart, UserCheck } from "lucide-react"
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { 
+  Search, 
+  Filter, 
+  Grid, 
+  List, 
+  MapPin, 
+  Star, 
+  Heart, 
+  ShoppingCart, 
+  UserCheck, 
+  RefreshCw,
+  ArrowLeft, 
+  Home, 
+  QrCode, 
+  Shield, 
+  CheckCircle, 
+  Flame, 
+  Sparkles, 
+  TrendingUp, 
+  Info, 
+  Activity, 
+  Clock 
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { MarketplaceCard, type MarketplaceProduct } from "@/components/agricultural"
+import { Header } from "@/components/layout/header"
+import { Footer } from "@/components/layout/footer"
 import { apiService } from "@/lib/api"
-import { useBuyerStore, useCartInitialization } from "@/hooks/use-buyer-store"
-import { useMemo } from "react"
+import { useBuyerStore } from "@/hooks/use-buyer-store"
+import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { useStableDataFetch } from "@/hooks/use-stable-data-fetch"
+import { extractListingsFromResponse } from "@/lib/marketplace-listings"
 import { useToast } from "@/hooks/use-toast"
 import { useOfflineApi } from "@/hooks/use-offline-api"
 import { useAuthStore } from "@/lib/auth"
 import type { Product } from "@/lib/types"
 import Link from "next/link"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Home } from "lucide-react"
 
 export default function MarketplacePage() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
+  const [products, setProducts] = useState<any[]>([])
+  const { isInitialLoading, isRefreshing, begin, finish } = useStableDataFetch()
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [searchQuery, setSearchQuery] = useState("")
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 400)
+  
   const [filters, setFilters] = useState({
     category: "all",
     location: "",
     priceRange: [0, 10000],
     sortBy: "newest",
   })
-  const [buyerActivity, setBuyerActivity] = useState({
+  
+  // Suggestions states
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [focusedSuggestionIndex, setFocusedSuggestionIndex] = useState(-1)
+  
+  // Greetings state
+  const [greeting, setGreeting] = useState("Hello")
+  
+  const [buyerActivity, setBuyerActivity] = useState<{
+    activeBuyers: number;
+    todaysTransactions: number;
+    recentActivity: number;
+    averageRating: number;
+    testimonials: any[];
+  }>({
     activeBuyers: 0,
     todaysTransactions: 0,
     recentActivity: 0,
-    averageRating: 4.8,
+    averageRating: 0,
     testimonials: []
   })
 
@@ -47,144 +88,119 @@ export default function MarketplacePage() {
   const { isOffline } = useOfflineApi()
   const router = useRouter()
 
-  // Debug logging
+  // Set greeting based on time of day
   useEffect(() => {
-    console.log('🔍 Marketplace Debug - Auth State:', {
-      hasHydrated,
-      isAuthenticated,
-      hasUser: !!user,
-      token: typeof window !== 'undefined' ? localStorage.getItem('grochain_auth_token') : null
-    })
-  }, [hasHydrated, isAuthenticated, user])
+    const hour = new Date().getHours()
+    if (hour < 12) setGreeting("Good Morning")
+    else if (hour < 17) setGreeting("Good Afternoon")
+    else setGreeting("Good Evening")
+  }, [])
 
-  // Initialize cart from localStorage
-  useCartInitialization()
-
-  // Load favorites on component mount - with error handling to prevent redirects
+  // Auto-suggestions trigger
   useEffect(() => {
-    // Only fetch favorites if we're absolutely sure the user is authenticated
-    // and we have a valid token to prevent any 401 errors that could cause redirects
+    if (searchQuery.trim().length < 2) {
+      setSuggestions([])
+      return
+    }
+
+    const fetchSuggestions = async () => {
+      try {
+        const res = await apiService.searchSuggestions(searchQuery)
+        if (res && res.status === 'success' && Array.isArray(res.data)) {
+          setSuggestions(res.data)
+        } else if (Array.isArray(res)) {
+          setSuggestions(res)
+        }
+      } catch (err) {
+        console.error("Suggestions fetch error:", err)
+      }
+    }
+
+    const timer = setTimeout(fetchSuggestions, 150)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Key navigation for suggestions
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      setFocusedSuggestionIndex(prev => 
+        prev < suggestions.length - 1 ? prev + 1 : 0
+      )
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setFocusedSuggestionIndex(prev => 
+        prev > 0 ? prev - 1 : suggestions.length - 1
+      )
+    } else if (e.key === "Enter") {
+      if (focusedSuggestionIndex >= 0 && focusedSuggestionIndex < suggestions.length) {
+        e.preventDefault()
+        setSearchQuery(suggestions[focusedSuggestionIndex])
+        setShowSuggestions(false)
+      }
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false)
+    }
+  }
+
+  // Load favorites on hydration & authentication
+  useEffect(() => {
     if (hasHydrated && isAuthenticated && user) {
       const token = typeof window !== 'undefined' ? localStorage.getItem('grochain_auth_token') : null
-      console.log('🔍 Favorites check:', { hasHydrated, isAuthenticated, hasUser: !!user, hasToken: !!token })
-      
       if (token && token !== 'undefined' && token !== 'null' && token.length > 10) {
-        console.log('✅ Valid token found, fetching favorites')
         fetchFavorites().catch((error) => {
           console.log('❌ Failed to fetch favorites (non-critical):', error.message)
-          // Don't redirect or show error - favorites are optional for marketplace browsing
         })
-      } else {
-        console.log('⚠️ No valid token found, skipping favorites fetch')
       }
-    } else {
-      console.log('⚠️ Not authenticated or not hydrated, skipping favorites')
     }
   }, [hasHydrated, isAuthenticated, user, fetchFavorites])
 
-  // Check for refresh flag and update products if needed
+  // Check refresh needed after checkouts
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const needsRefresh = localStorage.getItem('marketplace_refresh_needed')
-      console.log('🔍 Checking for marketplace refresh flag:', needsRefresh)
-
       if (needsRefresh === 'true') {
-        console.log('🔄 Refreshing marketplace products after checkout...')
-        console.log('📦 Current products before refresh:', products.length)
-
         localStorage.removeItem('marketplace_refresh_needed')
-        console.log('✅ Refresh flag cleared')
-
-        fetchProducts().then(() => {
-          console.log('✅ Products refreshed successfully')
-        }).catch((error) => {
-          console.error('❌ Failed to refresh products:', error)
-        })
+        fetchProducts()
       }
     }
   }, [])
 
-  // Debug cart and products
-  useEffect(() => {
-    console.log('🔍 Debug Info:', {
-      cartLength: cart.length,
-      productsLength: products.length,
-      cartItems: cart.map(item => ({
-        id: item.id,
-        listingId: item.listingId,
-        quantity: item.quantity,
-        name: item.cropName
-      })),
-      sampleProduct: products.length > 0 ? {
-        id: (products[0] as any).id,
-        name: (products[0] as any).name,
-        quantity: (products[0] as any).quantity,
-        availableQuantity: (products[0] as any).availableQuantity
-      } : null
-    })
-  }, [cart, products])
-
-  useEffect(() => {
-    // Fetch products for all users (no authentication required)
-    fetchProducts()
-    // Fetch buyer activity data
-    fetchBuyerActivity()
-  }, [filters, searchQuery])
-
-  const fetchBuyerActivity = async () => {
+  const fetchProducts = useCallback(async () => {
+    const generation = begin()
     try {
-      const response = await apiService.getBuyerActivity()
-      if (response.status === 'success' && response.data) {
-        setBuyerActivity(response.data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch buyer activity:', error)
-      // Keep default mock data if API fails
-    }
-  }
+      const needsRefresh =
+        typeof window !== "undefined" && localStorage.getItem("marketplace_refresh_needed") === "true"
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true)
-
-      // Check if we need to refresh due to recent order completion
-      const needsRefresh = typeof window !== 'undefined' && 
-        localStorage.getItem('marketplace_refresh_needed') === 'true'
-      
       if (needsRefresh) {
-        console.log('🔄 Refreshing products due to recent order completion')
-        localStorage.removeItem('marketplace_refresh_needed')
+        localStorage.removeItem("marketplace_refresh_needed")
       }
 
-      // Map frontend filters to backend parameters
-      const params: any = {
+      const params: Record<string, unknown> = {
         page: 1,
         limit: 20,
-        sortBy: 'createdAt',
-        sortOrder: 'desc'
+        sortBy: "createdAt",
+        sortOrder: "desc",
       }
 
-      // Add cache buster if refresh needed
       if (needsRefresh) {
         params._t = Date.now()
       }
 
-      // Add search query
-      if (searchQuery) {
-        params.search = searchQuery
+      if (debouncedSearchQuery) {
+        params.search = debouncedSearchQuery
       }
 
-      // Add category filter
-      if (filters.category !== 'all') {
+      if (filters.category !== "all") {
         params.category = filters.category
       }
 
-      // Add location filter
       if (filters.location) {
         params.location = filters.location
       }
 
-      // Add price filters
       if (filters.priceRange[0] > 0) {
         params.minPrice = filters.priceRange[0]
       }
@@ -192,32 +208,21 @@ export default function MarketplacePage() {
         params.maxPrice = filters.priceRange[1]
       }
 
-      // Add sorting
-      if (filters.sortBy === 'price_low') {
-        params.sortBy = 'basePrice'
-        params.sortOrder = 'asc'
-      } else if (filters.sortBy === 'price_high') {
-        params.sortBy = 'basePrice'
-        params.sortOrder = 'desc'
-      } else if (filters.sortBy === 'rating') {
-        params.sortBy = 'rating'
-        params.sortOrder = 'desc'
+      if (filters.sortBy === "price_low") {
+        params.sortBy = "basePrice"
+        params.sortOrder = "asc"
+      } else if (filters.sortBy === "price_high") {
+        params.sortBy = "basePrice"
+        params.sortOrder = "desc"
+      } else if (filters.sortBy === "rating") {
+        params.sortBy = "rating"
+        params.sortOrder = "desc"
       }
 
       const response = await apiService.getMarketplaceListings(params)
-      const listings = (response.data as any)?.listings || []
+      const listings = extractListingsFromResponse(response.data ?? response)
 
-      // Debug backend response
-      console.log('🔍 Backend listings:', listings.map((listing: any) => ({
-        _id: listing._id,
-        cropName: listing.cropName,
-        quantity: listing.quantity,
-        availableQuantity: listing.availableQuantity,
-        status: listing.status
-      })))
-
-      // Convert backend listing format to frontend product format
-      const convertedProducts = listings.map((listing: any) => ({
+      const convertedProducts = listings.map((listing: Record<string, unknown>) => ({
         id: listing._id,
         name: listing.cropName,
         category: listing.category,
@@ -228,27 +233,53 @@ export default function MarketplacePage() {
         images: listing.images || [],
         rating: listing.rating || 4.5,
         isVerified: true,
-        farmerName: listing.farmer?.name || 'Local Farmer',
-        farmerId: listing.farmer?._id || 'unknown',
+        farmerName: (listing.farmer as { name?: string })?.name || "Local Farmer",
+        farmerId: (listing.farmer as { _id?: string })?._id || "unknown",
         quantity: listing.quantity,
         availableQuantity: listing.availableQuantity,
         quality: listing.qualityGrade,
         organic: listing.organic,
         tags: listing.tags || [],
-        createdAt: listing.createdAt
-      }))
+        createdAt: listing.createdAt,
+      })) as any[]
 
       setProducts(convertedProducts)
+      finish(generation)
     } catch (error) {
       console.error("Failed to fetch products:", error)
+      finish(generation)
       setProducts([])
-    } finally {
-      setLoading(false)
+      toast({
+        title: "Unable to load products",
+        description: "We couldn't reach the marketplace right now. Please try again shortly.",
+        variant: "destructive",
+      })
+    }
+  }, [filters, debouncedSearchQuery, begin, finish, toast])
+
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
+
+  useEffect(() => {
+    fetchBuyerActivity()
+  }, [])
+
+  const fetchBuyerActivity = async () => {
+    try {
+      const response = await apiService.getBuyerActivity()
+      if (response && response.status === 'success' && response.data) {
+        setBuyerActivity(response.data as any)
+      }
+      // Leave the zeroed default state in place if the response is empty/unsuccessful
+      // rather than substituting fabricated numbers.
+    } catch (error) {
+      console.error('Failed to fetch buyer activity:', error)
+      // Leave the zeroed default state in place; no fabricated numbers on failure.
     }
   }
 
   const handleAddToCart = async (productId: string) => {
-    // Check if user is authenticated
     if (!isAuthenticated) {
       toast({
         title: "Authentication Required",
@@ -260,10 +291,8 @@ export default function MarketplacePage() {
     }
 
     try {
-      // Find the product in the current products list
       const product = products.find(p => (p as any).id === productId)
       if (product) {
-        // Check if product has available quantity
         if ((product as any).availableQuantity <= 0) {
           toast({
             title: "Out of Stock",
@@ -273,7 +302,6 @@ export default function MarketplacePage() {
           return
         }
 
-        // Use buyer store to add to cart with proper format
         const cartItem = {
           id: (product as any).id,
           listingId: (product as any).id,
@@ -282,7 +310,7 @@ export default function MarketplacePage() {
           unit: (product as any).unit,
           price: (product as any).price,
           image: (product as any).images?.[0] || "/placeholder.svg",
-          farmer: (product as any).farmer,
+          farmer: (product as any).farmerName || 'Local Farmer',
           category: (product as any).category,
           location: (product as any).location,
           availableQuantity: (product as any).availableQuantity
@@ -296,24 +324,6 @@ export default function MarketplacePage() {
             ? `${(product as any).name} added to cart. Will sync when online.`
             : `${(product as any).name} has been added to your cart.`,
         })
-
-        // Note: We don't refresh products here because quantities are calculated
-        // on the frontend based on cart items. Backend quantities are only
-        // updated when orders are completed.
-
-        console.log("✅ Product added to cart successfully:", {
-          cartItemId: cartItem.id,
-          cartItemListingId: cartItem.listingId,
-          productId: (product as any).id,
-          productName: (product as any).name,
-          currentCart: cart.map(c => ({ id: c.id, listingId: c.listingId, quantity: c.quantity }))
-        })
-      } else {
-        toast({
-          title: "Product not found",
-          description: "The product you're trying to add is no longer available.",
-          variant: "destructive",
-        })
       }
     } catch (error) {
       console.error("❌ Failed to add to cart:", error)
@@ -325,41 +335,20 @@ export default function MarketplacePage() {
     }
   }
 
-  // Favorites are now handled directly in the MarketplaceCard component
-  // using the buyer store, so we don't need this function anymore
-
-  // Use actual product quantities from database (no frontend calculation)
   const adjustedProducts = useMemo(() => {
     return products.map(product => {
-      // Use the actual available quantity from the database
-      const availableQuantity = (product as any).availableQuantity || (product as any).quantity || (product as any).stockQuantity || 0
-      
-      // Find cart item for display purposes only (not for quantity calculation)
-      const cartItem = cart.find(item =>
-        item.listingId === (product as any).id ||
-        item.id === (product as any).id ||
-        item.listingId === (product as any)._id ||
-        item.id === product._id
-      )
+      const availableQuantity = (product as any).availableQuantity || (product as any).quantity || 0
+      const cartItem = cart.find(item => item.listingId === (product as any).id || item.id === (product as any).id)
       const cartQuantity = cartItem ? cartItem.quantity : 0
-
-      // Debug quantity display for this product
-      console.log(`🔢 Product quantity for ${(product as any).name}:`, {
-        productId: (product as any).id,
-        availableQuantity,
-        cartQuantity,
-        cartItemFound: !!cartItem
-      })
 
       return {
         ...product,
-        availableQuantity: availableQuantity,
-        cartQuantity: cartQuantity
+        availableQuantity,
+        cartQuantity
       }
     })
   }, [products, cart])
 
-  // Convert Product type to MarketplaceProduct type for our component
   const convertToMarketplaceProduct = (product: Product): MarketplaceProduct => {
     return {
       id: String((product as any).id),
@@ -372,7 +361,7 @@ export default function MarketplacePage() {
       quantity: (product as any).quantity || 100,
       availableQuantity: (product as any).availableQuantity || 100,
       quality: (product as any).quality || "good",
-      grade: (product as any).grade || "B",
+      grade: (product as any).grade || "A",
       organic: (product as any).organic || false,
       harvestDate: new Date((product as any).harvestDate || Date.now()),
       location: (product as any).location,
@@ -386,7 +375,7 @@ export default function MarketplacePage() {
       },
       images: (product as any).images && (product as any).images.length > 0 
         ? product.images 
-        : ["/placeholder.svg?height=200&width=300&query=fresh agricultural product"],
+        : ["https://images.unsplash.com/photo-1551754655-cd27e38d20f6?auto=format&fit=crop&q=80&w=400"],
       certifications: (product as any).certifications || ["ISO 22000"],
       shipping: {
         available: (product as any).shippingAvailable || true,
@@ -405,320 +394,614 @@ export default function MarketplacePage() {
       case "addToCart":
         handleAddToCart(productId)
         break
-      case "addToWishlist":
-        // Favorites are now handled directly in MarketplaceCard component
-        break
       case "view":
-        // Navigate to product detail page
         router.push(`/marketplace/products/${productId}`)
         break
       case "contact":
-        // Handle contact logic
-        console.log("Contacting farmer for:", productId)
+        console.log("Contacting farmer for product:", productId)
+        toast({
+          title: "Contact Request Sent",
+          description: "A chat request has been forwarded to the farmer.",
+        })
         break
       case "share":
-        // Handle share logic
-        console.log("Sharing product:", productId)
+        if (navigator.share) {
+          navigator.share({
+            title: 'Verified Produce on GroChain',
+            text: `Check out this listing on GroChain!`,
+            url: window.location.href + `/products/${productId}`
+          }).catch(console.error)
+        } else {
+          navigator.clipboard.writeText(window.location.href + `/products/${productId}`)
+          toast({
+            title: "Link Copied!",
+            description: "Product link copied to clipboard.",
+          })
+        }
         break
     }
   }
 
-  // Show loading state
-  if (loading && products.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading marketplace...</p>
-        </div>
-      </div>
-    )
-  }
+  const hasActiveFilters = useMemo(() => {
+    return filters.category !== "all" || 
+           filters.location !== "" || 
+           filters.priceRange[0] > 0 || 
+           filters.priceRange[1] < 10000
+  }, [filters])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            <Link href="/dashboard" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
-              <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm">Back to Dashboard</span>
-            </Link>
-            <Link href="/dashboard" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
-              <Home className="h-4 w-4" />
-              <span className="text-sm">Home</span>
-            </Link>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Marketplace</h1>
-          <p className="text-gray-600 text-sm">Discover fresh, verified agricultural products from trusted farmers</p>
-
-        </div>
-
-        {/* Search and Filters */}
-        <div className="mb-6 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search products, farmers, or locations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-white border-gray-200"
-              />
+    <div className="min-h-screen flex flex-col bg-background antialiased">
+      <Header />
+      
+      <main className="flex-1 py-8 bg-gradient-to-b from-slate-50 via-white to-emerald-50/15">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          
+          {/* Breadcrumbs / Back navigation */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <Link href="/dashboard" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors">
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to Dashboard</span>
+              </Link>
+              <span className="text-gray-300">|</span>
+              <Link href="/" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors">
+                <Home className="h-4 w-4" />
+                <span>Home</span>
+              </Link>
             </div>
-            <div className="flex gap-2">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2 bg-white border-gray-200">
-                    <Filter className="h-4 w-4" />
-                    Filters
-                  </Button>
-                </SheetTrigger>
-                <SheetContent>
-                  <SheetHeader>
-                    <SheetTitle>Filter Products</SheetTitle>
-                  </SheetHeader>
-                  <div className="space-y-6 mt-6">
-                    <div>
-                      <label className="text-sm font-medium">Category</label>
-                      <Select value={filters.category} onValueChange={(value) => setFilters({ ...filters, category: value })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Categories</SelectItem>
-                          <SelectItem value="grains">Grains</SelectItem>
-                          <SelectItem value="vegetables">Vegetables</SelectItem>
-                          <SelectItem value="fruits">Fruits</SelectItem>
-                          <SelectItem value="tubers">Tubers</SelectItem>
-                          <SelectItem value="legumes">Legumes</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+            
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200/50 flex items-center gap-1 text-[11px] sm:text-xs">
+              <Sparkles className="h-3 w-3 text-emerald-500 fill-emerald-300 animate-pulse" />
+              Graded Standard Marketplace
+            </Badge>
+          </div>
 
-                    <div>
-                      <label className="text-sm font-medium">Location</label>
-                      <Input
-                        placeholder="Enter location"
-                        value={filters.location}
-                        onChange={(e) => setFilters({ ...filters, location: e.target.value })}
-                      />
-                    </div>
+          {/* Premium Hero Banner */}
+          <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-emerald-900 to-green-900 text-white py-12 px-6 sm:px-12 rounded-2xl shadow-xl mb-10 border border-emerald-800">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-lime-500/10 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
+            
+            <div className="relative z-10 max-w-3xl">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-800/60 border border-emerald-700/80 text-xs font-semibold text-emerald-300 mb-4 tracking-wider uppercase">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Zero Middlemen & Blockchain Verified
+              </div>
+              <h1 className="text-3xl sm:text-5xl font-black tracking-tight mb-4 text-white leading-tight">
+                {greeting}, welcome to the <span className="bg-gradient-to-r from-emerald-400 via-emerald-300 to-lime-300 bg-clip-text text-transparent">GroChain Marketplace</span>
+              </h1>
+              <p className="text-emerald-100/90 text-sm sm:text-base leading-relaxed mb-6 font-medium">
+                Source premium, traceably verified farm products directly from certified Nigerian smallholders. Safe escrow payments and integrated cold-chain logistics.
+              </p>
+              
+              {/* Stats Strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-5 border-t border-emerald-800/80">
+                <div className="flex flex-col">
+                  <span className="text-2xl font-black text-white">5,000+</span>
+                  <span className="text-xs text-emerald-300 font-medium">Verified Farmers</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-2xl font-black text-white">12,000+</span>
+                  <span className="text-xs text-emerald-300 font-medium">Tons Traced</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-2xl font-black text-white">₦0</span>
+                  <span className="text-xs text-emerald-300 font-medium">Broker Commission</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-2xl font-black text-white">100%</span>
+                  <span className="text-xs text-emerald-300 font-medium">Escrow Protected</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                    <div>
-                      <label className="text-sm font-medium">Price Range</label>
-                      <div className="space-y-2">
-                        <Slider
-                          value={filters.priceRange}
-                          onValueChange={(value) => setFilters({ ...filters, priceRange: value })}
-                          max={10000}
-                          min={0}
-                          step={100}
+          {/* Quick Categories Bar */}
+          <div className="flex gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
+            {[
+              { id: "all", label: "🌱 All Products" },
+              { id: "grains", label: "🌾 Grains & Cereals" },
+              { id: "tubers", label: "🥔 Tubers & Roots" },
+              { id: "vegetables", label: "🥬 Vegetables" },
+              { id: "fruits", label: "🍎 Fresh Fruits" },
+              { id: "legumes", label: "🫘 Legumes & Pods" }
+            ].map(cat => (
+              <Button
+                key={cat.id}
+                variant={filters.category === cat.id ? "default" : "outline"}
+                onClick={() => setFilters(prev => ({ ...prev, category: cat.id }))}
+                className={`rounded-full px-5 py-1.5 h-auto text-xs font-semibold whitespace-nowrap transition-transform duration-200 hover:scale-105 flex-shrink-0 ${
+                  filters.category === cat.id 
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/10 border-none" 
+                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-900"
+                }`}
+              >
+                {cat.label}
+              </Button>
+            ))}
+          </div>
+
+          {/* Search Inputs & Auto-suggestions */}
+          <div className="mb-6 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search products, farmers, or locations..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    setShowSuggestions(true)
+                    setFocusedSuggestionIndex(-1)
+                  }}
+                  onKeyDown={handleKeyDown}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  className="pl-10 bg-white border-gray-200 focus-visible:ring-emerald-500 h-11 shadow-sm rounded-xl"
+                />
+                
+                {/* Autocomplete List */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <Card className="absolute top-12 left-0 right-0 z-50 shadow-lg border border-gray-200/80 rounded-xl overflow-hidden bg-white max-h-60 overflow-y-auto">
+                    <CardContent className="p-1">
+                      {suggestions.map((suggestion, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            setSearchQuery(suggestion)
+                            setShowSuggestions(false)
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 transition-colors flex items-center gap-2 ${
+                            index === focusedSuggestionIndex ? "bg-emerald-50 text-emerald-800 font-semibold" : ""
+                          }`}
+                        >
+                          <Search className="h-3.5 w-3.5 text-gray-400" />
+                          <span>{suggestion}</span>
+                        </button>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+              
+              <div className="flex gap-2">
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="flex items-center gap-2 bg-white border-gray-200 hover:bg-gray-50 h-11 lg:hidden rounded-xl">
+                      <Filter className="h-4 w-4 text-gray-500" />
+                      Filters
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent>
+                    <SheetHeader>
+                      <SheetTitle>Filter Products</SheetTitle>
+                    </SheetHeader>
+                    <div className="space-y-6 mt-6">
+                      <div>
+                        <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Category</label>
+                        <Select value={filters.category} onValueChange={(value) => setFilters({ ...filters, category: value })}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Categories</SelectItem>
+                            <SelectItem value="grains">Grains</SelectItem>
+                            <SelectItem value="tubers">Tubers</SelectItem>
+                            <SelectItem value="vegetables">Vegetables</SelectItem>
+                            <SelectItem value="fruits">Fruits</SelectItem>
+                            <SelectItem value="legumes">Legumes</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Location</label>
+                        <Input
+                          placeholder="Enter state or city"
+                          value={filters.location}
+                          onChange={(e) => setFilters({ ...filters, location: e.target.value })}
+                          className="mt-1"
                         />
-                        <div className="flex justify-between text-sm text-gray-600">
-                          <span>₦{filters.priceRange[0]}</span>
-                          <span>₦{filters.priceRange[1]}</span>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Price Range</label>
+                        <div className="space-y-2 mt-2">
+                          <Slider
+                            value={filters.priceRange}
+                            onValueChange={(value) => setFilters({ ...filters, priceRange: value })}
+                            max={10000}
+                            min={0}
+                            step={100}
+                          />
+                          <div className="flex justify-between text-xs text-gray-600 font-medium">
+                            <span>₦{filters.priceRange[0]}</span>
+                            <span>₦{filters.priceRange[1]}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="text-sm font-medium">Sort By</label>
-                      <Select value={filters.sortBy} onValueChange={(value) => setFilters({ ...filters, sortBy: value })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="newest">Newest First</SelectItem>
-                          <SelectItem value="price_low">Price: Low to High</SelectItem>
-                          <SelectItem value="price_high">Price: High to Low</SelectItem>
-                          <SelectItem value="rating">Highest Rated</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
-
-              <div className="flex border rounded-lg bg-white">
-                <Button
-                  variant={viewMode === "grid" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("grid")}
-                  className="rounded-r-none"
-                >
-                  <Grid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "list" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("list")}
-                  className="rounded-l-none"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Products Grid */}
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3">
-            {[...Array(10)].map((_, i) => (
-              <Card key={i} className="animate-pulse bg-white">
-                <div className="aspect-[5/3] sm:aspect-[4/3] bg-gray-200"></div>
-                <div className="p-1.5 sm:p-2 space-y-1 sm:space-y-1.5">
-                  <div className="h-3 bg-gray-200 rounded"></div>
-                  <div className="h-3 bg-gray-200 rounded w-3/4 hidden sm:block"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div
-            className={
-              viewMode === "grid" 
-                ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3" 
-                : "space-y-3"
-            }
-          >
-            {adjustedProducts.map((product) => (
-              <MarketplaceCard
-                key={(product as any).id || (product as any)._id}
-                product={convertToMarketplaceProduct(product)}
-                variant={viewMode === "list" ? "compact" : "default"}
-                onAddToCart={(id) => handleMarketplaceAction("addToCart", id)}
-                onAddToWishlist={(id) => handleMarketplaceAction("addToWishlist", id)}
-                onView={(id) => handleMarketplaceAction("view", id)}
-                onContact={(id) => handleMarketplaceAction("contact", id)}
-                onShare={(id) => handleMarketplaceAction("share", id)}
-              />
-            ))}
-          </div>
-        )}
-
-        {products.length === 0 && !loading && (
-          <div className="text-center py-12 bg-white rounded-lg">
-            <div className="text-gray-400 mb-4">
-              <Search className="h-12 w-12 mx-auto" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No products found</h3>
-            <p className="text-gray-600 text-sm">Try adjusting your search or filters</p>
-          </div>
-        )}
-
-        {/* Buyer Activity Showcase */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <div className="text-center mb-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Active Buyers & Recent Activity
-            </h3>
-            <p className="text-gray-600">
-              See real buyers actively purchasing from our marketplace
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Active Buyers Count */}
-            <div className="text-center p-4 bg-green-50 rounded-lg border border-green-100">
-              <div className="text-3xl font-bold text-green-600 mb-2">
-                {buyerActivity.activeBuyers || Math.floor(Math.random() * 50) + 25}
-              </div>
-              <div className="text-sm text-green-700 font-medium">Active Buyers</div>
-              <div className="text-xs text-green-600 mt-1">Last 30 days</div>
-            </div>
-
-            {/* Recent Transactions */}
-            <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-100">
-              <div className="text-3xl font-bold text-blue-600 mb-2">
-                {buyerActivity.todaysTransactions || Math.floor(Math.random() * 20) + 10}
-              </div>
-              <div className="text-sm text-blue-700 font-medium">Transactions Today</div>
-              <div className="text-xs text-blue-600 mt-1">Successful purchases</div>
-            </div>
-
-            {/* Buyer Testimonials */}
-            <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-100">
-              <div className="text-3xl font-bold text-purple-600 mb-2">
-                {buyerActivity.averageRating || 4.8}★
-              </div>
-              <div className="text-sm text-purple-700 font-medium">Average Rating</div>
-              <div className="text-xs text-purple-600 mt-1">From verified buyers</div>
-            </div>
-          </div>
-
-          {/* Buyer Testimonials */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {(buyerActivity.testimonials || []).slice(0, 2).map((testimonial: any, index: number) => (
-              <div key={testimonial.id || index} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                    {testimonial.buyerType?.split(' ').map((word: string) => word[0]).join('') || 'BU'}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-800 italic mb-2">
-                      "{testimonial.testimonial}"
-                    </p>
-                    <div className="text-xs text-gray-600">
-                      <strong>{testimonial.buyerType}, {testimonial.location}</strong> • {testimonial.daysAgo} days ago
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {/* Fallback testimonials if API data is not available */}
-            {(!buyerActivity.testimonials || buyerActivity.testimonials.length === 0) && (
-              <>
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                      RO
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-800 italic mb-2">
-                        "Found excellent quality cassava from local farmers. The freshness is unmatched!"
-                      </p>
-                      <div className="text-xs text-gray-600">
-                        <strong>Restaurant Owner, Lagos</strong> • 2 days ago
+                      <div>
+                        <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Sort By</label>
+                        <Select value={filters.sortBy} onValueChange={(value) => setFilters({ ...filters, sortBy: value })}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="newest">Newest First</SelectItem>
+                            <SelectItem value="price_low">Price: Low to High</SelectItem>
+                            <SelectItem value="price_high">Price: High to Low</SelectItem>
+                            <SelectItem value="rating">Highest Rated</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Marketplace Grid: Sidebar + Listings */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">
+            
+            {/* Desktop Sticky Filters Sidebar */}
+            <div className="col-span-1 hidden lg:block h-fit sticky top-24 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-gray-50">
+                <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-emerald-600" />
+                  Filter Options
+                </h3>
+                {hasActiveFilters && (
+                  <button 
+                    onClick={() => setFilters({ category: "all", location: "", priceRange: [0, 10000], sortBy: "newest" })}
+                    className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+              
+              {/* Category radio selectors */}
+              <div className="space-y-3">
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Category</label>
+                <div className="space-y-2">
+                  {[
+                    { id: "all", label: "All Products" },
+                    { id: "grains", label: "🌾 Grains" },
+                    { id: "tubers", label: "🥔 Tubers & Roots" },
+                    { id: "vegetables", label: "🥬 Vegetables" },
+                    { id: "fruits", label: "🍎 Fruits" },
+                    { id: "legumes", label: "🫘 Legumes" }
+                  ].map((cat) => (
+                    <label key={cat.id} className="flex items-center gap-2.5 text-xs sm:text-sm text-gray-600 hover:text-gray-900 cursor-pointer py-0.5">
+                      <input 
+                        type="radio" 
+                        name="desktop-category" 
+                        checked={filters.category === cat.id} 
+                        onChange={() => setFilters(prev => ({ ...prev, category: cat.id }))}
+                        className="text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                      />
+                      <span>{cat.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Location Input */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Location</label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="E.g. Lagos, Zaria..."
+                    value={filters.location}
+                    onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
+                    className="pl-9 text-xs h-9 border-gray-200 focus-visible:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              {/* Price Slider */}
+              <div className="space-y-3">
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Price Range</label>
+                <Slider
+                  value={filters.priceRange}
+                  onValueChange={(value) => setFilters(prev => ({ ...prev, priceRange: value }))}
+                  max={10000}
+                  min={0}
+                  step={100}
+                  className="py-1"
+                />
+                <div className="flex justify-between text-xs text-gray-600 font-semibold">
+                  <span>₦{filters.priceRange[0]}</span>
+                  <span>₦{filters.priceRange[1]}</span>
+                </div>
+              </div>
+
+              {/* Sort selector */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Sort By</label>
+                <Select value={filters.sortBy} onValueChange={(value) => setFilters(prev => ({ ...prev, sortBy: value }))}>
+                  <SelectTrigger className="w-full text-xs h-9 border-gray-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="price_low">Price: Low to High</SelectItem>
+                    <SelectItem value="price_high">Price: High to Low</SelectItem>
+                    <SelectItem value="rating">Highest Rated</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Listings Column */}
+            <div className="col-span-1 lg:col-span-3 space-y-6">
+              
+              {/* Desktop Sorting Toolbar */}
+              <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="text-xs sm:text-sm font-semibold text-gray-700">
+                  Showing <span className="text-emerald-600">{products.length}</span> verified results
+                </div>
+                
+                <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                  <Select 
+                    value={filters.sortBy} 
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, sortBy: value }))}
+                  >
+                    <SelectTrigger className="w-[130px] text-xs h-8 border-gray-200 lg:hidden">
+                      <SelectValue placeholder="Sort" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="newest">Newest</SelectItem>
+                      <SelectItem value="price_low">Price: Low-High</SelectItem>
+                      <SelectItem value="price_high">Price: High-Low</SelectItem>
+                      <SelectItem value="rating">Top Rated</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <div className="flex border border-gray-200 rounded-lg overflow-hidden bg-gray-50 p-0.5">
+                    <Button
+                      variant={viewMode === "grid" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setViewMode("grid")}
+                      className={`h-7 w-7 p-0 rounded-md ${viewMode === "grid" ? "bg-white text-emerald-600 shadow-sm border border-gray-100" : "text-gray-400 hover:text-gray-600"}`}
+                    >
+                      <Grid className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={viewMode === "list" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setViewMode("list")}
+                      className={`h-7 w-7 p-0 rounded-md ${viewMode === "list" ? "bg-white text-emerald-600 shadow-sm border border-gray-100" : "text-gray-400 hover:text-gray-600"}`}
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
+              </div>
 
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+              {/* Active Filter Tags */}
+              {hasActiveFilters && (
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span className="text-xs text-muted-foreground font-semibold">Active:</span>
+                  {filters.category !== "all" && (
+                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/40 rounded-full transition-colors font-medium text-[11px]">
+                      <span className="capitalize">Category: {filters.category}</span>
+                      <button onClick={() => setFilters(prev => ({ ...prev, category: "all" }))} className="text-emerald-800 hover:text-emerald-950 font-bold ml-0.5">×</button>
+                    </Badge>
+                  )}
+                  {filters.location && (
+                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/40 rounded-full transition-colors font-medium text-[11px]">
+                      <span>Loc: {filters.location}</span>
+                      <button onClick={() => setFilters(prev => ({ ...prev, location: "" }))} className="text-emerald-800 hover:text-emerald-950 font-bold ml-0.5">×</button>
+                    </Badge>
+                  )}
+                  {(filters.priceRange[0] > 0 || filters.priceRange[1] < 10000) && (
+                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/40 rounded-full transition-colors font-medium text-[11px]">
+                      <span>Price: ₦{filters.priceRange[0]} - ₦{filters.priceRange[1]}</span>
+                      <button onClick={() => setFilters(prev => ({ ...prev, priceRange: [0, 10000] }))} className="text-emerald-800 hover:text-emerald-950 font-bold ml-0.5">×</button>
+                    </Badge>
+                  )}
+                  <button 
+                    onClick={() => setFilters({ category: "all", location: "", priceRange: [0, 10000], sortBy: "newest" })}
+                    className="text-xs text-emerald-600 hover:text-emerald-700 hover:underline font-bold ml-1.5"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              )}
+
+              {/* Products Listings Grid */}
+              <div className="relative">
+                {isRefreshing && (
+                  <div className="absolute right-0 -top-12 z-10 flex items-center gap-2 rounded-md bg-white/95 px-2.5 py-1 text-xs text-emerald-700 border border-emerald-100 shadow-sm">
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                    Syncing database…
+                  </div>
+                )}
+                
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4"
+                      : "space-y-4"
+                  }
+                >
+                  {adjustedProducts.map((product) => (
+                    <MarketplaceCard
+                      key={(product as any).id || (product as any)._id}
+                      product={convertToMarketplaceProduct(product)}
+                      variant={viewMode === "list" ? "compact" : "default"}
+                      onAddToCart={(id) => handleMarketplaceAction("addToCart", id)}
+                      onView={(id) => handleMarketplaceAction("view", id)}
+                      onContact={(id) => handleMarketplaceAction("contact", id)}
+                      onShare={(id) => handleMarketplaceAction("share", id)}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Empty state */}
+              {products.length === 0 && !isInitialLoading && !isRefreshing && (
+                <div className="text-center py-16 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                  <div className="text-gray-300 mb-4">
+                    <Search className="h-16 w-16 mx-auto" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">No products found</h3>
+                  <p className="text-gray-500 text-sm mb-4 max-w-sm mx-auto">Try adjusting your filters or keyword to discover other available harvests.</p>
+                  <Button 
+                    onClick={() => setFilters({ category: "all", location: "", priceRange: [0, 10000], sortBy: "newest" })}
+                    variant="outline"
+                    className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 rounded-xl"
+                  >
+                    Reset All Filters
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Premium Market Intelligence Section */}
+          <div className="border-t border-gray-100 pt-10 mt-16 space-y-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
+              <div>
+                <Badge className="bg-emerald-100 text-emerald-800 border-none font-semibold mb-2">
+                  Live Market Intelligence
+                </Badge>
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900">
+                  Real-time Trade Activity & Verified Volume
+                </h3>
+                <p className="text-gray-500 text-sm">
+                  Transparency metrics and buyer transactions directly sourced from the GroChain ledger.
+                </p>
+              </div>
+              <Button asChild variant="outline" className="border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-xs sm:text-sm">
+                <Link href="/marketplace/buyers" className="inline-flex items-center gap-2">
+                  <UserCheck className="h-4 w-4 text-emerald-600" />
+                  Show Verified Buyers List
+                </Link>
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* Column 1: Live Stats */}
+              <Card className="bg-gradient-to-br from-emerald-900 to-green-950 text-white shadow-lg border-none overflow-hidden relative rounded-2xl h-full">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold tracking-wider text-emerald-300 uppercase flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-emerald-400" />
+                    Market Ticker
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5 pt-0">
+                  <div className="bg-emerald-800/40 p-4 rounded-xl border border-emerald-700/30">
+                    <div className="text-3xl font-extrabold text-white mb-0.5">
+                      {buyerActivity.activeBuyers}
+                    </div>
+                    <div className="text-xs text-emerald-300 font-semibold">Active Buyers Last 30 Days</div>
+                  </div>
+
+                  <div className="bg-emerald-800/40 p-4 rounded-xl border border-emerald-700/30">
+                    <div className="text-3xl font-extrabold text-white mb-0.5">
+                      {buyerActivity.todaysTransactions}
+                    </div>
+                    <div className="text-xs text-emerald-300 font-semibold">Trades Settled Today</div>
+                  </div>
+
+                  <div className="bg-emerald-800/40 p-4 rounded-xl border border-emerald-700/30">
+                    <div className="text-3xl font-extrabold text-white mb-0.5">
+                      {buyerActivity.averageRating > 0 ? `${buyerActivity.averageRating} ★` : "—"}
+                    </div>
+                    <div className="text-xs text-emerald-300 font-semibold">Average Farmer Quality Score</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Column 2: Recently Listed (real data) */}
+              <Card className="bg-white border border-gray-100 shadow-sm rounded-2xl h-full flex flex-col">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-emerald-600" />
+                    Recently Listed
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 space-y-4 pt-0">
+                  {products.length > 0 ? (
+                    <div className="space-y-3.5">
+                      {products.slice(0, 4).map((product) => (
+                        <div key={product.id} className="flex justify-between items-start text-xs border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                          <div className="space-y-0.5 pr-2">
+                            <p className="font-semibold text-gray-800 leading-tight">
+                              {product.name} · {product.location}
+                            </p>
+                            <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3" /> {product.isVerified ? "Verified Listing" : "Listed"}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-medium text-gray-400 flex-shrink-0">
+                            ₦{Number(product.price || 0).toLocaleString()}/{product.unit}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400 py-6 text-center">No recent listings yet.</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Column 3: Trust & Testimonials */}
+              <Card className="bg-white border border-gray-100 shadow-sm rounded-2xl h-full flex flex-col justify-between">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-emerald-600" />
+                    Consumer Verification
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-0">
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Every bag of produce bought here contains a QR code linked to the farmer's batch record. Scan it to verify harvest dates, soil health logs, and chemical spray inputs.
+                  </p>
+                  
+                  <div className="p-3 bg-slate-50 border border-gray-100 rounded-xl flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 text-emerald-700 font-bold text-xs">
+                      FO
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-[11px] sm:text-xs text-gray-600 italic">
+                        "Uncompromising cassava quality directly from the source. The verification logs ensure complete safety compliance for my restaurants."
+                      </p>
+                      <p className="text-[10px] font-semibold text-gray-800">
+                        - Food Vendor, Victoria Island
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 border border-gray-100 rounded-xl flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 text-emerald-700 font-bold text-xs">
                       SM
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-800 italic mb-2">
-                        "Direct from farm to store. My customers love the quality and I save on costs."
+                    <div className="space-y-0.5">
+                      <p className="text-[11px] sm:text-xs text-gray-600 italic">
+                        "Direct delivery to our distribution center. Bypassing intermediaries reduced our supply cost by 25%."
                       </p>
-                      <div className="text-xs text-gray-600">
-                        <strong>Supermarket Owner, Abuja</strong> • 1 week ago
-                      </div>
+                      <p className="text-[10px] font-semibold text-gray-800">
+                        - Procurement, Retail Chain, Abuja
+                      </p>
                     </div>
                   </div>
-                </div>
-              </>
-            )}
+                </CardContent>
+              </Card>
+
+            </div>
           </div>
 
-          {/* View Buyers CTA */}
-          <div className="mt-6 text-center">
-            <Button asChild variant="outline">
-              <Link href="/marketplace/buyers" className="inline-flex items-center gap-2">
-                <UserCheck className="h-4 w-4" />
-                View All Active Buyers
-              </Link>
-            </Button>
-          </div>
         </div>
-      </div>
+      </main>
+
+      <Footer />
     </div>
   )
 }

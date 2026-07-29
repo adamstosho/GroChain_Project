@@ -99,8 +99,8 @@ export default function OrderSuccessPage() {
   } = usePaymentVerification({
     reference: order?.paymentReference || '',
     orderId: orderId,
-    autoVerify: true,
-    verifyInterval: 3000
+    autoVerify: !!order?.paymentReference && order?.paymentStatus !== 'paid',
+    verifyInterval: order?.paymentStatus === 'paid' ? 0 : 15000,
   })
 
   useEffect(() => {

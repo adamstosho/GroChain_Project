@@ -10,6 +10,7 @@ const Favorite = require('../models/favorite.model')
 const Order = require('../models/order.model')
 const User = require('../models/user.model') // Required for population
 const Harvest = require('../models/harvest.model') // Required for population
+const Review = require('../models/review.model')
 
 // Ensure models are registered with Mongoose
 if (!mongoose.models.User) mongoose.model('User', User.schema)
@@ -788,6 +789,15 @@ router.get('/orders/:id/receipt', authenticate, async (req, res) => {
       return res.status(403).json({ status: 'error', message: 'Forbidden' })
     }
 
+    if (order.paymentStatus !== 'paid') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Receipt is only available for paid orders'
+      })
+    }
+
+    const addr = order.shippingAddress || {}
+
     // Generate receipt data
     const receiptData = {
       orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
@@ -821,7 +831,19 @@ router.get('/orders/:id/receipt', authenticate, async (req, res) => {
       total: order.total,
       paymentStatus: order.paymentStatus,
       status: order.status,
-      shippingAddress: order.shippingAddress,
+      paymentReference: order.paymentReference || undefined,
+      paidAt: order.paidAt
+        ? new Date(order.paidAt).toLocaleString('en-NG')
+        : order.updatedAt
+          ? new Date(order.updatedAt).toLocaleString('en-NG')
+          : undefined,
+      shippingAddress: {
+        street: addr.street || 'Not provided',
+        city: addr.city || '',
+        state: addr.state || '',
+        country: addr.country || 'Nigeria',
+        phone: addr.phone || order.buyer.phone || order.buyer.profile?.phone || 'Not provided',
+      },
       deliveryInstructions: order.deliveryInstructions
     }
 
@@ -990,36 +1012,27 @@ router.get('/buyer-activity', async (req, res) => {
       paymentStatus: 'paid'
     })
 
-    // Get recent buyer testimonials (mock data for now - in real app, this would be from a testimonials collection)
-    const testimonials = [
-      {
-        id: 1,
-        buyerType: 'Restaurant Owner',
-        location: 'Lagos',
-        testimonial: 'Found excellent quality cassava from local farmers. The freshness is unmatched and my customers love it!',
-        rating: 5,
-        daysAgo: 2
-      },
-      {
-        id: 2,
-        buyerType: 'Supermarket Owner',
-        location: 'Abuja',
-        testimonial: 'Direct from farm to store eliminates middlemen. Better quality and I save significantly on costs.',
-        rating: 5,
-        daysAgo: 7
-      },
-      {
-        id: 3,
-        buyerType: 'Hotel Manager',
-        location: 'Port Harcourt',
-        testimonial: 'Reliable supply of fresh vegetables. The platform makes it easy to find and purchase from verified farmers.',
-        rating: 5,
-        daysAgo: 12
-      }
-    ]
+    // Get recent buyer testimonials from real, approved reviews that have a comment
+    const recentReviews = await Review.find({ status: 'approved', comment: { $exists: true, $ne: '' } })
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .populate('buyer', 'name location businessType')
 
-    // Calculate average rating from recent orders (mock data)
-    const averageRating = 4.8
+    const testimonials = recentReviews.map(review => ({
+      id: review._id,
+      buyerType: review.buyer?.businessType || 'Buyer',
+      location: review.buyer?.location || 'Nigeria',
+      testimonial: review.comment,
+      rating: review.rating,
+      daysAgo: Math.floor((Date.now() - new Date(review.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+    }))
+
+    // Calculate real average rating across all approved reviews
+    const ratingAgg = await Review.aggregate([
+      { $match: { status: 'approved' } },
+      { $group: { _id: null, avg: { $avg: '$rating' } } }
+    ])
+    const averageRating = ratingAgg[0]?.avg ? Math.round(ratingAgg[0].avg * 10) / 10 : 0
 
     // Get recent buyer activity (last 24 hours)
     const last24Hours = new Date()
@@ -1054,6 +1067,84 @@ router.get('/buyer-activity', async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Failed to fetch buyer activity data'
+    })
+  }
+})
+
+// Get real, active buyers with their genuine order history for the public buyers directory
+router.get('/top-buyers', async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 12, 50)
+
+    const aggregated = await Order.aggregate([
+      { $match: { paymentStatus: 'paid' } },
+      { $unwind: '$items' },
+      { $lookup: { from: 'listings', localField: 'items.listing', foreignField: '_id', as: 'listingDoc' } },
+      { $unwind: { path: '$listingDoc', preserveNullAndEmptyArrays: true } },
+      {
+        $group: {
+          _id: '$buyer',
+          orderIds: { $addToSet: '$_id' },
+          categories: { $addToSet: '$listingDoc.category' },
+          lastOrderAt: { $max: '$createdAt' }
+        }
+      },
+      {
+        $project: {
+          totalOrders: { $size: '$orderIds' },
+          categories: 1,
+          lastOrderAt: 1
+        }
+      },
+      { $sort: { totalOrders: -1 } },
+      { $limit: limit }
+    ])
+
+    const buyerIds = aggregated.map(entry => entry._id)
+    const buyers = await User.find({
+      _id: { $in: buyerIds },
+      role: 'buyer',
+      status: 'active'
+    }).select('name businessType location createdAt')
+
+    const buyerById = new Map(buyers.map(b => [b._id.toString(), b]))
+
+    const now = new Date()
+    const getRecentActivity = (lastOrderAt) => {
+      if (!lastOrderAt) return 'No recent activity'
+      const days = Math.floor((now.getTime() - new Date(lastOrderAt).getTime()) / (1000 * 60 * 60 * 24))
+      if (days < 1) return 'Active today'
+      if (days === 1) return 'Active yesterday'
+      if (days <= 7) return 'Active this week'
+      if (days <= 30) return 'Active this month'
+      return 'Inactive'
+    }
+
+    const result = aggregated
+      .filter(entry => buyerById.has(entry._id.toString()))
+      .map(entry => {
+        const buyer = buyerById.get(entry._id.toString())
+        return {
+          id: buyer._id,
+          name: buyer.name,
+          businessType: buyer.businessType || 'Buyer',
+          location: buyer.location || 'Nigeria',
+          joinedDate: buyer.createdAt,
+          totalOrders: entry.totalOrders,
+          recentActivity: getRecentActivity(entry.lastOrderAt),
+          specialties: (entry.categories || []).filter(Boolean).slice(0, 3)
+        }
+      })
+
+    res.json({
+      status: 'success',
+      data: result
+    })
+  } catch (error) {
+    console.error('❌ Error fetching top buyers:', error)
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch buyers directory'
     })
   }
 })

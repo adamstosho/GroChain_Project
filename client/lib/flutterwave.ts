@@ -1,3 +1,5 @@
+import { APP_CONFIG } from "@/lib/constants"
+
 // Flutterwave payment integration utilities
 
 declare global {
@@ -79,11 +81,11 @@ export const initializeFlutterwavePayment = async (
   return new Promise(async (resolve, reject) => {
     try {
       // Get Flutterwave configuration
-      const configResponse = await fetch('http://localhost:5000/api/payments/config')
+      const configResponse = await fetch(`${APP_CONFIG.api.baseUrl}/api/payments/config`)
       const config = await configResponse.json()
 
-      // Use the public key from the config or fallback to the correct test key
-      const publicKey = config.data?.flutterwave?.publicKey || 'FLWPUBK_TEST-fd980f9c2c56a376ea35cea0218289ca-X'
+      // Require backend-provided key; avoid insecure hardcoded fallback
+      const publicKey = config.data?.flutterwave?.publicKey
 
       if (!publicKey || publicKey === 'your_flutterwave_public_key' || publicKey === 'FLWPUBK_TEST_your_public_key_here') {
         throw new Error('Flutterwave is not properly configured. Please contact support or use Paystack instead.')
@@ -165,10 +167,12 @@ export const processFlutterwaveOrderPayment = async (
     console.log('💳 Initializing Flutterwave payment with backend...')
     console.log('📤 Payment init data:', { orderId, amount, email, paymentProvider: 'flutterwave' })
 
-    const initResponse = await fetch('http://localhost:5000/api/payments/initialize', {
+    const token = localStorage.getItem('grochain_auth_token')
+    const initResponse = await fetch(`${APP_CONFIG.api.baseUrl}/api/payments/initialize`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({
         orderId,
@@ -234,7 +238,7 @@ export const processFlutterwaveOrderPayment = async (
  */
 export const getFlutterwaveConfig = async () => {
   try {
-    const response = await fetch('http://localhost:5000/api/payments/config')
+    const response = await fetch(`${APP_CONFIG.api.baseUrl}/api/payments/config`)
     return await response.json()
   } catch (error) {
     console.error('❌ Failed to get Flutterwave config:', error)

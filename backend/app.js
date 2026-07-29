@@ -296,6 +296,9 @@ app.get('/api/health', (req, res) => {
 
 // Simplified debug endpoint for database connection issues
 app.get('/api/debug/database', (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ status: 'error', message: 'Not found' })
+  }
   try {
     const debugInfo = {
       environment: process.env.NODE_ENV || 'development',
@@ -374,6 +377,9 @@ const initializeApp = async () => {
       app.use('/api/reviews', require('./routes/review.routes'));
       app.use('/api/price-alerts', require('./routes/price-alert.routes'));
       app.use('/api/onboarding', require('./routes/onboarding.routes'));
+      app.use('/api/ussd', require('./routes/ussd.routes'));
+      app.use('/api/bvn', require('./routes/bvnVerification.routes'));
+      app.use('/api/ai', require('./routes/ai.routes'));
       app.use('/api/debug', require('./routes/debug.route'));
     } else {
       console.log('⚠️ Skipping route setup due to database connection failure');

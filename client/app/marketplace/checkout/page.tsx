@@ -23,7 +23,7 @@ import Image from "next/image"
 export default function CheckoutPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { cart, createOrder, clearCart, initializeCart } = useBuyerStore()
+  const { cart, createOrder, clearCart } = useBuyerStore()
   const { user } = useAuthStore()
 
   const [processing, setProcessing] = useState(false)
@@ -44,8 +44,6 @@ export default function CheckoutPage() {
   // Handle hydration and cart initialization
   useEffect(() => {
     setMounted(true)
-    // Initialize cart from localStorage after hydration
-    initializeCart()
 
     // Check if user is authenticated
     const token = localStorage.getItem('grochain_auth_token')
@@ -58,7 +56,7 @@ export default function CheckoutPage() {
       })
       router.push('/login?redirect=/marketplace/checkout')
     }
-  }, [initializeCart, router, toast])
+  }, [router, toast])
 
   // Pre-fill user data when available
   useEffect(() => {

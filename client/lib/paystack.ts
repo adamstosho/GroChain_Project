@@ -1,7 +1,9 @@
+import { APP_CONFIG } from "@/lib/constants"
+
 // Paystack payment integration utilities
 
 interface PaystackPop {
-  setup: (options: PaystackOptions) => void
+  setup: (options: PaystackOptions) => { openIframe: () => void }
 }
 
 interface PaystackOptions {
@@ -10,11 +12,11 @@ interface PaystackOptions {
   amount: number
   currency?: string
   ref?: string
-  callback?: (response: PaystackResponse) => void
+  callback?: (response: PaystackInlineResponse) => void
   onClose?: () => void
 }
 
-interface PaystackResponse {
+interface PaystackInlineResponse {
   status: string
   message: string
   reference: string
@@ -97,11 +99,11 @@ export const initializePaystackPayment = async (
   return new Promise(async (resolve, reject) => {
     try {
       // Get Paystack configuration
-      const configResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/payments/config`)
+      const configResponse = await fetch(`${APP_CONFIG.api.baseUrl}/api/payments/config`)
       const config = await configResponse.json()
 
-      // Use the public key from the config or fallback to the correct test key
-      const publicKey = config.data?.publicKey || 'pk_test_a8a9c732b2d6b82febe7009744eaebe70cb906d0'
+      // Require backend-provided key; avoid insecure hardcoded fallback
+      const publicKey = config.data?.publicKey
 
       if (!publicKey || publicKey === 'pk_test_your_public_key_here') {
         throw new Error('Paystack public key not configured')
@@ -113,12 +115,12 @@ export const initializePaystackPayment = async (
         amount: Math.round(paymentData.amount * 100), // Convert to kobo
         currency: 'NGN',
         ref: `GROCHAIN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        callback: (response: PaystackResponse) => {
+        callback: (response: PaystackInlineResponse) => {
           console.log('✅ Paystack payment callback:', response)
           const result: PaystackResponse = {
             status: 'success',
             reference: response.reference,
-            transaction: response
+            transaction: { ...response } as Record<string, unknown>
           }
           if (onSuccess) onSuccess(result)
           resolve(result)
@@ -179,11 +181,12 @@ export const processOrderPayment = async (
     console.log('💳 Initializing payment with backend...')
     console.log('📤 Payment init data:', { orderId, amount, email })
 
-    const initResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/payments/initialize`, {
+    const token = localStorage.getItem('grochain_auth_token')
+    const initResponse = await fetch(`${APP_CONFIG.api.baseUrl}/api/payments/initialize`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Note: This endpoint doesn't require authentication based on backend routes
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
       },
       body: JSON.stringify({
         orderId,
@@ -250,7 +253,7 @@ export const processOrderPayment = async (
  */
 export const getPaymentConfig = async () => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/payments/config`)
+    const response = await fetch(`${APP_CONFIG.api.baseUrl}/api/payments/config`)
     return await response.json()
   } catch (error) {
     console.error('❌ Failed to get payment config:', error)

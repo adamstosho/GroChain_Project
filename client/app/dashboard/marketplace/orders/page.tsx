@@ -30,6 +30,7 @@ import {
   MoreHorizontal
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 interface Order {
   _id: string
@@ -93,6 +94,7 @@ interface OrderStats {
 }
 
 export default function MarketplaceOrdersPage() {
+  const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([])
   const [stats, setStats] = useState<OrderStats>({

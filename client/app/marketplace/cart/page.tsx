@@ -5,7 +5,7 @@ import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { useBuyerStore, useCartInitialization } from "@/hooks/use-buyer-store"
+import { useBuyerStore } from "@/hooks/use-buyer-store"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -19,7 +19,7 @@ export default function CartPage() {
   } = useBuyerStore()
 
   // Initialize cart from localStorage
-  useCartInitialization()
+
 
   const [loading, setLoading] = useState(false)
   const [currentProductData, setCurrentProductData] = useState<any>({})

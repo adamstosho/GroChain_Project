@@ -31,28 +31,28 @@ export function ShipmentStatusBadge({ status, className }: ShipmentStatusBadgePr
           icon: CheckCircle,
           label: 'Confirmed',
           variant: 'default' as const,
-          className: 'bg-blue-100 text-blue-800 border-blue-200'
+          className: 'bg-primary/10 text-primary border-primary/20'
         }
       case 'in_transit':
         return {
           icon: Truck,
           label: 'In Transit',
           variant: 'default' as const,
-          className: 'bg-purple-100 text-purple-800 border-purple-200'
+          className: 'bg-secondary/10 text-secondary-foreground border-secondary/20'
         }
       case 'out_for_delivery':
         return {
           icon: Package,
           label: 'Out for Delivery',
           variant: 'default' as const,
-          className: 'bg-orange-100 text-orange-800 border-orange-200'
+          className: 'bg-warning/10 text-warning border-warning/20'
         }
       case 'delivered':
         return {
           icon: CheckCircle,
           label: 'Delivered',
           variant: 'default' as const,
-          className: 'bg-green-100 text-green-800 border-green-200'
+          className: 'bg-success/10 text-success border-success/20'
         }
       case 'failed':
         return {

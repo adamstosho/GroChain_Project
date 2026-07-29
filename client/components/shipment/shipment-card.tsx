@@ -14,6 +14,8 @@ import {
 } from "lucide-react"
 import { Shipment } from "@/types/shipment"
 import { ShipmentStatusBadge } from "./shipment-status-badge"
+import { ShipmentRiskAlert } from "../ai/shipment-risk-alert"
+import { AiTrustBadge } from "../ai/ai-trust-badge"
 import { formatDistanceToNow } from "date-fns"
 import Link from "next/link"
 
@@ -60,9 +62,9 @@ export function ShipmentCard({
     } else if (diffDays === 0) {
       return { text: 'Today', color: 'text-orange-600' }
     } else if (diffDays === 1) {
-      return { text: 'Tomorrow', color: 'text-blue-600' }
+      return { text: 'Tomorrow', color: 'text-primary' }
     } else {
-      return { text: `In ${diffDays} days`, color: 'text-gray-600' }
+      return { text: `In ${diffDays} days`, color: 'text-muted-foreground' }
     }
   }
 
@@ -73,10 +75,17 @@ export function ShipmentCard({
       <CardHeader className="pb-4 px-4 sm:px-5 pt-4 sm:pt-5">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">
+            <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 flex items-center justify-between gap-2">
               <span className="block break-words" title={shipment.shipmentNumber}>
                 {shipment.shipmentNumber}
               </span>
+              {shipment.seller?._id && (
+                <AiTrustBadge 
+                  userId={shipment.seller._id} 
+                  showLabel={false} 
+                  className="scale-90"
+                />
+              )}
             </CardTitle>
             <div className="flex items-center gap-1 sm:gap-2 mt-1 flex-wrap">
               <ShipmentStatusBadge status={shipment.status} />
@@ -88,6 +97,9 @@ export function ShipmentCard({
                   {shipment.priority}
                 </Badge>
               )}
+            </div>
+            <div className="mt-3">
+              <ShipmentRiskAlert shipmentId={shipment._id} />
             </div>
           </div>
           {showActions && (

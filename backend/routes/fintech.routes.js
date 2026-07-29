@@ -18,12 +18,15 @@ router.use(authenticate)
 router.get('/dashboard', ctrl.getFinancialDashboard)
 
 // Financial health and analysis
-router.get('/financial-health/:farmerId', ctrl.getFinancialHealth)
 router.get('/financial-health/me', ctrl.getFinancialHealth)
+router.get('/financial-health/:farmerId', ctrl.getFinancialHealth)
 router.get('/crop-financials', ctrl.getCropFinancials)
 router.get('/financial-projections', ctrl.getFinancialProjections)
-router.get('/financial-goals/:farmerId', ctrl.getFinancialGoals)
 router.get('/financial-goals/me', ctrl.getFinancialGoals)
+router.post('/financial-goals', ctrl.createFinancialGoal)
+router.put('/financial-goals/:id', ctrl.updateFinancialGoal)
+router.delete('/financial-goals/:id', ctrl.deleteFinancialGoal)
+router.get('/financial-goals/:farmerId', ctrl.getFinancialGoals)
 
 // Credit score routes
 router.get('/credit-score/me', authenticate, ctrl.getCreditScore)
@@ -41,15 +44,15 @@ router.delete('/loan-applications/:id', ctrl.deleteLoanApplication)
 
 // Insurance routes
 router.post('/insurance-policies', ctrl.createInsurancePolicy)
-router.get('/insurance-policies/:id', ctrl.getInsurancePolicy)
 router.get('/insurance-policies/me', ctrl.getInsurancePolicies)
+router.get('/insurance-policies/:id', ctrl.getInsurancePolicy)
 router.put('/insurance-policies/:id', ctrl.updateInsurancePolicy)
 router.delete('/insurance-policies/:id', ctrl.deleteInsurancePolicy)
 
 // Claims routes
-router.post('/insurance-claims', ctrl.createInsuranceClaim)
-router.get('/insurance-claims/:id', ctrl.getInsuranceClaim)
-router.put('/insurance-claims/:id', ctrl.updateInsuranceClaim)
+router.post('/insurance-claims', authenticate, ctrl.createInsuranceClaim)
+router.get('/insurance-claims/:id', authenticate, ctrl.getInsuranceClaim)
+router.put('/insurance-claims/:id', authenticate, ctrl.updateInsuranceClaim)
 
 module.exports = router
 

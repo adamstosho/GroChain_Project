@@ -113,12 +113,13 @@ function CreateShipmentContent() {
       const response = await apiService.getFarmerOrders()
       console.log("📋 Farmer Orders API Response:", response)
       
-      if (response?.status === 'success' && response.data?.orders) {
-        const ordersData = response.data.orders
+      if (response?.status === 'success' && response.data) {
+        const data = response.data as any
+        const ordersData = data.orders || []
         console.log("✅ Farmer orders data:", ordersData)
         
         // Process and format farmer's orders
-        const processedOrders = ordersData.map((order: Record<string, unknown>) => ({
+        const processedOrders = ordersData.map((order: any) => ({
           _id: order._id,
           orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
           buyer: {
@@ -127,16 +128,16 @@ function CreateShipmentContent() {
             phone: order.customer?.phone || ''
           },
           seller: { _id: '', name: 'You' },
-          items: order.products?.map((product: Record<string, unknown>) => ({
+          items: order.products?.map((product: any) => ({
             listing: { 
               _id: product.listingId || '', 
               cropName: product.cropName || 'Unknown Product', 
               images: [] 
             },
-            quantity: product.quantity || 0,
-            price: product.price || 0,
+            quantity: Number(product.quantity || 0),
+            price: Number(product.price || 0),
             unit: product.unit || 'kg',
-            total: (product.quantity || 0) * (product.price || 0)
+            total: Number(product.quantity || 0) * Number(product.price || 0)
           })) || [],
           total: order.totalAmount || 0,
           subtotal: order.subtotal || order.totalAmount || 0,
@@ -218,19 +219,22 @@ function CreateShipmentContent() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-            <Button variant="outline" size="sm" onClick={() => router.back()} className="w-full sm:w-auto">
-              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+      <div className="space-y-6 max-w-[1400px] mx-auto pb-10">
+        {/* Premium Header */}
+        <div className="bg-white/40 backdrop-blur-md p-6 rounded-3xl border border-white/20 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => router.back()} 
+              className="bg-white/80 border-slate-200 hover:bg-slate-50 shadow-sm"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight truncate">Create Shipment</h1>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Create a new shipment for a paid order
-              </p>
+            <div className="space-y-1">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Create Shipment</h1>
+              <p className="text-slate-500 font-medium">Initialize fulfillment for your paid farmer orders</p>
             </div>
           </div>
           <Button 
@@ -238,11 +242,10 @@ function CreateShipmentContent() {
             size="sm" 
             onClick={fetchOrders}
             disabled={loadingOrders}
-            className="w-full sm:w-auto"
+            className="bg-white/80 border-slate-200 hover:bg-slate-50 text-slate-700 shadow-sm"
           >
-            <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-2 ${loadingOrders ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Refresh Orders</span>
-            <span className="sm:hidden">Refresh</span>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loadingOrders ? 'animate-spin' : ''}`} />
+            Refresh Orders
           </Button>
         </div>
 

@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { useStableDataFetch } from "@/hooks/use-stable-data-fetch"
+import { extractListingsFromResponse } from "@/lib/marketplace-listings"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -36,25 +38,21 @@ interface MarketplaceProduct {
 
 export function MarketplacePreview() {
   const [products, setProducts] = useState<MarketplaceProduct[]>([])
-  const [loading, setLoading] = useState(true)
+  const { isInitialLoading, begin, finish } = useStableDataFetch()
   const { isAuthenticated } = useAuthStore()
   const { toast } = useToast()
   const router = useRouter()
 
-  useEffect(() => {
-    fetchFeaturedProducts()
-  }, [])
-
-  const fetchFeaturedProducts = async () => {
+  const fetchFeaturedProducts = useCallback(async () => {
+    const generation = begin()
     try {
-      setLoading(true)
       const response = await apiService.getMarketplaceListings({
         limit: 6,
         sortBy: 'createdAt',
         sortOrder: 'desc'
       })
 
-      const listings = (response.data as any)?.listings || []
+      const listings = extractListingsFromResponse(response.data ?? response)
 
       // Convert backend format to frontend format
       const convertedProducts = listings.slice(0, 6).map((listing: any) => ({
@@ -79,13 +77,17 @@ export function MarketplacePreview() {
       }))
 
       setProducts(convertedProducts)
+      finish(generation)
     } catch (error) {
       console.error("Failed to fetch featured products:", error)
-      setProducts([])
-    } finally {
-      setLoading(false)
+      finish(generation)
+      setProducts((prev) => (prev.length > 0 ? prev : []))
     }
-  }
+  }, [begin, finish])
+
+  useEffect(() => {
+    fetchFeaturedProducts()
+  }, [fetchFeaturedProducts])
 
   const handleAddToCart = (productId: string) => {
     if (!isAuthenticated) {
@@ -143,7 +145,7 @@ export function MarketplacePreview() {
 
         {/* Products Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {loading ? (
+          {isInitialLoading && products.length === 0 ? (
             // Loading skeletons
             Array.from({ length: 6 }).map((_, index) => (
               <Card key={index} className="overflow-hidden">

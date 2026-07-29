@@ -3,7 +3,7 @@ import { Referral, ReferralStats, ReferralFilters, CreateReferralData, UpdateRef
 
 export class ReferralService {
   private static instance: ReferralService
-  private cache: Map<string, any> = new Map()
+  private cache: Map<string, unknown> = new Map()
   private cacheExpiry: Map<string, number> = new Map()
   private readonly CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
@@ -18,7 +18,7 @@ export class ReferralService {
     return `referral_${key}`
   }
 
-  private getCache(key: string): any {
+  private getCache(key: string): unknown {
     const cacheKey = this.getCacheKey(key)
     const expiry = this.cacheExpiry.get(cacheKey)
     
@@ -32,7 +32,7 @@ export class ReferralService {
     return null
   }
 
-  private setCache(key: string, data: any): void {
+  private setCache(key: string, data: unknown): void {
     const cacheKey = this.getCacheKey(key)
     this.cache.set(cacheKey, data)
     this.cacheExpiry.set(cacheKey, Date.now() + this.CACHE_DURATION)
@@ -48,7 +48,7 @@ export class ReferralService {
     const cached = this.getCache(cacheKey)
 
     if (cached) {
-      return cached
+      return cached as { referrals: Referral[]; pagination: any }
     }
 
     try {
@@ -77,7 +77,7 @@ export class ReferralService {
     const cached = this.getCache(cacheKey)
     
     if (cached) {
-      return cached
+      return cached as Referral
     }
 
     try {
@@ -96,7 +96,7 @@ export class ReferralService {
     const cached = this.getCache(cacheKey)
 
     if (cached) {
-      return cached
+      return cached as ReferralStats
     }
 
     try {
@@ -110,7 +110,7 @@ export class ReferralService {
     }
   }
 
-  async getPerformanceStats(period: string = 'month'): Promise<any> {
+  async getPerformanceStats(period: string = 'month'): Promise<unknown> {
     const cacheKey = `performance_${period}`
     const cached = this.getCache(cacheKey)
     

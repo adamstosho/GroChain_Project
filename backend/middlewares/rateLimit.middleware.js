@@ -37,6 +37,16 @@ class RateLimitMiddleware {
         max: 10, // 10 payment attempts per hour
         message: 'Too many payment attempts, please try again later.'
       },
+      paymentInitialize: {
+        windowMs: Number(process.env.PAYMENT_INIT_WINDOW_MS || 60 * 60 * 1000), // 1 hour
+        max: Number(process.env.PAYMENT_INIT_MAX || 20),
+        message: 'Too many payment initialization attempts, please try again later.'
+      },
+      paymentWebhook: {
+        windowMs: Number(process.env.PAYMENT_WEBHOOK_WINDOW_MS || 60 * 1000), // 1 minute
+        max: Number(process.env.PAYMENT_WEBHOOK_MAX || 180),
+        message: 'Too many webhook requests, please try again later.'
+      },
       ussd: {
         windowMs: 5 * 60 * 1000, // 5 minutes
         max: 20, // 20 USSD requests per 5 minutes

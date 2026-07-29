@@ -43,10 +43,7 @@ function PaymentVerificationContent() {
 
         // Try manual verification first
         console.log('🔄 Attempting manual payment verification...')
-        const verifyUrl = testMode 
-          ? `/api/payments/verify/${trxref}?test_mode=true`
-          : `/api/payments/verify/${trxref}`
-        const response = await apiService.verifyPayment(trxref)
+        const response = await apiService.verifyPayment(trxref, { testMode })
 
         if (response && response.status === 'success') {
           console.log('✅ Payment verification successful:', response.data)
@@ -56,8 +53,12 @@ function PaymentVerificationContent() {
           const orderData = (response.data as any)?.order
           const orderId = transaction?.orderId || transaction?.metadata?.order_id
 
-          // Check if the order status was properly updated
-          if (orderData && (orderData.status === 'paid' || orderData.paymentStatus === 'paid')) {
+          const paymentConfirmed =
+            !orderData ||
+            orderData.paymentStatus === 'paid' ||
+            orderData.status === 'paid'
+
+          if (paymentConfirmed) {
             console.log('✅ Order status already updated to paid')
 
             setVerificationResult({
@@ -201,7 +202,7 @@ function PaymentVerificationContent() {
             console.log(`🔄 Retry attempt ${retryCount}/${maxRetries}`)
 
             try {
-              const retryResponse = await apiService.verifyPayment(trxref)
+              const retryResponse = await apiService.verifyPayment(trxref, { testMode })
               if (retryResponse && retryResponse.status === 'success') {
                 const transaction = (retryResponse.data as any)?.transaction
                 const orderData = (retryResponse.data as any)?.order
@@ -285,7 +286,7 @@ function PaymentVerificationContent() {
     }
 
     verifyPayment()
-  }, [trxref, router, toast])
+  }, [trxref, testMode, router, toast])
 
   if (loading) {
     return (

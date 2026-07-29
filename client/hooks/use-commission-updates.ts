@@ -10,6 +10,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuthStore } from '@/lib/auth';
 import { apiService } from '@/lib/api';
 import { io, Socket } from 'socket.io-client';
+import { APP_CONFIG } from '@/lib/constants';
 
 interface CommissionUpdate {
   type: 'commission_earned' | 'commission_verified';
@@ -83,7 +84,7 @@ export function useCommissionUpdates(options: UseCommissionUpdatesOptions = {}) 
       }
 
       // Create Socket.IO connection
-      const socketUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:5000';
+      const socketUrl = APP_CONFIG.api.wsUrl || APP_CONFIG.api.baseUrl;
       console.log('🔌 Connecting to Socket.IO:', socketUrl);
       
       const socketInstance = io(socketUrl, {
@@ -100,9 +101,10 @@ export function useCommissionUpdates(options: UseCommissionUpdatesOptions = {}) 
         console.log('🔌 Socket.IO connected successfully');
         setIsConnected(true);
         setError(null);
-        
-        // Join partner role room
-        socketInstance.emit('join-role-room', { role: 'partner' });
+        // Server already joins role:<role>; explicit join keeps behavior obvious and idempotent.
+        if (user?.role) {
+          socketInstance.emit('join-room', `role:${user.role}`);
+        }
       });
 
       socketInstance.on('commission_update', (data) => {

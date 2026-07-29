@@ -53,7 +53,9 @@ const ShipmentSchema = new mongoose.Schema({
     required: true 
   },
   carrier: { type: String, required: true },
-  trackingNumber: { type: String, sparse: true },
+  trackingNumber: { type: String },
+  /** Optional: assigned driver / logistics user — may join shipment (and related order) realtime rooms */
+  assignedLogisticsUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   estimatedDelivery: { type: Date, required: true },
   actualDelivery: { type: Date },
   

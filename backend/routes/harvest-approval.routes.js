@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
-const { harvestApprovalController, createSampleData, getHarvestStatus } = require('../controllers/harvest-approval.controller')
-const { authenticate } = require('../middlewares/auth.middleware')
+const { harvestApprovalController, getHarvestStatus } = require('../controllers/harvest-approval.controller')
+const { authenticate, authorize } = require('../middlewares/auth.middleware')
 
 // Get harvests pending approval
 router.get('/pending',
@@ -51,14 +51,11 @@ router.post('/bulk-process',
   harvestApprovalController.bulkProcessHarvests
 )
 
-// Check harvest data status (temporary endpoint)
+// Check harvest data status (admin diagnostics)
 router.get('/status',
+  authenticate,
+  authorize('admin'),
   getHarvestStatus
-)
-
-// Create sample data for testing (temporary endpoint)
-router.post('/create-sample-data',
-  createSampleData
 )
 
 module.exports = router

@@ -40,6 +40,7 @@ export function WebSocketTest() {
       addLog(`🔌 Connecting to: ${wsUrl}`)
 
       const socket = io(wsUrl, {
+        path: '/notifications',
         auth: { token },
         transports: ['websocket', 'polling'],
         timeout: 10000,
@@ -67,10 +68,14 @@ export function WebSocketTest() {
         setErrorMessage(error.message)
       })
 
-      socket.on('error', (error) => {
-        addLog(`❌ Socket error: ${error.message || error}`)
+      socket.on('error', (error: unknown) => {
+        const msg =
+          error && typeof error === 'object' && 'message' in error
+            ? String((error as { message?: string }).message)
+            : String(error)
+        addLog(`❌ Socket error: ${msg}`)
         setConnectionStatus('error')
-        setErrorMessage(error.message || error)
+        setErrorMessage(msg)
       })
 
       socket.on('notification', (notification: any) => {

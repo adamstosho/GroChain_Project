@@ -67,7 +67,7 @@ export function OnboardingList() {
     const matchesSearch = searchTerm === "" || 
       onboarding.farmer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       onboarding.farmer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      onboarding.farmer.location.toLowerCase().includes(searchTerm.toLowerCase())
+      (onboarding.farmer.location ?? '').toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = statusFilter === "all" || onboarding.status === statusFilter
     const matchesStage = stageFilter === "all" || onboarding.stage === stageFilter
@@ -181,7 +181,7 @@ export function OnboardingList() {
                           <div className="flex items-center space-x-2">
                             <Leaf className="w-4 h-4 text-muted-foreground" />
                             <span className="text-sm">
-                              {onboarding.farmer.primaryCrops.slice(0, 2).join(', ')}
+                              {(onboarding.farmer.primaryCrops ?? []).slice(0, 2).join(', ')}
                             </span>
                           </div>
                           <div className="flex items-center space-x-2">

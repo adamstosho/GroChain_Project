@@ -57,11 +57,13 @@ class ApiService {
       this.loadTokenFromStorage()
     }
 
-    console.log(`[API] Making request to: ${endpoint}`, {
-      method: options.method || 'GET',
-      hasToken: !!this.token,
-      tokenPreview: this.token ? `${this.token.substring(0, 10)}...` : 'none'
-    })
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[API] Making request to: ${endpoint}`, {
+        method: options.method || 'GET',
+        hasToken: !!this.token
+      })
+    }
 
     // Add cache buster for non-GET requests to prevent caching issues
     // Automatically prepend /api to all endpoints (except auth endpoints that already have it)
@@ -103,8 +105,7 @@ class ApiService {
 
     // If sending FormData, let the browser set the correct multipart boundary
     if (options.body instanceof FormData) {
-      // @ts-ignore
-      delete headers["Content-Type"]
+      delete (headers as Record<string, string>)["Content-Type"]
     }
 
     try {
@@ -209,10 +210,14 @@ class ApiService {
         throw err
       }
 
-      console.log("[API] Request successful:", { endpoint, status: response.status, data })
+      if (process.env.NODE_ENV === 'development') {
+        console.log("[API] Request successful:", { endpoint, status: response.status })
+      }
       return data
     } catch (error) {
-      console.log("[API] Request failed:", { endpoint, error: (error as Error).message })
+      if (process.env.NODE_ENV === 'development') {
+        console.log("[API] Request failed:", { endpoint, error: (error as Error).message })
+      }
 
       // Handle timeout/abort errors with retry logic
       if (error instanceof Error) {
@@ -312,10 +317,9 @@ class ApiService {
 
         return true
       }
-
       console.log('❌ No new access token in refresh response')
       return false
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Token refresh failed:', error)
       this.isRefreshing = false
       this.clearToken()
@@ -379,18 +383,18 @@ class ApiService {
 
   async logout() {
     try {
-      return await this.request("/api/auth/logout", {
+      return await this.request<{ success: boolean; message: string }>("/api/auth/logout", {
         method: "POST",
       })
     } catch (e) {
       // Ignore network errors here; we'll still clear local state
-      return { success: true, message: "Logged out" } as any
+      return { success: true, message: "Logged out" } as ApiResponse<any>
     }
   }
 
   // Email verification helpers
   async verifyEmail(token: string) {
-    return this.request<{ message: string; user: any }>("/api/auth/verify-email", {
+    return this.request<{ message: string; user: User }>("/api/auth/verify-email", {
       method: "POST",
       body: JSON.stringify({ token }),
     })
@@ -432,11 +436,11 @@ class ApiService {
 
   // User Preferences
   async getPreferences() {
-    return this.request("/api/users/preferences/me")
+    return this.request<{ notifications: Record<string, boolean> }>("/api/users/preferences/me")
   }
-
-  async updatePreferences(notifications: any) {
-    return this.request("/api/users/preferences/me", {
+  
+  async updatePreferences(notifications: Record<string, boolean>) {
+    return this.request<{ message: string }>("/api/users/preferences/me", {
       method: "PUT",
       body: JSON.stringify({ notifications }),
     })
@@ -444,11 +448,11 @@ class ApiService {
 
   // User Settings
   async getSettings() {
-    return this.request("/api/users/settings/me")
+    return this.request<{ settings: any }>("/api/users/settings/me")
   }
 
   async updateSettings(settings: { security?: any; display?: any; performance?: any }) {
-    return this.request("/api/users/settings/me", {
+    return this.request<{ message: string }>("/api/users/settings/me", {
       method: "PUT",
       body: JSON.stringify(settings),
     })
@@ -922,6 +926,14 @@ class ApiService {
     return this.request<WeatherData>(`/api/weather/agricultural-insights${query}`)
   }
 
+  async getIPLocation() {
+    return this.request<any>('/api/weather/ip-location')
+  }
+
+  async reverseGeocode(lat: number, lng: number) {
+    return this.request<any>(`/api/weather/reverse-geocode?lat=${lat}&lng=${lng}`)
+  }
+
   // Analytics
   async getAnalytics(type: string, filters?: Record<string, any>) {
     const params = new URLSearchParams(filters)
@@ -1027,12 +1039,23 @@ class ApiService {
   async updateFinancialGoal(id: string, data: Partial<{
     title: string;
     description: string;
+    type: string;
+    targetAmount: number;
+    targetDate: string;
+    priority: string;
+    category: string;
     currentAmount: number;
     status: string;
   }>) {
     return this.request(`/api/fintech/financial-goals/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data)
+    });
+  }
+
+  async deleteFinancialGoal(id: string) {
+    return this.request(`/api/fintech/financial-goals/${id}`, {
+      method: 'DELETE'
     });
   }
 
@@ -1045,6 +1068,45 @@ class ApiService {
   async getInsuranceQuotes(filters?: Record<string, any>) {
     const params = new URLSearchParams(filters || {})
     return this.request(`/api/fintech/insurance-quotes?${params.toString()}`);
+  }
+
+  async getInsuranceClaims(filters?: Record<string, any>) {
+    const params = new URLSearchParams(filters || {})
+    return this.request(`/api/fintech/insurance-claims?${params.toString()}`);
+  }
+
+  async createInsuranceClaim(data: {
+    policyId?: string;
+    policyNumber?: string;
+    claimType: string;
+    description: string;
+    incidentDate: string;
+    estimatedLoss: number;
+    location?: string;
+    weatherConditions?: string;
+    documents?: Array<{ name: string; url: string; type: string }>;
+  }) {
+    return this.request('/api/fintech/insurance-claims', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getInsuranceClaim(id: string) {
+    return this.request(`/api/fintech/insurance-claims/${id}`);
+  }
+
+  async updateInsuranceClaim(id: string, data: Partial<{
+    status: string;
+    adjusterNotes: string;
+    claimAmount: number;
+    paidAmount: number;
+    decisionDate: string;
+  }>) {
+    return this.request(`/api/fintech/insurance-claims/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
   }
 
   async getFinancialHealth() {
@@ -1134,6 +1196,11 @@ class ApiService {
     return this.request('/api/marketplace/buyer-activity')
   }
 
+  async getTopBuyers(limit?: number) {
+    const query = limit ? `?limit=${limit}` : ''
+    return this.request(`/api/marketplace/top-buyers${query}`)
+  }
+
   async getProductDetails(productId: string) {
     return this.request(`/api/marketplace/listings/${productId}`)
   }
@@ -1204,8 +1271,9 @@ class ApiService {
     })
   }
 
-  async verifyPayment(reference: string) {
-    return this.request(`/api/payments/verify/${reference}`)
+  async verifyPayment(reference: string, options?: { testMode?: boolean }) {
+    const query = options?.testMode ? '?test_mode=true' : ''
+    return this.request(`/api/payments/verify/${reference}${query}`)
   }
 
   async syncOrderStatus(orderId: string) {
@@ -1252,6 +1320,14 @@ class ApiService {
 
   async getShipmentDetails(shipmentId: string) {
     return this.request(`/api/shipments/${shipmentId}`)
+  }
+
+  /** Set or clear `assignedLogisticsUser` on a shipment (admin / eligible partner). Pass null/empty to unassign. */
+  async assignShipmentLogistics(shipmentId: string, assignedLogisticsUser: string | null) {
+    return this.request(`/api/shipments/${shipmentId}/assigned-logistics`, {
+      method: 'PATCH',
+      body: JSON.stringify({ assignedLogisticsUser: assignedLogisticsUser ?? '' }),
+    })
   }
 
   async reportShipmentIssue(shipmentId: string, issueData: any) {
@@ -2103,6 +2179,49 @@ class ApiService {
     return response
   }
 
+  // New method to make a raw GET request (e.g., for file downloads) without JSON parsing
+  async getRaw(endpoint: string, options?: RequestInit): Promise<Response> {
+    const apiEndpoint = endpoint.startsWith('/api/') ? endpoint : `/api${endpoint}`
+    const url = `${this.baseUrl}${apiEndpoint}`
+    const headers: Record<string, string> = {}
+
+    if (this.token && this.token !== 'undefined') {
+      headers["Authorization"] = `Bearer ${this.token}`
+    } else {
+      this.loadTokenFromStorage()
+      if (this.token && this.token !== 'undefined') {
+        headers["Authorization"] = `Bearer ${this.token}`
+      }
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      method: 'GET',
+      headers: { ...headers, ...options?.headers },
+    })
+
+    // If 401, trigger refresh logic and retry
+    if (response.status === 401 && endpoint !== '/api/auth/refresh') {
+      const refreshSuccess = await this.refreshTokenIfNeeded()
+      if (refreshSuccess) {
+        return this.getRaw(endpoint, options)
+      } else {
+        throw new Error('Authentication error: Token refresh failed')
+      }
+    }
+
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.message || errorMessage
+      } catch (e) {}
+      throw new Error(errorMessage)
+    }
+
+    return response
+  }
+
   // Get farmer details by ID (for partner dashboard)
   async getFarmerById(farmerId: string) {
     console.log('🔍 Calling getFarmerById API endpoint for farmer:', farmerId);
@@ -2151,6 +2270,115 @@ class ApiService {
       console.error('❌ getHarvestsByFarmer error:', error);
       throw error;
     }
+  }
+
+  // Onboarding Portal Management
+  // Backend base path: /api/onboarding (backend/routes/onboarding.routes.js, mounted in backend/app.js)
+  async getOnboardings(params: {
+    page?: number
+    limit?: number
+    status?: string
+    stage?: string
+    priority?: string
+    state?: string
+    assignedAgent?: string
+    searchTerm?: string
+    dateRange?: { start?: string | Date; end?: string | Date }
+  } = {}) {
+    const searchParams = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return
+      if (key === 'dateRange' && typeof value === 'object') {
+        const range = value as { start?: string | Date; end?: string | Date }
+        if (range.start) searchParams.append('dateRange[start]', new Date(range.start).toISOString())
+        if (range.end) searchParams.append('dateRange[end]', new Date(range.end).toISOString())
+        return
+      }
+      searchParams.append(key, String(value))
+    })
+    const queryString = searchParams.toString()
+    return this.request<{
+      onboardings: any[]
+      pagination: {
+        currentPage: number
+        totalPages: number
+        totalItems: number
+        itemsPerPage: number
+      }
+    }>(`/api/onboarding${queryString ? `?${queryString}` : ''}`)
+  }
+
+  async getOnboardingStats() {
+    return this.request<{
+      total: number
+      pending: number
+      inProgress: number
+      completed: number
+      rejected: number
+      onHold: number
+      thisWeek: number
+      thisMonth: number
+      successRate: number
+      averageCompletionTime: number
+      regionalDistribution: Record<string, number>
+      cropDistribution: Record<string, number>
+    }>('/api/onboarding/stats')
+  }
+
+  async getOnboardingById(id: string) {
+    return this.request<any>(`/api/onboarding/${id}`)
+  }
+
+  async createOnboarding(data: {
+    farmerId: string
+    assignedPartner: string
+    assignedAgent?: string
+    priority?: string
+    notes?: string
+    estimatedCompletionDate?: string
+    location?: any
+  }) {
+    return this.request<any>('/api/onboarding', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+  }
+
+  async updateOnboarding(id: string, data: any) {
+    return this.request<any>(`/api/onboarding/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    })
+  }
+
+  async updateOnboardingStage(id: string, data: { stage: string; notes?: string }) {
+    return this.request<any>(`/api/onboarding/${id}/stage`, {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    })
+  }
+
+  async deleteOnboarding(id: string) {
+    return this.request<any>(`/api/onboarding/${id}`, { method: 'DELETE' })
+  }
+
+  async getOnboardingProgress(farmerId: string) {
+    return this.request<any>(`/api/onboarding/progress/${farmerId}`)
+  }
+
+  async bulkUpdateOnboardings(data: { onboardingIds: string[]; updates: any }) {
+    return this.request<{ modifiedCount: number; matchedCount: number }>('/api/onboarding/bulk-update', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+  }
+
+  async exportOnboardings(filters: any = {}, format: 'csv' | 'excel' = 'csv'): Promise<Blob> {
+    const response = await this.postRaw('/api/onboarding/export', { format, filters })
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.statusText}`)
+    }
+    return response.blob()
   }
 
 }

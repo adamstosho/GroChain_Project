@@ -135,8 +135,6 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             isLoading: false,
           })
-
-          return response
         } catch (error) {
           set({ isLoading: false })
           throw error

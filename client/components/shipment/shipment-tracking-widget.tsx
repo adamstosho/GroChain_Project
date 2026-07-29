@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { useShipments } from "@/hooks/use-shipments"
 import { apiService } from "@/lib/api"
+import { io, Socket } from "socket.io-client"
+import { APP_CONFIG } from "@/lib/constants"
 import { ShipmentStatusBadge } from "./shipment-status-badge"
 import { ShipmentTrackingTimeline } from "./shipment-tracking-timeline"
 import { 
@@ -32,17 +33,28 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
+  const [socketConnected, setSocketConnected] = useState(false)
+  const socketRef = useRef<Socket | null>(null)
+  const orderIdRef = useRef(orderId)
+  const shipmentIdRef = useRef<string | undefined>(undefined)
+  const fetchShipmentRef = useRef<(isRefresh?: boolean, silent?: boolean) => Promise<void>>(async () => {})
+  const prevShipmentSocketIdRef = useRef<string | null>(null)
 
   useEffect(() => {
-    fetchShipmentForOrder()
+    orderIdRef.current = orderId
   }, [orderId])
 
-  const fetchShipmentForOrder = async (isRefresh = false) => {
+  useEffect(() => {
+    shipmentIdRef.current = shipment?._id != null ? String(shipment._id) : undefined
+  }, [shipment?._id])
+
+  const fetchShipmentForOrder = useCallback(async (isRefresh = false, silent = false) => {
     try {
       if (isRefresh) {
         setRefreshing(true)
       } else {
         setLoading(true)
+        setShipment(null)
       }
       setError(null)
       
@@ -51,12 +63,14 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
       
       if (response.status === 'success' && response.data.shipments.length > 0) {
         setShipment(response.data.shipments[0])
-        if (isRefresh) {
+        if (isRefresh && !silent) {
           toast({
             title: "Updated",
             description: "Shipment status refreshed",
           })
         }
+      } else {
+        setShipment(null)
       }
     } catch (err: any) {
       console.error('Error fetching shipment:', err)
@@ -68,11 +82,118 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
         setLoading(false)
       }
     }
-  }
+  }, [orderId, toast])
+
+  useEffect(() => {
+    void fetchShipmentForOrder()
+  }, [fetchShipmentForOrder])
+
+  useEffect(() => {
+    fetchShipmentRef.current = async (isRefresh = false, silent = false) => {
+      await fetchShipmentForOrder(isRefresh, silent)
+    }
+  }, [fetchShipmentForOrder])
 
   const handleRefresh = () => {
     fetchShipmentForOrder(true)
   }
+
+  const joinShipmentRooms = (socket: Socket) => {
+    const oid = orderIdRef.current
+    if (!oid) return
+    socket.emit("join-room", `order:${oid}`)
+    const sid = shipmentIdRef.current
+    if (sid) socket.emit("join-room", `shipment:${sid}`)
+  }
+
+  // Realtime: one Socket.IO connection per order; join shipment room when id becomes available (no unnecessary reconnect).
+  useEffect(() => {
+    if (!orderId) return
+
+    if (process.env.NEXT_PUBLIC_DISABLE_WEBSOCKET === "true") {
+      setSocketConnected(false)
+      return
+    }
+
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem(APP_CONFIG.auth.tokenKey)
+        : null
+
+    if (!token) {
+      setSocketConnected(false)
+      return
+    }
+
+    const wsUrl = APP_CONFIG.api.wsUrl || APP_CONFIG.api.baseUrl
+    const socket: Socket = io(wsUrl, {
+      path: "/notifications",
+      auth: { token },
+      transports: ["websocket", "polling"],
+      timeout: 10000,
+      forceNew: true,
+    })
+    socketRef.current = socket
+
+    const onConnect = () => {
+      setSocketConnected(true)
+      joinShipmentRooms(socket)
+    }
+
+    const onDisconnect = () => {
+      setSocketConnected(false)
+    }
+
+    const onShipmentUpdate = (update: Record<string, unknown>) => {
+      const oid = orderIdRef.current
+      const sid = shipmentIdRef.current
+      const matchesOrder =
+        update?.orderId != null && String(update.orderId) === String(oid)
+      const matchesShipment =
+        !!sid &&
+        update?.shipmentId != null &&
+        String(update.shipmentId) === String(sid)
+
+      if (!matchesOrder && !matchesShipment) return
+
+      void fetchShipmentRef.current(true, true)
+    }
+
+    socket.on("connect", onConnect)
+    socket.on("disconnect", onDisconnect)
+    socket.on("shipment-update", onShipmentUpdate)
+
+    socket.on("connect_error", (e: Error) => {
+      console.warn("Shipment tracking Socket.IO connect_error:", e?.message || e)
+      setSocketConnected(false)
+    })
+
+    return () => {
+      socketRef.current = null
+      try {
+        socket.off("connect", onConnect)
+        socket.off("disconnect", onDisconnect)
+        socket.off("shipment-update", onShipmentUpdate)
+        socket.disconnect()
+      } catch {
+        // ignore
+      }
+    }
+  }, [orderId])
+
+  useEffect(() => {
+    const socket = socketRef.current
+    if (!socket?.connected) return
+    const sid = shipment?._id != null ? String(shipment._id) : null
+    const prev = prevShipmentSocketIdRef.current
+    if (prev && prev !== sid) {
+      socket.emit("leave-room", `shipment:${prev}`)
+    }
+    prevShipmentSocketIdRef.current = sid
+    if (sid) {
+      socket.emit("join-room", `shipment:${sid}`)
+    }
+  }, [shipment?._id])
 
   const formatPrice = (price: number | undefined | null) => {
     if (price === undefined || price === null || isNaN(price)) {
@@ -106,9 +227,9 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
     } else if (diffDays === 0) {
       return { text: 'Today', color: 'text-orange-600' }
     } else if (diffDays === 1) {
-      return { text: 'Tomorrow', color: 'text-blue-600' }
+      return { text: 'Tomorrow', color: 'text-primary' }
     } else {
-      return { text: `In ${diffDays} days`, color: 'text-gray-600' }
+      return { text: `In ${diffDays} days`, color: 'text-muted-foreground' }
     }
   }
 
@@ -133,7 +254,7 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
           <Package className="h-6 w-6 sm:h-8 sm:w-8 md:h-12 md:w-12 text-gray-400 mx-auto mb-2 sm:mb-3 md:mb-4" />
           <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">Shipment Error</h3>
           <p className="text-xs sm:text-sm text-gray-600 mb-2.5 sm:mb-3 md:mb-4">{error}</p>
-          <Button onClick={fetchShipmentForOrder} variant="outline" size="sm" className="h-7 sm:h-8 text-xs">
+          <Button onClick={() => fetchShipmentForOrder()} variant="outline" size="sm" className="h-7 sm:h-8 text-xs">
             <RefreshCw className="h-3 w-3 mr-1" />
             Try Again
           </Button>
@@ -180,6 +301,11 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
                 <span className="hidden sm:inline">{refreshing ? 'Refreshing...' : 'Refresh'}</span>
                 <span className="sm:hidden">Refresh</span>
               </Button>
+              <div className="hidden md:flex items-center">
+                <Badge variant={socketConnected ? "default" : "secondary"} className="text-[10px] px-2 py-1">
+                  {socketConnected ? "Live" : "Offline"}
+                </Badge>
+              </div>
               <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none h-7 sm:h-8 text-xs px-2 sm:px-3">
                 <Link href={`/dashboard/shipments/${shipment._id}`}>
                   <Eye className="h-3 w-3 mr-1" />
@@ -260,9 +386,9 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
         {shipment.trackingEvents && shipment.trackingEvents.length > 0 && (
           <div className="pt-2 border-t border-gray-100">
             <h4 className="font-medium text-gray-900 mb-1.5 sm:mb-2 text-xs sm:text-sm md:text-base">Latest Update</h4>
-            <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg">
-              <div className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                <Package className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 text-blue-600" />
+            <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <div className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Package className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
                 <h5 className="font-medium text-gray-900 text-xs sm:text-sm">{shipment.trackingEvents[0].location}</h5>

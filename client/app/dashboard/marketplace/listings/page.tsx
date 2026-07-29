@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { useStableDataFetch } from "@/hooks/use-stable-data-fetch"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -87,7 +88,7 @@ interface ListingStats {
 
 export default function MarketplaceListingsPage() {
   const [listings, setListings] = useState<Listing[]>([])
-  const [filteredListings, setFilteredListings] = useState<Listing[]>([])
+  const { isInitialLoading, begin, finish } = useStableDataFetch()
   const [stats, setStats] = useState<ListingStats>({
     totalListings: 0,
     activeListings: 0,
@@ -101,7 +102,6 @@ export default function MarketplaceListingsPage() {
     mostViewedCrop: '',
     conversionRate: 0
   })
-  const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -114,17 +114,43 @@ export default function MarketplaceListingsPage() {
 
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchListings()
-  }, [])
+  const filteredListings = useMemo(() => {
+    let filtered = [...listings]
 
-  useEffect(() => {
-    filterListings()
+    if (searchQuery) {
+      filtered = filtered.filter(listing =>
+        listing.cropName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        listing.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        listing.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        listing.farmer.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(listing => listing.status === statusFilter)
+    }
+
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(listing => listing.category === categoryFilter)
+    }
+
+    if (priceFilter !== 'all') {
+      const priceRanges = {
+        'low': [0, 5000],
+        'medium': [5000, 20000],
+        'high': [20000, 100000],
+        'premium': [100000, Infinity]
+      } as const
+      const [min, max] = priceRanges[priceFilter as keyof typeof priceRanges] || [0, Infinity]
+      filtered = filtered.filter(listing => listing.basePrice >= min && listing.basePrice <= max)
+    }
+
+    return filtered
   }, [listings, searchQuery, statusFilter, categoryFilter, priceFilter])
 
-  const fetchListings = async () => {
+  const fetchListings = useCallback(async () => {
+    const generation = begin()
     try {
-      setLoading(true)
       console.log("🔄 Fetching listings...")
 
       // Fetch farmer's listings from backend
@@ -175,7 +201,7 @@ export default function MarketplaceListingsPage() {
 
       } else {
         console.warn("⚠️ Listings response not in expected format:", response)
-        setListings([])
+        setListings((prev) => (prev.length > 0 ? prev : []))
       }
 
     } catch (error) {
@@ -185,11 +211,15 @@ export default function MarketplaceListingsPage() {
         description: "Failed to load listings. Please try again.",
         variant: "destructive"
       })
-      setListings([])
+      setListings((prev) => (prev.length > 0 ? prev : []))
     } finally {
-      setLoading(false)
+      finish(generation)
     }
-  }
+  }, [toast, begin, finish])
+
+  useEffect(() => {
+    fetchListings()
+  }, [fetchListings])
 
   const calculateStats = (listingsData: Listing[]) => {
     const totalListings = listingsData.length
@@ -238,44 +268,6 @@ export default function MarketplaceListingsPage() {
       mostViewedCrop,
       conversionRate
     })
-  }
-
-  const filterListings = () => {
-    let filtered = [...listings]
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(listing =>
-        listing.cropName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        listing.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        listing.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        listing.farmer.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    }
-
-    // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(listing => listing.status === statusFilter)
-    }
-
-    // Category filter
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(listing => listing.category === categoryFilter)
-    }
-
-    // Price filter
-    if (priceFilter !== 'all') {
-      const priceRanges = {
-        'low': [0, 5000],
-        'medium': [5000, 20000],
-        'high': [20000, 100000],
-        'premium': [100000, Infinity]
-      }
-      const [min, max] = priceRanges[priceFilter as keyof typeof priceRanges] || [0, Infinity]
-      filtered = filtered.filter(listing => listing.basePrice >= min && listing.basePrice <= max)
-    }
-
-    setFilteredListings(filtered)
   }
 
   const handleRefresh = async () => {
@@ -408,7 +400,7 @@ export default function MarketplaceListingsPage() {
     return categories.filter(cat => cat && cat !== '')
   }
 
-  if (loading) {
+  if (isInitialLoading) {
     return (
       <DashboardLayout pageTitle="Marketplace Listings">
         <div className="space-y-6">

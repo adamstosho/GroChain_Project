@@ -1,20 +1,46 @@
 const express = require('express')
 const router = express.Router()
+const Joi = require('joi')
 const ctrl = require('../controllers/payment.controller')
 const { authenticate } = require('../middlewares/auth.middleware')
+const { rateLimit, userRateLimit } = require('../middlewares/rateLimit.middleware')
+const { validateBody, validateParams, validatePayment } = require('../middlewares/validation.middleware')
+
+const initializePaymentSchema = Joi.object({
+  orderId: Joi.string().hex().length(24).required(),
+  amount: Joi.number().positive().required(),
+  email: Joi.string().email().required(),
+  callbackUrl: Joi.string().uri().optional(),
+  paymentProvider: Joi.string().valid('paystack', 'flutterwave').default('paystack')
+})
+
+const verifyPaymentParamsSchema = Joi.object({
+  reference: Joi.string().min(6).max(200).required()
+})
 
 // Public routes
 router.get('/', ctrl.getPaymentConfig) // Root endpoint redirects to config
 router.get('/config', ctrl.getPaymentConfig)
-router.post('/initialize', ctrl.initializePayment)
-router.get('/verify/:reference', ctrl.verifyPayment)
 
 // Paystack webhook (no auth)
-router.post('/verify', express.json({ type: '*/*' }), ctrl.webhookVerify)
+router.post(
+  '/verify',
+  rateLimit('paymentWebhook'),
+  express.json({ type: '*/*' }),
+  validatePayment.webhook,
+  ctrl.webhookVerify
+)
 
 // Protected routes (require authentication)
 router.use(authenticate)
 
+router.post(
+  '/initialize',
+  userRateLimit('paymentInitialize'),
+  validateBody(initializePaymentSchema),
+  ctrl.initializePayment
+)
+router.get('/verify/:reference', validateParams(verifyPaymentParamsSchema), ctrl.verifyPayment)
 router.post('/refund/:orderId', ctrl.processRefund)
 
 // Order synchronization routes (protected)

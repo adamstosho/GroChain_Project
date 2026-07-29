@@ -1,7 +1,7 @@
 // Receipt generation utility for GroChain orders
-// This generates a PDF receipt using browser APIs
+// Opens a print-ready HTML receipt in a new window
 
-interface ReceiptData {
+export interface ReceiptData {
   orderNumber: string
   orderDate: string
   buyer: {
@@ -28,59 +28,90 @@ interface ReceiptData {
   total: number
   paymentStatus: string
   status: string
-  shippingAddress: {
-    street: string
-    city: string
-    state: string
-    country: string
-    phone: string
+  paymentReference?: string
+  paidAt?: string
+  shippingAddress?: {
+    street?: string
+    city?: string
+    state?: string
+    country?: string
+    phone?: string
   }
-  deliveryInstructions: string
+  deliveryInstructions?: string
+}
+
+function normalizeReceiptData(data: ReceiptData): Required<Pick<ReceiptData, 'shippingAddress'>> & ReceiptData {
+  const addr = data.shippingAddress || {}
+  return {
+    ...data,
+    shippingAddress: {
+      street: addr.street || 'Not provided',
+      city: addr.city || '',
+      state: addr.state || '',
+      country: addr.country || 'Nigeria',
+      phone: addr.phone || data.buyer?.phone || 'Not provided',
+    },
+  }
 }
 
 export class ReceiptGenerator {
   static async generatePDF(receiptData: ReceiptData): Promise<void> {
-    try {
-      // Create a new window for printing
-      const printWindow = window.open('', '_blank')
-      if (!printWindow) {
-        throw new Error('Unable to open print window. Please allow popups.')
-      }
+    const data = normalizeReceiptData(receiptData)
 
-      // Generate HTML content for the receipt
-      const htmlContent = this.generateReceiptHTML(receiptData)
-      
-      printWindow.document.write(htmlContent)
-      printWindow.document.close()
-      
-      // Wait for content to load, then trigger print
-      printWindow.onload = () => {
-        setTimeout(() => {
-          printWindow.print()
-          printWindow.close()
-        }, 500)
-      }
-    } catch (error) {
-      console.error('Error generating PDF:', error)
-      throw error
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      throw new Error('Unable to open print window. Please allow popups.')
     }
+
+    const htmlContent = this.generateReceiptHTML(data)
+
+    printWindow.document.open()
+    printWindow.document.write(htmlContent)
+    printWindow.document.close()
+
+    return new Promise((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        try {
+          printWindow.focus()
+          printWindow.print()
+          window.setTimeout(() => {
+            printWindow.close()
+            resolve()
+          }, 300)
+        } catch (err) {
+          reject(err)
+        }
+      }, 400)
+
+      printWindow.onerror = () => {
+        window.clearTimeout(timeout)
+        reject(new Error('Failed to render receipt'))
+      }
+    })
   }
 
   static generateReceiptHTML(data: ReceiptData): string {
+    const normalized = normalizeReceiptData(data)
+
     const formatPrice = (price: number) => {
       return new Intl.NumberFormat('en-NG', {
         style: 'currency',
         currency: 'NGN',
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
-      }).format(price)
+      }).format(price ?? 0)
     }
+
+    const paymentBadgeClass =
+      normalized.paymentStatus === 'paid' ? 'status-paid' : 'status-pending'
+
+    const addr = normalized.shippingAddress!
 
     return `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Receipt - ${data.orderNumber}</title>
+        <title>Receipt - ${normalized.orderNumber}</title>
         <style>
           body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -103,106 +134,60 @@ export class ReceiptGenerator {
             padding: 30px;
             text-align: center;
           }
-          .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: bold;
-          }
-          .header p {
-            margin: 10px 0 0 0;
-            font-size: 16px;
-            opacity: 0.9;
-          }
-          .content {
-            padding: 30px;
-          }
+          .header h1 { margin: 0; font-size: 28px; font-weight: bold; }
+          .header p { margin: 10px 0 0 0; font-size: 16px; opacity: 0.9; }
+          .content { padding: 30px; }
           .order-info {
             background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 30px;
           }
-          .order-info h2 {
-            margin: 0 0 15px 0;
-            color: #2d5a27;
-            font-size: 20px;
-          }
+          .order-info h2 { color: #2d5a27; margin-top: 0; font-size: 20px; }
           .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
           }
-          .info-item {
-            margin-bottom: 10px;
-          }
-          .info-label {
-            font-weight: bold;
-            color: #555;
-            font-size: 14px;
-          }
-          .info-value {
-            color: #333;
-            font-size: 16px;
-          }
-          .items-section {
-            margin-bottom: 30px;
-          }
-          .items-section h2 {
-            color: #2d5a27;
-            font-size: 20px;
-            margin-bottom: 20px;
-          }
+          .info-label { font-weight: bold; color: #666; font-size: 12px; text-transform: uppercase; }
+          .info-value { font-size: 16px; margin-top: 5px; }
+          .items-section { margin-bottom: 30px; }
+          .items-section h2 { color: #2d5a27; font-size: 20px; margin-bottom: 20px; }
           .item {
             border: 1px solid #e0e0e0;
             border-radius: 8px;
-            padding: 20px;
+            padding: 15px;
             margin-bottom: 15px;
-            background: #fafafa;
           }
           .item-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
           }
-          .item-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: #2d5a27;
-          }
-          .item-price {
-            font-size: 18px;
-            font-weight: bold;
-            color: #2d5a27;
-          }
+          .item-name { font-weight: bold; font-size: 16px; }
+          .item-price { font-weight: bold; color: #2d5a27; }
           .item-details {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
             font-size: 14px;
+            color: #666;
           }
           .farmer-info {
-            background: #e8f5e8;
-            padding: 15px;
+            background: #f0f8f0;
+            padding: 10px;
             border-radius: 6px;
-            border-left: 4px solid #2d5a27;
+            margin-top: 10px;
           }
-          .farmer-info h4 {
-            margin: 0 0 10px 0;
-            color: #2d5a27;
-            font-size: 16px;
-          }
+          .farmer-info h4 { margin: 0 0 5px 0; color: #2d5a27; font-size: 14px; }
           .summary-section {
             background: #f8f9fa;
-            padding: 25px;
+            padding: 20px;
             border-radius: 8px;
-            border: 2px solid #e0e0e0;
+            margin-bottom: 30px;
           }
-          .summary-section h2 {
-            color: #2d5a27;
-            font-size: 20px;
-            margin-bottom: 20px;
-          }
+          .summary-section h2 { color: #2d5a27; font-size: 20px; margin-bottom: 20px; }
           .summary-row {
             display: flex;
             justify-content: space-between;
@@ -225,14 +210,8 @@ export class ReceiptGenerator {
             font-weight: bold;
             text-transform: uppercase;
           }
-          .status-paid {
-            background: #d4edda;
-            color: #155724;
-          }
-          .status-pending {
-            background: #fff3cd;
-            color: #856404;
-          }
+          .status-paid { background: #d4edda; color: #155724; }
+          .status-pending { background: #fff3cd; color: #856404; }
           .footer {
             background: #2d5a27;
             color: white;
@@ -240,9 +219,7 @@ export class ReceiptGenerator {
             text-align: center;
             font-size: 14px;
           }
-          .footer p {
-            margin: 5px 0;
-          }
+          .footer p { margin: 5px 0; }
           @media print {
             body { margin: 0; padding: 0; }
             .receipt-container { border: none; }
@@ -252,7 +229,7 @@ export class ReceiptGenerator {
       <body>
         <div class="receipt-container">
           <div class="header">
-            <h1>🌱 GroChain</h1>
+            <h1>GroChain</h1>
             <p>Agricultural Supply Chain Platform</p>
             <p>Order Receipt</p>
           </div>
@@ -263,38 +240,66 @@ export class ReceiptGenerator {
               <div class="info-grid">
                 <div>
                   <div class="info-item">
-                    <div class="info-label">Order Number:</div>
-                    <div class="info-value">${data.orderNumber}</div>
+                    <div class="info-label">Order Number</div>
+                    <div class="info-value">${normalized.orderNumber}</div>
                   </div>
                   <div class="info-item">
-                    <div class="info-label">Order Date:</div>
-                    <div class="info-value">${data.orderDate}</div>
+                    <div class="info-label">Order Date</div>
+                    <div class="info-value">${normalized.orderDate}</div>
                   </div>
                   <div class="info-item">
-                    <div class="info-label">Status:</div>
-                    <div class="info-value">
-                      <span class="status-badge status-${data.status}">${data.status}</span>
-                    </div>
+                    <div class="info-label">Order Status</div>
+                    <div class="info-value">${normalized.status}</div>
                   </div>
                 </div>
                 <div>
                   <div class="info-item">
-                    <div class="info-label">Payment Status:</div>
+                    <div class="info-label">Payment Status</div>
                     <div class="info-value">
-                      <span class="status-badge status-${data.paymentStatus}">${data.paymentStatus}</span>
+                      <span class="status-badge ${paymentBadgeClass}">${normalized.paymentStatus}</span>
                     </div>
                   </div>
                   <div class="info-item">
-                    <div class="info-label">Total Amount:</div>
-                    <div class="info-value" style="font-weight: bold; font-size: 18px; color: #2d5a27;">${formatPrice(data.total)}</div>
+                    <div class="info-label">Total Amount</div>
+                    <div class="info-value" style="font-weight: bold; font-size: 18px; color: #2d5a27;">${formatPrice(normalized.total)}</div>
                   </div>
+                  ${normalized.paymentReference ? `
+                  <div class="info-item">
+                    <div class="info-label">Payment Reference</div>
+                    <div class="info-value" style="font-family: monospace; font-size: 13px;">${normalized.paymentReference}</div>
+                  </div>
+                  ` : ''}
+                  ${normalized.paidAt ? `
+                  <div class="info-item">
+                    <div class="info-label">Paid At</div>
+                    <div class="info-value">${normalized.paidAt}</div>
+                  </div>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+
+            <div class="order-info">
+              <h2>Buyer Information</h2>
+              <div class="info-grid">
+                <div>
+                  <div class="info-label">Name</div>
+                  <div class="info-value">${normalized.buyer.name}</div>
+                </div>
+                <div>
+                  <div class="info-label">Email</div>
+                  <div class="info-value">${normalized.buyer.email}</div>
+                </div>
+                <div>
+                  <div class="info-label">Phone</div>
+                  <div class="info-value">${normalized.buyer.phone}</div>
                 </div>
               </div>
             </div>
 
             <div class="items-section">
               <h2>Order Items</h2>
-              ${data.items.map(item => `
+              ${normalized.items.map(item => `
                 <div class="item">
                   <div class="item-header">
                     <div class="item-name">${item.cropName}</div>
@@ -303,15 +308,13 @@ export class ReceiptGenerator {
                   <div class="item-details">
                     <div>
                       <strong>Quantity:</strong> ${item.quantity} ${item.unit}<br>
-                      <strong>Unit Price:</strong> ${formatPrice(item.price)}<br>
-                      <strong>Total:</strong> ${formatPrice(item.total)}
+                      <strong>Unit Price:</strong> ${formatPrice(item.price)}
                     </div>
                     <div class="farmer-info">
-                      <h4>Farmer Information</h4>
-                      <strong>Name:</strong> ${item.farmer.name}<br>
-                      <strong>Farm:</strong> ${item.farmer.farmName}<br>
-                      <strong>Phone:</strong> ${item.farmer.phone}<br>
-                      <strong>Email:</strong> ${item.farmer.email}
+                      <h4>Farmer</h4>
+                      <strong>${item.farmer.name}</strong><br>
+                      ${item.farmer.farmName}<br>
+                      ${item.farmer.phone}
                     </div>
                   </div>
                 </div>
@@ -321,20 +324,20 @@ export class ReceiptGenerator {
             <div class="summary-section">
               <h2>Order Summary</h2>
               <div class="summary-row">
-                <span>Subtotal:</span>
-                <span>${formatPrice(data.subtotal)}</span>
+                <span>Subtotal</span>
+                <span>${formatPrice(normalized.subtotal)}</span>
               </div>
               <div class="summary-row">
-                <span>Shipping:</span>
-                <span>${data.shipping > 0 ? formatPrice(data.shipping) : 'FREE'}</span>
+                <span>Shipping</span>
+                <span>${normalized.shipping > 0 ? formatPrice(normalized.shipping) : 'FREE'}</span>
               </div>
               <div class="summary-row">
-                <span>Tax (7.5% VAT):</span>
-                <span>${formatPrice(data.tax)}</span>
+                <span>Tax (VAT)</span>
+                <span>${formatPrice(normalized.tax)}</span>
               </div>
               <div class="summary-row">
-                <span><strong>Total:</strong></span>
-                <span><strong>${formatPrice(data.total)}</strong></span>
+                <span>Total</span>
+                <span>${formatPrice(normalized.total)}</span>
               </div>
             </div>
 
@@ -342,24 +345,20 @@ export class ReceiptGenerator {
               <h2>Delivery Information</h2>
               <div class="info-grid">
                 <div>
-                  <div class="info-item">
-                    <div class="info-label">Delivery Address:</div>
-                    <div class="info-value">
-                      ${data.shippingAddress.street}<br>
-                      ${data.shippingAddress.city}, ${data.shippingAddress.state}<br>
-                      ${data.shippingAddress.country}
-                    </div>
+                  <div class="info-label">Address</div>
+                  <div class="info-value">
+                    ${addr.street}<br>
+                    ${[addr.city, addr.state].filter(Boolean).join(', ')}<br>
+                    ${addr.country}
                   </div>
                 </div>
                 <div>
-                  <div class="info-item">
-                    <div class="info-label">Contact Phone:</div>
-                    <div class="info-value">${data.shippingAddress.phone}</div>
-                  </div>
-                  ${data.deliveryInstructions ? `
-                    <div class="info-item">
-                      <div class="info-label">Delivery Instructions:</div>
-                      <div class="info-value">${data.deliveryInstructions}</div>
+                  <div class="info-label">Contact Phone</div>
+                  <div class="info-value">${addr.phone}</div>
+                  ${normalized.deliveryInstructions ? `
+                    <div class="info-item" style="margin-top: 12px;">
+                      <div class="info-label">Instructions</div>
+                      <div class="info-value">${normalized.deliveryInstructions}</div>
                     </div>
                   ` : ''}
                 </div>
@@ -368,16 +367,9 @@ export class ReceiptGenerator {
           </div>
 
           <div class="footer">
-            <p><strong>Thank you for choosing GroChain!</strong></p>
-            <p>For support, contact us at support@grochain.com or +234 123 456 7890</p>
-            <p>This receipt was generated on ${new Date().toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}</p>
+            <p><strong>Thank you for choosing GroChain</strong></p>
+            <p>For support: support@grochain.com</p>
+            <p>Generated ${new Date().toLocaleString('en-NG')}</p>
           </div>
         </div>
       </body>

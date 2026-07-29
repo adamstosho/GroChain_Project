@@ -1,6 +1,11 @@
 const express = require('express')
 const router = express.Router()
 const net = require('net')
+const { authenticate, authorize } = require('../middlewares/auth.middleware')
+
+// Lock debug endpoints to admin users only
+router.use(authenticate)
+router.use(authorize(['admin']))
 
 // Debug endpoint to check production environment
 router.get('/debug', (req, res) => {

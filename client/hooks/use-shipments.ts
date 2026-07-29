@@ -381,3 +381,58 @@ export function useSearchShipments() {
     searchShipments
   }
 }
+
+export function useExportShipments() {
+  const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
+
+  const exportShipments = useCallback(async (format: 'csv' | 'excel' | 'json' = 'csv', filters: ShipmentFilters = {}) => {
+    try {
+      setLoading(true)
+      
+      const response = await apiService.post('/export/shipments', { format, filters })
+      
+      if (response.status === 'success' && response.data.filename) {
+        toast({
+          title: "Preparing Download",
+          description: "Your file is ready. Starting download...",
+        })
+        
+        // Fetch the file using getRaw (authenticated)
+        const downloadResponse = await apiService.getRaw(`/export/download/${response.data.filename}`)
+        const blob = await downloadResponse.blob()
+        
+        // Create download link
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', response.data.filename)
+        document.body.appendChild(link)
+        link.click()
+        
+        // Cleanup
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        
+        return response.data
+      } else {
+        throw new Error(response.message || 'Failed to export shipments')
+      }
+    } catch (err: any) {
+      console.error('Error exporting shipments:', err)
+      toast({
+        title: "Export Failed",
+        description: err.message || "Failed to export shipments",
+        variant: "destructive",
+      })
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
+
+  return {
+    exportShipments,
+    loading
+  }
+}

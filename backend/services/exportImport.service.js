@@ -290,6 +290,40 @@ class ExportImportService {
     }
   }
 
+  // Export orders
+  async exportOrders(filters = {}, format = 'csv', options = {}) {
+    try {
+      const Order = require('../models/order.model')
+      const query = this.buildOrderQuery(filters)
+      const orders = await Order.find(query)
+        .populate('buyer', 'name email phone')
+        .populate('seller', 'name email phone')
+        .lean()
+
+      const exportData = orders.map(order => ({
+        id: order._id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        total: order.total,
+        itemCount: order.items?.length || 0,
+        buyerName: order.buyer?.name,
+        buyerEmail: order.buyer?.email,
+        buyerPhone: order.buyer?.phone,
+        sellerName: order.seller?.name,
+        sellerEmail: order.seller?.email,
+        sellerPhone: order.seller?.phone,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt
+      }))
+
+      return await this.exportData(exportData, { format, ...options })
+    } catch (error) {
+      console.error('Export orders error:', error)
+      throw error
+    }
+  }
+
   // Export analytics data
   async exportAnalytics(filters = {}, format = 'csv', options = {}) {
     try {
@@ -675,20 +709,26 @@ class ExportImportService {
         skipErrors = false
       } = options
 
-      const fileExt = path.extname(filePath).toLowerCase()
+      const resolvedPath = path.resolve(filePath)
+      const allowedRoot = path.resolve(this.importDir)
+      if (!resolvedPath.startsWith(allowedRoot + path.sep) && resolvedPath !== allowedRoot) {
+        throw new Error('Import path is outside allowed directory')
+      }
+
+      const fileExt = path.extname(resolvedPath).toLowerCase()
       let data
 
       // Read data based on file type
       switch (fileExt) {
         case '.csv':
-          data = await this.readCSVFile(filePath)
+          data = await this.readCSVFile(resolvedPath)
           break
         case '.xlsx':
         case '.xls':
-          data = await this.readExcelFile(filePath)
+          data = await this.readExcelFile(resolvedPath)
           break
         case '.json':
-          data = await this.readJSONFile(filePath)
+          data = await this.readJSONFile(resolvedPath)
           break
         default:
           throw new Error(`Unsupported file type: ${fileExt}`)
@@ -1179,6 +1219,22 @@ class ExportImportService {
     if (filters.type) query.type = filters.type
     if (filters.status) query.status = filters.status
     if (filters.provider) query.provider = filters.provider
+
+    return query
+  }
+
+  buildOrderQuery(filters) {
+    const query = {}
+    
+    if (filters.status) query.status = filters.status
+    if (filters.paymentStatus) query.paymentStatus = filters.paymentStatus
+    if (filters.buyerId) query.buyer = filters.buyerId
+    if (filters.sellerId) query.seller = filters.sellerId
+    if (filters.startDate || filters.endDate) {
+      query.createdAt = {}
+      if (filters.startDate) query.createdAt.$gte = new Date(filters.startDate)
+      if (filters.endDate) query.createdAt.$lte = new Date(filters.endDate)
+    }
 
     return query
   }

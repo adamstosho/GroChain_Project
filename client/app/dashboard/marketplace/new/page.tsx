@@ -25,6 +25,7 @@ import {
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
+import { MarketplaceCard, type MarketplaceProduct } from "@/components/agricultural/marketplace-card"
 
 interface ListingFormData {
   cropName: string
@@ -49,6 +50,7 @@ interface HarvestData {
   location: string
   description?: string
   quality: string
+  organic?: boolean
   images?: string[]
   price?: number
 }
@@ -337,6 +339,41 @@ function CreateListingPage() {
   const getCategoryIcon = (category: string) => {
     const found = categories.find(cat => cat.value === category)
     return found ? found.icon : '🌱'
+  }
+
+  const previewProduct: MarketplaceProduct = {
+    id: harvestId || 'preview-listing',
+    name: formData.cropName || 'Unnamed Produce',
+    cropType: formData.cropName || 'Grains',
+    variety: harvestData?.variety || 'Standard Variety',
+    description: formData.description || 'Provide a description on the left to see it rendered here.',
+    price: formData.basePrice || 0,
+    unit: formData.unit || 'kg',
+    quantity: formData.quantity || 100,
+    availableQuantity: formData.availableQuantity || 100,
+    quality: (harvestData?.quality || 'good') as 'excellent' | 'good' | 'fair' | 'poor',
+    grade: (harvestData?.quality === 'excellent' ? 'A' : harvestData?.quality === 'good' ? 'B' : 'C') as 'A' | 'B' | 'C',
+    organic: Boolean(harvestData?.organic),
+    harvestDate: new Date(),
+    location: formData.location || 'Nigeria',
+    farmer: {
+      id: 'farmer-preview',
+      name: 'You (Farmer)',
+      rating: 4.9,
+      verified: true,
+      location: formData.location || 'Nigeria'
+    },
+    images: formData.images.length > 0 ? formData.images : ['https://images.unsplash.com/photo-1593113598332-cd288d649433?q=80&w=600'],
+    certifications: [],
+    shipping: {
+      available: true,
+      cost: 0,
+      estimatedDays: 3
+    },
+    rating: 4.9,
+    reviewCount: 8,
+    qrCode: harvestData?.id || '',
+    tags: formData.tags
   }
 
   return (
@@ -732,67 +769,13 @@ function CreateListingPage() {
           {/* Sidebar */}
           <div className="space-y-4 sm:space-y-6">
             {/* Listing Preview */}
-            <Card className="border border-gray-200 h-full">
-              <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
-                <CardTitle className="text-sm sm:text-base font-medium">Listing Preview</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">How your listing will appear</CardDescription>
+            <Card className="border border-slate-100 shadow-sm rounded-2xl overflow-hidden bg-white">
+              <CardHeader className="pb-3 px-4 pt-4">
+                <CardTitle className="text-sm font-semibold text-slate-900">Listing Preview</CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">How your product card will appear live</CardDescription>
               </CardHeader>
-              <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 space-y-3 sm:space-y-4">
-                {formData.cropName ? (
-                  <div className="space-y-2 sm:space-y-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg sm:text-xl lg:text-2xl flex-shrink-0">{getCategoryIcon(formData.category)}</span>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="font-medium text-gray-900 text-xs sm:text-sm truncate">{formData.cropName}</h4>
-                        <p className="text-xs text-gray-500 truncate">{formData.category}</p>
-                      </div>
-                    </div>
-                    
-                    {formData.description && (
-                      <p className="text-xs sm:text-sm text-gray-600 line-clamp-3">
-                        {formData.description}
-                      </p>
-                    )}
-                    
-                    <div className="space-y-1.5 sm:space-y-2">
-                      <div className="flex justify-between text-xs sm:text-sm">
-                        <span className="text-gray-600">Price:</span>
-                        <span className="font-medium">
-                          ₦{formData.basePrice > 0 ? formData.basePrice.toLocaleString() : '0'}/{formData.unit}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-xs sm:text-sm">
-                        <span className="text-gray-600">Available:</span>
-                        <span className="font-medium">
-                          {formData.availableQuantity > 0 ? formData.availableQuantity : '0'} {formData.unit}
-                        </span>
-                      </div>
-                      {formData.location && (
-                        <div className="flex justify-between text-xs sm:text-sm">
-                          <span className="text-gray-600">Location:</span>
-                          <span className="font-medium truncate ml-2">
-                            {formData.location}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {formData.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {formData.tags.map((tag) => (
-                          <Badge key={tag} variant="secondary" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-6 sm:py-8 text-gray-500">
-                    <Package className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2" />
-                    <p className="text-xs sm:text-sm">Fill in the form to see a preview</p>
-                  </div>
-                )}
+              <CardContent className="px-4 pb-4">
+                <MarketplaceCard product={previewProduct} className="pointer-events-none border border-slate-100 shadow-sm" />
               </CardContent>
             </Card>
 

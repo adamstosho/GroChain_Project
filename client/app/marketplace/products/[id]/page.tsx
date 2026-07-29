@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { apiService } from "@/lib/api"
-import { useBuyerStore, useCartInitialization } from "@/hooks/use-buyer-store"
+import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { useToast } from "@/hooks/use-toast"
 import { useAuthStore } from "@/lib/auth"
 import { ReviewForm } from "@/components/reviews/review-form"
@@ -25,7 +25,7 @@ export default function ProductDetailPage() {
   const { user } = useAuthStore()
 
   // Initialize cart from localStorage
-  useCartInitialization()
+
   const { toast } = useToast()
   const [product, setProduct] = useState<any>(null)
   const [reviews, setReviews] = useState<Review[]>([])

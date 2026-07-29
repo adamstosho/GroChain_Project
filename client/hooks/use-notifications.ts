@@ -313,7 +313,7 @@ export const useNotifications = () => {
     }
 
     try {
-      const serverUrl = APP_CONFIG.api.baseUrl.replace('http://', 'http://').replace('https://', 'https://')
+      const serverUrl = APP_CONFIG.api.wsUrl || APP_CONFIG.api.baseUrl
       const token = localStorage.getItem('grochain_auth_token')
 
       if (!token) {
@@ -460,49 +460,53 @@ export const useNotifications = () => {
     setState(prev => ({ ...prev, connected: false }))
   }, [])
 
-  // Initialize notifications and Socket.IO connection
-  useEffect(() => {
-    if (user) {
-      fetchNotifications()
+  const userId = user?._id ?? user?.id ?? null
+  const fetchNotificationsRef = useRef(fetchNotifications)
+  const connectSocketRef = useRef(connectSocket)
+  const disconnectSocketRef = useRef(disconnectSocket)
+  fetchNotificationsRef.current = fetchNotifications
+  connectSocketRef.current = connectSocket
+  disconnectSocketRef.current = disconnectSocket
 
-      // Add a small delay before attempting Socket.IO connection
-      // This helps ensure the user is fully authenticated
+  // Initialize notifications and Socket.IO connection (stable deps — avoid reconnect loops)
+  useEffect(() => {
+    if (userId) {
+      void fetchNotificationsRef.current()
+
       const socketTimeout = setTimeout(() => {
         try {
-          connectSocket()
+          connectSocketRef.current()
         } catch (error) {
           console.error('🔔 Error during Socket.IO connection attempt:', error)
-          // Silently handle the error - notifications will fallback to polling
         }
       }, 1000)
 
-      return () => clearTimeout(socketTimeout)
-    } else {
-      setState(prev => ({
-        ...prev,
-        notifications: [],
-        unreadCount: 0,
-        loading: false,
-        connected: false
-      }))
-      disconnectSocket()
+      return () => {
+        clearTimeout(socketTimeout)
+        disconnectSocketRef.current()
+      }
     }
 
-    return () => {
-      disconnectSocket()
-    }
-  }, [user, fetchNotifications, connectSocket, disconnectSocket])
+    setState((prev) => ({
+      ...prev,
+      notifications: [],
+      unreadCount: 0,
+      loading: false,
+      connected: false,
+    }))
+    disconnectSocketRef.current()
+  }, [userId])
 
   // Refresh notifications periodically
   useEffect(() => {
-    if (!user) return
+    if (!userId) return
 
     const interval = setInterval(() => {
-      fetchNotifications()
-    }, 60000) // Refresh every minute
+      void fetchNotificationsRef.current()
+    }, 60000)
 
     return () => clearInterval(interval)
-  }, [user, fetchNotifications])
+  }, [userId])
 
   return {
     ...state,

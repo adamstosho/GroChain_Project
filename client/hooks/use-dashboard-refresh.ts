@@ -14,9 +14,14 @@ export function useDashboardRefresh({
   const lastRefreshRef = useRef<number>(0)
   const backgroundSyncRef = useRef<NodeJS.Timeout | null>(null)
   const isPageVisibleRef = useRef<boolean>(true)
+  const onRefreshRef = useRef(onRefresh)
+  const onOptimisticUpdateRef = useRef(onOptimisticUpdate)
+
+  onRefreshRef.current = onRefresh
+  onOptimisticUpdateRef.current = onOptimisticUpdate
 
   const handleRefresh = useCallback((reason: string = 'manual') => {
-    if (!user || !onRefresh) return
+    if (!user || !onRefreshRef.current) return
 
     const now = Date.now()
     const timeSinceLastRefresh = now - lastRefreshRef.current
@@ -29,16 +34,16 @@ export function useDashboardRefresh({
 
     console.log(`🔄 Dashboard refresh triggered: ${reason}`)
     lastRefreshRef.current = now
-    onRefresh()
-  }, [user, onRefresh])
+    onRefreshRef.current()
+  }, [user])
 
   // Optimistic update for immediate UI feedback
   const handleOptimisticUpdate = useCallback((action: string, data: any) => {
-    if (!user || !onOptimisticUpdate) return
+    if (!user || !onOptimisticUpdateRef.current) return
     
     console.log(`⚡ Optimistic update: ${action}`, data)
-    onOptimisticUpdate(action, data)
-  }, [user, onOptimisticUpdate])
+    onOptimisticUpdateRef.current(action, data)
+  }, [user])
 
   // Page visibility change handler
   useEffect(() => {
@@ -75,7 +80,7 @@ export function useDashboardRefresh({
 
   // Background sync (every 10 minutes when page is active)
   useEffect(() => {
-    if (!user || !onRefresh) return
+    if (!user || !onRefreshRef.current) return
 
     const startBackgroundSync = () => {
       if (backgroundSyncRef.current) {
@@ -97,7 +102,7 @@ export function useDashboardRefresh({
         clearInterval(backgroundSyncRef.current)
       }
     }
-  }, [user, onRefresh, handleRefresh])
+  }, [user, handleRefresh])
 
   // Cleanup on unmount
   useEffect(() => {

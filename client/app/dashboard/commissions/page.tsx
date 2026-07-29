@@ -193,7 +193,7 @@ export default function CommissionsPage() {
 
   const handleUpdateStatus = async (commissionId: string, newStatus: string) => {
     try {
-      await updateCommissionStatus(commissionId, { status: newStatus })
+      await updateCommissionStatus(commissionId, newStatus)
       toast({
         title: "Status updated",
         description: `Commission status updated to ${newStatus}`,

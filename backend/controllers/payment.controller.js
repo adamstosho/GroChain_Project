@@ -1,4 +1,4 @@
-// crypto is built-in to Node.js, no need to require it
+const crypto = require('crypto')
 const Order = require('../models/order.model')
 const Transaction = require('../models/transaction.model')
 const Commission = require('../models/commission.model')
@@ -8,6 +8,19 @@ const notificationController = require('./notification.controller')
 const realTimeCommissionService = require('../services/commission-realtime.service')
 const PaystackUtil = require('../utils/paystack.util')
 const FlutterwaveUtil = require('../utils/flutterwave.util')
+
+const allowInsecureTestPayments = () =>
+  process.env.ALLOW_INSECURE_TEST_PAYMENTS === 'true' && process.env.NODE_ENV !== 'production'
+
+const hasValidProviderSecret = (provider) => {
+  if (provider === 'flutterwave') {
+    const key = process.env.FLUTTERWAVE_SECRET_KEY
+    return !!(key && key !== 'FLWSECK_TEST_your_secret_key_here' && key !== 'your_flutterwave_secret_key')
+  }
+
+  const key = process.env.PAYSTACK_SECRET_KEY
+  return !!(key && key !== 'sk_test_your_secret_key_here')
+}
 
 exports.getPaymentConfig = async (req, res) => {
   try {
@@ -44,6 +57,7 @@ exports.getPaymentConfig = async (req, res) => {
 exports.initializePayment = async (req, res) => {
   try {
     const { orderId, amount, email, callbackUrl, paymentProvider = 'paystack' } = req.body
+    const currentUserId = req.user?.id || req.user?._id
     
     if (!orderId || !amount || !email) {
       return res.status(400).json({ 
@@ -68,6 +82,13 @@ exports.initializePayment = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Order not found' })
     }
 
+    if (!currentUserId || order.buyer?._id?.toString() !== currentUserId.toString()) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'You can only initialize payment for your own order'
+      })
+    }
+
     // More robust email validation - trim whitespace and handle case sensitivity
     const buyerEmail = (order.buyer.email || '').toLowerCase().trim()
     const providedEmail = (email || '').toLowerCase().trim()
@@ -84,9 +105,37 @@ exports.initializePayment = async (req, res) => {
         message: 'Email mismatch: The email provided does not match the buyer\'s registered email'
       })
     }
+
+    if (order.paymentStatus === 'paid') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'This order has already been paid'
+      })
+    }
+
+    const requestedAmount = Number(amount)
+    const orderTotal = Number(order.total)
+    if (!Number.isFinite(requestedAmount) || requestedAmount <= 0) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid payment amount'
+      })
+    }
+    if (!Number.isFinite(orderTotal) || orderTotal <= 0) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Order total is invalid'
+      })
+    }
+    if (Math.abs(requestedAmount - orderTotal) > 0.01) {
+      return res.status(400).json({
+        status: 'error',
+        message: `Payment amount must match order total (₦${orderTotal.toLocaleString('en-NG')})`
+      })
+    }
     
     // Generate unique reference
-    const reference = `GROCHAIN_${Date.now()}_${require('crypto').randomBytes(8).toString('hex')}`
+    const reference = `GROCHAIN_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`
     
     // Create transaction record
     const transaction = new Transaction({
@@ -108,7 +157,7 @@ exports.initializePayment = async (req, res) => {
     
     await transaction.save()
     
-    // Auto-verify payment in test mode (since payment provider keys are not configured)
+    // Allow insecure test-mode behavior only when explicitly enabled
     console.log('🔍 Checking payment provider configuration:', {
       provider: paymentProvider,
       hasPaystackKey: !!process.env.PAYSTACK_SECRET_KEY,
@@ -118,10 +167,7 @@ exports.initializePayment = async (req, res) => {
         (!process.env.FLUTTERWAVE_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY === 'FLWSECK_TEST_your_secret_key_here')
     })
     
-    const isTestMode = true; // FORCE AUTO-VERIFICATION FOR ALL PAYMENTS
-    // const isTestMode = paymentProvider === 'paystack' ? 
-    //   (!process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET_KEY === 'sk_test_your_secret_key_here') :
-    //   (!process.env.FLUTTERWAVE_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY === 'FLWSECK_TEST_your_secret_key_here' || process.env.FLUTTERWAVE_SECRET_KEY === 'your_flutterwave_secret_key')
+    const isTestMode = allowInsecureTestPayments()
     
     if (isTestMode) {
       console.log('🧪 Auto-verifying payment in test mode...')
@@ -249,7 +295,13 @@ exports.initializePayment = async (req, res) => {
       console.log('🔗 Initializing payment with Paystack API...')
       
       // Check if Paystack keys are configured
-      if (!process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET_KEY === 'sk_test_your_secret_key_here') {
+      if (!hasValidProviderSecret('paystack')) {
+        if (!allowInsecureTestPayments()) {
+          return res.status(503).json({
+            status: 'error',
+            message: 'Paystack is not configured. Contact support.'
+          })
+        }
         console.log('⚠️ Paystack keys not configured, using fallback mode')
         
         // Fallback: Create a simulated response that will work for testing
@@ -288,7 +340,13 @@ exports.initializePayment = async (req, res) => {
       console.log('🔗 Initializing payment with Flutterwave API...')
       
     // Check if Flutterwave keys are configured
-    if (!process.env.FLUTTERWAVE_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY === 'FLWSECK_TEST_your_secret_key_here' || process.env.FLUTTERWAVE_SECRET_KEY === 'your_flutterwave_secret_key') {
+      if (!hasValidProviderSecret('flutterwave')) {
+        if (!allowInsecureTestPayments()) {
+          return res.status(503).json({
+            status: 'error',
+            message: 'Flutterwave is not configured. Contact support.'
+          })
+        }
         console.log('⚠️ Flutterwave keys not configured, using fallback mode')
         
         // Fallback: Create a simulated response that will work for testing
@@ -343,6 +401,8 @@ exports.verifyPayment = async (req, res) => {
   try {
     const { reference } = req.params
     const { paymentProvider } = req.query
+    const currentUserId = req.user?.id || req.user?._id
+    const currentUserRole = req.user?.role
 
     console.log('🔍 Manual payment verification for reference:', reference, 'provider:', paymentProvider)
 
@@ -352,9 +412,17 @@ exports.verifyPayment = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Transaction not found' })
     }
 
-    // If already completed, still check if inventory needs updating
+    if (
+      currentUserRole !== 'admin' &&
+      currentUserRole !== 'partner' &&
+      transaction.userId?.toString?.() !== currentUserId?.toString?.()
+    ) {
+      return res.status(403).json({ status: 'error', message: 'Access denied' })
+    }
+
+    // If already completed, return idempotent success without side effects
     if (transaction.status === 'completed') {
-      console.log('✅ Transaction already completed - checking inventory updates')
+      console.log('✅ Transaction already completed - returning idempotent response')
 
       // Always try to fetch and return the latest order data
       let orderData = null
@@ -364,75 +432,6 @@ exports.verifyPayment = async (req, res) => {
         
         if (order) {
           orderData = order
-          
-          // Check if inventory needs updating for this completed transaction
-          console.log('🔍 Checking if inventory needs updating for completed transaction...')
-          
-          try {
-            const Listing = require('../models/listing.model')
-            
-            for (const item of order.items) {
-              if (item.listing) {
-                const listing = item.listing
-                
-                // Check if this listing was updated after the order was created
-                // If listing was updated before order creation, we need to update inventory
-                if (listing.updatedAt < order.createdAt) {
-                  console.log('🛒 Inventory update needed for completed transaction:', {
-                    listingId: listing._id,
-                    cropName: listing.cropName,
-                    orderCreated: order.createdAt,
-                    listingUpdated: listing.updatedAt
-                  })
-                  
-                  // Validate that we have enough stock before updating
-                  if (listing.availableQuantity < item.quantity) {
-                    console.error('❌ Insufficient stock for item:', {
-                      listingId: listing._id,
-                      cropName: listing.cropName,
-                      availableQuantity: listing.availableQuantity,
-                      orderedQuantity: item.quantity
-                    })
-                    continue
-                  }
-                  
-                  const newAvailableQuantity = listing.availableQuantity - item.quantity
-                  
-                  // Use atomic update to prevent race conditions
-                  const updatedListing = await Listing.findByIdAndUpdate(
-                    listing._id, 
-                    {
-                      $inc: { 
-                        availableQuantity: -item.quantity
-                      },
-                      $set: {
-                        status: newAvailableQuantity <= 0 ? 'sold_out' : listing.status,
-                        soldOutAt: newAvailableQuantity <= 0 ? new Date() : null,
-                        updatedAt: new Date()
-                      }
-                    }, 
-                    { 
-                      new: true,
-                      runValidators: true
-                    }
-                  )
-
-                  if (updatedListing) {
-                    console.log('✅ Inventory updated for completed transaction:', {
-                      listingId: listing._id,
-                      cropName: listing.cropName,
-                      finalAvailableQuantity: updatedListing.availableQuantity,
-                      status: updatedListing.status
-                    })
-                  }
-                } else {
-                  console.log('✅ Inventory already up to date for:', listing.cropName)
-                }
-              }
-            }
-          } catch (inventoryError) {
-            console.error('❌ Inventory update failed for completed transaction:', inventoryError)
-          }
         }
       }
 
@@ -447,18 +446,17 @@ exports.verifyPayment = async (req, res) => {
     }
 
     // Check if this is a test mode payment
-    const isTestMode = req.query.test_mode === 'true' || req.body?.test_mode === true
+    const isTestMode = (req.query.test_mode === 'true' || req.body?.test_mode === true) && allowInsecureTestPayments()
     const provider = paymentProvider || transaction.paymentProvider || 'paystack'
     
-    const isProviderTestMode = provider === 'paystack' ? 
-      (!process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET_KEY === 'sk_test_your_secret_key_here') :
-      (!process.env.FLUTTERWAVE_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY === 'FLWSECK_TEST_your_secret_key_here' || process.env.FLUTTERWAVE_SECRET_KEY === 'your_flutterwave_secret_key')
+    const isProviderTestMode = !hasValidProviderSecret(provider) && allowInsecureTestPayments()
+    let verificationData
     
     if (isTestMode || isProviderTestMode) {
       console.log('🧪 Test mode: Simulating successful payment verification')
       
       // In test mode, always mark as successful
-      const verificationData = {
+      verificationData = {
         status: 'success',
         amount: transaction.amount * 100, // Convert to kobo
         reference: reference,
@@ -509,7 +507,7 @@ exports.verifyPayment = async (req, res) => {
 
       console.log(`✅ ${provider} verification successful`)
       
-      const verificationData = {
+      verificationData = {
         status: 'success',
         amount: providerVerification.amount,
         reference: reference,
@@ -545,14 +543,26 @@ exports.verifyPayment = async (req, res) => {
       if (order) {
         console.log('📦 Updating order status to paid:', transaction.orderId)
 
-        // Ensure we update both status and paymentStatus
-        order.status = 'confirmed'
-        order.paymentStatus = 'paid'
-        order.paymentReference = reference
-        await order.save()
-        updatedOrder = order
-        console.log('✅ Order status updated successfully')
+        // Canonical paid flag is paymentStatus; status may be pending/confirmed/paid depending on flow
+        const hadPaidPayment = order.paymentStatus === 'paid'
 
+        if (!hadPaidPayment) {
+          order.status = 'confirmed'
+          order.paymentStatus = 'paid'
+          order.paymentReference = reference
+          await order.save()
+          updatedOrder = order
+          console.log('✅ Order status updated successfully')
+        } else {
+          if (!order.paymentReference) {
+            order.paymentReference = reference
+            await order.save()
+          }
+          updatedOrder = order
+          console.log('ℹ️ Order already paid; skipping inventory, commissions, and payment notifications')
+        }
+
+        if (!hadPaidPayment) {
         // Update inventory for each item in the order (always update on successful payment verification)
         try {
           console.log('📦 Updating inventory for paid order...')
@@ -629,6 +639,9 @@ exports.verifyPayment = async (req, res) => {
 
         // Calculate and create commissions with real-time updates
         try {
+          const Listing = require('../models/listing.model')
+          const User = require('../models/user.model')
+
           console.log('🔄 Processing commissions with real-time updates for order:', order._id);
           
           // Use the real-time commission service
@@ -660,31 +673,16 @@ exports.verifyPayment = async (req, res) => {
             console.log('🔄 Verifying partner commissions for farmer:', farmer.name);
             await realTimeCommissionService.verifyPartnerCommissions(farmer.partner);
           }
-          
-          // Verify partner commissions for all involved farmers
-          for (const item of order.items || []) {
-            if (!item.listing) continue;
-            
-            const listing = await Listing.findById(item.listing).populate('farmer');
-            if (!listing || !listing.farmer) continue;
-            
-            const farmer = typeof listing.farmer === 'object' ? listing.farmer : await User.findById(listing.farmer);
-            if (!farmer || !farmer.partner) continue;
-            
-            console.log('🔄 Verifying partner commissions for farmer:', farmer.name);
-            await realTimeCommissionService.verifyPartnerCommissions(farmer.partner);
-          }
           console.log('✅ Commissions created successfully')
         } catch (commissionError) {
           console.error('❌ Commission creation failed:', commissionError)
           // Don't fail the verification because of commission errors
         }
 
-        // Track if order was just marked as paid to avoid duplicate notifications
-        const wasJustPaid = order.status === 'confirmed' && order.paymentStatus === 'paid'
+        }
 
-        // Create notifications for successful payment (only if order was just paid)
-        if (wasJustPaid) {
+        // Create notifications for successful payment (only when this verification transitioned the order to paid)
+        if (!hadPaidPayment) {
           try {
           // Notify buyer about successful payment
           await notificationController.createNotificationForActivity(
@@ -980,26 +978,43 @@ exports.processRefund = async (req, res) => {
   try {
     const { orderId } = req.params
     const { reason, amount } = req.body
-    
+
+    const currentUserId = (req.user?.id || req.user?._id)?.toString?.()
+    const currentRole = req.user?.role
+
     const order = await Order.findById(orderId)
     if (!order) {
       return res.status(404).json({ status: 'error', message: 'Order not found' })
     }
-    
-    if (order.status !== 'paid') {
+
+    if (currentRole !== 'admin' && order.buyer?.toString?.() !== currentUserId) {
+      return res.status(403).json({ status: 'error', message: 'Access denied' })
+    }
+
+    if (order.paymentStatus !== 'paid') {
       return res.status(400).json({ status: 'error', message: 'Order is not paid' })
     }
-    
-    const refundAmount = amount || order.total
-    
+
+    if (order.paymentStatus === 'refunded' || order.status === 'refunded') {
+      return res.status(400).json({ status: 'error', message: 'Order is already refunded' })
+    }
+
+    const refundAmount = amount != null ? Number(amount) : order.total
+    if (!Number.isFinite(refundAmount) || refundAmount <= 0) {
+      return res.status(400).json({ status: 'error', message: 'Invalid refund amount' })
+    }
+    if (refundAmount > order.total) {
+      return res.status(400).json({ status: 'error', message: 'Refund amount cannot exceed order total' })
+    }
+
     // Create refund transaction
     const refundTransaction = new Transaction({
       type: 'refund',
       status: 'pending',
       amount: refundAmount,
       currency: 'NGN',
-      reference: `REFUND_${Date.now()}_${require('crypto').randomBytes(8).toString('hex')}`,
-      description: `Refund for order ${orderId}: ${reason}`,
+      reference: `REFUND_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`,
+      description: `Refund for order ${orderId}: ${reason || 'no reason given'}`,
       userId: order.buyer,
       orderId: orderId,
       paymentProvider: 'paystack',
@@ -1008,13 +1023,13 @@ exports.processRefund = async (req, res) => {
         originalOrderId: orderId
       }
     })
-    
+
     await refundTransaction.save()
-    
-    // Update order status
+
     order.status = 'refunded'
+    order.paymentStatus = 'refunded'
     await order.save()
-    
+
     return res.json({
       status: 'success',
       data: {
@@ -1091,17 +1106,29 @@ exports.getTransactionHistory = async (req, res) => {
 
 
 exports.webhookVerify = async (req, res) => {
+  let webhookLockToken = null
+  let webhookReference = null
   try {
-    // For development/testing, we'll skip signature verification
-    // In production, uncomment the lines below:
-    /*
-    const signature = req.headers['x-paystack-signature']
-    if (!signature) return res.status(401).json({ status: 'error', message: 'Missing signature' })
-    const secret = process.env.PAYSTACK_WEBHOOK_SECRET || process.env.PAYSTACK_SECRET_KEY
-    const payload = JSON.stringify(req.body)
-    const expected = require('crypto').createHmac('sha512', secret).update(payload).digest('hex')
-    if (expected !== signature) return res.status(401).json({ status: 'error', message: 'Invalid signature' })
-    */
+    const allowInsecureWebhook =
+      process.env.ALLOW_INSECURE_WEBHOOK === 'true' && process.env.NODE_ENV !== 'production'
+
+    if (!allowInsecureWebhook) {
+      const signature = req.headers['x-paystack-signature']
+      if (!signature) {
+        return res.status(401).json({ status: 'error', message: 'Missing signature' })
+      }
+
+      const secret = process.env.PAYSTACK_WEBHOOK_SECRET || process.env.PAYSTACK_SECRET_KEY
+      if (!secret) {
+        return res.status(500).json({ status: 'error', message: 'Webhook secret not configured' })
+      }
+
+      const payload = JSON.stringify(req.body)
+      const expected = crypto.createHmac('sha512', secret).update(payload).digest('hex')
+      if (expected !== signature) {
+        return res.status(401).json({ status: 'error', message: 'Invalid signature' })
+      }
+    }
 
     const event = req.body?.event
     const data = req.body?.data
@@ -1120,28 +1147,55 @@ exports.webhookVerify = async (req, res) => {
 
     // Use reference to find transaction
     const reference = data.reference
-    let tx = await Transaction.findOne({ reference })
+    webhookReference = reference
 
-    // Idempotency: if already completed, ack and return
-    if (tx && tx.status === 'completed') {
-      console.log('✅ Webhook: Transaction already processed')
-      return res.json({ status: 'success', message: 'Already processed' })
+    if (!reference) {
+      return res.status(400).json({ status: 'error', message: 'Missing payment reference' })
     }
 
+    const now = new Date()
+    webhookLockToken = crypto.randomBytes(16).toString('hex')
+
+    // Acquire atomic processing lock for this reference.
+    // Only one webhook worker can process non-completed transaction side effects.
+    let tx = await Transaction.findOneAndUpdate(
+      {
+        reference,
+        status: { $ne: 'completed' },
+        $or: [
+          { 'metadata.webhookLock.status': { $exists: false } },
+          { 'metadata.webhookLock.status': { $ne: 'processing' } },
+          { 'metadata.webhookLock.expiresAt': { $lt: now } }
+        ]
+      },
+      {
+        $set: {
+          'metadata.webhookLock': {
+            status: 'processing',
+            token: webhookLockToken,
+            event,
+            startedAt: now,
+            expiresAt: new Date(now.getTime() + 5 * 60 * 1000) // 5-minute lock timeout
+          }
+        }
+      },
+      { new: true }
+    )
+
     if (!tx) {
-      console.log('⚠️ Webhook: Transaction not found, creating shell transaction')
-      // Create a shell transaction if we didn't initiate (rare)
-      tx = new Transaction({
-        type: 'payment',
-        status: 'pending',
-        amount: (data.amount || 0) / 100,
-        currency: (data.currency || 'NGN'),
-        reference: reference,
-        description: 'Paystack webhook',
-        userId: undefined,
-        paymentProvider: 'paystack',
-        metadata: {}
-      })
+      const existingTx = await Transaction.findOne({ reference })
+      if (!existingTx) {
+        console.log('ℹ️ Webhook: Transaction not found for reference, ignoring')
+        return res.json({ status: 'success', message: 'Reference not recognized' })
+      }
+
+      if (existingTx.status === 'completed') {
+        console.log('✅ Webhook: Transaction already processed')
+        return res.json({ status: 'success', message: 'Already processed' })
+      }
+
+      console.log('ℹ️ Webhook: Transaction is already being processed by another worker')
+      return res.json({ status: 'success', message: 'Processing in progress' })
     }
 
     if (event === 'charge.success') {
@@ -1170,6 +1224,7 @@ exports.webhookVerify = async (req, res) => {
           webhookEvent: event,
           paystackVerification: paystackVerification
         }
+        tx.markModified('metadata')
         await tx.save()
         console.log('✅ Transaction updated to completed')
 
@@ -1386,9 +1441,41 @@ exports.webhookVerify = async (req, res) => {
     }
 
     console.log('✅ Webhook processing completed')
+    // Mark lock completed for traceability
+    if (webhookReference && webhookLockToken) {
+      await Transaction.findOneAndUpdate(
+        { reference: webhookReference, 'metadata.webhookLock.token': webhookLockToken },
+        {
+          $set: {
+            'metadata.webhookLock.status': 'completed',
+            'metadata.webhookLock.completedAt': new Date()
+          }
+        }
+      )
+    }
+
     return res.json({ status: 'success', message: 'Webhook processed successfully' })
   } catch (error) {
     console.error('❌ Webhook processing error:', error)
+
+    // Release lock as failed so a new delivery can retry safely
+    if (webhookReference && webhookLockToken) {
+      try {
+        await Transaction.findOneAndUpdate(
+          { reference: webhookReference, 'metadata.webhookLock.token': webhookLockToken },
+          {
+            $set: {
+              'metadata.webhookLock.status': 'failed',
+              'metadata.webhookLock.failedAt': new Date(),
+              'metadata.webhookLock.error': error.message
+            }
+          }
+        )
+      } catch (lockError) {
+        console.error('❌ Failed to update webhook lock failure state:', lockError)
+      }
+    }
+
     return res.status(500).json({ status: 'error', message: 'Webhook processing failed' })
   }
 }

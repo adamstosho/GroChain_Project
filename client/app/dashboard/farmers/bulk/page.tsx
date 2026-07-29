@@ -55,55 +55,7 @@ export default function BulkUploadPage() {
   const [showPreview, setShowPreview] = useState(false)
   const { toast } = useToast()
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const uploadedFile = acceptedFiles[0]
-    if (uploadedFile && uploadedFile.type === "text/csv") {
-      setFile(uploadedFile)
-      processCSV(uploadedFile)
-    } else {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a CSV file",
-        variant: "destructive",
-      })
-    }
-  }, [toast])
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'text/csv': ['.csv']
-    },
-    multiple: false
-  })
-
-  const processCSV = async (file: File) => {
-    try {
-      const text = await file.text()
-      const lines = text.split(/\r?\n/).filter(Boolean)
-      const headers = lines[0].split(',').map(h => h.trim())
-      
-      const data: FarmerData[] = lines.slice(1).map((line, index) => {
-        const values = line.split(',')
-        const row = {} as FarmerData
-        headers.forEach((header, i) => {
-          row[header] = values[i]?.trim() || ''
-        })
-        return row
-      })
-
-      setCsvData(data)
-      validateData(data)
-    } catch (error) {
-      toast({
-        title: "Error processing CSV",
-        description: "Please check your file format",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const validateData = (data: FarmerData[]) => {
+  const validateData = useCallback((data: FarmerData[]) => {
     const errors: string[] = []
     const valid: FarmerData[] = []
 
@@ -152,7 +104,55 @@ export default function BulkUploadPage() {
       errors,
       totalRows: data.length
     })
-  }
+  }, [])
+
+  const processCSV = useCallback(async (file: File) => {
+    try {
+      const text = await file.text()
+      const lines = text.split(/\r?\n/).filter(Boolean)
+      const headers = lines[0].split(',').map(h => h.trim())
+      
+      const data: FarmerData[] = lines.slice(1).map((line, index) => {
+        const values = line.split(',')
+        const row = {} as FarmerData
+        headers.forEach((header, i) => {
+          row[header] = values[i]?.trim() || ''
+        })
+        return row
+      })
+
+      setCsvData(data)
+      validateData(data)
+    } catch (error) {
+      toast({
+        title: "Error processing CSV",
+        description: "Please check your file format",
+        variant: "destructive",
+      })
+    }
+  }, [toast, validateData])
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    const uploadedFile = acceptedFiles[0]
+    if (uploadedFile && uploadedFile.type === "text/csv") {
+      setFile(uploadedFile)
+      processCSV(uploadedFile)
+    } else {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a CSV file",
+        variant: "destructive",
+      })
+    }
+  }, [toast, processCSV])
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'text/csv': ['.csv']
+    },
+    multiple: false
+  })
 
   const handleUpload = async () => {
     if (!file || !validationResult || validationResult.valid.length === 0) {

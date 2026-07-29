@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import { useStableDataFetch } from "@/hooks/use-stable-data-fetch"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -76,9 +77,216 @@ interface HarvestData {
   updatedAt: string
 }
 
+function getHarvestStatusColor(status: string) {
+  switch (status) {
+    case "pending":
+      return "bg-amber-50 text-amber-700 border-amber-200"
+    case "approved":
+      return "bg-emerald-50 text-emerald-700 border-emerald-200"
+    case "rejected":
+      return "bg-red-50 text-red-700 border-red-200"
+    case "shipped":
+      return "bg-blue-50 text-blue-700 border-blue-200"
+    default:
+      return "bg-gray-50 text-gray-700 border-gray-200"
+  }
+}
+
+function getHarvestQualityColor(quality: string) {
+  switch (quality) {
+    case "excellent":
+      return "bg-emerald-50 text-emerald-700 border-emerald-200"
+    case "good":
+      return "bg-blue-50 text-blue-700 border-blue-200"
+    case "fair":
+      return "bg-amber-50 text-amber-700 border-amber-200"
+    case "poor":
+      return "bg-red-50 text-red-700 border-red-200"
+    default:
+      return "bg-gray-50 text-gray-700 border-gray-200"
+  }
+}
+
+function FarmerHarvestListingCard({
+  harvest,
+  variant = "default",
+  onDeleteRequest,
+}: {
+  harvest: HarvestData
+  variant?: "default" | "detailed"
+  onDeleteRequest: (harvest: HarvestData) => void
+}) {
+  return (
+    <Card className="group h-full border border-gray-200 transition-all duration-200 hover:shadow-lg">
+      <div className="relative">
+        {harvest.images && harvest.images.length > 0 ? (
+          <div className="aspect-video overflow-hidden rounded-t-lg">
+            <Image
+              src={harvest.images[0]}
+              alt={harvest.cropType}
+              width={400}
+              height={225}
+              className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+            />
+          </div>
+        ) : (
+          <div className="flex aspect-video items-center justify-center rounded-t-lg border-b bg-gradient-to-br from-gray-50 to-gray-100">
+            <Leaf className="h-8 w-8 text-gray-400 sm:h-10 sm:w-10" />
+          </div>
+        )}
+
+        <div className="absolute right-2 top-2 sm:right-3 sm:top-3">
+          <Badge className={`${getHarvestStatusColor(harvest.status)} text-xs`}>
+            {harvest.status.charAt(0).toUpperCase() + harvest.status.slice(1)}
+          </Badge>
+        </div>
+      </div>
+
+      <CardContent className="p-3 sm:p-4">
+        <div className="space-y-2 sm:space-y-3">
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold text-gray-900 transition-colors group-hover:text-primary sm:text-base">
+              {harvest.cropType}
+            </h3>
+            {harvest.variety && (
+              <p className="truncate text-xs text-gray-600 sm:text-sm">{harvest.variety}</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1 text-xs text-gray-500 sm:gap-2">
+                <Scale className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">Quantity</span>
+              </div>
+              <p className="truncate text-xs font-medium text-gray-900 sm:text-sm">
+                {harvest.quantity} {harvest.unit}
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-1 text-xs text-gray-500 sm:gap-2">
+                <Calendar className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">Date</span>
+              </div>
+              <p className="truncate text-xs font-medium text-gray-900 sm:text-sm">
+                {new Date(harvest.harvestDate).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-1 sm:space-y-2">
+            <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+              <MapPin className="h-3 w-3 flex-shrink-0 text-gray-400" />
+              <span className="min-w-0 flex-1 truncate text-xs text-gray-600 sm:text-sm">
+                {typeof harvest.location === "string"
+                  ? harvest.location
+                  : `${harvest.location?.city || "Unknown"}, ${harvest.location?.state || "Unknown State"}`}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+              <Badge className={`${getHarvestQualityColor(harvest.quality)} text-xs`} variant="outline">
+                Grade {harvest.qualityGrade}
+              </Badge>
+              {harvest.organic && (
+                <Badge
+                  className="border-emerald-200 bg-emerald-50 text-xs text-emerald-700"
+                  variant="outline"
+                >
+                  <Shield className="mr-1 h-2 w-2 sm:h-3 sm:w-3" />
+                  Organic
+                </Badge>
+              )}
+            </div>
+
+            {harvest.price ? (
+              <div className="flex items-center gap-1 text-xs font-medium text-emerald-600 sm:gap-2 sm:text-sm">
+                <Banknote className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">₦{harvest.price.toLocaleString()}</span>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-between border-t pt-2 sm:pt-3">
+            <div className="flex min-w-0 flex-1 gap-1 sm:gap-2">
+              <Button size="sm" variant="outline" asChild className="h-7 px-2 text-xs sm:h-8 sm:px-3">
+                <Link href={`/dashboard/harvests/${harvest._id}`}>
+                  <Eye className="mr-1 h-3 w-3" />
+                  <span className="hidden sm:inline">View</span>
+                </Link>
+              </Button>
+              <Button size="sm" variant="outline" asChild className="h-7 px-2 text-xs sm:h-8 sm:px-3">
+                <Link href={`/dashboard/harvests/${harvest._id}/edit`}>
+                  <Edit className="mr-1 h-3 w-3" />
+                  <span className="hidden sm:inline">Edit</span>
+                </Link>
+              </Button>
+
+              {(harvest.status === "approved" || harvest.status === "verified") && (
+                <Button size="sm" variant="outline" asChild className="h-7 px-2 text-xs sm:h-8 sm:px-3">
+                  <Link href={`/dashboard/marketplace/new?harvestId=${harvest._id}`}>
+                    <Banknote className="mr-1 h-3 w-3" />
+                    <span className="hidden sm:inline">List</span>
+                  </Link>
+                </Button>
+              )}
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="ghost" className="h-7 w-7 flex-shrink-0 p-0 sm:h-8 sm:w-8">
+                  <MoreHorizontal className="h-3 w-3 sm:h-4 sm:w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href={`/dashboard/harvests/${harvest._id}`}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Details
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/dashboard/harvests/${harvest._id}/edit`}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Harvest
+                  </Link>
+                </DropdownMenuItem>
+
+                {(harvest.status === "approved" || harvest.status === "verified") && (
+                  <DropdownMenuItem asChild>
+                    <Link href={`/dashboard/marketplace/new?harvestId=${harvest._id}`}>
+                      <Banknote className="mr-2 h-4 w-4" />
+                      List on Marketplace
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+
+                <DropdownMenuItem>
+                  <QrCode className="mr-2 h-4 w-4" />
+                  Generate QR Code
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export Data
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-red-600" onClick={() => onDeleteRequest(harvest)}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Harvest
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function FarmerHarvestsPage() {
   const [harvests, setHarvests] = useState<HarvestData[]>([])
-  const [loading, setLoading] = useState(true)
+  const { isInitialLoading, isRefreshing, begin, finish } = useStableDataFetch()
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [cropFilter, setCropFilter] = useState("all")
@@ -102,8 +310,117 @@ export default function FarmerHarvestsPage() {
   })
   const [statsLoading, setStatsLoading] = useState(false)
   const { toast } = useToast()
+  const toastRef = useRef(toast)
+  toastRef.current = toast
 
-  const fetchStats = useCallback(async () => {
+  const harvestsInFlightRef = useRef(false)
+  const statsInFlightRef = useRef(false)
+  const statsLoadedRef = useRef(false)
+
+  const filterKey = useMemo(
+    () =>
+      [
+        statusFilter,
+        cropFilter,
+        qualityFilter,
+        organicFilter,
+        sortBy,
+        dateRange.from?.toISOString() ?? "",
+        dateRange.to?.toISOString() ?? "",
+      ].join("|"),
+    [
+      statusFilter,
+      cropFilter,
+      qualityFilter,
+      organicFilter,
+      sortBy,
+      dateRange.from,
+      dateRange.to,
+    ]
+  )
+
+  const loadHarvests = useCallback(async () => {
+    if (harvestsInFlightRef.current) return
+    harvestsInFlightRef.current = true
+    const generation = begin()
+
+    try {
+      const filters: Record<string, string | number | undefined> = {
+        limit: 50,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        cropType: cropFilter !== "all" ? cropFilter : undefined,
+        quality: qualityFilter !== "all" ? qualityFilter : undefined,
+        organic: organicFilter !== "all" ? organicFilter : undefined,
+        sortBy: sortBy || "newest",
+      }
+
+      if (dateRange.from) {
+        filters.fromDate = dateRange.from.toISOString().split("T")[0]
+      }
+      if (dateRange.to) {
+        filters.toDate = dateRange.to.toISOString().split("T")[0]
+      }
+
+      Object.keys(filters).forEach((key) => {
+        if (filters[key] === undefined) delete filters[key]
+      })
+
+      const response: any = await apiService.getHarvests(filters)
+      const rawHarvests = response.harvests || response.data?.harvests || []
+
+      const harvestData: HarvestData[] = rawHarvests.map((harvest: any) => ({
+        id: harvest._id,
+        _id: harvest._id,
+        cropType: harvest.cropType,
+        variety: harvest.variety || "Standard",
+        harvestDate: new Date(harvest.date),
+        quantity: harvest.quantity,
+        unit: harvest.unit,
+        location: harvest.location,
+        quality: harvest.quality,
+        qualityGrade: harvest.qualityGrade || "B",
+        status: harvest.status,
+        images: harvest.images || [],
+        organic: harvest.organic || false,
+        moistureContent: harvest.moistureContent || 15,
+        price: harvest.price || 0,
+        batchId: harvest.batchId,
+        createdAt: harvest.createdAt,
+        updatedAt: harvest.updatedAt,
+      }))
+
+      if (finish(generation)) {
+        setHarvests(harvestData)
+      }
+    } catch (error) {
+      console.error("Failed to fetch harvests:", error)
+      finish(generation)
+      toastRef.current({
+        title: "Error",
+        description: "Failed to load harvests. Please try again.",
+        variant: "destructive",
+      })
+      setHarvests((prev) => (prev.length > 0 ? prev : []))
+    } finally {
+      harvestsInFlightRef.current = false
+    }
+  }, [
+    statusFilter,
+    cropFilter,
+    qualityFilter,
+    organicFilter,
+    sortBy,
+    dateRange.from,
+    dateRange.to,
+    begin,
+    finish,
+  ])
+
+  const loadStats = useCallback(async (force = false) => {
+    if (statsInFlightRef.current) return
+    if (statsLoadedRef.current && !force) return
+    statsInFlightRef.current = true
+
     try {
       setStatsLoading(true)
       const response: any = await apiService.getHarvestStats()
@@ -115,114 +432,43 @@ export default function FarmerHarvestsPage() {
         approved: data.approvedHarvests || 0,
         rejected: data.rejectedHarvests || 0,
         totalQuantity: data.totalQuantity || 0,
-        totalValue: data.totalValue || 0
+        totalValue: data.totalValue || 0,
       })
+      statsLoadedRef.current = true
     } catch (error) {
       console.error("Failed to fetch harvest stats:", error)
-      // Set default values if API fails
-      setStats({
-        total: 0,
-        pending: 0,
-        approved: 0,
-        rejected: 0,
-        totalQuantity: 0,
-        totalValue: 0
-      })
+      setStats((prev) =>
+        statsLoadedRef.current
+          ? prev
+          : {
+              total: 0,
+              pending: 0,
+              approved: 0,
+              rejected: 0,
+              totalQuantity: 0,
+              totalValue: 0,
+            }
+      )
     } finally {
       setStatsLoading(false)
+      statsInFlightRef.current = false
     }
   }, [])
 
-  const fetchHarvests = useCallback(async () => {
-    try {
-      setLoading(true)
+  const loadHarvestsRef = useRef(loadHarvests)
+  loadHarvestsRef.current = loadHarvests
+  const loadStatsRef = useRef(loadStats)
+  loadStatsRef.current = loadStats
 
-      // Build filter parameters
-      const filters: any = {
-        limit: 50,
-        search: searchQuery || undefined,
-        status: statusFilter !== "all" ? statusFilter : undefined,
-        cropType: cropFilter !== "all" ? cropFilter : undefined,
-        quality: qualityFilter !== "all" ? qualityFilter : undefined,
-        organic: organicFilter !== "all" ? organicFilter : undefined,
-        sortBy: sortBy || "newest"
-      }
-
-      if (dateRange.from) {
-        filters.fromDate = dateRange.from.toISOString().split('T')[0]
-      }
-      if (dateRange.to) {
-        filters.toDate = dateRange.to.toISOString().split('T')[0]
-      }
-
-      // Remove undefined values
-      Object.keys(filters).forEach(key => {
-        if (filters[key] === undefined) delete filters[key]
-      })
-
-      console.log("Fetching harvests with filters:", filters)
-      const response: any = await apiService.getHarvests(filters)
-      const rawHarvests = response.harvests || response.data?.harvests || []
-
-      // Map the data to match the harvest card component expectations
-      const harvestData = rawHarvests.map((harvest: any) => ({
-        id: harvest._id,
-        _id: harvest._id, // Also include _id for consistency
-        farmerName: 'You', // Since this is the farmer's own harvests
-        cropType: harvest.cropType,
-        variety: harvest.variety || 'Standard',
-        harvestDate: new Date(harvest.date),
-        quantity: harvest.quantity,
-        unit: harvest.unit,
-        location: harvest.location,
-        quality: harvest.quality,
-        grade: harvest.qualityGrade || 'B',
-        status: harvest.status,
-        qrCode: harvest.qrData || '',
-        price: harvest.price || 0,
-        organic: harvest.organic || false,
-        moistureContent: harvest.moistureContent || 15,
-        images: harvest.images || [],
-        batchId: harvest.batchId,
-        createdAt: harvest.createdAt,
-        updatedAt: harvest.updatedAt
-      }))
-
-      setHarvests(harvestData)
-
-      // Update stats after fetching harvests
-      await fetchStats()
-
-      // Update pagination if available
-      if (response.pagination) {
-        // Handle pagination data
-      }
-    } catch (error) {
-      console.error("Failed to fetch harvests:", error)
-      toast({
-        title: "Error",
-        description: "Failed to load harvests. Please try again.",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
-    }
-  }, [searchQuery, statusFilter, cropFilter, qualityFilter, organicFilter, sortBy, dateRange, toast, fetchStats])
-
+  // Only re-fetch when filters change (not when unrelated state updates)
   useEffect(() => {
-    fetchHarvests()
-    fetchStats()
-  }, [fetchHarvests, fetchStats])
+    void loadHarvestsRef.current()
+  }, [filterKey])
 
+  // Stats once on mount
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (!loading) {
-        fetchHarvests()
-      }
-    }, 300)
-
-    return () => clearTimeout(timeoutId)
-  }, [fetchHarvests, loading])
+    void loadStatsRef.current()
+  }, [])
 
 
 
@@ -239,7 +485,7 @@ export default function FarmerHarvestsPage() {
         variant: "default"
       })
       // Refresh both harvests and stats
-      await Promise.all([fetchHarvests(), fetchStats()])
+      await Promise.all([loadHarvests(), loadStats(true)])
       setShowDeleteDialog(false)
       setSelectedHarvest(null)
     } catch (error) {
@@ -284,8 +530,8 @@ export default function FarmerHarvestsPage() {
       })
 
       setSelectedHarvests([])
-      fetchHarvests()
-      fetchStats()
+      void loadHarvests()
+      void loadStats(true)
     } catch (error) {
       toast({
         title: "Error",
@@ -343,35 +589,10 @@ export default function FarmerHarvestsPage() {
     return csvRows.join('\n')
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-amber-50 text-amber-700 border-amber-200"
-      case "approved":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200"
-      case "rejected":
-        return "bg-red-50 text-red-700 border-red-200"
-      case "shipped":
-        return "bg-blue-50 text-blue-700 border-blue-200"
-      default:
-        return "bg-gray-50 text-gray-700 border-gray-200"
-    }
-  }
-
-  const getQualityColor = (quality: string) => {
-    switch (quality) {
-      case "excellent":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200"
-      case "good":
-        return "bg-blue-50 text-blue-700 border-blue-200"
-      case "fair":
-        return "bg-amber-50 text-amber-700 border-amber-200"
-      case "poor":
-        return "bg-red-50 text-red-700 border-red-200"
-      default:
-        return "bg-gray-50 text-gray-700 border-gray-200"
-    }
-  }
+  const handleDeleteRequest = useCallback((harvest: HarvestData) => {
+    setSelectedHarvest(harvest)
+    setShowDeleteDialog(true)
+  }, [])
 
   const filteredHarvests = harvests.filter(harvest => {
     const matchesSearch = harvest.cropType.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -384,176 +605,6 @@ export default function FarmerHarvestsPage() {
   })
 
   const cropTypes = Array.from(new Set(harvests.map(h => h.cropType)))
-
-  const HarvestCard = ({ harvest, variant = "default" }: { harvest: HarvestData; variant?: "default" | "detailed" }) => (
-    <Card className="group hover:shadow-lg transition-all duration-200 border border-gray-200 h-full">
-      <div className="relative">
-        {harvest.images && harvest.images.length > 0 ? (
-          <div className="aspect-video overflow-hidden rounded-t-lg">
-            <Image
-              src={harvest.images[0]}
-              alt={harvest.cropType}
-              width={400}
-              height={225}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-            />
-          </div>
-        ) : (
-          <div className="aspect-video bg-gradient-to-br from-gray-50 to-gray-100 rounded-t-lg flex items-center justify-center border-b">
-            <Leaf className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
-          </div>
-        )}
-
-        <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
-          <Badge className={`${getStatusColor(harvest.status)} text-xs`}>
-            {harvest.status.charAt(0).toUpperCase() + harvest.status.slice(1)}
-          </Badge>
-        </div>
-      </div>
-
-      <CardContent className="p-3 sm:p-4">
-        <div className="space-y-2 sm:space-y-3">
-          <div className="min-w-0">
-            <h3 className="text-sm sm:text-base font-semibold text-gray-900 group-hover:text-primary transition-colors truncate">
-              {harvest.cropType}
-            </h3>
-            {harvest.variety && (
-              <p className="text-xs sm:text-sm text-gray-600 truncate">{harvest.variety}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <div className="space-y-1">
-              <div className="flex items-center gap-1 sm:gap-2 text-xs text-gray-500">
-                <Scale className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate">Quantity</span>
-              </div>
-              <p className="font-medium text-gray-900 text-xs sm:text-sm truncate">
-                {harvest.quantity} {harvest.unit}
-              </p>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex items-center gap-1 sm:gap-2 text-xs text-gray-500">
-                <Calendar className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate">Date</span>
-              </div>
-              <p className="font-medium text-gray-900 text-xs sm:text-sm truncate">
-                {new Date(harvest.harvestDate).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-1 sm:space-y-2">
-            <div className="flex items-center gap-1 sm:gap-2 min-w-0">
-              <MapPin className="h-3 w-3 text-gray-400 flex-shrink-0" />
-              <span className="text-xs sm:text-sm text-gray-600 truncate min-w-0 flex-1">
-                {typeof harvest.location === 'string' ? harvest.location : `${harvest.location?.city || 'Unknown'}, ${harvest.location?.state || 'Unknown State'}`}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-              <Badge className={`${getQualityColor(harvest.quality)} text-xs`} variant="outline">
-                Grade {harvest.qualityGrade}
-              </Badge>
-              {harvest.organic && (
-                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs" variant="outline">
-                  <Shield className="h-2 w-2 sm:h-3 sm:w-3 mr-1" />
-                  Organic
-                </Badge>
-              )}
-            </div>
-
-            {harvest.price && (
-              <div className="flex items-center gap-1 sm:gap-2 text-emerald-600 font-medium text-xs sm:text-sm">
-                <Banknote className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate">₦{harvest.price.toLocaleString()}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between pt-2 sm:pt-3 border-t">
-            <div className="flex gap-1 sm:gap-2 min-w-0 flex-1">
-              <Button size="sm" variant="outline" asChild className="text-xs h-7 sm:h-8 px-2 sm:px-3">
-                <Link href={`/dashboard/harvests/${harvest._id}`}>
-                  <Eye className="h-3 w-3 mr-1" />
-                  <span className="hidden sm:inline">View</span>
-                </Link>
-              </Button>
-              <Button size="sm" variant="outline" asChild className="text-xs h-7 sm:h-8 px-2 sm:px-3">
-                <Link href={`/dashboard/harvests/${harvest._id}/edit`}>
-                  <Edit className="h-3 w-3 mr-1" />
-                  <span className="hidden sm:inline">Edit</span>
-                </Link>
-              </Button>
-
-              {/* List on Marketplace Button - Only show for approved harvests */}
-              {harvest.status === "approved" && (
-                <Button size="sm" variant="outline" asChild className="text-xs h-7 sm:h-8 px-2 sm:px-3">
-                  <Link href={`/dashboard/marketplace/new?harvestId=${harvest._id}`}>
-                    <Banknote className="h-3 w-3 mr-1" />
-                    <span className="hidden sm:inline">List</span>
-                  </Link>
-                </Button>
-              )}
-            </div>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="ghost" className="h-7 w-7 sm:h-8 sm:w-8 p-0 flex-shrink-0">
-                  <MoreHorizontal className="h-3 w-3 sm:h-4 sm:w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link href={`/dashboard/harvests/${harvest._id}`}>
-                    <Eye className="h-4 w-4 mr-2" />
-                    View Details
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={`/dashboard/harvests/${harvest._id}/edit`}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Harvest
-                  </Link>
-                </DropdownMenuItem>
-
-                {/* List on Marketplace - Only show for approved harvests */}
-                {harvest.status === "approved" && (
-                  <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/marketplace/new?harvestId=${harvest._id}`}>
-                      <Banknote className="h-4 w-4 mr-2" />
-                      List on Marketplace
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-
-                <DropdownMenuItem>
-                  <QrCode className="h-4 w-4 mr-2" />
-                  Generate QR Code
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Data
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-red-600"
-                  onClick={() => {
-                    setSelectedHarvest(harvest)
-                    setShowDeleteDialog(true)
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Harvest
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
 
   return (
     <DashboardLayout pageTitle="Harvest Management">
@@ -575,10 +626,16 @@ export default function FarmerHarvestsPage() {
                 <span className="sm:hidden">New Harvest</span>
               </Link>
             </Button>
-            <Button variant="outline" size="sm" onClick={async () => {
-              await Promise.all([fetchHarvests(), fetchStats()])
-            }} className="w-full xs:w-auto">
-              <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isRefreshing}
+              onClick={async () => {
+                await Promise.all([loadHarvests(), loadStats(true)])
+              }}
+              className="w-full xs:w-auto"
+            >
+              <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
               <span className="hidden sm:inline">Refresh</span>
               <span className="sm:hidden">Refresh</span>
             </Button>
@@ -784,7 +841,7 @@ export default function FarmerHarvestsPage() {
           </TabsList>
 
           <TabsContent value="all" className="space-y-3 sm:space-y-4">
-            {loading ? (
+            {isInitialLoading && harvests.length === 0 ? (
               <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
                 {[...Array(6)].map((_, i) => (
                   <Card key={i} className="animate-pulse border border-gray-200 h-full">
@@ -799,14 +856,23 @@ export default function FarmerHarvestsPage() {
                 ))}
               </div>
             ) : filteredHarvests.length > 0 ? (
-              <div className={viewMode === "grid" ? "grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4" : "space-y-3"}>
-                {filteredHarvests.map((harvest) => (
-                  <HarvestCard
-                    key={harvest.id}
-                    harvest={harvest}
-                    variant={viewMode === "list" ? "detailed" : "default"}
-                  />
-                ))}
+              <div className="relative">
+                {isRefreshing && (
+                  <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
+                    <RefreshCw className="h-3 w-3 animate-spin text-primary" />
+                    Updating harvests…
+                  </div>
+                )}
+                <div className={viewMode === "grid" ? "grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4" : "space-y-3"}>
+                  {filteredHarvests.map((harvest) => (
+                    <FarmerHarvestListingCard
+                      key={harvest.id}
+                      harvest={harvest}
+                      variant={viewMode === "list" ? "detailed" : "default"}
+                      onDeleteRequest={handleDeleteRequest}
+                    />
+                  ))}
+                </div>
               </div>
             ) : (
               <Card className="text-center py-6 sm:py-8 border border-gray-200">
@@ -834,9 +900,10 @@ export default function FarmerHarvestsPage() {
           <TabsContent value="pending" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredHarvests.filter(h => h.status === "pending").map((harvest) => (
-                <HarvestCard
+                <FarmerHarvestListingCard
                   key={harvest._id}
                   harvest={harvest}
+                  onDeleteRequest={handleDeleteRequest}
                 />
               ))}
             </div>
@@ -845,9 +912,10 @@ export default function FarmerHarvestsPage() {
           <TabsContent value="approved" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredHarvests.filter(h => h.status === "approved").map((harvest) => (
-                <HarvestCard
+                <FarmerHarvestListingCard
                   key={harvest._id}
                   harvest={harvest}
+                  onDeleteRequest={handleDeleteRequest}
                 />
               ))}
             </div>
@@ -856,9 +924,10 @@ export default function FarmerHarvestsPage() {
           <TabsContent value="rejected" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredHarvests.filter(h => h.status === "rejected").map((harvest) => (
-                <HarvestCard
+                <FarmerHarvestListingCard
                   key={harvest._id}
                   harvest={harvest}
+                  onDeleteRequest={handleDeleteRequest}
                 />
               ))}
             </div>

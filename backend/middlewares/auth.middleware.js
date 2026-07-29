@@ -48,7 +48,8 @@ async function authenticate(req, res, next) {
       phone: user.phone,
       location: user.location,
       status: user.status,
-      profile: user.profile
+      profile: user.profile,
+      partner: user.partner || undefined
     }
 
     console.log('🔌 JWT decoded successfully:', {

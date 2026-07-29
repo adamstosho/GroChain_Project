@@ -49,7 +49,7 @@ interface InsuranceClaim {
   status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'paid'
   claimAmount: number
   paidAmount?: number
-  documents: string[]
+  documents: Array<{ name: string; url?: string; type?: string; uploadedAt?: string }>
   location: string
   weatherConditions?: string
   adjusterNotes?: string
@@ -115,74 +115,56 @@ export default function InsuranceClaimsPage() {
   const fetchClaimsData = async () => {
     try {
       setLoading(true)
-      
-      // Mock data for now - replace with actual API call
-      const mockClaims: InsuranceClaim[] = [
-        {
-          id: '1',
-          policyNumber: `INS-${new Date().getFullYear()}-001`,
-          claimType: 'crop_damage',
-          description: 'Heavy rainfall caused flooding in maize field, resulting in 40% crop loss',
-          incidentDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          reportedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          estimatedLoss: 150000,
-          status: 'approved',
-          claimAmount: 120000,
-          paidAmount: 120000,
-          documents: ['Photos', 'Weather Report', 'Damage Assessment'],
-          location: 'North Field, Plot A',
-          weatherConditions: 'Heavy rainfall, flooding',
-          adjusterNotes: 'Claim approved based on weather reports and damage assessment',
-          decisionDate: new Date().toISOString().split('T')[0]
-        },
-        {
-          id: '2',
-          policyNumber: `INS-${new Date().getFullYear()}-002`,
-          claimType: 'equipment_damage',
-          description: 'Tractor engine failure during harvest season',
-          incidentDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          reportedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          estimatedLoss: 80000,
-          status: 'under_review',
-          claimAmount: 65000,
-          documents: ['Repair Estimate', 'Photos', 'Service History'],
-          location: 'Main Farm',
-          weatherConditions: 'Normal conditions'
-        },
-        {
-          id: '3',
-          policyNumber: `INS-${new Date().getFullYear()}-003`,
-          claimType: 'natural_disaster',
-          description: 'Drought conditions affecting cassava yield',
-          incidentDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          reportedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          estimatedLoss: 200000,
-          status: 'pending',
-          claimAmount: 160000,
-          documents: ['Weather Data', 'Yield Comparison', 'Photos'],
-          location: 'South Field, Plot B',
-          weatherConditions: 'Extended drought, high temperatures'
-        }
-      ]
 
-      const mockStats: ClaimStats = {
-        totalClaims: 3,
-        pendingClaims: 1,
-        approvedClaims: 1,
-        totalClaimed: 345000,
-        totalPaid: 120000,
-        averageProcessingTime: 7.5
+      const response = await apiService.getInsuranceClaims()
+
+      if (response.status === 'success' && response.data) {
+        const responseData = response.data as any
+        const claimsData = responseData.claims || []
+
+        const transformedClaims: InsuranceClaim[] = claimsData.map((claim: any) => ({
+          id: claim._id || claim.id,
+          policyNumber: claim.policy?.policyNumber || 'N/A',
+          claimType: claim.claimType,
+          description: claim.description,
+          incidentDate: claim.incidentDate,
+          reportedDate: claim.reportedDate,
+          estimatedLoss: claim.estimatedLoss || 0,
+          status: claim.status,
+          claimAmount: claim.claimAmount || 0,
+          paidAmount: claim.paidAmount || undefined,
+          documents: (claim.documents || []).map((doc: any) =>
+            typeof doc === 'string' ? { name: doc } : doc
+          ),
+          location: claim.location || '',
+          weatherConditions: claim.weatherConditions,
+          adjusterNotes: claim.adjusterNotes,
+          decisionDate: claim.decisionDate
+        }))
+
+        setClaims(transformedClaims)
+
+        const statsData = responseData.stats || {}
+        setStats({
+          totalClaims: statsData.totalClaims ?? transformedClaims.length,
+          pendingClaims: statsData.pendingClaims ?? 0,
+          approvedClaims: statsData.approvedClaims ?? 0,
+          totalClaimed: statsData.totalClaimed ?? 0,
+          totalPaid: statsData.totalPaid ?? 0,
+          averageProcessingTime: statsData.averageProcessingTime ?? 0
+        })
+      } else {
+        throw new Error(response.message || 'Failed to fetch insurance claims')
       }
-
-      setClaims(mockClaims)
-      setStats(mockStats)
     } catch (error) {
       console.error("Failed to fetch claims data:", error)
       toast({
         title: "Error",
-        description: "Failed to load claims data. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to load claims data. Please try again.",
         variant: "destructive"
       })
+      setClaims([])
+      setStats(null)
     } finally {
       setLoading(false)
     }
@@ -201,23 +183,23 @@ export default function InsuranceClaimsPage() {
     }
 
     try {
-      // Mock submission - replace with actual API call
-      const claim: InsuranceClaim = {
-        id: Date.now().toString(),
+      const response = await apiService.createInsuranceClaim({
         policyNumber: newClaim.policyNumber,
-        claimType: newClaim.claimType as any,
+        claimType: newClaim.claimType,
         description: newClaim.description,
         incidentDate: newClaim.incidentDate,
-        reportedDate: new Date().toISOString().split('T')[0],
         estimatedLoss: newClaim.estimatedLoss,
-        status: 'pending',
-        claimAmount: newClaim.estimatedLoss * 0.8, // 80% of estimated loss
-        documents: [],
         location: newClaim.location,
-        weatherConditions: newClaim.weatherConditions
+        weatherConditions: newClaim.weatherConditions || undefined
+      })
+
+      if (response.status !== 'success' || !response.data) {
+        throw new Error(response.message || 'Failed to submit claim')
       }
 
-      setClaims(prev => [claim, ...prev])
+      // Refetch so the list and stats reflect what was actually persisted
+      await fetchClaimsData()
+
       setShowNewClaimForm(false)
       setNewClaim({
         policyNumber: '',
@@ -230,7 +212,7 @@ export default function InsuranceClaimsPage() {
       })
 
       toast({
-        title: "Claim Submitted! 🎉",
+        title: "Claim Submitted",
         description: "Your insurance claim has been submitted and is under review.",
         variant: "default"
       })
@@ -238,7 +220,7 @@ export default function InsuranceClaimsPage() {
       console.error("Failed to submit claim:", error)
       toast({
         title: "Submission Failed",
-        description: "Failed to submit claim. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to submit claim. Please try again.",
         variant: "destructive"
       })
     }
@@ -360,7 +342,7 @@ export default function InsuranceClaimsPage() {
               <CardContent>
                 <div className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalPaid)}</div>
                 <div className="text-sm text-gray-600 mt-1">
-                  {((stats.totalPaid / stats.totalClaimed) * 100).toFixed(1)}% of claimed
+                  {stats.totalClaimed > 0 ? ((stats.totalPaid / stats.totalClaimed) * 100).toFixed(1) : '0'}% of claimed
                 </div>
               </CardContent>
             </Card>

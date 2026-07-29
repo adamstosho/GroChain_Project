@@ -1,0 +1,4 @@
+study_id,participant_type,lga,ward,age,sex,education,household_size,monthly_income_ngn,farm_size_ha,grochain_user,grochain_intensity_index,hfias_occurrence_score,hfias_category,mddw_score,mddw_achieved,wash_index,smartphone,ussd_used,harvests_6mo,listings_6mo,transactions_6mo
+ILO-001,farmer,ilorin_east,,,,,,,,,,,,,,,,,,,
+ILO-002,farmer,ilorin_west,,,,,,,,,,,,,,,,,,,
+ILO-003,buyer,ilorin_south,,,,,,,,,,,,,,,,,,,

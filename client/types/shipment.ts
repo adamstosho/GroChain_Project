@@ -188,6 +188,7 @@ export interface ShipmentFilters {
   endDate?: string
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
+  q?: string
 }
 
 //no changes

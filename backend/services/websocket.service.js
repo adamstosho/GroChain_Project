@@ -3,6 +3,10 @@ const jwt = require('jsonwebtoken')
 const User = require('../models/user.model')
 const Notification = require('../models/notification.model')
 const mongoose = require('mongoose')
+const {
+  userCanJoinOrderRoom,
+  userCanJoinShipmentRoom
+} = require('../utils/realtime-room-access.util')
 
 class WebSocketService {
   constructor() {
@@ -95,7 +99,7 @@ class WebSocketService {
           return next(new Error('Invalid authentication token'))
         }
 
-        const user = await User.findById(decoded.id).select('_id name email role status')
+        const user = await User.findById(decoded.id).select('_id name email role status partner')
         console.log('🔌 User lookup result:', user ? { id: user._id, name: user.name, role: user.role, status: user.status } : 'User not found')
 
         if (!user || user.status !== 'active') {
@@ -136,16 +140,77 @@ class WebSocketService {
       // Join user to personal room
       socket.join(`user:${socket.user._id}`)
 
-      // Handle user joining specific rooms
-      socket.on('join-room', (roomName) => {
-        socket.join(roomName)
-        console.log(`👥 User ${socket.user.name} joined room: ${roomName}`)
+      const isAllowedRoomShape = (requestedRoom, userId, userRole) => {
+        const isOwnUserRoom = requestedRoom === `user:${userId}`
+        const isOwnRoleRoom = requestedRoom === `role:${userRole}`
+        const isOrderRoom = /^order:[a-fA-F0-9]{24}$/.test(requestedRoom)
+        const isShipmentRoom = /^shipment:[a-fA-F0-9]{24}$/.test(requestedRoom)
+        return { isOwnUserRoom, isOwnRoleRoom, isOrderRoom, isShipmentRoom }
+      }
+
+      // Handle user joining specific rooms (order/shipment require DB-backed authorization)
+      socket.on('join-room', async (roomName) => {
+        try {
+          if (typeof roomName !== 'string' || !roomName.trim()) {
+            return
+          }
+
+          const requestedRoom = roomName.trim()
+          const userId = socket.user._id.toString()
+          const userRole = socket.user.role
+
+          const { isOwnUserRoom, isOwnRoleRoom, isOrderRoom, isShipmentRoom } = isAllowedRoomShape(
+            requestedRoom,
+            userId,
+            userRole
+          )
+
+          if (!(isOwnUserRoom || isOwnRoleRoom || isOrderRoom || isShipmentRoom)) {
+            return socket.emit('error', { message: 'Unauthorized room' })
+          }
+
+          if (isOrderRoom) {
+            const orderIdHex = requestedRoom.slice('order:'.length)
+            const allowed = await userCanJoinOrderRoom(socket.user, orderIdHex)
+            if (!allowed) {
+              return socket.emit('error', { message: 'Unauthorized order room' })
+            }
+          }
+
+          if (isShipmentRoom) {
+            const shipmentIdHex = requestedRoom.slice('shipment:'.length)
+            const allowed = await userCanJoinShipmentRoom(socket.user, shipmentIdHex)
+            if (!allowed) {
+              return socket.emit('error', { message: 'Unauthorized shipment room' })
+            }
+          }
+
+          socket.join(requestedRoom)
+          console.log(`👥 User ${socket.user.name} joined room: ${requestedRoom}`)
+        } catch (err) {
+          console.error('join-room error:', err?.message || err)
+          socket.emit('error', { message: 'Failed to join room' })
+        }
       })
 
-      // Handle user leaving rooms
+      // Handle user leaving rooms (same allowlist as join)
       socket.on('leave-room', (roomName) => {
-        socket.leave(roomName)
-        console.log(`👋 User ${socket.user.name} left room: ${roomName}`)
+        if (typeof roomName !== 'string' || !roomName.trim()) {
+          return
+        }
+        const requestedRoom = roomName.trim()
+        const userId = socket.user._id.toString()
+        const userRole = socket.user.role
+        const { isOwnUserRoom, isOwnRoleRoom, isOrderRoom, isShipmentRoom } = isAllowedRoomShape(
+          requestedRoom,
+          userId,
+          userRole
+        )
+        if (!(isOwnUserRoom || isOwnRoleRoom || isOrderRoom || isShipmentRoom)) {
+          return socket.emit('error', { message: 'Invalid room' })
+        }
+        socket.leave(requestedRoom)
+        console.log(`👋 User ${socket.user.name} left room: ${requestedRoom}`)
       })
 
       // Handle private messages
@@ -224,8 +289,8 @@ class WebSocketService {
           harvestId,
           status,
           message,
-          updatedBy: socket.user._id,
-          updatedBy: socket.user.name,
+          updatedById: socket.user._id,
+          updatedByName: socket.user.name,
           timestamp: new Date()
         })
       })
@@ -239,8 +304,8 @@ class WebSocketService {
           type,
           listingId,
           message,
-          updatedBy: socket.user._id,
-          updatedBy: socket.user.name,
+          updatedById: socket.user._id,
+          updatedByName: socket.user.name,
           timestamp: new Date()
         })
       })
@@ -255,8 +320,8 @@ class WebSocketService {
           status,
           location,
           message,
-          updatedBy: socket.user._id,
-          updatedBy: socket.user.name,
+          updatedById: socket.user._id,
+          updatedByName: socket.user.name,
           timestamp: new Date()
         })
       })
@@ -406,11 +471,12 @@ class WebSocketService {
   }
 
   // Send real-time shipment update
-  sendShipmentUpdate(shipmentId, status, buyerId, sellerId) {
+  sendShipmentUpdate(shipmentId, status, buyerId, sellerId, extra = {}) {
     const update = {
       shipmentId,
       status,
-      timestamp: new Date()
+      timestamp: new Date(),
+      ...extra
     }
 
     // Send to buyer
@@ -435,6 +501,16 @@ class WebSocketService {
 
     // Broadcast to relevant roles
     this.io.to('role:buyer').to('role:farmer').emit('shipment-update', update)
+
+    // Broadcast to dedicated rooms (if clients join them)
+    const shipmentRoomId = shipmentId != null ? String(shipmentId) : ''
+    if (shipmentRoomId) {
+      this.io.to(`shipment:${shipmentRoomId}`).emit('shipment-update', update)
+    }
+    const orderRoomId = update.orderId != null ? String(update.orderId) : ''
+    if (orderRoomId) {
+      this.io.to(`order:${orderRoomId}`).emit('shipment-update', update)
+    }
   }
 
   // Send real-time payment update

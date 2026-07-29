@@ -5,6 +5,16 @@ const User = require('../models/user.model')
 const Listing = require('../models/listing.model')
 const Notification = require('../models/notification.model')
 const webSocketService = require('../services/websocket.service')
+const {
+  userCanJoinOrderRoom,
+  userCanJoinShipmentRoom,
+  partnerMayManageShipmentAssignment,
+  buildShipmentAccessFilter,
+  mergeShipmentQueries,
+  toAclUser
+} = require('../utils/realtime-room-access.util')
+
+const aclUserFromReq = (req) => toAclUser(req.user)
 
 const normalizeUserId = (user) => {
   if (!user) return undefined
@@ -14,17 +24,24 @@ const normalizeUserId = (user) => {
   return undefined
 }
 
-const emitShipmentUpdate = (shipmentId, status, buyer, seller) => {
+const emitShipmentUpdate = (shipment, status, buyer, seller, extra = {}) => {
   if (!webSocketService || typeof webSocketService.sendShipmentUpdate !== 'function') {
     return
   }
 
   try {
+    const shipmentId = typeof shipment === 'string' ? shipment : shipment?._id?.toString()
+    const orderId = typeof shipment === 'object' ? shipment?.order?.toString?.() : undefined
+
     webSocketService.sendShipmentUpdate(
       shipmentId,
       status,
       normalizeUserId(buyer),
-      normalizeUserId(seller)
+      normalizeUserId(seller),
+      {
+        ...(orderId ? { orderId } : {}),
+        ...extra
+      }
     )
   } catch (socketError) {
     console.warn('⚠️ Failed to emit shipment update:', socketError?.message || socketError)
@@ -87,6 +104,21 @@ const shipmentController = {
         return res.status(404).json({
           status: 'error',
           message: 'Order not found'
+        })
+      }
+
+      const uid = req.user.id.toString()
+      const isSeller = order.seller._id.toString() === uid
+      const canCreateShipment =
+        req.user.role === 'admin' ||
+        isSeller ||
+        (req.user.role === 'partner' &&
+          (await userCanJoinOrderRoom(aclUserFromReq(req), orderId)))
+
+      if (!canCreateShipment) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Access denied'
         })
       }
 
@@ -192,10 +224,13 @@ const shipmentController = {
       })
 
       emitShipmentUpdate(
-        shipmentWithEvent._id,
+        shipmentWithEvent,
         shipmentWithEvent.status,
         shipmentWithEvent.buyer,
-        shipmentWithEvent.seller
+        shipmentWithEvent.seller,
+        {
+          lastEvent: shipmentWithEvent.trackingEvents?.[0] || null
+        }
       )
 
       res.status(201).json({
@@ -266,20 +301,8 @@ const shipmentController = {
         status: shipment.status
       })
 
-      // Check permissions
-      console.log('🔐 Checking shipment permissions:', {
-        userRole: req.user.role,
-        userId: req.user.id,
-        buyerId: shipment.buyer._id.toString(),
-        sellerId: shipment.seller._id.toString(),
-        isAdmin: ['admin', 'partner'].includes(req.user.role),
-        isBuyer: shipment.buyer._id.toString() === req.user.id.toString(),
-        isSeller: shipment.seller._id.toString() === req.user.id.toString()
-      })
-      
-      if (!['admin', 'partner'].includes(req.user.role) && 
-          shipment.buyer._id.toString() !== req.user.id.toString() && 
-          shipment.seller._id.toString() !== req.user.id.toString()) {
+      const allowed = await userCanJoinShipmentRoom(aclUserFromReq(req), shipmentId)
+      if (!allowed) {
         console.log('❌ Access denied for shipment:', shipmentId)
         return res.status(403).json({
           status: 'error',
@@ -314,32 +337,41 @@ const shipmentController = {
         startDate,
         endDate,
         order,
+        q,
         sortBy = 'createdAt',
         sortOrder = 'desc'
       } = req.query
 
-      const query = {}
+      const accessFilter = await buildShipmentAccessFilter(aclUserFromReq(req))
+      const filterParts = [accessFilter]
 
-      // Role-based filtering
-      if (req.user.role === 'buyer') {
-        query.buyer = new mongoose.Types.ObjectId(req.user.id)
-      } else if (req.user.role === 'farmer') {
-        query.seller = new mongoose.Types.ObjectId(req.user.id)
+      if (q) {
+        filterParts.push({
+          $or: [
+            { shipmentNumber: { $regex: q, $options: 'i' } },
+            { trackingNumber: { $regex: q, $options: 'i' } },
+            { carrier: { $regex: q, $options: 'i' } },
+            { 'origin.city': { $regex: q, $options: 'i' } },
+            { 'destination.city': { $regex: q, $options: 'i' } }
+          ]
+        })
       }
 
-      // Apply filters
-      if (status) query.status = status
-      if (shippingMethod) query.shippingMethod = shippingMethod
-      if (carrier) query.carrier = { $regex: carrier, $options: 'i' }
-      if (origin) query['origin.city'] = { $regex: origin, $options: 'i' }
-      if (destination) query['destination.city'] = { $regex: destination, $options: 'i' }
-      if (order) query.order = new mongoose.Types.ObjectId(order)
-      
+      const extra = {}
+      if (status) extra.status = status
+      if (shippingMethod) extra.shippingMethod = shippingMethod
+      if (carrier) extra.carrier = { $regex: carrier, $options: 'i' }
+      if (origin) extra['origin.city'] = { $regex: origin, $options: 'i' }
+      if (destination) extra['destination.city'] = { $regex: destination, $options: 'i' }
+      if (order) extra.order = new mongoose.Types.ObjectId(order)
       if (startDate || endDate) {
-        query.createdAt = {}
-        if (startDate) query.createdAt.$gte = new Date(startDate)
-        if (endDate) query.createdAt.$lte = new Date(endDate)
+        extra.createdAt = {}
+        if (startDate) extra.createdAt.$gte = new Date(startDate)
+        if (endDate) extra.createdAt.$lte = new Date(endDate)
       }
+      if (Object.keys(extra).length > 0) filterParts.push(extra)
+
+      const query = mergeShipmentQueries(...filterParts)
 
       const skip = (parseInt(page) - 1) * parseInt(limit)
       const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 }
@@ -405,9 +437,15 @@ const shipmentController = {
         })
       }
 
-      // Check permissions
-      if (!['admin', 'partner', 'carrier'].includes(req.user.role) && 
-          shipment.seller._id.toString() !== req.user.id.toString()) {
+      const uid = req.user.id.toString()
+      const isSeller = shipment.seller._id.toString() === uid
+      const canUpdate =
+        req.user.role === 'admin' ||
+        isSeller ||
+        (['partner', 'carrier'].includes(req.user.role) &&
+          (await userCanJoinShipmentRoom(aclUserFromReq(req), shipmentId)))
+
+      if (!canUpdate) {
         console.log('❌ Access denied for status update:', {
           userRole: req.user.role,
           userId: req.user.id,
@@ -436,10 +474,16 @@ const shipmentController = {
       })
 
       emitShipmentUpdate(
-        updatedShipment._id,
+        updatedShipment,
         status,
         updatedShipment.buyer,
-        updatedShipment.seller
+        updatedShipment.seller,
+        {
+          location,
+          description,
+          coordinates: coordinates || null,
+          lastEvent: updatedShipment.trackingEvents?.[0] || null
+        }
       )
 
       res.json({
@@ -470,9 +514,15 @@ const shipmentController = {
         })
       }
 
-      // Check permissions
-      if (!['admin', 'partner', 'carrier'].includes(req.user.role) && 
-          shipment.seller.toString() !== req.user.id) {
+      const uid = req.user.id.toString()
+      const isSeller = shipment.seller.toString() === uid
+      const canConfirm =
+        req.user.role === 'admin' ||
+        isSeller ||
+        (['partner', 'carrier'].includes(req.user.role) &&
+          (await userCanJoinShipmentRoom(aclUserFromReq(req), shipmentId)))
+
+      if (!canConfirm) {
         return res.status(403).json({
           status: 'error',
           message: 'Access denied'
@@ -517,10 +567,13 @@ const shipmentController = {
       await Notification.insertMany(notifications)
 
       emitShipmentUpdate(
-        shipmentWithTracking._id,
+        shipmentWithTracking,
         'delivered',
         shipmentWithTracking.buyer,
-        shipmentWithTracking.seller
+        shipmentWithTracking.seller,
+        {
+          lastEvent: shipmentWithTracking.trackingEvents?.[0] || null
+        }
       )
 
       res.json({
@@ -558,10 +611,13 @@ const shipmentController = {
         })
       }
 
-      // Check permissions
-      if (shipment.buyer.toString() !== req.user.id && 
-          shipment.seller.toString() !== req.user.id &&
-          !['admin', 'partner'].includes(req.user.role)) {
+      const uid = req.user.id.toString()
+      const isParty =
+        shipment.buyer.toString() === uid || shipment.seller.toString() === uid
+      const canReport =
+        isParty || (await userCanJoinShipmentRoom(aclUserFromReq(req), shipmentId))
+
+      if (!canReport) {
         return res.status(403).json({
           status: 'error',
           message: 'Access denied'
@@ -613,19 +669,25 @@ const shipmentController = {
     try {
       const { startDate, endDate } = req.query
 
-      const query = {}
+      const accessFilter = await buildShipmentAccessFilter(aclUserFromReq(req))
+      const dateFilter = {}
       if (startDate || endDate) {
-        query.createdAt = {}
-        if (startDate) query.createdAt.$gte = new Date(startDate)
-        if (endDate) query.createdAt.$lte = new Date(endDate)
+        dateFilter.createdAt = {}
+        if (startDate) dateFilter.createdAt.$gte = new Date(startDate)
+        if (endDate) dateFilter.createdAt.$lte = new Date(endDate)
       }
-
-      // Role-based filtering
-      if (req.user.role === 'buyer') {
-        query.buyer = new mongoose.Types.ObjectId(req.user.id)
-      } else if (req.user.role === 'farmer') {
-        query.seller = new mongoose.Types.ObjectId(req.user.id)
-      }
+      const query = mergeShipmentQueries(
+        accessFilter,
+        Object.keys(dateFilter).length > 0 ? dateFilter : null
+      )
+      const delayedQuery = mergeShipmentQueries(accessFilter, dateFilter, {
+        status: { $in: ['confirmed', 'in_transit', 'out_for_delivery'] },
+        estimatedDelivery: { $lt: new Date() }
+      })
+      const deliveredQuery = mergeShipmentQueries(accessFilter, dateFilter, {
+        status: 'delivered',
+        actualDelivery: { $exists: true }
+      })
 
       const [totalShipments, statusBreakdown, delayedShipments, avgDeliveryTime] = await Promise.all([
         Shipment.countDocuments(query),
@@ -633,13 +695,9 @@ const shipmentController = {
           { $match: query },
           { $group: { _id: '$status', count: { $sum: 1 } } }
         ]),
-        Shipment.countDocuments({
-          ...query,
-          status: { $in: ['confirmed', 'in_transit', 'out_for_delivery'] },
-          estimatedDelivery: { $lt: new Date() }
-        }),
+        Shipment.countDocuments(delayedQuery),
         Shipment.aggregate([
-          { $match: { ...query, status: 'delivered', actualDelivery: { $exists: true } } },
+          { $match: deliveredQuery },
           {
             $group: {
               _id: null,
@@ -682,7 +740,8 @@ const shipmentController = {
         })
       }
 
-      const query = {
+      const accessFilter = await buildShipmentAccessFilter(aclUserFromReq(req))
+      const query = mergeShipmentQueries(accessFilter, {
         $or: [
           { shipmentNumber: { $regex: q, $options: 'i' } },
           { trackingNumber: { $regex: q, $options: 'i' } },
@@ -690,14 +749,7 @@ const shipmentController = {
           { 'origin.city': { $regex: q, $options: 'i' } },
           { 'destination.city': { $regex: q, $options: 'i' } }
         ]
-      }
-
-      // Role-based filtering
-      if (req.user.role === 'buyer') {
-        query.buyer = new mongoose.Types.ObjectId(req.user.id)
-      } else if (req.user.role === 'farmer') {
-        query.seller = new mongoose.Types.ObjectId(req.user.id)
-      }
+      })
 
       const skip = (parseInt(page) - 1) * parseInt(limit)
 
@@ -730,6 +782,51 @@ const shipmentController = {
         status: 'error',
         message: 'Failed to search shipments'
       })
+    }
+  },
+
+  /**
+   * Assign or clear the logistics/driver user for realtime + carrier order-room access.
+   * Admin or partner (with existing shipment access per realtime-room-access rules).
+   */
+  async assignAssignedLogistics(req, res) {
+    try {
+      const { shipmentId } = req.params
+      const { assignedLogisticsUser } = req.body
+
+      const shipment = await Shipment.findById(shipmentId)
+      if (!shipment) {
+        return res.status(404).json({ status: 'error', message: 'Shipment not found' })
+      }
+
+      if (!(await partnerMayManageShipmentAssignment(aclUserFromReq(req), shipmentId))) {
+        return res.status(403).json({ status: 'error', message: 'Access denied' })
+      }
+
+      if (assignedLogisticsUser != null && String(assignedLogisticsUser).trim() !== '') {
+        const aid = String(assignedLogisticsUser).trim()
+        if (!mongoose.Types.ObjectId.isValid(aid)) {
+          return res.status(400).json({ status: 'error', message: 'Invalid assignedLogisticsUser' })
+        }
+        const assignee = await User.findById(aid).select('_id status').lean()
+        if (!assignee || assignee.status !== 'active') {
+          return res.status(400).json({ status: 'error', message: 'Assignee not found or inactive' })
+        }
+        shipment.assignedLogisticsUser = assignee._id
+      } else {
+        shipment.set('assignedLogisticsUser', null)
+      }
+
+      await shipment.save()
+
+      return res.json({
+        status: 'success',
+        message: 'Logistics assignment updated',
+        data: { shipment }
+      })
+    } catch (error) {
+      console.error('assignAssignedLogistics:', error)
+      return res.status(500).json({ status: 'error', message: 'Failed to update assignment' })
     }
   }
 }

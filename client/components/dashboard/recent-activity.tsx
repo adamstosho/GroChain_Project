@@ -14,7 +14,7 @@ interface Activity {
   type: "harvest" | "order" | "payment" | "user" | "favorite" | "verification" | "onboarding" | "commission"
   description: string
   timestamp: Date
-  user?: string
+  user?: string | { name?: string }
   metadata?: any
 }
 

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 import {
   TrendingUp,
   Banknote,
@@ -26,10 +27,10 @@ import {
   FileSpreadsheet
 } from "lucide-react"
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart as RechartsPieChart, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Pie, Legend } from "recharts"
-import { cn } from "@/lib/utils"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useExportService } from "@/lib/export-utils"
+import { AiAnalyticsInsights } from "@/components/ai/ai-analytics-insights"
 
 interface FarmerAnalyticsData {
   totalHarvests: number
@@ -518,6 +519,9 @@ export function FarmerAnalytics() {
             </Button>
           </div>
         </div>
+
+        {/* AI Branding & Insights */}
+        <AiAnalyticsInsights />
       </div>
 
       {/* Key Metrics */}

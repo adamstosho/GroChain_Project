@@ -31,35 +31,28 @@ export default function EditHarvestPage() {
     }
   }, [harvestId])
 
-  // Validate harvest ID
-  if (!harvestId || harvestId === 'undefined' || !params.id) {
-    return (
-      <DashboardLayout pageTitle="Invalid Harvest ID">
-        <div className="max-w-4xl mx-auto">
-          <Card className="border border-red-200 bg-red-50">
-            <CardContent className="p-12">
-              <div className="text-center space-y-6">
-                <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
-                <div>
-                  <h2 className="text-2xl font-semibold text-gray-900 mb-2">Invalid Harvest ID</h2>
-                  <p className="text-gray-600 mb-6">The harvest ID provided is not valid.</p>
-                  <Button asChild>
-                    <Link href="/dashboard/harvests">Return to Harvests</Link>
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </DashboardLayout>
-    )
-  }
+  // Warn user about unsaved changes when leaving the page
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
 
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
+
+  // Pre-fetch is done via useEffect
+  
   const fetchHarvestData = async () => {
     try {
       setFetching(true)
       const response = await apiService.getHarvestById(harvestId)
-      const harvest = (response as any)?.harvest || (response as any)?.data?.harvest || response
+      const harvest = (response as { harvest?: any; data?: { harvest?: any } })?.harvest || 
+                      (response as { harvest?: any; data?: { harvest?: any } })?.data?.harvest || 
+                      response as any
 
       if (harvest) {
         // Map backend data to our form format with better type safety
@@ -190,18 +183,7 @@ export default function EditHarvestPage() {
     }
   }
 
-  // Warn user about unsaved changes when leaving the page
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault()
-        e.returnValue = ''
-      }
-    }
 
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [hasUnsavedChanges])
 
   if (fetching) {
     return (
@@ -253,95 +235,45 @@ export default function EditHarvestPage() {
 
   return (
     <DashboardLayout pageTitle="Edit Harvest">
-      <div className="space-y-4 sm:space-y-6 max-w-6xl mx-auto">
+      <div className="space-y-6 max-w-5xl mx-auto px-2 sm:px-4">
         {/* Page Header */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" asChild className="text-gray-600 hover:text-gray-900">
-              <Link href={`/dashboard/harvests/${harvestId}`} className="flex items-center gap-2">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground h-9 px-2 -ml-2">
+              <Link href={`/dashboard/harvests/${harvestId}`} className="flex items-center gap-1.5 text-xs sm:text-sm font-medium">
                 <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Back to Harvest Details</span>
-                <span className="sm:hidden">Back</span>
+                <span>Back to Harvest Details</span>
               </Link>
             </Button>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Edit Harvest</h1>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">Edit Harvest</h1>
               <div className="flex flex-wrap gap-2">
                 {hasUnsavedChanges && (
-                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs">
+                  <Badge variant="secondary" className="bg-amber-50 text-amber-800 border-amber-100 text-xs">
                     <AlertCircle className="h-3 w-3 mr-1" />
                     Unsaved Changes
                   </Badge>
                 )}
                 {lastSaved && !hasUnsavedChanges && (
-                  <Badge variant="outline" className="text-green-700 border-green-200 text-xs">
+                  <Badge variant="outline" className="text-emerald-700 border-emerald-200 text-xs">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     Saved {format(lastSaved, 'HH:mm')}
                   </Badge>
                 )}
               </div>
             </div>
-            <p className="text-sm sm:text-base text-gray-600">
-              Update your harvest information and details for better accuracy and traceability
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Modify the on-chain logged harvest attributes. All updates are recorded in the audit logs.
             </p>
           </div>
         </div>
 
-        {/* Edit Guidelines */}
-        <Card className="border border-blue-200 bg-blue-50/50">
-          <CardHeader className="pb-3 px-4 sm:px-6">
-            <CardTitle className="text-center text-sm sm:text-base font-medium flex items-center justify-center gap-2 text-blue-900">
-              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span className="text-sm sm:text-base">Edit Guidelines</span>
-            </CardTitle>
-            <CardDescription className="text-center text-blue-700 text-sm">
-              Important information about editing your harvest
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              <div className="text-center space-y-2 p-2 sm:p-0">
-                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-amber-50 flex items-center justify-center mx-auto">
-                  <span className="text-amber-600 font-bold text-xs sm:text-sm">!</span>
-                </div>
-                <h3 className="font-medium text-xs sm:text-sm text-gray-900">Status Changes</h3>
-                <p className="text-xs text-gray-600 leading-tight">Editing may affect verification status</p>
-              </div>
-
-              <div className="text-center space-y-2 p-2 sm:p-0">
-                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-amber-50 flex items-center justify-center mx-auto">
-                  <span className="text-amber-600 font-bold text-xs sm:text-sm">✓</span>
-                </div>
-                <h3 className="font-medium text-xs sm:text-sm text-gray-900">Data Accuracy</h3>
-                <p className="text-xs text-gray-600 leading-tight">Ensure all information is correct</p>
-              </div>
-
-              <div className="text-center space-y-2 p-2 sm:p-0">
-                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-amber-50 flex items-center justify-center mx-auto">
-                  <span className="text-amber-600 font-bold text-xs sm:text-sm">📝</span>
-                </div>
-                <h3 className="font-medium text-xs sm:text-sm text-gray-900">Audit Trail</h3>
-                <p className="text-xs text-gray-600 leading-tight">Changes are logged for transparency</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Harvest Form */}
-        <Card className="border border-gray-200">
-          <CardHeader className="pb-3 px-4 sm:px-6">
-            <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
-              <Edit className="h-4 w-4 text-gray-500" />
-              Edit Harvest Information
-            </CardTitle>
-            <CardDescription className="text-sm">
-              Modify the details below to update your harvest. All changes will be tracked for transparency.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6">
+        <Card className="border border-slate-100 shadow-sm bg-white overflow-hidden rounded-2xl">
+          <CardContent className="p-4 sm:p-6 lg:p-8">
             <HarvestForm
               initialData={initialData}
               onSubmit={handleSubmit}
@@ -350,40 +282,6 @@ export default function EditHarvestPage() {
               isLoading={loading}
               mode="edit"
             />
-          </CardContent>
-        </Card>
-
-        {/* Action Buttons */}
-        <Card className="border border-gray-200">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div className="text-center lg:text-left">
-                <h3 className="text-base sm:text-lg font-medium text-gray-900">Ready to Update?</h3>
-                <p className="text-gray-600 text-sm mt-1">Review your changes and save when ready</p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-                <Button variant="outline" onClick={handleCancel} className="w-full sm:w-auto">
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => document.querySelector('form')?.requestSubmit()}
-                  disabled={loading}
-                  className="w-full sm:w-auto"
-                >
-                  {loading ? (
-                    <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Update Harvest
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>

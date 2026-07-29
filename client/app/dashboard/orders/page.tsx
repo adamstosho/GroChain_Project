@@ -1204,6 +1204,15 @@ function OrderCard({
   }
 
   const handleDownloadReceipt = async () => {
+    if (order.paymentStatus !== 'paid') {
+      toast({
+        title: "Receipt unavailable",
+        description: "Receipts are only available after payment is completed.",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       console.log('📄 Starting receipt generation for order:', order._id)
 
@@ -1504,10 +1513,12 @@ function OrderCard({
             </Button>
           )}
 
-          <Button variant="outline" size="sm" onClick={handleDownloadReceipt}>
-            <FileText className="h-4 w-4 mr-2" />
-            Download Receipt
-          </Button>
+          {order.paymentStatus === 'paid' && (
+            <Button variant="outline" size="sm" onClick={handleDownloadReceipt}>
+              <FileText className="h-4 w-4 mr-2" />
+              Download Receipt
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

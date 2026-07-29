@@ -148,7 +148,7 @@ class AnalyticsService {
         ]),
         Harvest.aggregate([
           { $match: query },
-          { $group: { _id: null, avg: { $avg: { $indexOfArray: ['excellent', 'good', 'fair', 'poor'], '$quality' } } } }
+          { $group: { _id: null, avg: { $avg: { $indexOfArray: [['excellent', 'good', 'fair', 'poor'], '$quality'] } } } }
         ])
       ])
 
@@ -384,7 +384,7 @@ class AnalyticsService {
   async generateAgriculturalInsights() {
     try {
       const cropPerformance = await Harvest.aggregate([
-        { $group: { _id: '$cropType', avgQuality: { $avg: { $indexOfArray: ['excellent', 'good', 'fair', 'poor'], '$quality' } } } }
+        { $group: { _id: '$cropType', avgQuality: { $avg: { $indexOfArray: [['excellent', 'good', 'fair', 'poor'], '$quality'] } } } }
       ])
 
       return {

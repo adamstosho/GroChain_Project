@@ -38,22 +38,18 @@ interface CreditScore {
   status: 'excellent' | 'good' | 'fair' | 'poor' | 'very_poor'
   lastUpdated: string
   factors: Array<{
-    name: string
+    key: string
+    label: string
+    value: number
     impact: 'positive' | 'negative' | 'neutral'
-    weight: number
-    description: string
   }>
   history: Array<{
-    date: string
     score: number
-    change: number
+    reason: string
+    updatedAt: string
+    change: number | null
   }>
-  recommendations: Array<{
-    title: string
-    description: string
-    priority: 'high' | 'medium' | 'low'
-    impact: number
-  }>
+  recommendations: string[]
   eligibility: {
     loans: boolean
     insurance: boolean
@@ -63,6 +59,21 @@ interface CreditScore {
       insuranceCoverage: number
     }
   }
+}
+
+const factorLabels: Record<string, string> = {
+  paymentHistory: 'Payment History',
+  harvestConsistency: 'Harvest Consistency',
+  businessStability: 'Business Stability',
+  marketReputation: 'Market Reputation',
+  financialDiscipline: 'Financial Discipline',
+  collateralValue: 'Collateral Value'
+}
+
+const getFactorImpact = (value: number): 'positive' | 'negative' | 'neutral' => {
+  if (value >= 70) return 'positive'
+  if (value < 40) return 'negative'
+  return 'neutral'
 }
 
 const creditGrades = {
@@ -99,35 +110,37 @@ export default function CreditScorePage() {
         const data = creditScoreResponse.data as any
 
         // Transform backend data to match frontend interface
+        const factorsObj = data.factors || {}
+        const history = (data.history || []).slice().sort((a: any, b: any) =>
+          new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime())
+
         const transformedCreditScore: CreditScore = {
-          score: data.score || 650,
+          score: data.score ?? 0,
           grade: data.grade || 'C',
           status: data.status || 'fair',
           lastUpdated: data.lastUpdated || data.createdAt,
-          factors: (data.factors || []).map((factor: any) => ({
-            name: factor.name || 'Unknown Factor',
-            impact: factor.impact || 'neutral',
-            weight: factor.weight || 0,
-            description: factor.description || 'No description available'
-          })),
-          history: (data.history || []).map((entry: any) => ({
-            date: entry.date,
+          factors: Object.keys(factorLabels)
+            .filter((key) => factorsObj[key] !== undefined)
+            .map((key) => ({
+              key,
+              label: factorLabels[key],
+              value: factorsObj[key],
+              impact: getFactorImpact(factorsObj[key])
+            })),
+          history: history.map((entry: any, index: number) => ({
             score: entry.score,
-            change: entry.change || 0
+            reason: entry.reason || 'Score recalculated',
+            updatedAt: entry.updatedAt,
+            change: index > 0 ? entry.score - history[index - 1].score : null
           })),
-          recommendations: (data.recommendations || []).map((rec: any) => ({
-            title: rec.title || 'General Recommendation',
-            description: rec.description || '',
-            priority: rec.priority || 'medium',
-            impact: rec.impact || 0
-          })),
+          recommendations: data.recommendations || [],
           eligibility: {
-            loans: data.eligibility?.loans !== false,
-            insurance: data.eligibility?.insurance !== false,
-            marketplace: data.eligibility?.marketplace !== false,
+            loans: data.eligibility?.loans ?? false,
+            insurance: data.eligibility?.insurance ?? false,
+            marketplace: data.eligibility?.marketplace ?? false,
             limits: {
-              loanAmount: data.eligibility?.loanAmount || 100000,
-              insuranceCoverage: data.eligibility?.insuranceCoverage || 500000
+              loanAmount: data.eligibility?.limits?.loanAmount || 0,
+              insuranceCoverage: data.eligibility?.limits?.insuranceCoverage || 0
             }
           }
         }
@@ -138,70 +151,12 @@ export default function CreditScorePage() {
       }
     } catch (error: any) {
       console.error("Failed to fetch credit score:", error)
-
-      // If API fails, try to get basic info from financial dashboard
-      try {
-        const dashboardResponse = await apiService.getFinancialDashboard()
-        if (dashboardResponse.status === 'success' && dashboardResponse.data) {
-          const dashboardData = dashboardResponse.data as any
-
-          // Create a basic credit score from dashboard data
-          const basicCreditScore: CreditScore = {
-            score: dashboardData.overview?.creditScore || 650,
-            grade: (dashboardData.overview?.creditScore || 650) >= 750 ? 'B' : 'C',
-            status: (dashboardData.overview?.creditScore || 650) >= 750 ? 'good' : 'fair',
-            lastUpdated: new Date().toISOString().split('T')[0],
-            factors: [
-              {
-                name: 'Payment History',
-                impact: 'positive',
-                weight: 35,
-                description: 'Based on your transaction history and loan performance'
-              },
-              {
-                name: 'Credit Utilization',
-                impact: 'neutral',
-                weight: 30,
-                description: 'Your current credit utilization level'
-              }
-            ],
-            history: [
-              {
-                date: new Date().toISOString().slice(0, 7),
-                score: dashboardData.overview?.creditScore || 650,
-                change: 0
-              }
-            ],
-            recommendations: [
-              {
-                title: 'Complete More Transactions',
-                description: 'Increase your activity to improve credit scoring data',
-                priority: 'medium',
-                impact: 10
-              }
-            ],
-            eligibility: {
-              loans: true,
-              insurance: true,
-              marketplace: true,
-              limits: {
-                loanAmount: 100000,
-                insuranceCoverage: 500000
-              }
-            }
-          }
-
-          setCreditScore(basicCreditScore)
-        } else {
-          throw new Error('No fallback data available')
-        }
-      } catch (fallbackError) {
-        toast({
-          title: "Error",
-          description: "Failed to load credit score data. Please try again.",
-          variant: "destructive"
-        })
-      }
+      setCreditScore(null)
+      toast({
+        title: "Error",
+        description: "Failed to load credit score data. Please try again.",
+        variant: "destructive"
+      })
     } finally {
       setLoading(false)
     }
@@ -221,16 +176,92 @@ export default function CreditScorePage() {
   }
 
   const handleDownloadReport = async () => {
+    if (!creditScore) return
+
     try {
-      // Mock download - replace with actual API call
-      console.log('Downloading credit report...')
+      const printWindow = window.open('', '_blank')
+      if (!printWindow) {
+        throw new Error('Unable to open print window. Please allow popups.')
+      }
+
+      const formatDate = (value: string) => value ? new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'
+
+      const factorsRows = creditScore.factors.map(factor => `
+        <tr>
+          <td>${factor.label}</td>
+          <td style="text-transform: capitalize;">${factor.impact}</td>
+          <td>${factor.value}/100</td>
+        </tr>
+      `).join('')
+
+      const recommendationsRows = creditScore.recommendations.map(rec => `
+        <tr>
+          <td>${rec}</td>
+        </tr>
+      `).join('')
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Credit Report</title>
+          <meta charset="utf-8" />
+          <style>
+            body { font-family: Arial, sans-serif; padding: 32px; color: #111827; }
+            h1 { font-size: 22px; margin-bottom: 4px; }
+            h2 { font-size: 16px; margin-top: 28px; margin-bottom: 8px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+            th, td { text-align: left; padding: 8px; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
+            th { background: #f9fafb; }
+            .score { font-size: 40px; font-weight: bold; }
+            .meta { color: #6b7280; font-size: 13px; }
+          </style>
+        </head>
+        <body>
+          <h1>GroChain Credit Report</h1>
+          <div class="meta">Generated ${formatDate(new Date().toISOString())}</div>
+          <div class="score">${creditScore.score}</div>
+          <div class="meta">Grade ${creditScore.grade} &middot; ${creditScore.status.replace('_', ' ')} &middot; Last updated ${formatDate(creditScore.lastUpdated)}</div>
+
+          <h2>Eligibility</h2>
+          <table>
+            <tr><th>Service</th><th>Eligible</th><th>Limit</th></tr>
+            <tr><td>Loans</td><td>${creditScore.eligibility.loans ? 'Yes' : 'No'}</td><td>&#8358;${creditScore.eligibility.limits.loanAmount.toLocaleString()}</td></tr>
+            <tr><td>Insurance</td><td>${creditScore.eligibility.insurance ? 'Yes' : 'No'}</td><td>&#8358;${creditScore.eligibility.limits.insuranceCoverage.toLocaleString()}</td></tr>
+            <tr><td>Marketplace</td><td>${creditScore.eligibility.marketplace ? 'Yes' : 'No'}</td><td>-</td></tr>
+          </table>
+
+          <h2>Score Factors</h2>
+          <table>
+            <tr><th>Factor</th><th>Impact</th><th>Weight</th><th>Description</th></tr>
+            ${factorsRows || '<tr><td colspan="4">No factor data available</td></tr>'}
+          </table>
+
+          <h2>Recommendations</h2>
+          <table>
+            <tr><th>Recommendation</th><th>Priority</th><th>Description</th></tr>
+            ${recommendationsRows || '<tr><td colspan="3">No recommendations available</td></tr>'}
+          </table>
+        </body>
+        </html>
+      `
+
+      printWindow.document.open()
+      printWindow.document.write(html)
+      printWindow.document.close()
+
+      window.setTimeout(() => {
+        printWindow.focus()
+        printWindow.print()
+      }, 400)
 
       toast({
-        title: "Download Started",
-        description: "Your credit report is being prepared for download.",
+        title: "Report Ready",
+        description: "Your credit report has been opened for printing/saving as PDF.",
         variant: "default"
       })
     } catch (error) {
+      console.error("Failed to generate credit report:", error)
       toast({
         title: "Download Failed",
         description: "Failed to download credit report. Please try again.",
@@ -376,33 +407,39 @@ export default function CreditScorePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {creditScore.history.map((entry, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span className="text-sm font-medium text-blue-600">{entry.score}</span>
+                {creditScore.history.length > 0 ? (
+                  <div className="space-y-4">
+                    {creditScore.history.map((entry, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span className="text-sm font-medium text-blue-600">{entry.score}</span>
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">{new Date(entry.updatedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+                            <div className="text-xs text-gray-500">{entry.reason}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-medium text-sm">{new Date(entry.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</div>
-                          <div className="text-xs text-gray-500">Score: {entry.score}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {entry.change > 0 ? (
-                          <TrendingUp className="h-4 w-4 text-emerald-500" />
-                        ) : entry.change < 0 ? (
-                          <TrendingDown className="h-4 w-4 text-red-500" />
-                        ) : (
-                          <div className="w-4 h-4 text-gray-400">-</div>
+                        {entry.change !== null && (
+                          <div className="flex items-center gap-2">
+                            {entry.change > 0 ? (
+                              <TrendingUp className="h-4 w-4 text-emerald-500" />
+                            ) : entry.change < 0 ? (
+                              <TrendingDown className="h-4 w-4 text-red-500" />
+                            ) : (
+                              <div className="w-4 h-4 text-gray-400">-</div>
+                            )}
+                            <span className={`text-sm font-medium ${entry.change > 0 ? 'text-emerald-600' : entry.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                              {entry.change > 0 ? '+' : ''}{entry.change}
+                            </span>
+                          </div>
                         )}
-                        <span className={`text-sm font-medium ${entry.change > 0 ? 'text-emerald-600' : entry.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                          {entry.change > 0 ? '+' : ''}{entry.change}
-                        </span>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-6">No score history yet.</p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -498,10 +535,10 @@ export default function CreditScorePage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {creditScore.factors.map((factor, index) => (
-                <div key={index} className="p-4 border border-gray-100 rounded-lg">
+              {creditScore.factors.map((factor) => (
+                <div key={factor.key} className="p-4 border border-gray-100 rounded-lg">
                   <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-medium text-sm">{factor.name}</h4>
+                    <h4 className="font-medium text-sm">{factor.label}</h4>
                     <div className="flex items-center gap-2">
                       {factor.impact === 'positive' ? (
                         <CheckCircle className="h-4 w-4 text-emerald-500" />
@@ -510,17 +547,16 @@ export default function CreditScorePage() {
                       ) : (
                         <Clock className="h-4 w-4 text-gray-500" />
                       )}
-                      <span className="text-xs font-medium text-gray-600">{factor.weight}%</span>
+                      <span className="text-xs font-medium text-gray-600">{factor.value}/100</span>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-600">{factor.description}</p>
                   <div className="mt-2">
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
                         className={`h-2 rounded-full ${factor.impact === 'positive' ? 'bg-emerald-500' :
                           factor.impact === 'negative' ? 'bg-red-500' : 'bg-gray-500'
                           }`}
-                        style={{ width: `${factor.weight}%` }}
+                        style={{ width: `${factor.value}%` }}
                       ></div>
                     </div>
                   </div>
@@ -539,33 +575,22 @@ export default function CreditScorePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {creditScore.recommendations.map((recommendation, index) => (
-                <div key={index} className="flex items-start gap-4 p-4 border border-gray-100 rounded-lg">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${recommendation.priority === 'high' ? 'bg-red-100 text-red-600' :
-                    recommendation.priority === 'medium' ? 'bg-amber-100 text-amber-600' :
-                      'bg-blue-100 text-blue-600'
-                    }`}>
-                    {recommendation.priority === 'high' ? (
-                      <AlertCircle className="h-4 w-4" />
-                    ) : recommendation.priority === 'medium' ? (
-                      <Clock className="h-4 w-4" />
-                    ) : (
+            {creditScore.recommendations.length > 0 ? (
+              <div className="space-y-4">
+                {creditScore.recommendations.map((recommendation, index) => (
+                  <div key={index} className="flex items-start gap-4 p-4 border border-gray-100 rounded-lg">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-100 text-blue-600">
                       <Target className="h-4 w-4" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-medium text-sm">{recommendation.title}</h4>
-                      <Badge variant="outline" className="text-xs">
-                        +{recommendation.impact} points
-                      </Badge>
                     </div>
-                    <p className="text-sm text-gray-600">{recommendation.description}</p>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600">{recommendation}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-6">No recommendations available yet.</p>
+            )}
           </CardContent>
         </Card>
       </div>

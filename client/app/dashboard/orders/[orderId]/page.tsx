@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
+import { processOrderPayment } from "@/lib/paystack"
 import Link from "next/link"
 import Image from "next/image"
 import { ShipmentTrackingWidget } from "@/components/shipment/shipment-tracking-widget"
@@ -38,11 +39,14 @@ interface Order {
   items: OrderItem[]
   subtotal: number
   shipping: number
+  shippingMethod?: string
   tax: number
   total: number
   status: string
   paymentStatus: string
   paymentMethod: string
+  paymentReference?: string
+  orderNumber?: string
   shippingAddress: {
     street: string
     city: string
@@ -66,6 +70,7 @@ export default function OrderDetailsPage() {
   const [error, setError] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [hasSynced, setHasSynced] = useState(false)
+  const [retryingPayment, setRetryingPayment] = useState(false)
 
   const orderId = params.orderId as string
   const paymentMethod = searchParams.get('payment_method')
@@ -81,13 +86,14 @@ export default function OrderDetailsPage() {
         const response = await apiService.getOrder(orderId)
 
         if (response && response.status === 'success' && response.data) {
-          setOrder(response.data as any)
-          console.log('✅ Order details loaded:', response.data)
+          const orderData = response.data as unknown as Order
+          setOrder(orderData)
+          console.log('✅ Order details loaded:', orderData)
           console.log('📦 Order shipping data:', {
-            shipping: response.data.shipping,
-            shippingMethod: response.data.shippingMethod,
-            subtotal: response.data.subtotal,
-            total: response.data.total
+            shipping: orderData.shipping,
+            shippingMethod: orderData.shippingMethod,
+            subtotal: orderData.subtotal,
+            total: orderData.total
           })
         } else {
           throw new Error(response?.message || 'Failed to fetch order details')
@@ -198,6 +204,52 @@ export default function OrderDetailsPage() {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  const handleRetryPayment = async () => {
+    if (!order) return
+
+    try {
+      setRetryingPayment(true)
+
+      await processOrderPayment(
+        order._id,
+        order.total,
+        order.buyer.email,
+        async () => {
+          toast({
+            title: "Payment successful",
+            description: "Verifying order status...",
+          })
+
+          try {
+            await apiService.syncOrderStatus(order._id)
+          } catch {
+            // best effort
+          }
+
+          const refreshed = await apiService.getOrder(order._id)
+          if (refreshed?.status === "success" && refreshed?.data) {
+            setOrder(refreshed.data as any)
+          }
+        },
+        () => {
+          toast({
+            title: "Payment cancelled",
+            description: "You can try again when ready.",
+            variant: "destructive",
+          })
+        }
+      )
+    } catch (error: any) {
+      toast({
+        title: "Payment retry failed",
+        description: error?.message || "Unable to retry payment right now.",
+        variant: "destructive",
+      })
+    } finally {
+      setRetryingPayment(false)
+    }
   }
 
   if (loading) {
@@ -441,15 +493,9 @@ export default function OrderDetailsPage() {
             {/* Action Buttons */}
             <div className="space-y-2 sm:space-y-3">
               {order.paymentStatus === 'pending' && order.paymentMethod === 'paystack' && (
-                <Button className="w-full h-9 sm:h-10 text-xs sm:text-sm" onClick={() => {
-                  // TODO: Implement retry payment
-                  toast({
-                    title: "Payment retry",
-                    description: "Payment retry functionality will be implemented soon.",
-                  })
-                }}>
+                <Button className="w-full h-9 sm:h-10 text-xs sm:text-sm" onClick={handleRetryPayment} disabled={retryingPayment}>
                   <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  Retry Payment
+                  {retryingPayment ? 'Retrying...' : 'Retry Payment'}
                 </Button>
               )}
 

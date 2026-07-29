@@ -12,6 +12,7 @@ import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useDashboardRefresh } from "@/hooks/use-dashboard-refresh"
 import { useCommissionUpdates } from "@/hooks/use-commission-updates"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { Users, Shield, TrendingUp, Banknote, UserPlus, FileCheck, BarChart3, Upload, RefreshCw, AlertCircle } from "lucide-react"
 import Link from "next/link"
 
@@ -322,10 +323,10 @@ export function PartnerDashboard() {
       <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
               <div className="h-8 sm:h-9 bg-gray-200 rounded animate-pulse w-48 sm:w-64"></div>
             </h1>
-            <div className="text-gray-600 text-sm sm:text-base mt-2">
+            <div className="text-muted-foreground text-sm sm:text-base mt-2">
               <div className="h-4 bg-gray-200 rounded animate-pulse w-64 sm:w-80"></div>
             </div>
           </div>
@@ -397,8 +398,8 @@ export function PartnerDashboard() {
       <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Partner Dashboard</h1>
-            <p className="text-gray-600">Manage your farmer network and track performance</p>
+            <h1 className="text-3xl font-bold text-foreground">Partner Dashboard</h1>
+            <p className="text-muted-foreground">Manage your farmer network and track performance</p>
           </div>
           <Button onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -435,8 +436,8 @@ export function PartnerDashboard() {
       <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Partner Dashboard</h1>
-            <p className="text-gray-600">Manage your farmer network and track performance</p>
+            <h1 className="text-3xl font-bold text-foreground">Partner Dashboard</h1>
+            <p className="text-muted-foreground">Manage your farmer network and track performance</p>
           </div>
           <Button onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -472,48 +473,34 @@ export function PartnerDashboard() {
 
   return (
     <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
-      {/* Header with Refresh */}
-      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1 space-y-2">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">Partner Dashboard</h1>
-          <div className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 flex-wrap">
-            <p className="text-gray-600 text-sm sm:text-base">
-              Manage your farmer network and track performance
-            </p>
+      <DashboardPageHeader
+        badge="Partner Network Active"
+        title="Partner"
+        titleHighlight="Dashboard"
+        description={
+          <>
+            Manage your farmer network and track performance.
             {isCommissionConnected && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800 flex-shrink-0">
-                <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
-                Live Updates
+              <span className="mt-2 block text-xs font-semibold text-success">
+                Live commission updates connected
               </span>
             )}
-          </div>
-          {error && (
-            <div className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm bg-yellow-100 text-yellow-800 flex-shrink-0">
-              <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
-              <span className="truncate">Some data may be unavailable - {error}</span>
-            </div>
-          )}
-        </div>
-        <div className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 flex-shrink-0">
-          {lastUpdated && (
-            <div className="text-xs text-muted-foreground flex items-center gap-1 flex-shrink-0">
-              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-              <span className="hidden xs:inline">Last updated: </span>
-              <span className="xs:hidden">Updated: </span>
-              {lastUpdated.toLocaleTimeString()}
-            </div>
-          )}
-          <Button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            size="sm"
-            className="h-8 sm:h-9 text-xs sm:text-sm w-full xs:w-auto"
-          >
-            <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            {error && (
+              <span className="mt-2 flex items-center gap-1 text-xs text-warning">
+                <AlertCircle className="h-3 w-3 shrink-0" />
+                Some data may be unavailable — {error}
+              </span>
+            )}
+          </>
+        }
+        lastUpdated={lastUpdated}
+        actions={
+          <Button onClick={handleRefresh} disabled={isRefreshing} variant="outline" size="lg" className="group">
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            {isRefreshing ? "Refreshing..." : "Refresh"}
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Stats Overview */}
       <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">

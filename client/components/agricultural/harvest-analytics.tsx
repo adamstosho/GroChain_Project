@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -72,11 +72,7 @@ export function HarvestAnalytics({ farmerId, className }: HarvestAnalyticsProps)
   const [timeRange, setTimeRange] = useState("12months")
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchAnalytics()
-  }, [timeRange, farmerId])
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -172,7 +168,11 @@ export function HarvestAnalytics({ farmerId, className }: HarvestAnalyticsProps)
     } finally {
       setLoading(false)
     }
-  }
+  }, [timeRange, farmerId])
+
+  useEffect(() => {
+    void fetchAnalytics()
+  }, [fetchAnalytics])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {

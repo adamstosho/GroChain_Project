@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -141,6 +142,7 @@ export default function InsurancePoliciesPage() {
   const [sortBy, setSortBy] = useState('startDate')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const { toast } = useToast()
+  const router = useRouter()
 
   useEffect(() => {
     fetchPolicies()
@@ -159,47 +161,56 @@ export default function InsurancePoliciesPage() {
       if (policiesResponse.status === 'success' && policiesResponse.data) {
         const policiesData = (policiesResponse.data as any).policies || policiesResponse.data || []
 
-        // Transform backend data to match frontend interface
-        const transformedPolicies: InsurancePolicy[] = policiesData.map((policy: any) => ({
-          id: policy._id || policy.id,
-          policyNumber: policy.policyNumber,
-          type: policy.type,
-          provider: policy.provider,
-          coverage: {
-            amount: policy.coverageAmount || policy.coverage?.amount || 0,
-            currency: policy.currency || 'NGN',
-            details: policy.coverageDetails || policy.coverage?.details || 'Insurance coverage'
-          },
-          premium: {
-            amount: policy.premium || policy.premiumAmount || 0,
-            frequency: policy.premiumFrequency || 'annually',
-            nextDue: policy.nextPremiumDue || policy.nextPaymentDate
-          },
-          status: policy.status,
-          startDate: policy.startDate,
-          endDate: policy.endDate,
-          crops: policy.crops || [],
-          livestock: policy.livestock || [],
-          equipment: policy.equipment || [],
-          riskFactors: (policy.riskFactors || []).map((factor: any) => ({
-            factor: factor.name || factor.factor,
-            level: factor.level || 'medium',
-            description: factor.description || ''
-          })),
-          claims: (policy.claims || []).map((claim: any) => ({
-            id: claim._id || claim.id,
-            date: claim.date || claim.createdAt,
-            amount: claim.amount,
-            status: claim.status,
-            description: claim.description || ''
-          })),
-          documents: (policy.documents || []).map((doc: any) => ({
-            name: doc.name,
-            type: doc.type,
-            url: doc.url,
-            uploadedAt: doc.uploadedAt
-          }))
-        }))
+        // Transform backend data (real InsurancePolicy/InsuranceClaim documents) to match frontend interface
+        const transformedPolicies: InsurancePolicy[] = policiesData.map((policy: any) => {
+          const coverageDetails = policy.coverageDetails || {}
+          const detailParts = [
+            ...(coverageDetails.crops || []),
+            ...(coverageDetails.equipment || []),
+            ...(coverageDetails.livestock || [])
+          ]
+
+          return {
+            id: policy._id || policy.id,
+            policyNumber: policy.policyNumber,
+            type: policy.type,
+            provider: policy.provider,
+            coverage: {
+              amount: policy.coverageAmount || policy.coverage?.amount || 0,
+              currency: policy.currency || 'NGN',
+              details: detailParts.length > 0 ? detailParts.join(', ') : 'Insurance coverage'
+            },
+            premium: {
+              amount: policy.premium || policy.premiumAmount || 0,
+              frequency: policy.premiumFrequency || 'annually',
+              nextDue: policy.nextPremiumDue || policy.nextPaymentDate
+            },
+            status: policy.status,
+            startDate: policy.startDate,
+            endDate: policy.endDate,
+            crops: coverageDetails.crops || [],
+            livestock: coverageDetails.livestock || [],
+            equipment: coverageDetails.equipment || [],
+            riskFactors: (policy.riskFactors || []).map((factor: any) => ({
+              factor: factor.name || factor.factor,
+              level: factor.level || 'medium',
+              description: factor.description || ''
+            })),
+            claims: (policy.claims || []).map((claim: any) => ({
+              id: claim._id || claim.id,
+              date: claim.incidentDate || claim.reportedDate || claim.createdAt,
+              amount: claim.claimAmount || claim.estimatedLoss || 0,
+              status: claim.status,
+              description: claim.description || ''
+            })),
+            documents: (policy.documents || []).map((doc: any) => ({
+              name: doc.name,
+              type: doc.type,
+              url: doc.url,
+              uploadedAt: doc.uploadedAt
+            }))
+          }
+        })
 
         setPolicies(transformedPolicies)
 
@@ -307,25 +318,85 @@ export default function InsurancePoliciesPage() {
   }
 
   const handleNewPolicy = () => {
-    // Navigate to new policy application
-    toast({
-      title: "New Policy",
-      description: "Redirecting to policy application form...",
-      variant: "default"
-    })
+    router.push('/dashboard/financial/insurance/compare')
   }
 
   const handleExport = async () => {
-    try {
-      // Mock export - replace with actual API call
-      console.log('Exporting insurance policies...')
-      
+    if (policies.length === 0) {
       toast({
-        title: "Export Started",
-        description: "Your insurance report is being prepared for download.",
+        title: "Nothing to Export",
+        description: "You don't have any insurance policies yet.",
+        variant: "default"
+      })
+      return
+    }
+
+    try {
+      const printWindow = window.open('', '_blank')
+      if (!printWindow) {
+        throw new Error('Unable to open print window. Please allow popups.')
+      }
+
+      const formatCurrency = (amount: number) => `₦${(amount || 0).toLocaleString()}`
+      const formatDate = (value: string) => value ? new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'
+
+      const rows = policies.map(policy => `
+        <tr>
+          <td>${policy.policyNumber}</td>
+          <td style="text-transform: capitalize;">${policy.type}</td>
+          <td>${policy.provider}</td>
+          <td>${formatCurrency(policy.coverage.amount)}</td>
+          <td>${formatCurrency(policy.premium.amount)} / ${policy.premium.frequency}</td>
+          <td style="text-transform: capitalize;">${policy.status}</td>
+          <td>${formatDate(policy.startDate)}</td>
+          <td>${formatDate(policy.endDate)}</td>
+        </tr>
+      `).join('')
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Insurance Policies Report</title>
+          <meta charset="utf-8" />
+          <style>
+            body { font-family: Arial, sans-serif; padding: 32px; color: #111827; }
+            h1 { font-size: 22px; margin-bottom: 4px; }
+            .meta { color: #6b7280; font-size: 13px; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { text-align: left; padding: 8px; border-bottom: 1px solid #e5e7eb; font-size: 12px; }
+            th { background: #f9fafb; }
+          </style>
+        </head>
+        <body>
+          <h1>Insurance Policies Report</h1>
+          <div class="meta">Generated ${formatDate(new Date().toISOString())} &middot; ${policies.length} ${policies.length === 1 ? 'policy' : 'policies'}</div>
+          <table>
+            <tr>
+              <th>Policy Number</th><th>Type</th><th>Provider</th><th>Coverage</th><th>Premium</th><th>Status</th><th>Start</th><th>End</th>
+            </tr>
+            ${rows}
+          </table>
+        </body>
+        </html>
+      `
+
+      printWindow.document.open()
+      printWindow.document.write(html)
+      printWindow.document.close()
+
+      window.setTimeout(() => {
+        printWindow.focus()
+        printWindow.print()
+      }, 400)
+
+      toast({
+        title: "Report Ready",
+        description: "Your insurance report has been opened for printing/saving as PDF.",
         variant: "default"
       })
     } catch (error) {
+      console.error("Failed to export insurance policies:", error)
       toast({
         title: "Export Failed",
         description: "Failed to export insurance policies. Please try again.",
@@ -448,8 +519,8 @@ export default function InsurancePoliciesPage() {
                   {stats.totalPolicies}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <TrendingUp className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm text-blue-600">+1 from last month</span>
+                  <Shield className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm text-gray-500">{stats.activePolicies} active</span>
                 </div>
               </CardContent>
             </Card>
@@ -464,7 +535,7 @@ export default function InsurancePoliciesPage() {
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <TrendingUp className="h-4 w-4 text-emerald-500" />
-                  <span className="text-sm text-emerald-600">+53.6% from last month</span>
+                  <span className="text-sm text-gray-500">Across active policies</span>
                 </div>
               </CardContent>
             </Card>
@@ -478,8 +549,8 @@ export default function InsurancePoliciesPage() {
                   ₦{(stats.totalPremium / 1000).toFixed(0)}K
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <TrendingUp className="h-4 w-4 text-amber-500" />
-                  <span className="text-sm text-amber-600">+46.7% from last month</span>
+                  <Banknote className="h-4 w-4 text-amber-500" />
+                  <span className="text-sm text-gray-500">Total across active policies</span>
                 </div>
               </CardContent>
             </Card>

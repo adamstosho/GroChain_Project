@@ -1,5 +1,5 @@
 // React hook for automatic payment verification
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { apiService } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 
@@ -15,10 +15,17 @@ interface UsePaymentVerificationOptions {
   orderId?: string
   autoVerify?: boolean
   verifyInterval?: number // in milliseconds
+  testMode?: boolean
 }
 
 export function usePaymentVerification(options: UsePaymentVerificationOptions = {}) {
-  const { reference, orderId, autoVerify = true, verifyInterval = 30000 } = options
+  const {
+    reference,
+    orderId,
+    autoVerify = true,
+    verifyInterval = 30000,
+    testMode = false,
+  } = options
   const [state, setState] = useState<PaymentVerificationState>({
     isVerifying: false,
     isVerified: false,
@@ -26,8 +33,12 @@ export function usePaymentVerification(options: UsePaymentVerificationOptions = 
     lastVerified: null
   })
   const { toast } = useToast()
+  const isVerifiedRef = useRef(false)
 
-  // Verify payment function
+  useEffect(() => {
+    isVerifiedRef.current = state.isVerified
+  }, [state.isVerified])
+
   const verifyPayment = useCallback(async (paymentRef?: string) => {
     const refToVerify = paymentRef || reference
 
@@ -36,14 +47,18 @@ export function usePaymentVerification(options: UsePaymentVerificationOptions = 
       return false
     }
 
+    if (isVerifiedRef.current) {
+      return true
+    }
+
     setState(prev => ({ ...prev, isVerifying: true, error: null }))
 
     try {
-      console.log(`🔍 Verifying payment: ${refToVerify}`)
-
-      const result = await apiService.verifyPayment(refToVerify)
+      const result = await apiService.verifyPayment(refToVerify, { testMode })
 
       if (result.status === 'success') {
+        const wasAlreadyVerified = isVerifiedRef.current
+        isVerifiedRef.current = true
         setState(prev => ({
           ...prev,
           isVerifying: false,
@@ -52,23 +67,22 @@ export function usePaymentVerification(options: UsePaymentVerificationOptions = 
           lastVerified: new Date()
         }))
 
-        toast({
-          title: "Payment Verified",
-          description: "Your payment has been confirmed and updated.",
-        })
+        if (!wasAlreadyVerified) {
+          toast({
+            title: "Payment Verified",
+            description: "Your payment has been confirmed and updated.",
+          })
+        }
 
-        console.log('✅ Payment verified successfully')
         return true
-      } else {
-        setState(prev => ({
-          ...prev,
-          isVerifying: false,
-          error: result.message || 'Verification failed'
-        }))
-
-        console.log('❌ Payment verification failed:', result.message)
-        return false
       }
+
+      setState(prev => ({
+        ...prev,
+        isVerifying: false,
+        error: result.message || 'Verification failed'
+      }))
+      return false
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -78,18 +92,18 @@ export function usePaymentVerification(options: UsePaymentVerificationOptions = 
         error: errorMessage
       }))
 
-      toast({
-        title: "Verification Error",
-        description: "Could not verify payment status. Please try again.",
-        variant: "destructive"
-      })
+      if (!isVerifiedRef.current) {
+        toast({
+          title: "Verification Error",
+          description: "Could not verify payment status. Please try again.",
+          variant: "destructive"
+        })
+      }
 
-      console.error('❌ Payment verification error:', error)
       return false
     }
-  }, [reference, toast])
+  }, [reference, testMode, toast])
 
-  // Batch verify multiple payments
   const batchVerifyPayments = useCallback(async (references: string[]) => {
     if (!references.length) return []
 
@@ -107,13 +121,17 @@ export function usePaymentVerification(options: UsePaymentVerificationOptions = 
       const result = await response.json()
 
       if (result.status === 'success') {
+        const verifiedCount = result.results.filter((r: { success?: boolean }) => r.success).length
+        if (verifiedCount > 0) {
+          isVerifiedRef.current = true
+        }
+
         setState(prev => ({
           ...prev,
           isVerifying: false,
+          isVerified: verifiedCount > 0 || prev.isVerified,
           lastVerified: new Date()
         }))
-
-        const verifiedCount = result.results.filter((r: any) => r.success).length
 
         if (verifiedCount > 0) {
           toast({
@@ -123,14 +141,14 @@ export function usePaymentVerification(options: UsePaymentVerificationOptions = 
         }
 
         return result.results
-      } else {
-        setState(prev => ({
-          ...prev,
-          isVerifying: false,
-          error: result.message
-        }))
-        return []
       }
+
+      setState(prev => ({
+        ...prev,
+        isVerifying: false,
+        error: result.message
+      }))
+      return []
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Batch verification failed'
@@ -143,42 +161,38 @@ export function usePaymentVerification(options: UsePaymentVerificationOptions = 
     }
   }, [toast])
 
-  // Auto-verification effect
   useEffect(() => {
     if (!autoVerify || (!reference && !orderId)) return
 
-    // Initial verification
     verifyPayment()
 
-    // Set up periodic verification if interval is provided
-    if (verifyInterval > 0) {
-      const intervalId = setInterval(() => {
-        verifyPayment()
-      }, verifyInterval)
+    if (verifyInterval <= 0 || state.isVerified) return
 
-      return () => clearInterval(intervalId)
-    }
-  }, [autoVerify, reference, orderId, verifyInterval, verifyPayment])
+    const intervalId = setInterval(() => {
+      if (!isVerifiedRef.current) {
+        verifyPayment()
+      }
+    }, verifyInterval)
+
+    return () => clearInterval(intervalId)
+  }, [autoVerify, reference, orderId, verifyInterval, verifyPayment, state.isVerified])
 
   return {
     ...state,
     verifyPayment,
     batchVerifyPayments,
-    // Helper functions
     canVerify: !!(reference || orderId),
     needsVerification: !state.isVerified && !state.isVerifying,
     hasError: !!state.error
   }
 }
 
-// Hook for verifying orders with pending payments
 export function useOrderPaymentVerification(orderId?: string) {
   const [pendingOrders, setPendingOrders] = useState<any[]>([])
   const { verifyPayment, batchVerifyPayments, ...verificationState } = usePaymentVerification({
-    autoVerify: false // Manual verification for orders
+    autoVerify: false
   })
 
-  // Verify all pending orders
   const verifyAllPendingOrders = useCallback(async () => {
     if (pendingOrders.length === 0) return
 
@@ -189,12 +203,11 @@ export function useOrderPaymentVerification(orderId?: string) {
     if (references.length > 0) {
       const results = await batchVerifyPayments(references)
 
-      // Update local state with verification results
       setPendingOrders(prevOrders =>
         prevOrders.map(order => {
-          const result = results.find((r: any) => r.reference === order.paymentReference)
+          const result = results.find((r: { reference?: string; success?: boolean }) => r.reference === order.paymentReference)
           if (result?.success) {
-            return { ...order, status: 'paid', paymentStatus: 'paid' }
+            return { ...order, paymentStatus: 'paid' }
           }
           return order
         })
@@ -202,18 +215,16 @@ export function useOrderPaymentVerification(orderId?: string) {
     }
   }, [pendingOrders, batchVerifyPayments])
 
-  // Verify specific order
-  const verifyOrderPayment = useCallback(async (order: any) => {
+  const verifyOrderPayment = useCallback(async (order: { _id?: string; paymentReference?: string }) => {
     if (!order.paymentReference) return false
 
     const success = await verifyPayment(order.paymentReference)
 
     if (success) {
-      // Update local state
       setPendingOrders(prevOrders =>
         prevOrders.map(o =>
           o._id === order._id
-            ? { ...o, status: 'paid', paymentStatus: 'paid' }
+            ? { ...o, paymentStatus: 'paid' }
             : o
         )
       )
@@ -231,41 +242,34 @@ export function useOrderPaymentVerification(orderId?: string) {
   }
 }
 
-// Hook for dashboard-wide payment verification
 export function useDashboardPaymentVerification() {
   const { verifyPayment, batchVerifyPayments, ...verificationState } = usePaymentVerification({
     autoVerify: false
   })
 
-  // Get all pending orders and verify them
   const verifyAllDashboardPayments = useCallback(async () => {
     try {
-      // This would typically come from an API call to get pending orders
       const response = await apiService.getUserOrders()
       const orders = Array.isArray(response.data) ? response.data : Array.isArray(response) ? response : []
 
-      const pendingOrders = orders.filter((order: any) =>
+      const pendingOrders = orders.filter((order: { status?: string; paymentStatus?: string }) =>
         order.status === 'pending' || order.paymentStatus === 'pending'
       )
 
       if (pendingOrders.length === 0) {
-        console.log('✅ No pending orders to verify')
         return { success: true, message: 'No pending orders found' }
       }
 
       const references = pendingOrders
-        .filter((order: any) => order.paymentReference)
-        .map((order: any) => order.paymentReference)
+        .filter((order: { paymentReference?: string }) => order.paymentReference)
+        .map((order: { paymentReference?: string }) => order.paymentReference)
 
       if (references.length === 0) {
-        console.log('⚠️ No payment references found for pending orders')
         return { success: false, message: 'No payment references available' }
       }
 
-      console.log(`🔍 Verifying ${references.length} payments...`)
-      const results = await batchVerifyPayments(references)
-
-      const verifiedCount = results.filter((r: any) => r.success).length
+      const results = await batchVerifyPayments(references as string[])
+      const verifiedCount = results.filter((r: { success?: boolean }) => r.success).length
 
       return {
         success: true,
@@ -276,7 +280,6 @@ export function useDashboardPaymentVerification() {
       }
 
     } catch (error) {
-      console.error('❌ Dashboard verification error:', error)
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Verification failed'

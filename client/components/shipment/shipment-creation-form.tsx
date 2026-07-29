@@ -176,7 +176,7 @@ export function ShipmentCreationForm({
     } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "Failed to create shipment",
+        description: error instanceof Error ? error.message : "Failed to create shipment",
         variant: "destructive",
       })
     } finally {

@@ -12,8 +12,12 @@ import { HarvestCard, type HarvestData } from "@/components/agricultural"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useDashboardRefresh } from "@/hooks/use-dashboard-refresh"
-import { Leaf, Package, TrendingUp, Banknote, Plus, Eye, QrCode, BarChart3, RefreshCw, Store } from "lucide-react"
+import { useStableDataFetch } from "@/hooks/use-stable-data-fetch"
+import { Leaf, Package, TrendingUp, Banknote, Plus, Eye, QrCode, BarChart3, RefreshCw, Store, Activity } from "lucide-react"
 import Link from "next/link"
+import { AiTrustBadge } from "@/components/ai/ai-trust-badge"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { useAuthStore } from "@/lib/auth"
 
 // Helper function to determine credit score status
 const getCreditScoreStatus = (score: number): string => {
@@ -50,18 +54,17 @@ interface CreditScoreData {
 export function FarmerDashboard() {
   const [stats, setStats] = useState<FarmerStats | null>(null)
   const [recentHarvests, setRecentHarvests] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  const { isInitialLoading, isRefreshing, begin, finish } = useStableDataFetch()
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const { toast } = useToast()
   const [credit, setCredit] = useState<CreditScoreData | null>(null)
 
   const fetchDashboardData = useCallback(async (reason: string = 'manual') => {
+    const generation = begin()
     try {
-      setIsLoading(true)
       console.log(`🔄 Fetching farmer dashboard data (${reason})...`)
 
-      // Use Promise.allSettled for better error handling
       const [dashboardResponse, harvestsResponse, creditResp, farmerAnalytics] = await Promise.allSettled([
         apiService.getDashboard(),
         apiService.getHarvests({ limit: 5 }),
@@ -71,80 +74,70 @@ export function FarmerDashboard() {
         apiService.getFarmerAnalytics().catch(() => ({ data: {} }))
       ])
 
-      // Handle dashboard stats
-      if (dashboardResponse.status === 'fulfilled') {
-        console.log('✅ Dashboard data received:', dashboardResponse.value.data)
-        const dashboardData = dashboardResponse.value.data as any
-        setStats({
-          totalHarvests: dashboardData?.totalHarvests || 0,
-          pendingApprovals: dashboardData?.pendingApprovals || 0,
-          activeListings: dashboardData?.activeListings || 0,
-          monthlyRevenue: dashboardData?.monthlyRevenue || 0,
-          totalRevenue: dashboardData?.totalRevenue || 0,
-          totalOrders: dashboardData?.totalOrders || 0
-        })
-      } else {
-        console.error('❌ Dashboard data failed:', dashboardResponse.reason)
-      }
+      const dashboardData =
+        dashboardResponse.status === "fulfilled"
+          ? (dashboardResponse.value.data as unknown as Record<string, unknown>)
+          : null
+      const analyticsData =
+        farmerAnalytics.status === "fulfilled" && farmerAnalytics.value.data
+          ? (farmerAnalytics.value.data as Record<string, unknown>)
+          : null
 
-      // Handle harvests data
-      if (harvestsResponse.status === 'fulfilled') {
-        const harvestData = (harvestsResponse.value as any).harvests || harvestsResponse.value.data || []
+      const monthlyFromAnalytics =
+        Array.isArray(analyticsData?.monthlyTrends) && analyticsData.monthlyTrends.length > 0
+          ? (analyticsData.monthlyTrends as { revenue?: number }[])[analyticsData.monthlyTrends.length - 1]
+              ?.revenue || 0
+          : 0
+
+      const activeListingsCount =
+        Number(dashboardData?.activeListings) ||
+        Number(analyticsData?.totalListings) ||
+        0
+
+      setStats({
+        totalHarvests: Number(dashboardData?.totalHarvests) || 0,
+        pendingApprovals: Number(dashboardData?.pendingApprovals) || 0,
+        activeListings: activeListingsCount,
+        monthlyRevenue: Number(dashboardData?.monthlyRevenue) || monthlyFromAnalytics || 0,
+        totalRevenue: Number(dashboardData?.totalRevenue) || Number(analyticsData?.totalRevenue) || 0,
+        totalOrders: Number(dashboardData?.totalOrders) || Number(analyticsData?.totalOrders) || 0,
+      })
+
+      if (harvestsResponse.status === "fulfilled") {
+        const harvestData =
+          (harvestsResponse.value as { harvests?: unknown[] }).harvests ||
+          (harvestsResponse.value as { data?: unknown[] }).data ||
+          []
         setRecentHarvests(Array.isArray(harvestData) ? harvestData : [])
-      } else {
-        console.error('❌ Harvests data failed:', harvestsResponse.reason)
       }
 
-      // Handle credit score data
-      if (creditResp.status === 'fulfilled') {
-        console.log('✅ Credit score data received:', creditResp.value.data)
+      if (creditResp.status === "fulfilled") {
         setCredit(creditResp.value.data as CreditScoreData)
-      } else {
-        console.error('❌ Credit score failed:', creditResp.reason)
-      }
-
-      // Update stats with farmer analytics data
-      if (farmerAnalytics.status === 'fulfilled' && farmerAnalytics.value.data) {
-        const analyticsData = farmerAnalytics.value.data
-        setStats(prevStats => ({
-          totalHarvests: prevStats?.totalHarvests || 0,
-          pendingApprovals: prevStats?.pendingApprovals || 0,
-          activeListings: (analyticsData as any).totalListings || 0,
-          monthlyRevenue: (analyticsData as any).monthlyTrends?.length > 0
-            ? (analyticsData as any).monthlyTrends[(analyticsData as any).monthlyTrends.length - 1]?.revenue || 0
-            : 0,
-          totalRevenue: (analyticsData as any).totalRevenue || 0,
-          totalOrders: (analyticsData as any).totalOrders || 0
-        }))
-      } else {
-        console.error('❌ Analytics data failed:', farmerAnalytics.status === 'rejected' ? farmerAnalytics.reason : 'Unknown error')
       }
 
       setLastUpdated(new Date())
-
-    } catch (error: any) {
-      console.error('❌ Dashboard fetch error:', error)
+      finish(generation)
+    } catch (error: unknown) {
+      console.error("❌ Dashboard fetch error:", error)
+      finish(generation)
+      const message = error instanceof Error ? error.message : "Failed to load dashboard data. Please try again."
       toast({
         title: "Error loading dashboard",
-        description: error.message || "Failed to load dashboard data. Please try again.",
+        description: message,
         variant: "destructive",
       })
-
-      // Set fallback data
-      setStats({
-        totalHarvests: 0,
-        pendingApprovals: 0,
-        activeListings: 0,
-        monthlyRevenue: 0,
-        totalRevenue: 0,
-        totalOrders: 0
-      })
-      setRecentHarvests([])
-      setCredit(null)
-    } finally {
-      setIsLoading(false)
+      setStats((prev) =>
+        prev ?? {
+          totalHarvests: 0,
+          pendingApprovals: 0,
+          activeListings: 0,
+          monthlyRevenue: 0,
+          totalRevenue: 0,
+          totalOrders: 0,
+        }
+      )
     }
-  }, [toast])
+  }, [toast, begin, finish])
 
   // Smart event-driven refresh system
   const { refresh } = useDashboardRefresh({
@@ -156,7 +149,7 @@ export function FarmerDashboard() {
   }, [fetchDashboardData])
 
   const handleManualRefresh = async () => {
-    setIsRefreshing(true)
+    setIsManualRefreshing(true)
     try {
       await fetchDashboardData('manual')
       toast({
@@ -171,7 +164,7 @@ export function FarmerDashboard() {
         variant: "destructive",
       })
     } finally {
-      setIsRefreshing(false)
+      setIsManualRefreshing(false)
     }
   }
 
@@ -188,7 +181,7 @@ export function FarmerDashboard() {
       description: "Explore products from other farmers",
       icon: Store,
       href: "/marketplace",
-      color: "bg-blue/10 text-blue",
+      color: "bg-primary/10 text-primary",
     },
     {
       title: "Check Analytics",
@@ -260,7 +253,7 @@ export function FarmerDashboard() {
     }
   }
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -277,42 +270,49 @@ export function FarmerDashboard() {
     )
   }
 
+  const farmerName = useAuthStore.getState().user?.name || "Farmer"
+  const farmerUserId = useAuthStore.getState().user?._id
+
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Dashboard Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight truncate">Farmer Dashboard</h2>
-          <p className="text-sm sm:text-base text-muted-foreground">Manage your harvests and track your performance</p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0">
-          {lastUpdated && (
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
-              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-              <span className="hidden sm:inline">Last updated: {lastUpdated.toLocaleTimeString()}</span>
-              <span className="sm:hidden">Updated: {lastUpdated.toLocaleTimeString()}</span>
-            </div>
-          )}
-          {isLoading && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-              <span className="hidden sm:inline">Loading...</span>
-              <span className="sm:hidden">Loading...</span>
-            </div>
-          )}
-          <Button
-            onClick={handleManualRefresh}
-            disabled={isRefreshing || isLoading}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2 w-full sm:w-auto"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
-            <span className="sm:hidden">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6 px-4 sm:px-6 sm:space-y-10 max-w-full overflow-hidden">
+      <DashboardPageHeader
+        badge="Farmer Intelligence Active"
+        title="Farmer"
+        titleHighlight="Dashboard"
+        description={
+          <>
+            Welcome back, {farmerName}. Your farm overview is performing{" "}
+            <span className="font-semibold text-foreground">
+              {stats?.totalRevenue ? "above baseline" : "optimally"}
+            </span>{" "}
+            today.
+          </>
+        }
+        lastUpdated={lastUpdated}
+        footer={farmerUserId ? <AiTrustBadge userId={farmerUserId} /> : null}
+        actions={
+          <>
+            <Button
+              onClick={handleManualRefresh}
+              disabled={isRefreshing || isManualRefreshing}
+              variant="outline"
+              size="lg"
+              className="group"
+            >
+              <RefreshCw
+                className={`mr-2 h-4 w-4 transition-transform duration-500 group-hover:rotate-180 ${isRefreshing || isManualRefreshing ? "animate-spin" : ""}`}
+              />
+              {isRefreshing || isManualRefreshing ? "Syncing..." : "Refresh"}
+            </Button>
+            <Button asChild size="lg">
+              <Link href="/dashboard/harvests/new">
+                <Plus className="mr-2 h-5 w-5" />
+                New Harvest
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Overview */}
       <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

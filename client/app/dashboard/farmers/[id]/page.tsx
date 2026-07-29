@@ -106,7 +106,7 @@ export default function FarmerDetailsPage() {
       const farmerResponse = await api.getFarmerById(farmerId)
       if (farmerResponse?.status === 'success' && farmerResponse.data) {
         const farmerData = farmerResponse.data
-        setFarmer(farmerData)
+        setFarmer(farmerData as FarmerDetails)
         console.log('✅ Farmer details loaded:', farmerData.name)
 
         // Set harvests from response
@@ -124,11 +124,12 @@ export default function FarmerDetailsPage() {
         throw new Error('Farmer not found')
       }
 
-    } catch (error: any) {
-      console.error('❌ Failed to fetch farmer details:', error)
+    } catch (error: unknown) {
+      const err = error as Error
+      console.error('❌ Failed to fetch farmer details:', err)
       toast({
         title: "Error loading farmer details",
-        description: error.message || "Failed to load farmer information",
+        description: err.message || "Failed to load farmer information",
         variant: "destructive"
       })
       router.push('/dashboard/farmers')
@@ -224,7 +225,7 @@ export default function FarmerDetailsPage() {
               <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
               <h3 className="text-lg font-semibold mb-2">Farmer Not Found</h3>
               <p className="text-muted-foreground text-center mb-4">
-                The farmer you're looking for doesn't exist or has been removed.
+                {"The farmer you're looking for doesn't exist or has been removed."}
               </p>
               <Button asChild>
                 <Link href="/dashboard/farmers">Back to Farmers List</Link>

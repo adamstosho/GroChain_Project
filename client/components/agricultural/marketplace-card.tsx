@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -95,6 +96,7 @@ export function MarketplaceCard({
   variant = "default",
   className
 }: MarketplaceCardProps) {
+  const router = useRouter()
   const [showQR, setShowQR] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const { favorites, addToFavorites, removeFromFavorites, fetchFavorites } = useBuyerStore()
@@ -103,10 +105,7 @@ export function MarketplaceCard({
   // Check if product is in favorites
   const isWishlisted = Array.isArray(favorites) && favorites.some((fav: any) => fav.listingId === product.id || fav._id === product.id)
 
-  // Load favorites on component mount
-  useEffect(() => {
-    fetchFavorites()
-  }, [fetchFavorites])
+
 
   const handleWishlist = async () => {
     if (isProcessing) return // Prevent multiple clicks
@@ -242,118 +241,144 @@ export function MarketplaceCard({
   }
 
   return (
-    <Card className={cn("hover:shadow-md transition-all duration-200 group overflow-hidden w-full", className)}>
+    <Card className={cn("hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 ease-out group overflow-hidden w-full border border-gray-100 hover:border-emerald-500/20 bg-card", className)}>
       {/* Product Image */}
       <div className="relative aspect-[5/3] sm:aspect-[4/3] overflow-hidden">
         <img
           src={product.images[0]}
           alt={product.name}
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         
         {/* Overlay Badges */}
-        <div className="absolute top-2 left-2 space-y-1">
-          <Badge className={cn("text-xs px-2 py-1", gradeColors[product.grade])}>
+        <div className="absolute top-2 left-2 space-y-1 z-10">
+          <Badge className={cn("text-[10px] sm:text-xs px-2 py-0.5 sm:py-1 backdrop-blur-md bg-opacity-95 font-semibold shadow-sm border border-white/10", gradeColors[product.grade])}>
             Grade {product.grade}
           </Badge>
           {product.organic && (
-            <Badge className="bg-primary text-primary-foreground text-xs px-2 py-1">
-              <Leaf className="h-3 w-3 mr-1" />
+            <Badge className="backdrop-blur-md bg-emerald-600/90 text-white text-[10px] sm:text-xs px-2 py-0.5 sm:py-1 font-semibold flex items-center shadow-sm border border-emerald-400/25">
+              <Leaf className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
               Organic
             </Badge>
           )}
         </div>
 
         {/* Action Buttons */}
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
           <Button
             variant="secondary"
             size="sm"
-            className="h-7 w-7 p-0 bg-white/90 hover:bg-white"
+            className="h-8 w-8 p-0 bg-white/95 hover:bg-white hover:text-red-500 text-gray-600 shadow-md rounded-full transition-transform hover:scale-105"
             onClick={handleWishlist}
             disabled={isProcessing}
           >
-            <Heart className={cn("h-3 w-3 transition-colors", isWishlisted ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-500")} />
+            <Heart className={cn("h-4 w-4 transition-colors", isWishlisted ? "fill-red-500 text-red-500" : "")} />
           </Button>
+          {product.qrCode && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-8 w-8 p-0 bg-white/95 hover:bg-white text-emerald-600 hover:text-emerald-700 shadow-md rounded-full transition-transform hover:scale-105"
+              onClick={() => router.push(`/verify/${product.qrCode}`)}
+              title="Verify Traceability"
+            >
+              <QrCode className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
-      <div className="p-1.5 sm:p-2 space-y-1 sm:space-y-1.5 overflow-hidden">
+      <div className="p-3 space-y-2 sm:space-y-2.5 overflow-hidden">
         {/* Product Info */}
         <div className="space-y-0.5">
-          <h3 className="font-semibold text-xs sm:text-sm line-clamp-1">{product.name}</h3>
+          <h3 className="font-semibold text-xs sm:text-sm line-clamp-1 flex items-center gap-1 text-gray-900 group-hover:text-primary transition-colors">
+            {product.name}
+            {product.farmer.verified && (
+              <span title="Verified Supply Chain" className="flex-shrink-0">
+                <Shield className="h-3.5 w-3.5 text-emerald-500 fill-emerald-100/50" />
+              </span>
+            )}
+          </h3>
           <p className="text-xs text-muted-foreground line-clamp-1 hidden sm:block">{product.description}</p>
         </div>
 
         {/* Price */}
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1 min-w-0 flex-1">
-            <span className="text-sm sm:text-base font-bold text-primary truncate">
+          <div className="flex items-center gap-0.5 min-w-0 flex-1">
+            <span className="text-sm sm:text-base font-bold text-emerald-600 truncate">
               ₦{product.price.toLocaleString()}
             </span>
-            <span className="text-xs text-muted-foreground flex-shrink-0">/{product.unit}</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">/{product.unit}</span>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
-            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-            <span className="text-xs text-muted-foreground">{product.rating.toFixed(1)}</span>
+            <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+            <span className="text-xs font-semibold text-gray-700">{product.rating.toFixed(1)}</span>
           </div>
         </div>
 
         {/* Key Details */}
-        <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground hidden sm:grid">
+        <div className="grid grid-cols-2 gap-1 text-[10px] sm:text-xs text-muted-foreground border-t border-gray-50 pt-2">
           <div className="flex items-center gap-1 min-w-0">
-            <Scale className="h-3 w-3 flex-shrink-0" />
-            <span className="truncate">{product.availableQuantity} {product.unit}</span>
+            <Scale className="h-3 w-3 flex-shrink-0 text-gray-400" />
+            <span className="truncate">{product.availableQuantity} {product.unit} left</span>
           </div>
           <div className="flex items-center gap-1 min-w-0">
-            <MapPin className="h-3 w-3 flex-shrink-0" />
-            <span className="truncate">{typeof product.location === 'string' ? product.location : `${(product.location as any)?.city || 'Unknown'}`}</span>
+            <MapPin className="h-3 w-3 flex-shrink-0 text-gray-400" />
+            <span className="truncate">{typeof product.location === 'string' ? product.location.split(',')[0] : (product.location as any)?.city || 'Unknown'}</span>
           </div>
         </div>
 
+        {/* Low Stock Gauge */}
+        {product.availableQuantity > 0 && product.availableQuantity < 150 && (
+          <div className="space-y-1">
+            <div className="flex justify-between text-[9px] font-semibold text-amber-600">
+              <span className="flex items-center gap-0.5">⚠️ Low Stock</span>
+              <span>{Math.round((product.availableQuantity / (product.quantity || 150)) * 100)}%</span>
+            </div>
+            <div className="w-full bg-amber-50 rounded-full h-1 overflow-hidden">
+              <div 
+                className="bg-gradient-to-r from-amber-500 to-orange-500 h-full rounded-full transition-all duration-500" 
+                style={{ width: `${Math.max(10, Math.min(100, (product.availableQuantity / (product.quantity || 150)) * 100))}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Farmer Info */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 border-t border-gray-50 pt-2">
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <Avatar className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0">
-              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+            <Avatar className="h-5 w-5 flex-shrink-0 border border-gray-100">
+              <AvatarFallback className="bg-emerald-50 text-emerald-700 text-[10px] font-bold">
                 {typeof product.farmer.name === 'string' ? product.farmer.name.charAt(0) : 'U'}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1">
-                <span className="text-xs font-medium truncate block">
-                  {typeof product.farmer.name === 'string' ? product.farmer.name : 'Unknown Farmer'}
-                </span>
-                {product.farmer.verified && typeof product.farmer.verified === 'boolean' && (
-                  <Shield className="h-3 w-3 text-primary flex-shrink-0" />
-                )}
-              </div>
+              <span className="text-[10px] sm:text-xs font-medium text-gray-700 truncate block">
+                {typeof product.farmer.name === 'string' ? product.farmer.name : 'Unknown Farmer'}
+              </span>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="h-5 sm:h-6 px-1.5 sm:px-2 text-xs flex-shrink-0" onClick={handleContact}>
+          <Button variant="outline" size="sm" className="h-5 sm:h-6 px-1.5 sm:px-2 text-[10px] flex-shrink-0 text-gray-600 border-gray-200 hover:bg-gray-50" onClick={handleContact}>
             <span className="hidden sm:inline">Contact</span>
             <span className="sm:hidden">Call</span>
           </Button>
         </div>
 
-
         {/* Actions */}
-        <div className="flex gap-1 pt-1 border-t overflow-hidden">
-          <Button variant="outline" size="sm" className="flex-1 h-5 sm:h-6 text-xs min-w-0" onClick={handleView}>
-            <Eye className="h-3 w-3 mr-1 flex-shrink-0" />
+        <div className="flex gap-1.5 pt-2 border-t border-gray-50 overflow-hidden">
+          <Button variant="outline" size="sm" className="flex-1 h-7 text-[10px] sm:text-xs min-w-0 hover:bg-gray-50 border-gray-200 text-gray-700" onClick={handleView}>
+            <Eye className="h-3 w-3 mr-1 flex-shrink-0 text-gray-400" />
             <span className="truncate">View</span>
           </Button>
           {product.availableQuantity <= 0 ? (
-            <Button size="sm" className="flex-1 h-5 sm:h-6 text-xs bg-gray-500 min-w-0" disabled>
+            <Button size="sm" className="flex-1 h-7 text-[10px] sm:text-xs bg-gray-400 text-white min-w-0" disabled>
               <ShoppingCart className="h-3 w-3 mr-1 flex-shrink-0" />
-              <span className="truncate hidden sm:inline">Sold Out</span>
-              <span className="truncate sm:hidden">Out</span>
+              <span className="truncate">Sold Out</span>
             </Button>
           ) : (
-            <Button size="sm" className="flex-1 h-5 sm:h-6 text-xs bg-primary hover:bg-primary/90 min-w-0" onClick={handleAddToCart}>
+            <Button size="sm" className="flex-1 h-7 text-[10px] sm:text-xs bg-emerald-600 hover:bg-emerald-700 text-white min-w-0 font-medium" onClick={handleAddToCart}>
               <ShoppingCart className="h-3 w-3 mr-1 flex-shrink-0" />
-              <span className="truncate hidden sm:inline">Add to Cart</span>
-              <span className="truncate sm:hidden">Add</span>
+              <span className="truncate">Add to Cart</span>
             </Button>
           )}
         </div>

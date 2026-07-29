@@ -151,7 +151,7 @@ export function OnboardingOverview() {
                     </p>
                     <div className="flex items-center space-x-2 mt-1">
                       <Badge variant="outline" className="text-xs">
-                        {onboarding.farmer.primaryCrops.slice(0, 2).join(', ')}
+                        {(onboarding.farmer.primaryCrops ?? []).slice(0, 2).join(', ')}
                       </Badge>
                       <Badge variant="secondary" className="text-xs">
                         {onboarding.farmer.farmSize} {onboarding.farmer.farmSizeUnit}

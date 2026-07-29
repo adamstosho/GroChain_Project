@@ -10,10 +10,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { useBuyerStore, useCartInitialization } from "@/hooks/use-buyer-store"
+import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { useAuthStore } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { useMemo } from "react"
+import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { useStableDataFetch } from "@/hooks/use-stable-data-fetch"
+import { extractListingsFromResponse } from "@/lib/marketplace-listings"
 import {
   Package,
   Search,
@@ -76,9 +79,10 @@ interface ProductFilters {
 export default function ProductsPage() {
   const [products, setProducts] = useState<ProductListing[]>([])
   const [filteredProducts, setFilteredProducts] = useState<ProductListing[]>([])
-  const [loading, setLoading] = useState(true)
+  const { isInitialLoading, isRefreshing, begin, finish } = useStableDataFetch()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState("")
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 400)
   const [filters, setFilters] = useState<ProductFilters>({
     category: "all",
     location: "all",
@@ -93,7 +97,7 @@ export default function ProductsPage() {
   const { user } = useAuthStore()
 
   // Initialize cart from localStorage
-  useCartInitialization()
+
 
   // Load favorites on component mount
   useEffect(() => {
@@ -160,9 +164,8 @@ export default function ProductsPage() {
 
 
   const fetchProducts = useCallback(async () => {
+    const generation = begin()
     try {
-      setLoading(true)
-
       // Check if we need to refresh due to recent order completion
       const needsRefresh = typeof window !== 'undefined' &&
         localStorage.getItem('marketplace_refresh_needed') === 'true'
@@ -185,9 +188,9 @@ export default function ProductsPage() {
         params._t = Date.now()
       }
 
-      // Add search query
-      if (searchQuery.trim()) {
-        params.search = searchQuery.trim()
+      // Add search query (debounced to avoid flicker while typing)
+      if (debouncedSearchQuery.trim()) {
+        params.search = debouncedSearchQuery.trim()
       }
 
       // Add category filter
@@ -245,7 +248,7 @@ export default function ProductsPage() {
       console.log('🔄 Fetching products with params:', params)
 
       const response = await apiService.getMarketplaceListings(params)
-      const listings = (response.data as any)?.listings || []
+      const listings = extractListingsFromResponse(response.data ?? response)
 
       console.log('📦 Received listings:', listings.length)
       console.log('📦 First listing sample:', listings[0])
@@ -280,20 +283,20 @@ export default function ProductsPage() {
 
       setProducts(convertedProducts)
       setFilteredProducts(convertedProducts)
+      finish(generation)
 
     } catch (error: any) {
       console.error("❌ Failed to fetch products:", error)
+      finish(generation)
       toast({
         title: "Error loading products",
         description: error.message || "Failed to load products. Please try again.",
         variant: "destructive",
       })
-      setProducts([])
-      setFilteredProducts([])
-    } finally {
-      setLoading(false)
+      setProducts((prev) => (prev.length > 0 ? prev : []))
+      setFilteredProducts((prev) => (prev.length > 0 ? prev : []))
     }
-  }, [filters, searchQuery, toast])
+  }, [filters, debouncedSearchQuery, toast, begin, finish])
 
   // Check for refresh flag and update products if needed
   useEffect(() => {
@@ -421,7 +424,7 @@ export default function ProductsPage() {
     }
   }
 
-  if (loading) {
+  if (isInitialLoading) {
     return (
       <DashboardLayout pageTitle="Browse Products">
         <div className="flex items-center justify-center min-h-[400px]">
@@ -440,7 +443,10 @@ export default function ProductsPage() {
         {/* Header Section */}
         <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Browse Products</h1>
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+              Browse Products
+              {isRefreshing && <RefreshCw className="h-5 w-5 animate-spin text-primary" aria-label="Updating products" />}
+            </h1>
             <p className="text-muted-foreground">
               Discover fresh agricultural products from verified farmers across Nigeria
             </p>

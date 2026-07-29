@@ -13,6 +13,7 @@
     "test:endpoints": "node test-all-endpoints.js",
     "test:individual": "node test-individual-endpoints.js",
     "test:health": "node test-health-check.js",
+    "realtime:verify": "node scripts/verify-realtime-socket.js",
     "test:quick": "node test-individual-endpoints.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -77,6 +78,7 @@
     "xss": "^1.0.15"
   },
   "devDependencies": {
+    "socket.io-client": "^4.7.5",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.0.1",

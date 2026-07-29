@@ -39,6 +39,7 @@ import {
 import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { ReceiptGenerator } from "@/lib/receipt-generator"
 
 export default function PaymentsPage() {
   const [activeTab, setActiveTab] = useState("transactions")
@@ -258,6 +259,42 @@ export default function PaymentsPage() {
         return <ArrowDownRight className="h-4 w-4 text-blue-600" />
       default:
         return <AlertCircle className="h-4 w-4 text-gray-600" />
+    }
+  }
+
+  const handleDownloadReceipt = async (orderId: string, isPaid: boolean) => {
+    if (!isPaid) {
+      toast({
+        title: "Receipt unavailable",
+        description: "Receipts are only available for paid orders.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      toast({
+        title: "Generating receipt...",
+        description: "Please wait while we prepare your receipt.",
+      })
+
+      const response = await apiService.downloadOrderReceipt(orderId)
+
+      if (response?.status === 'success' && response?.data) {
+        await ReceiptGenerator.generatePDF(response.data as any)
+        toast({
+          title: "Receipt generated!",
+          description: "Your receipt has been prepared for download.",
+        })
+      } else {
+        throw new Error(response?.message || 'Failed to generate receipt')
+      }
+    } catch (err: any) {
+      toast({
+        title: "Failed to generate receipt",
+        description: err.message || "Please try again later.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -688,10 +725,17 @@ export default function PaymentsPage() {
                         <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                           View Details
                       </Button>
-                      <Button variant="outline" size="sm" className="h-7 sm:h-8 text-xs sm:text-sm">
-                        <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      {invoice.status === 'paid' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 sm:h-8 text-xs sm:text-sm"
+                          onClick={() => handleDownloadReceipt(invoice._id, invoice.status === 'paid')}
+                        >
+                          <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                           Download Receipt
-                      </Button>
+                        </Button>
+                      )}
                       {invoice.status === 'pending' && (
                         <Button size="sm" className="h-7 sm:h-8 text-xs sm:text-sm">
                           <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />

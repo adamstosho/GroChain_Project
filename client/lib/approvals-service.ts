@@ -420,69 +420,6 @@ export class ApprovalsService {
     }
   }
 
-  // Export data method for the hook
-  async exportData(filters: ApprovalFilters, format: 'csv' | 'excel' = 'csv'): Promise<Blob> {
-    try {
-      // For now, return a mock CSV blob
-      const csvContent = this.generateMockCSV(filters)
-      const blob = new Blob([csvContent], { type: 'text/csv' })
-      return blob
-    } catch (error) {
-      console.error('Error exporting data:', error)
-      throw error
-    }
-  }
-
-  // Generate mock CSV for export
-  private generateMockCSV(filters: ApprovalFilters): string {
-    // Import mock data dynamically
-    const mockData = require('./mock-data/approvals')
-    let filteredApprovals = [...mockData.mockApprovals]
-    
-    // Apply filters
-    if (filters.searchTerm) {
-      const searchTerm = filters.searchTerm.toLowerCase()
-      filteredApprovals = filteredApprovals.filter(approval =>
-        approval.farmer.name.toLowerCase().includes(searchTerm) ||
-        approval.harvest.cropType.toLowerCase().includes(searchTerm) ||
-        approval.farmer.location.toLowerCase().includes(searchTerm)
-      )
-    }
-    
-    if (filters.status && filters.status !== 'all') {
-      filteredApprovals = filteredApprovals.filter(approval => approval.status === filters.status)
-    }
-    
-    if (filters.priority && filters.priority !== 'all') {
-      filteredApprovals = filteredApprovals.filter(approval => approval.priority === filters.priority)
-    }
-    
-    if (filters.cropType && filters.cropType !== 'all') {
-      filteredApprovals = filteredApprovals.filter(approval => approval.harvest.cropType === filters.cropType)
-    }
-    
-    // Generate CSV content
-    const headers = ['Farmer Name', 'Email', 'Crop Type', 'Quantity', 'Unit', 'Status', 'Priority', 'Estimated Value', 'Location', 'Submitted Date']
-    const rows = filteredApprovals.map(approval => [
-      approval.farmer.name,
-      approval.farmer.email,
-      approval.harvest.cropType,
-      approval.harvest.quantity,
-      approval.harvest.unit,
-      approval.status,
-      approval.priority,
-      approval.estimatedValue,
-      approval.location,
-      new Date(approval.submittedAt).toLocaleDateString()
-    ])
-    
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
-      .join('\n')
-    
-    return csvContent
-  }
-
   // Utility methods for data processing
   filterApprovals(approvals: HarvestApproval[], filters: ApprovalFilters): HarvestApproval[] {
     let filtered = [...approvals]

@@ -12,6 +12,7 @@ import { QuickActions } from "@/components/dashboard/quick-actions"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useDashboardRefresh } from "@/hooks/use-dashboard-refresh"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { Users, TrendingUp, Banknote, Database, UserCheck, Settings, BarChart3, FileText, RefreshCw } from "lucide-react"
 import Link from "next/link"
 
@@ -253,42 +254,32 @@ export function AdminDashboard() {
 
   return (
     <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
-      {/* Dashboard Header - Enhanced Responsive Design */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Database className="h-4 w-4 text-primary" />
-            </div>
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Admin Dashboard</h2>
-          </div>
-          <p className="text-sm sm:text-base text-muted-foreground">Manage platform users and monitor system performance</p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-          {lastUpdated && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-              <span className="text-xs sm:text-sm">Last updated: {lastUpdated.toLocaleTimeString()}</span>
-            </div>
-          )}
-          {isLoading && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-              <span className="text-xs sm:text-sm">Loading...</span>
-            </div>
-          )}
-          <Button
-            onClick={handleManualRefresh}
-            disabled={isRefreshing || isLoading}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2 w-full sm:w-auto"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span className="text-xs sm:text-sm">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
-          </Button>
-        </div>
-      </div>
+      <DashboardPageHeader
+        badge="Platform Control"
+        title="Admin"
+        titleHighlight="Dashboard"
+        description="Manage platform users and monitor system performance."
+        lastUpdated={lastUpdated}
+        actions={
+          <>
+            {isLoading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <span className="text-xs sm:text-sm">Loading...</span>
+              </div>
+            )}
+            <Button
+              onClick={handleManualRefresh}
+              disabled={isRefreshing || isLoading}
+              variant="outline"
+              size="lg"
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+              {isRefreshing ? "Refreshing..." : "Refresh"}
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Overview - Enhanced Responsive Grid */}
       <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">

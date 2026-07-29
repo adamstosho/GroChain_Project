@@ -37,11 +37,15 @@ import {
 import { formatDistanceToNow } from "date-fns"
 import Image from "next/image"
 import Link from "next/link"
+import { AiTrustBadge } from "@/components/ai/ai-trust-badge"
+import { ShipmentRiskAlert } from "@/components/ai/shipment-risk-alert"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function ShipmentDetailsPage() {
   const params = useParams()
   const router = useRouter()
   const { toast } = useToast()
+  const { user } = useAuth()
   const shipmentId = params.shipmentId as string
 
   const { shipment, loading, error, refreshShipment } = useShipment(shipmentId)
@@ -90,13 +94,13 @@ export default function ShipmentDetailsPage() {
     const diffDays = Math.ceil((estimated.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
     
     if (diffDays < 0) {
-      return { text: 'Overdue', color: 'text-red-600' }
+      return { text: 'Overdue', color: 'text-destructive' }
     } else if (diffDays === 0) {
-      return { text: 'Today', color: 'text-orange-600' }
+      return { text: 'Today', color: 'text-warning' }
     } else if (diffDays === 1) {
-      return { text: 'Tomorrow', color: 'text-blue-600' }
+      return { text: 'Tomorrow', color: 'text-primary' }
     } else {
-      return { text: `In ${diffDays} days`, color: 'text-gray-600' }
+      return { text: `In ${diffDays} days`, color: 'text-muted-foreground' }
     }
   }
 
@@ -189,41 +193,50 @@ export default function ShipmentDetailsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-            <Button variant="outline" size="sm" onClick={() => router.back()} className="w-full sm:w-auto">
-              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+      <div className="space-y-6 max-w-[1400px] mx-auto pb-10">
+        {/* Header with Glassmorphism */}
+        <div className="bg-white/40 backdrop-blur-md p-6 rounded-3xl border border-white/20 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => router.back()} 
+              className="bg-white/80 border-slate-200 hover:bg-slate-50 shadow-sm"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight break-words" title={shipment.shipmentNumber}>
-                {shipment.shipmentNumber}
-              </h1>
-              <div className="flex items-center gap-1 sm:gap-2 mt-1 flex-wrap">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  {shipment.shipmentNumber}
+                </h1>
+                <AiTrustBadge userId={(typeof shipment.seller === 'string' ? shipment.seller : (shipment.seller._id || shipment.seller)) as string} className="scale-90" />
+              </div>
+              <div className="flex items-center gap-2">
                 <ShipmentStatusBadge status={shipment.status} />
-                {shipment.priority !== 'normal' && (
-                  <Badge 
-                    variant={shipment.priority === 'urgent' ? 'destructive' : 'secondary'}
-                    className="text-xs flex-shrink-0"
-                  >
-                    {shipment.priority}
-                  </Badge>
-                )}
+                <ShipmentRiskAlert shipmentId={shipment._id} className="scale-75 origin-left py-0 border-none bg-transparent" />
               </div>
             </div>
           </div>
-          <div className="flex flex-col xs:flex-row gap-2 sm:gap-3">
-            <Button variant="outline" size="sm" onClick={refreshShipment} className="w-full xs:w-auto">
-              <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-              <span className="hidden sm:inline">Refresh</span>
-              <span className="sm:hidden">Refresh</span>
+          
+          <div className="flex gap-2 sm:gap-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={refreshShipment}
+              className="bg-white/80 border-slate-200 hover:bg-slate-50 text-slate-700 shadow-sm"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowStatusUpdate(true)} className="w-full xs:w-auto">
-              <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-              <span className="hidden sm:inline">Update Status</span>
-              <span className="sm:hidden">Update</span>
+            <Button 
+              size="sm" 
+              onClick={() => setShowStatusUpdate(true)}
+              className="bg-primary hover:bg-primary/90 shadow-md"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Update
             </Button>
           </div>
         </div>
@@ -231,25 +244,55 @@ export default function ShipmentDetailsPage() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
           {/* Main Content */}
           <div className="xl:col-span-2 space-y-4 sm:space-y-6">
-            {/* Tracking Timeline */}
-            <ShipmentTrackingTimeline 
-              trackingEvents={shipment.trackingEvents}
-              currentStatus={shipment.status}
-            />
-
-            {/* Shipment Items */}
-            <Card>
-              <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
-                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                  <Package className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-                  Shipment Items
+            {/* Interactive Map Visual */}
+            <Card className="relative min-h-[300px] overflow-hidden border border-border bg-card shadow-sm">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-card to-secondary/10" aria-hidden />
+              
+              <CardHeader className="relative z-10">
+                <CardTitle className="flex items-center gap-2 text-foreground">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  Live logistics route
                 </CardTitle>
               </CardHeader>
-              <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-                <div className="space-y-3 sm:space-y-4">
+              
+              <CardContent className="relative z-10 flex flex-col items-center justify-center p-10 text-center">
+                <div className="w-full max-w-md space-y-4">
+                  <div className="mb-2 flex items-center justify-between text-xs font-mono text-primary">
+                    <span>{shipment.origin.city.toUpperCase()}</span>
+                    <div className="relative mx-4 flex-1 border-t border-dashed border-primary/40">
+                       <Truck className="absolute -top-2 left-1/2 h-4 w-4 -translate-x-1/2 animate-bounce text-primary" />
+                    </div>
+                    <span>{shipment.destination.city.toUpperCase()}</span>
+                  </div>
+                  
+                  <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                    <p className="text-sm font-medium text-foreground">
+                      GIS tracking active
+                    </p>
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      Lat: {shipment.origin.coordinates.lat} | Lng: {shipment.origin.coordinates.lng}
+                    </p>
+                  </div>
+                  <div className="animate-pulse text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                    Syncing real-time shipment updates...
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Shipment Items */}
+            <Card className="border-none shadow-lg overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-primary/10 to-transparent pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+                <CardTitle className="flex items-center gap-2 text-slate-800">
+                  <Package className="h-5 w-5 text-primary" />
+                  Shipment Content
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 sm:px-6 pb-6">
+                <div className="space-y-4 pt-4">
                   {shipment.items.map((item, index) => (
-                    <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
-                      <div className="relative h-12 w-12 sm:h-16 sm:w-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                    <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded-3xl transition-all hover:shadow-md">
+                      <div className="relative h-16 w-16 rounded-2xl overflow-hidden bg-slate-200 flex-shrink-0 shadow-inner">
                         <Image
                           src={item.listing.images?.[0] || "/placeholder.svg"}
                           alt={item.listing.cropName}
@@ -258,14 +301,20 @@ export default function ShipmentDetailsPage() {
                         />
                       </div>
                       <div className="flex-1 min-w-0 w-full">
-                        <h4 className="font-semibold text-gray-900 break-words text-sm sm:text-base">{item.listing.cropName}</h4>
-                        <p className="text-xs sm:text-sm text-gray-600 break-words">by {item.listing.farmer.name}</p>
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mt-2">
-                          <p className="text-xs sm:text-sm text-gray-500">Qty: {item.quantity} {item.unit}</p>
-                          <div className="text-left sm:text-right">
-                            <p className="font-semibold text-gray-900 text-sm sm:text-base">{formatPrice((item.quantity || 0) * (item.price || 0))}</p>
-                            <p className="text-xs sm:text-sm text-gray-500">{formatPrice(item.price)}/{item.unit}</p>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-bold text-slate-900 text-base">{item.listing.cropName}</h4>
+                            <p className="text-xs text-slate-500">Source: {item.listing.farmer.name}</p>
                           </div>
+                          <div className="text-right">
+                            <p className="font-bold text-primary text-base">{formatPrice((item.quantity || 0) * (item.price || 0))}</p>
+                            <p className="text-xs text-slate-400">{formatPrice(item.price)} per {item.unit}</p>
+                          </div>
+                        </div>
+                        <div className="mt-3 flex items-center gap-2">
+                          <Badge variant="secondary" className="bg-white/80 border-slate-200 text-slate-600 text-[10px]">
+                            {item.quantity} {item.unit}
+                          </Badge>
                         </div>
                       </div>
                     </div>
@@ -276,36 +325,37 @@ export default function ShipmentDetailsPage() {
 
             {/* Issues */}
             {shipment.issues && shipment.issues.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
-                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                    <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
-                    Reported Issues
+              <Card className="border-red-100 shadow-lg shadow-red-500/5">
+                <CardHeader className="bg-red-50/50 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+                  <CardTitle className="flex items-center gap-2 text-red-700">
+                    <AlertTriangle className="h-5 w-5" />
+                    Logistics Alerts
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-                  <div className="space-y-3 sm:space-y-4">
+                <CardContent className="px-4 sm:px-6 pb-6">
+                  <div className="space-y-4 pt-4">
                     {shipment.issues.map((issue, index) => (
-                      <div key={index} className="p-3 sm:p-4 border border-red-200 rounded-lg bg-red-50">
-                        <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 mb-2">
-                          <Badge variant="destructive" className="text-xs w-fit">
+                      <div key={index} className="p-4 border border-red-100 rounded-3xl bg-red-50/30">
+                        <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-3 mb-3">
+                          <Badge variant="destructive" className="text-[10px] uppercase tracking-wider h-5">
                             {issue.type}
                           </Badge>
                           <Badge 
-                            variant={issue.status === 'resolved' ? 'default' : 'secondary'}
-                            className="text-xs w-fit"
+                            variant="outline"
+                            className={`text-[10px] h-5 ${issue.status === 'resolved' ? 'border-success text-success bg-success/5' : 'border-warning text-warning bg-warning/5'}`}
                           >
                             {issue.status}
                           </Badge>
                         </div>
-                        <p className="text-xs sm:text-sm text-gray-800 mb-2 break-words">{issue.description}</p>
-                        <div className="text-xs text-gray-500">
-                          Reported {formatDistanceToNow(new Date(issue.reportedAt), { addSuffix: true })}
+                        <p className="text-sm text-slate-700 mb-2 leading-relaxed">{issue.description}</p>
+                        <div className="text-[10px] font-medium text-slate-400 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatDistanceToNow(new Date(issue.reportedAt), { addSuffix: true })}
                         </div>
                         {issue.resolution && (
-                          <div className="mt-2 p-2 sm:p-3 bg-green-50 border border-green-200 rounded">
-                            <p className="text-xs sm:text-sm text-green-800 break-words">
-                              <strong>Resolution:</strong> {issue.resolution}
+                          <div className="mt-3 p-3 bg-white rounded-2xl border border-green-100">
+                            <p className="text-xs text-green-700 leading-relaxed">
+                              <span className="font-bold">RESOLUTION:</span> {issue.resolution}
                             </p>
                           </div>
                         )}

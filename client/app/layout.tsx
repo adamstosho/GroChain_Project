@@ -45,19 +45,37 @@ export const metadata: Metadata = {
     description: "Building trust in Nigeria's food chain through transparent digital platform",
     type: "website",
     locale: "en_US",
+    siteName: "GroChain",
+    images: [
+      {
+        url: "/logo.svg",
+        width: 1200,
+        height: 630,
+        alt: "GroChain Platform",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GroChain - Digital Agriculture Platform",
+    description: "Building trust in Nigeria's food chain through transparent digital platform",
+    images: ["/logo.svg"],
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "GroChain",
   },
+  alternates: {
+    canonical: "https://grochain.com",
+  },
 }
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5, // Improved accessibility
+  userScalable: true,
   themeColor: "#16a34a",
 }
 
@@ -68,10 +86,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* Paystack Payment Script */}
-        <script src="https://js.paystack.co/v1/inline.js"></script>
-      </head>
       <body className={`font-sans ${dmSans.variable} ${nunito.variable} antialiased`}>
         <ErrorBoundary>
           <DatadogSuppressor />

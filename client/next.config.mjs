@@ -8,16 +8,24 @@ const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-/*
   eslint: {
-    ignoreDuringBuilds: true, // Temporarily disable ESLint checks for deployment
+    ignoreDuringBuilds: false,
   },
-*/
   typescript: {
-    ignoreBuildErrors: true, // Temporarily disable TypeScript checks for deployment
+    ignoreBuildErrors: false,
   },
+  reactStrictMode: true,
   images: {
-    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   },
   // Silence the warning about multiple lockfiles in monorepo
   outputFileTracingRoot: path.join(__dirname, '../'),

@@ -1,9 +1,25 @@
 const ExportImportService = require('../services/exportImport.service')
 const { validateExportRequest, validateImportRequest } = require('../middlewares/validation.middleware')
 const path = require('path')
-const fs = require('fs').promises
+const fs = require('fs')
+const fsPromises = require('fs').promises
 
 class ExportImportController {
+  resolveImportPath(filePath) {
+    const requested = String(filePath || '').trim()
+    if (!requested) {
+      throw new Error('File path is required')
+    }
+
+    const safeName = path.basename(requested)
+    const resolvedPath = path.resolve(ExportImportService.importDir, safeName)
+    const allowedRoot = path.resolve(ExportImportService.importDir)
+    if (!resolvedPath.startsWith(allowedRoot + path.sep) && resolvedPath !== allowedRoot) {
+      throw new Error('Invalid import file path')
+    }
+    return resolvedPath
+  }
+
   // Export harvests
   async exportHarvests(req, res) {
     try {
@@ -96,6 +112,14 @@ class ExportImportController {
   async exportShipments(req, res) {
     try {
       const { format = 'csv', filters = {}, options = {} } = req.body
+      const user = req.user
+
+      // Apply role-based filtering for non-admin users
+      if (user.role === 'buyer') {
+        filters.buyerId = user._id || user.id
+      } else if (user.role === 'farmer') {
+        filters.sellerId = user._id || user.id
+      }
 
       const result = await ExportImportService.exportShipments(filters, format, options)
 
@@ -131,6 +155,28 @@ class ExportImportController {
       res.status(500).json({
         success: false,
         message: 'Failed to export transactions',
+        error: error.message
+      })
+    }
+  }
+
+  // Export orders
+  async exportOrders(req, res) {
+    try {
+      const { format = 'csv', filters = {}, options = {} } = req.body
+
+      const result = await ExportImportService.exportOrders(filters, format, options)
+
+      res.json({
+        success: true,
+        message: 'Orders exported successfully',
+        data: result
+      })
+    } catch (error) {
+      console.error('Export orders error:', error)
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export orders',
         error: error.message
       })
     }
@@ -355,7 +401,8 @@ class ExportImportController {
         })
       }
 
-      const result = await ExportImportService.importData(filePath, options)
+      const safeFilePath = this.resolveImportPath(filePath)
+      const result = await ExportImportService.importData(safeFilePath, options)
 
       res.json({
         success: true,
@@ -384,7 +431,8 @@ class ExportImportController {
         })
       }
 
-      const result = await ExportImportService.importData(filePath, {
+      const safeFilePath = this.resolveImportPath(filePath)
+      const result = await ExportImportService.importData(safeFilePath, {
         type: 'harvest',
         ...options
       })
@@ -416,7 +464,8 @@ class ExportImportController {
         })
       }
 
-      const result = await ExportImportService.importData(filePath, {
+      const safeFilePath = this.resolveImportPath(filePath)
+      const result = await ExportImportService.importData(safeFilePath, {
         type: 'listing',
         ...options
       })
@@ -448,7 +497,8 @@ class ExportImportController {
         })
       }
 
-      const result = await ExportImportService.importData(filePath, {
+      const safeFilePath = this.resolveImportPath(filePath)
+      const result = await ExportImportService.importData(safeFilePath, {
         type: 'user',
         ...options
       })
@@ -480,7 +530,8 @@ class ExportImportController {
         })
       }
 
-      const result = await ExportImportService.importData(filePath, {
+      const safeFilePath = this.resolveImportPath(filePath)
+      const result = await ExportImportService.importData(safeFilePath, {
         type: 'partner',
         ...options
       })
@@ -512,7 +563,8 @@ class ExportImportController {
         })
       }
 
-      const result = await ExportImportService.importData(filePath, {
+      const safeFilePath = this.resolveImportPath(filePath)
+      const result = await ExportImportService.importData(safeFilePath, {
         type: 'shipment',
         ...options
       })
@@ -544,7 +596,8 @@ class ExportImportController {
         })
       }
 
-      const result = await ExportImportService.importData(filePath, {
+      const safeFilePath = this.resolveImportPath(filePath)
+      const result = await ExportImportService.importData(safeFilePath, {
         type: 'transaction',
         ...options
       })
@@ -617,11 +670,19 @@ class ExportImportController {
         })
       }
 
-      const filePath = path.join(ExportImportService.exportDir, filename)
+      const safeFilename = path.basename(filename)
+      const filePath = path.resolve(ExportImportService.exportDir, safeFilename)
+      const allowedRoot = path.resolve(ExportImportService.exportDir)
+      if (!filePath.startsWith(allowedRoot + path.sep) && filePath !== allowedRoot) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid filename'
+        })
+      }
 
       // Check if file exists
       try {
-        await fs.access(filePath)
+        await fsPromises.access(filePath)
       } catch (error) {
         return res.status(404).json({
           success: false,
@@ -630,8 +691,8 @@ class ExportImportController {
       }
 
       // Set headers for file download
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
-      res.setHeader('Content-Type', this.getContentType(filename))
+      res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`)
+      res.setHeader('Content-Type', this.getContentType(safeFilename))
 
       // Stream the file
       const fileStream = fs.createReadStream(filePath)

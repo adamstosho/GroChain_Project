@@ -30,18 +30,6 @@ export function NotificationBell() {
 
   const [isOpen, setIsOpen] = useState(false)
 
-  // Debug logging (remove in production)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🔔 NotificationBell:', {
-      count: notifications?.length || 0,
-      unread: unreadCount,
-      loading,
-      connected,
-      hasNotifications: !!notifications,
-      error: error
-    })
-  }
-
   const displayNotifications = notifications || []
 
   const getNotificationIcon = (type: string) => {
@@ -87,7 +75,7 @@ export function NotificationBell() {
 
   const handleNotificationClick = (notification: any) => {
     if (!notification.isRead) {
-      markAsRead(notification.id)
+      markAsRead([notification.id])
     }
     if (notification.actionUrl) {
       window.location.href = notification.actionUrl

@@ -110,6 +110,170 @@ const priorityColors = {
   high: 'bg-red-100 text-red-800'
 }
 
+const NIGERIAN_CITIES = [
+  { name: 'Lagos', state: 'Lagos State', country: 'Nigeria', lat: 6.5244, lng: 3.3792 },
+  { name: 'Abuja', state: 'FCT', country: 'Nigeria', lat: 9.0820, lng: 7.3986 },
+  { name: 'Kano', state: 'Kano State', country: 'Nigeria', lat: 11.9914, lng: 8.5311 },
+  { name: 'Port Harcourt', state: 'Rivers State', country: 'Nigeria', lat: 4.8156, lng: 7.0498 },
+  { name: 'Ibadan', state: 'Oyo State', country: 'Nigeria', lat: 7.3775, lng: 3.9470 },
+  { name: 'Enugu', state: 'Enugu State', country: 'Nigeria', lat: 6.4584, lng: 7.5083 },
+  { name: 'Kaduna', state: 'Kaduna State', country: 'Nigeria', lat: 10.5105, lng: 7.4165 },
+  { name: 'Benin City', state: 'Edo State', country: 'Nigeria', lat: 6.3350, lng: 5.6037 }
+]
+
+const mapWeatherCondition = (mainCondition: string): string => {
+  const cond = (mainCondition || '').toLowerCase()
+  if (cond.includes('clear')) return 'clear'
+  if (cond.includes('cloud') || cond.includes('overcast')) return 'partly-cloudy'
+  if (cond.includes('rain') || cond.includes('drizzle') || cond.includes('shower')) return 'rainy'
+  if (cond.includes('thunderstorm') || cond.includes('storm')) return 'stormy'
+  if (cond.includes('wind') || cond.includes('mist') || cond.includes('fog') || cond.includes('haze') || cond.includes('dust')) return 'windy'
+  return 'clear' // default fallback
+}
+
+const generateFarmingRecommendations = (agri: any, currentTemp: number, currentHumidity: number): FarmingRecommendation[] => {
+  if (!agri) return []
+  
+  const recs: FarmingRecommendation[] = []
+  
+  // Soil Moisture Recommendation
+  const moisture = agri.soilMoisture !== undefined ? agri.soilMoisture : 50
+  if (moisture < 40) {
+    recs.push({
+      id: 'soil-moisture',
+      crop: 'General Crops',
+      recommendation: 'Low soil moisture level detected',
+      priority: 'high',
+      weatherFactor: `Soil moisture is at ${Math.round(moisture)}%`,
+      action: agri.irrigationAdvice || 'Increase irrigation frequency and check soil moisture depth.',
+      timeframe: 'Next 24 hours'
+    })
+  } else if (moisture > 80) {
+    recs.push({
+      id: 'soil-moisture',
+      crop: 'General Crops',
+      recommendation: 'High soil moisture level detected',
+      priority: 'medium',
+      weatherFactor: `Soil moisture is at ${Math.round(moisture)}%`,
+      action: 'Reduce irrigation frequency and ensure drainage channels are clear.',
+      timeframe: 'Next 48 hours'
+    })
+  }
+
+  // Planting Recommendation
+  recs.push({
+    id: 'planting',
+    crop: 'All Season Crops',
+    recommendation: agri.plantingRecommendation || 'Monitor environmental conditions before planting.',
+    priority: currentTemp > 35 || currentTemp < 10 ? 'high' : 'low',
+    weatherFactor: `Air temperature is ${currentTemp}°C`,
+    action: currentTemp > 35 
+      ? 'Delay planting or provide shade/mulch to reduce heat stress.' 
+      : currentTemp < 10 
+      ? 'Delay planting until temperatures rise to optimal growing range.' 
+      : 'Proceed with planting scheduled crops, monitoring soil conditions.',
+    timeframe: 'Next 3 days'
+  })
+
+  // Pest Risk Recommendation
+  if (agri.pestRisk === 'high') {
+    recs.push({
+      id: 'pest-risk',
+      crop: 'Cereals & Vegetables',
+      recommendation: 'High risk of pest infestation',
+      priority: 'high',
+      weatherFactor: 'High temperature and humidity levels favor pest proliferation',
+      action: 'Perform field inspections and prepare organic or chemical pest control measures.',
+      timeframe: 'Next 48 hours'
+    })
+  } else if (agri.pestRisk === 'medium') {
+    recs.push({
+      id: 'pest-risk',
+      crop: 'Cereals & Vegetables',
+      recommendation: 'Moderate risk of pest infestation',
+      priority: 'medium',
+      weatherFactor: 'Warm and humid conditions present',
+      action: 'Monitor crop leaves for signs of pests or disease.',
+      timeframe: 'Weekly routine'
+    })
+  }
+
+  // Frost Risk
+  if (agri.frostRisk === 'high') {
+    recs.push({
+      id: 'frost-risk',
+      crop: 'Sensitive Crops',
+      recommendation: 'Critical frost risk warning',
+      priority: 'high',
+      weatherFactor: `Temperature drops near frost point (${currentTemp}°C)`,
+      action: 'Cover sensitive young plants or seedlings with frost blankets/mulch.',
+      timeframe: 'Tonight/Early Morning'
+    })
+  }
+
+  // Drought Index
+  const drought = agri.droughtIndex !== undefined ? agri.droughtIndex : 0
+  if (drought > 60) {
+    recs.push({
+      id: 'drought',
+      crop: 'Drought Sensitive Crops',
+      recommendation: 'Elevated drought stress risk',
+      priority: 'high',
+      weatherFactor: `Drought Index is high (${Math.round(drought)})`,
+      action: 'Prioritize water supply to critical growth stages, consider mulching.',
+      timeframe: 'Ongoing'
+    })
+  }
+
+  return recs
+}
+
+const calculateStats = (forecastList: WeatherForecast[]): WeatherStats => {
+  if (!forecastList || forecastList.length === 0) {
+    return {
+      averageTemperature: 0,
+      totalPrecipitation: 0,
+      averageHumidity: 0,
+      windEvents: 0,
+      sunnyDays: 0,
+      rainyDays: 0
+    }
+  }
+
+  let tempSum = 0
+  let humiditySum = 0
+  let totalPrecipitation = 0
+  let windEvents = 0
+  let sunnyDays = 0
+  let rainyDays = 0
+
+  forecastList.forEach(day => {
+    const avgTemp = (day.high + day.low) / 2
+    tempSum += avgTemp
+    humiditySum += day.humidity
+    totalPrecipitation += day.precipitation || 0
+    
+    if (day.windSpeed > 15) {
+      windEvents++
+    }
+    
+    if (day.condition === 'clear') {
+      sunnyDays++
+    } else if (day.condition === 'rainy' || (day.precipitation && day.precipitation > 0)) {
+      rainyDays++
+    }
+  })
+
+  return {
+    averageTemperature: Math.round((tempSum / forecastList.length) * 10) / 10,
+    totalPrecipitation: Math.round(totalPrecipitation * 10) / 10,
+    averageHumidity: Math.round(humiditySum / forecastList.length),
+    windEvents,
+    sunnyDays,
+    rainyDays
+  }
+}
+
 export default function WeatherPage() {
   const [currentWeather, setCurrentWeather] = useState<CurrentWeather | null>(null)
   const [forecast, setForecast] = useState<WeatherForecast[]>([])
@@ -118,123 +282,174 @@ export default function WeatherPage() {
   const [stats, setStats] = useState<WeatherStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
-  const [location, setLocation] = useState('Farm Location')
+  const [location, setLocation] = useState('Locating farm...')
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [locating, setLocating] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
-    fetchWeatherData()
+    locateAndFetch()
   }, [])
 
-  const fetchWeatherData = async () => {
+  const locateAndFetch = () => {
+    setLocating(true)
+    setLoading(true)
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude
+          const lng = position.coords.longitude
+          setCoords({ lat, lng })
+          await loadWeatherForCoords(lat, lng)
+        },
+        async (error) => {
+          console.warn("Geolocation access denied or failed. Falling back to IP-based location...", error)
+          toast({
+            title: "Using Estimated Location",
+            description: "Location permission denied or timed out. Falling back to IP-based location.",
+          })
+          await loadWeatherFromIP()
+        },
+        { timeout: 10000, enableHighAccuracy: true }
+      )
+    } else {
+      loadWeatherFromIP()
+    }
+  }
+
+  const loadWeatherFromIP = async () => {
+    try {
+      setLocating(true)
+      const res = await apiService.getIPLocation()
+      if (res.status === 'success' && res.data) {
+        const { lat, lng, city, state, country } = res.data
+        setCoords({ lat, lng })
+        await loadWeatherForCoords(lat, lng, city, state, country)
+      } else {
+        throw new Error("Invalid IP location response")
+      }
+    } catch (err) {
+      console.error("Failed to locate via IP:", err)
+      // Ultimate fallback: Lagos, Nigeria
+      const defaultLat = 6.5244
+      const defaultLng = 3.3792
+      setCoords({ lat: defaultLat, lng: defaultLng })
+      await loadWeatherForCoords(defaultLat, defaultLng, "Lagos", "Lagos State", "Nigeria")
+    }
+  }
+
+  const loadWeatherForCoords = async (
+    lat: number,
+    lng: number,
+    city?: string,
+    state?: string,
+    country?: string
+  ) => {
     try {
       setLoading(true)
-      
-      // Mock data for now - replace with actual API call
-      const mockCurrentWeather: CurrentWeather = {
-        temperature: 28,
-        feelsLike: 31,
-        humidity: 65,
-        windSpeed: 12,
-        windDirection: 'SE',
-        pressure: 1013,
-        visibility: 10,
-        uvIndex: 7,
-        condition: 'partly-cloudy',
-        icon: 'partly-cloudy',
-        lastUpdated: new Date().toISOString()
+      let resolvedCity = city
+      let resolvedState = state
+      let resolvedCountry = country
+
+      if (!resolvedCity || !resolvedState || !resolvedCountry) {
+        try {
+          const geocodeRes = await apiService.reverseGeocode(lat, lng)
+          if (geocodeRes.status === 'success' && geocodeRes.data) {
+            resolvedCity = geocodeRes.data.city
+            resolvedState = geocodeRes.data.state
+            resolvedCountry = geocodeRes.data.country
+          }
+        } catch (err) {
+          console.error("Reverse geocoding failed, using coordinates as fallback:", err)
+        }
       }
 
-      const mockForecast: WeatherForecast[] = [
-        { date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], high: 30, low: 22, condition: 'clear', icon: 'clear', precipitation: 0, humidity: 60, windSpeed: 8 },
-        { date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], high: 29, low: 21, condition: 'partly-cloudy', icon: 'partly-cloudy', precipitation: 5, humidity: 70, windSpeed: 10 },
-        { date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], high: 27, low: 20, condition: 'rainy', icon: 'rainy', precipitation: 25, humidity: 85, windSpeed: 15 },
-        { date: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], high: 26, low: 19, condition: 'rainy', icon: 'rainy', precipitation: 30, humidity: 90, windSpeed: 18 },
-        { date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], high: 28, low: 21, condition: 'partly-cloudy', icon: 'partly-cloudy', precipitation: 10, humidity: 75, windSpeed: 12 },
-        { date: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], high: 31, low: 23, condition: 'clear', icon: 'clear', precipitation: 0, humidity: 65, windSpeed: 8 },
-        { date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], high: 32, low: 24, condition: 'clear', icon: 'clear', precipitation: 0, humidity: 60, windSpeed: 6 }
-      ]
+      // Final default strings if still unresolved
+      resolvedCity = resolvedCity || 'Unknown City'
+      resolvedState = resolvedState || 'Unknown State'
+      resolvedCountry = resolvedCountry || 'Nigeria'
 
-      const mockAlerts: WeatherAlert[] = [
-        {
-          id: '1',
-          type: 'warning',
-          title: 'Heavy Rainfall Warning',
-          description: 'Heavy rainfall expected in the next 24 hours. Prepare for potential flooding in low-lying areas.',
-          severity: 'medium',
-          startTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
-          affectedAreas: ['North Region', 'Central Region']
-        },
-        {
-          id: '2',
-          type: 'advisory',
-          title: 'High UV Index Advisory',
-          description: 'UV index reaching high levels. Take precautions when working outdoors.',
-          severity: 'low',
-          startTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-          affectedAreas: ['All Regions']
+      const locationLabel = `${resolvedCity}, ${resolvedState}`
+      setLocation(locationLabel)
+
+      const weatherRes = await apiService.getCurrentWeather({
+        lat,
+        lng,
+        city: resolvedCity,
+        state: resolvedState,
+        country: resolvedCountry
+      })
+
+      if (weatherRes.status === 'success' && weatherRes.data) {
+        const data = weatherRes.data as any
+        
+        // Map current weather
+        const cur = data.current
+        const mappedCurrent: CurrentWeather = {
+          temperature: Math.round(cur.temperature),
+          feelsLike: Math.round(cur.feelsLike),
+          humidity: cur.humidity,
+          windSpeed: Math.round(cur.windSpeed * 3.6), // Convert m/s to km/h
+          windDirection: cur.windDirection || 'N',
+          pressure: cur.pressure,
+          visibility: Math.round(cur.visibility / 1000), // m to km
+          uvIndex: cur.uvIndex || 0,
+          condition: mapWeatherCondition(cur.weatherCondition),
+          icon: cur.weatherIcon || '01d',
+          lastUpdated: data.metadata?.lastUpdated || new Date().toISOString()
         }
-      ]
+        
+        // Map forecast
+        const rawForecast = data.forecast || []
+        const mappedForecast: WeatherForecast[] = rawForecast.map((f: any) => ({
+          date: f.date,
+          high: Math.round(f.highTemp !== undefined ? f.highTemp : f.high),
+          low: Math.round(f.lowTemp !== undefined ? f.lowTemp : f.low),
+          condition: mapWeatherCondition(f.weatherCondition || f.condition),
+          icon: f.weatherIcon || f.icon || '01d',
+          precipitation: Math.round((f.precipitation || 0) * 10) / 10,
+          humidity: f.humidity,
+          windSpeed: Math.round((f.windSpeed || 0) * 3.6) // m/s to km/h
+        }))
 
-      const mockRecommendations: FarmingRecommendation[] = [
-        {
-          id: '1',
-          crop: 'Maize',
-          recommendation: 'Delay planting due to expected heavy rainfall',
-          priority: 'high',
-          weatherFactor: 'Heavy rainfall forecast',
-          action: 'Postpone planting by 2-3 days',
-          timeframe: 'Next 48 hours'
-        },
-        {
-          id: '2',
-          crop: 'Cassava',
-          recommendation: 'Ensure proper drainage in fields',
-          priority: 'medium',
-          weatherFactor: 'Rainfall accumulation',
-          action: 'Check and clear drainage channels',
-          timeframe: 'Before rainfall'
-        },
-        {
-          id: '3',
-          crop: 'Tomato',
-          recommendation: 'Protect from high UV exposure',
-          priority: 'low',
-          weatherFactor: 'High UV index',
-          action: 'Use shade cloth during peak hours',
-          timeframe: '10 AM - 4 PM'
-        }
-      ]
+        // Map recommendations dynamically
+        const mappedRecommendations = generateFarmingRecommendations(
+          data.agricultural,
+          mappedCurrent.temperature,
+          mappedCurrent.humidity
+        )
 
-      const mockStats: WeatherStats = {
-        averageTemperature: 28.5,
-        totalPrecipitation: 45,
-        averageHumidity: 72,
-        windEvents: 3,
-        sunnyDays: 4,
-        rainyDays: 2
+        // Calculate stats
+        const computedStats = calculateStats(mappedForecast)
+
+        // Set states
+        setCurrentWeather(mappedCurrent)
+        setForecast(mappedForecast)
+        setRecommendations(mappedRecommendations)
+        setStats(computedStats)
+        setAlerts(data.alerts || [])
+      } else {
+        throw new Error("Failed to load weather data from backend API")
       }
-
-      setCurrentWeather(mockCurrentWeather)
-      setForecast(mockForecast)
-      setAlerts(mockAlerts)
-      setRecommendations(mockRecommendations)
-      setStats(mockStats)
-    } catch (error) {
-      console.error("Failed to fetch weather data:", error)
+    } catch (err: any) {
+      console.error("Error loading weather data:", err)
       toast({
-        title: "Error",
-        description: "Failed to load weather data. Please try again.",
+        title: "Weather Load Error",
+        description: err.message || "Failed to load real weather data. Please check your connection.",
         variant: "destructive"
       })
     } finally {
       setLoading(false)
+      setLocating(false)
     }
   }
 
   const handleRefresh = async () => {
-    await fetchWeatherData()
+    if (coords) {
+      await loadWeatherForCoords(coords.lat, coords.lng)
+    } else {
+      locateAndFetch()
+    }
     toast({
       title: "Refreshed",
       description: "Weather data has been updated.",
@@ -302,19 +517,43 @@ export default function WeatherPage() {
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold text-gray-900">Weather Dashboard</h1>
             <p className="text-gray-600">
-              Monitor weather conditions and get farming recommendations
+              {locating ? "Detecting location..." : "Monitor weather conditions and get farming recommendations"}
             </p>
           </div>
           
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleRefresh}>
-              <RefreshCw className="h-4 w-4 mr-2" />
+          <div className="flex gap-2 items-center">
+            <Button variant="outline" onClick={handleRefresh} disabled={locating}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${locating ? "animate-spin" : ""}`} />
               Refresh
             </Button>
-            <Button variant="outline">
-              <MapPin className="h-4 w-4 mr-2" />
-              Change Location
-            </Button>
+            
+            <Select 
+              onValueChange={async (val) => {
+                if (val === 'current') {
+                  locateAndFetch()
+                } else {
+                  const cityObj = NIGERIAN_CITIES.find(c => c.name === val)
+                  if (cityObj) {
+                    const newCoords = { lat: cityObj.lat, lng: cityObj.lng }
+                    setCoords(newCoords)
+                    await loadWeatherForCoords(cityObj.lat, cityObj.lng, cityObj.name, cityObj.state, cityObj.country)
+                  }
+                }
+              }}
+            >
+              <SelectTrigger className="w-[180px] bg-white border border-gray-200 text-gray-700">
+                <MapPin className="h-4 w-4 mr-2 text-emerald-600 animate-pulse" />
+                <SelectValue placeholder="Change Location" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="current">📍 Detect Location</SelectItem>
+                {NIGERIAN_CITIES.map((city) => (
+                  <SelectItem key={city.name} value={city.name}>
+                    {city.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

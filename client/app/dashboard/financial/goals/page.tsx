@@ -230,18 +230,20 @@ export default function FinancialGoalsPage() {
     }
 
     try {
-      // Mock creation - replace with actual API call
-      const newGoal: FinancialGoal = {
-        _id: Date.now().toString(),
-        ...formData,
-        currentAmount: 0,
-        currency: 'NGN',
-        startDate: formData.startDate || new Date().toISOString().split('T')[0],
-        status: 'active',
-        progress: 0
+      const response = await apiService.createFinancialGoal({
+        title: formData.title,
+        description: formData.description,
+        type: formData.type,
+        targetAmount: formData.targetAmount,
+        targetDate: formData.targetDate,
+        priority: formData.priority
+      })
+
+      if (response.status !== 'success') {
+        throw new Error('Failed to create financial goal')
       }
 
-      setGoals(prev => [...prev, newGoal])
+      await fetchGoals()
       setShowCreateDialog(false)
       resetForm()
 
@@ -273,16 +275,21 @@ export default function FinancialGoalsPage() {
     }
 
     try {
-      // Mock update - replace with actual API call
-      const updatedGoal: FinancialGoal = {
-        ...editingGoal,
-        ...formData
+      const response = await apiService.updateFinancialGoal(editingGoal._id, {
+        title: formData.title,
+        description: formData.description,
+        type: formData.type,
+        targetAmount: formData.targetAmount,
+        targetDate: formData.targetDate,
+        priority: formData.priority,
+        category: formData.category
+      })
+
+      if (response.status !== 'success') {
+        throw new Error('Failed to update financial goal')
       }
 
-      setGoals(prev => prev.map(goal =>
-        goal._id === editingGoal._id ? updatedGoal : goal
-      ))
-
+      await fetchGoals()
       setEditingGoal(null)
       resetForm()
 
@@ -306,8 +313,13 @@ export default function FinancialGoalsPage() {
 
     try {
       setLoading(true)
-      // Mock deletion - replace with actual API call
-      setGoals(prev => prev.filter(goal => goal._id !== deletingGoal._id))
+      const response = await apiService.deleteFinancialGoal(deletingGoal._id)
+
+      if (response.status !== 'success') {
+        throw new Error('Failed to delete financial goal')
+      }
+
+      await fetchGoals()
       setShowDeleteDialog(false)
       setDeletingGoal(null)
 

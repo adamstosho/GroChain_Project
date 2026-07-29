@@ -1,11 +1,13 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useStableDataFetch } from "@/hooks/use-stable-data-fetch"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -26,7 +28,8 @@ import {
   MoreHorizontal,
   RefreshCw,
   UserCheck,
-  Activity
+  Activity,
+  Plus
 } from "lucide-react"
 import Link from "next/link"
 
@@ -100,7 +103,7 @@ export default function MarketplacePage() {
   })
   const [listings, setListings] = useState<ProductListing[]>([])
   const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
+  const { isInitialLoading, isRefreshing: isDataRefreshing, begin, finish } = useStableDataFetch()
   const [activeTab, setActiveTab] = useState("overview")
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -112,9 +115,8 @@ export default function MarketplacePage() {
 
 
   const fetchMarketplaceData = useCallback(async () => {
+    const generation = begin()
     try {
-      setLoading(true)
-
       // Fetch real marketplace data from backend
       console.log("🔄 Fetching marketplace data...")
 
@@ -148,8 +150,8 @@ export default function MarketplacePage() {
           monthlyRevenue: (dashboardData as any).monthlyRevenue || 0,
           totalCustomers: 0, // Will be calculated from orders
           averageRating: 0, // Not available in dashboard
-          activeBuyers: (buyerActivityResponse?.data as any)?.activeBuyers || Math.floor(Math.random() * 50) + 10,
-          recentBuyerActivity: (buyerActivityResponse?.data as any)?.recentActivity || Math.floor(Math.random() * 20) + 5
+          activeBuyers: Number((buyerActivityResponse?.data as any)?.activeBuyers) || 0,
+          recentBuyerActivity: Number((buyerActivityResponse?.data as any)?.recentActivity) || 0
         }
 
         setStats(processedStats)
@@ -165,8 +167,8 @@ export default function MarketplacePage() {
           monthlyRevenue: 0,
           totalCustomers: 0,
           averageRating: 0,
-          activeBuyers: Math.floor(Math.random() * 20) + 5,
-          recentBuyerActivity: Math.floor(Math.random() * 10) + 2
+          activeBuyers: 0,
+          recentBuyerActivity: 0
         }
 
         setStats(processedStats)
@@ -257,12 +259,12 @@ export default function MarketplacePage() {
         activeBuyers: Math.floor(Math.random() * 15) + 3,
         recentBuyerActivity: Math.floor(Math.random() * 8) + 1
       })
-      setListings([])
-      setOrders([])
+      setListings((prev) => (prev.length > 0 ? prev : []))
+      setOrders((prev) => (prev.length > 0 ? prev : []))
     } finally {
-      setLoading(false)
+      finish(generation)
     }
-  }, [toast])
+  }, [toast, begin, finish])
 
   useEffect(() => {
     fetchMarketplaceData()
@@ -390,7 +392,7 @@ export default function MarketplacePage() {
     return matchesSearch && matchesStatus && matchesCategory
   })
 
-  if (loading) {
+  if (isInitialLoading) {
     return (
       <DashboardLayout pageTitle="Marketplace">
         <div className="space-y-4 sm:space-y-6">
@@ -414,50 +416,47 @@ export default function MarketplacePage() {
 
   return (
     <DashboardLayout pageTitle="Listings">
-      <div className="space-y-4 sm:space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
-          <div className="space-y-1 sm:space-y-2 min-w-0 flex-1">
-            <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900">Listings</h1>
-            <p className="text-xs sm:text-sm lg:text-base text-gray-600">
-              Manage your product listings, track orders, and monitor sales performance
-            </p>
-          </div>
-
-          <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 flex-shrink-0">
-            <Button
-              variant="outline"
-              onClick={handleRefresh}
-              disabled={loading || refreshing}
-              className="w-full xs:w-auto h-8 sm:h-9 text-xs sm:text-sm"
-            >
-              <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Refresh</span>
-              <span className="sm:hidden">Refresh</span>
-            </Button>
-            <Button variant="outline" asChild className="w-full xs:w-auto h-8 sm:h-9 text-xs sm:text-sm border-blue-200 hover:bg-blue-50">
-              <Link href="/marketplace">
-                <Store className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-blue-600" />
-                <span className="hidden sm:inline">Browse Marketplace</span>
-                <span className="sm:hidden">Marketplace</span>
-              </Link>
-            </Button>
-            <Button variant="outline" asChild className="w-full xs:w-auto h-8 sm:h-9 text-xs sm:text-sm">
-              <Link href="/dashboard/marketplace/analytics">
-                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                <span className="hidden sm:inline">View Analytics</span>
-                <span className="sm:hidden">Analytics</span>
-              </Link>
-            </Button>
-          </div>
-        </div>
+      <div className="space-y-6 sm:space-y-10">
+        <DashboardPageHeader
+          badge="Marketplace Intelligence Active"
+          title="Merchant"
+          titleHighlight="Listings"
+          description={
+            <>
+              Analyze your market performance, manage inventory, and optimize your{" "}
+              <span className="font-semibold text-foreground">sales strategy</span> with GroChain.
+            </>
+          }
+          actions={
+            <>
+              <Button
+                onClick={handleRefresh}
+                disabled={isInitialLoading || refreshing || isDataRefreshing}
+                variant="outline"
+                size="lg"
+                className="group"
+              >
+                <RefreshCw
+                  className={`mr-2 h-4 w-4 transition-transform duration-500 group-hover:rotate-180 ${refreshing ? "animate-spin" : ""}`}
+                />
+                {refreshing ? "Syncing..." : "Refresh"}
+              </Button>
+              <Button asChild size="lg">
+                <Link href="/dashboard/marketplace/new">
+                  <Plus className="mr-2 h-5 w-5" />
+                  Create Listing
+                </Link>
+              </Button>
+            </>
+          }
+        />
 
         {/* Listings Stats */}
         <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           <Card className="border border-gray-200 h-full">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
               <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Store className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
+                <Store className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                 <span className="truncate pr-2 min-w-0 flex-1">Total Listings</span>
               </CardTitle>
             </CardHeader>

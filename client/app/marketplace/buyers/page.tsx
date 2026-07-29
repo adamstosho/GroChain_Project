@@ -5,9 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { MapPin, Star, ShoppingCart, ArrowLeft, Home } from "lucide-react"
+import { MapPin, ShoppingCart, ArrowLeft, Home } from "lucide-react"
 import { apiService } from "@/lib/api"
 import Link from "next/link"
+
+interface BuyerActivity {
+  activeBuyers: number
+  todaysTransactions: number
+  averageRating?: number
+  testimonials: Array<Record<string, unknown>>
+}
 
 interface BuyerProfile {
   id: string
@@ -15,7 +22,6 @@ interface BuyerProfile {
   businessType: string
   location: string
   avatar?: string
-  rating: number
   totalOrders: number
   joinedDate: string
   recentActivity: string
@@ -25,7 +31,7 @@ interface BuyerProfile {
 export default function BuyersDirectoryPage() {
   const [buyers, setBuyers] = useState<BuyerProfile[]>([])
   const [loading, setLoading] = useState(true)
-  const [buyerActivity, setBuyerActivity] = useState({
+  const [buyerActivity, setBuyerActivity] = useState<BuyerActivity>({
     activeBuyers: 0,
     todaysTransactions: 0,
     testimonials: []
@@ -33,82 +39,36 @@ export default function BuyersDirectoryPage() {
 
   useEffect(() => {
     fetchBuyerActivity()
-    generateMockBuyers()
+    fetchTopBuyers()
   }, [])
 
   const fetchBuyerActivity = async () => {
     try {
       const response = await apiService.getBuyerActivity()
       if (response.status === 'success' && response.data) {
-        setBuyerActivity(response.data)
+        setBuyerActivity({
+          activeBuyers: Number((response.data as BuyerActivity).activeBuyers) || 0,
+          todaysTransactions: Number((response.data as BuyerActivity).todaysTransactions) || 0,
+          averageRating: (response.data as BuyerActivity).averageRating,
+          testimonials: (response.data as BuyerActivity).testimonials ?? [],
+        })
       }
     } catch (error) {
       console.error('Failed to fetch buyer activity:', error)
     }
   }
 
-  const generateMockBuyers = () => {
-    // Mock buyer data - in real app, this would come from backend
-    const mockBuyers: BuyerProfile[] = [
-      {
-        id: "1",
-        name: "Lagos Fresh Foods Ltd",
-        businessType: "Restaurant Chain",
-        location: "Lagos, Nigeria",
-        rating: 4.9,
-        totalOrders: 247,
-        joinedDate: "2023-06-15",
-        recentActivity: "Active today",
-        specialties: ["Vegetables", "Fruits", "Cassava"]
-      },
-      {
-        id: "2",
-        name: "Abuja Supermart",
-        businessType: "Supermarket",
-        location: "Abuja, Nigeria",
-        rating: 4.8,
-        totalOrders: 189,
-        joinedDate: "2023-08-22",
-        recentActivity: "Active this week",
-        specialties: ["Grains", "Tubers", "Legumes"]
-      },
-      {
-        id: "3",
-        name: "Port Harcourt Hotel Group",
-        businessType: "Hotel & Catering",
-        location: "Port Harcourt, Nigeria",
-        rating: 4.7,
-        totalOrders: 156,
-        joinedDate: "2023-09-10",
-        recentActivity: "Active today",
-        specialties: ["Fruits", "Vegetables", "Organic Produce"]
-      },
-      {
-        id: "4",
-        name: "Kano Food Distributors",
-        businessType: "Wholesale Distributor",
-        location: "Kano, Nigeria",
-        rating: 4.6,
-        totalOrders: 312,
-        joinedDate: "2023-05-03",
-        recentActivity: "Active yesterday",
-        specialties: ["Grains", "Cassava", "Groundnuts"]
-      },
-      {
-        id: "5",
-        name: "Ibadan Fresh Market",
-        businessType: "Local Market",
-        location: "Ibadan, Nigeria",
-        rating: 4.5,
-        totalOrders: 98,
-        joinedDate: "2023-11-12",
-        recentActivity: "Active this week",
-        specialties: ["Tubers", "Vegetables", "Fruits"]
+  const fetchTopBuyers = async () => {
+    try {
+      const response = await apiService.getTopBuyers()
+      if (response.status === 'success' && Array.isArray(response.data)) {
+        setBuyers(response.data as BuyerProfile[])
       }
-    ]
-
-    setBuyers(mockBuyers)
-    setLoading(false)
+    } catch (error) {
+      console.error('Failed to fetch buyers directory:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const getActivityColor = (activity: string) => {
@@ -163,7 +123,7 @@ export default function BuyersDirectoryPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{buyerActivity.todaysTransactions || Math.floor(Math.random() * 20) + 5}</div>
+                <div className="text-2xl font-bold text-blue-600">{buyerActivity.todaysTransactions}</div>
                 <div className="text-sm text-gray-600">Transactions Today</div>
                 <div className="text-xs text-gray-500">Successful purchases</div>
               </div>
@@ -173,7 +133,9 @@ export default function BuyersDirectoryPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{buyerActivity.averageRating || 4.8}★</div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {buyerActivity.averageRating ? `${buyerActivity.averageRating}★` : '—'}
+                </div>
                 <div className="text-sm text-gray-600">Average Rating</div>
                 <div className="text-xs text-gray-500">From verified buyers</div>
               </div>
@@ -182,6 +144,17 @@ export default function BuyersDirectoryPage() {
         </div>
 
         {/* Buyers Grid */}
+        {buyers.length === 0 ? (
+          <Card className="text-center py-12">
+            <CardContent>
+              <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Buyers Yet</h3>
+              <p className="text-gray-600">
+                Once buyers start purchasing from the marketplace, they'll appear here.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {buyers.map((buyer) => (
             <Card key={buyer.id} className="hover:shadow-lg transition-shadow">
@@ -209,12 +182,8 @@ export default function BuyersDirectoryPage() {
                   <span className="truncate">{buyer.location}</span>
                 </div>
 
-                {/* Rating & Orders */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-medium">{buyer.rating}</span>
-                  </div>
+                {/* Orders */}
+                <div className="flex items-center justify-end">
                   <div className="flex items-center gap-1 text-sm text-gray-600">
                     <ShoppingCart className="h-4 w-4" />
                     <span>{buyer.totalOrders} orders</span>
@@ -227,22 +196,20 @@ export default function BuyersDirectoryPage() {
                 </Badge>
 
                 {/* Specialties */}
-                <div className="flex flex-wrap gap-1">
-                  {buyer.specialties.slice(0, 3).map((specialty, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {specialty}
-                    </Badge>
-                  ))}
-                </div>
-
-                {/* Action Button */}
-                <Button variant="outline" className="w-full text-sm" size="sm">
-                  View Profile
-                </Button>
+                {buyer.specialties.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {buyer.specialties.slice(0, 3).map((specialty, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {specialty}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
+        )}
 
         {/* Call to Action */}
         <div className="mt-8 text-center">

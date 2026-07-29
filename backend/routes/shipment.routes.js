@@ -32,6 +32,14 @@ router.get(
   shipmentController.searchShipments
 )
 
+// Assign logistics user (driver) for realtime access — admin or eligible partner
+router.patch(
+  '/:shipmentId/assigned-logistics',
+  authenticate,
+  authorize(['admin', 'partner']),
+  shipmentController.assignAssignedLogistics
+)
+
 // Get shipment by ID
 router.get(
   '/:shipmentId', 

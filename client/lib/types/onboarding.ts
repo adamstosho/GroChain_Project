@@ -1,7 +1,7 @@
 export interface FarmerOnboarding {
   _id: string
   farmer: {
-    _id: string
+    _id?: string
     name: string
     email: string
     phone: string

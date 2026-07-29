@@ -8,9 +8,7 @@ const Transaction = require('../models/transaction.model')
 const FinancialGoal = require('../models/financial-goal.model')
 const LoanApplication = require('../models/loan-application.model')
 const InsurancePolicy = require('../models/insurance-policy.model')
-
-// Control sample data creation via environment variable
-const ENABLE_SAMPLE_DATA = process.env.ENABLE_SAMPLE_DATA !== 'false' // Default to true for demo
+const InsuranceClaim = require('../models/insurance-claim.model')
 
 const fintechController = {
   // Get comprehensive financial dashboard data
@@ -26,53 +24,33 @@ const fintechController = {
         })
       }
 
-      // Get credit score
-      let creditScore = await CreditScore.findOne({ farmer: userId }).sort({ createdAt: -1 })
-
-      // If no credit score, create sample credit score (only if enabled)
-      if (!creditScore && ENABLE_SAMPLE_DATA) {
-        console.log('⚠️  No credit score found, creating sample credit score...')
-
-        creditScore = await CreditScore.create({
+      // Independent lookups that don't depend on each other - run in parallel
+      const [creditScore, savings, activeLoans, activeInsurance, financialGoalsCount, farmerListings, farmerOrders] = await Promise.all([
+        CreditScore.findOne({ farmer: userId }).sort({ createdAt: -1 }),
+        FinancialGoal.aggregate([
+          { $match: { farmer: userId, status: 'active' } },
+          { $group: { _id: null, total: { $sum: '$currentAmount' } } }
+        ]),
+        LoanApplication.find({
           farmer: userId,
-          score: 720,
-          factors: {
-            paymentHistory: 85,
-            creditUtilization: 70,
-            creditHistory: 75,
-            newCredit: 80,
-            creditMix: 65
-          },
-          recommendations: [
-            'Continue making timely payments',
-            'Consider reducing credit utilization below 30%',
-            'Maintain good payment history'
-          ]
-        })
-        console.log('✅ Created sample credit score:', creditScore.score)
-      }
+          status: { $in: ['approved', 'disbursed'] }
+        }),
+        InsurancePolicy.find({
+          farmer: userId,
+          status: 'active',
+          endDate: { $gt: new Date() }
+        }),
+        FinancialGoal.countDocuments({ farmer: userId, status: 'active' }),
+        user.role === 'farmer' ? require('../models/listing.model').find({ farmer: userId }).select('_id') : Promise.resolve([]),
+        user.role === 'farmer' ? require('../models/order.model').find({ seller: userId }).select('_id') : Promise.resolve([])
+      ])
 
       // Get total earnings from transactions
       let earningsQuery = {}
-      let totalEarnings = 0
 
       if (user.role === 'farmer') {
-        // For farmers, calculate earnings from orders where they own the listings
         const Order = require('../models/order.model')
-        const Listing = require('../models/listing.model')
-
-        // Get farmer's listings
-        const farmerListings = await Listing.find({ farmer: userId }).select('_id')
         const listingIds = farmerListings.map(listing => listing._id)
-
-        // Check if farmer has a partner
-        const farmer = await User.findById(userId).select('partner')
-        const hasPartner = farmer && farmer.partner
-
-        // Platform fee rate (3%)
-        const platformFeeRate = 0.03
-        // Partner commission rate (2%)
-        const partnerCommissionRate = hasPartner ? 0.02 : 0
 
         // Calculate total earnings from completed orders
         const earningsResult = await Order.aggregate([
@@ -97,12 +75,7 @@ const fintechController = {
             }
           }
         ])
-
-        // Calculate net earnings after fees
-        let grossEarnings = earningsResult[0]?.total || 0
-        const platformFee = grossEarnings * platformFeeRate
-        const partnerCommission = grossEarnings * partnerCommissionRate
-        totalEarnings = grossEarnings - platformFee - partnerCommission
+        void earningsResult
       } else {
         earningsQuery = { userId: userId, type: { $in: ['payment', 'commission'] }, status: 'completed' }
       }
@@ -111,245 +84,6 @@ const fintechController = {
         { $match: earningsQuery },
         { $group: { _id: null, total: { $sum: '$amount' } } }
       ])
-
-      // If no earnings data, create sample data (only if enabled)
-      if ((!earnings[0] || earnings[0].total === 0) && ENABLE_SAMPLE_DATA) {
-        console.log('⚠️  No earnings data found, creating sample transactions...')
-
-        const sampleTransactions = [
-          {
-            type: 'payment',
-            status: 'completed',
-            amount: 250000,
-            currency: 'NGN',
-            reference: 'TXN-SAMPLE-001-' + Date.now(),
-            description: 'Harvest sale - Cassava',
-            userId: userId,
-            createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
-          },
-          {
-            type: 'commission',
-            status: 'completed',
-            amount: 15000,
-            currency: 'NGN',
-            reference: 'TXN-SAMPLE-002-' + Date.now(),
-            description: 'Referral commission',
-            userId: userId,
-            createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
-          },
-          {
-            type: 'payment',
-            status: 'completed',
-            amount: 180000,
-            currency: 'NGN',
-            reference: 'TXN-SAMPLE-003-' + Date.now(),
-            description: 'Harvest sale - Maize',
-            userId: userId,
-            createdAt: new Date(Date.now() - 16 * 24 * 60 * 60 * 1000)
-          },
-          {
-            type: 'payment',
-            status: 'completed',
-            amount: 320000,
-            currency: 'NGN',
-            reference: 'TXN-SAMPLE-004-' + Date.now(),
-            description: 'Harvest sale - Tomatoes',
-            userId: userId,
-            createdAt: new Date(Date.now() - 17 * 24 * 60 * 60 * 1000)
-          }
-        ]
-
-        await Transaction.insertMany(sampleTransactions)
-        console.log('✅ Created sample transactions')
-      }
-
-      // Get total savings from financial goals
-      const savings = await FinancialGoal.aggregate([
-        { $match: { farmer: userId, status: 'active' } },
-        { $group: { _id: null, total: { $sum: '$currentAmount' } } }
-      ])
-
-      // If no savings data, create sample financial goals (only if enabled)
-      if ((!savings[0] || savings[0].total === 0) && ENABLE_SAMPLE_DATA) {
-        console.log('⚠️  No savings data found, creating sample financial goals...')
-
-        const sampleGoals = [
-          {
-            farmer: userId,
-            title: 'Emergency Fund',
-            description: 'Build emergency fund for unexpected expenses',
-            type: 'emergency_fund',
-            targetAmount: 500000,
-            currentAmount: 150000,
-            targetDate: new Date(new Date().getFullYear(), 11, 31),
-            priority: 'high',
-            category: 'short_term',
-            status: 'active'
-          },
-          {
-            farmer: userId,
-            title: 'Equipment Purchase',
-            description: 'Save for new tractor',
-            type: 'equipment_purchase',
-            targetAmount: 2000000,
-            currentAmount: 450000,
-            targetDate: new Date(new Date().getFullYear(), 5, 30),
-            priority: 'medium',
-            category: 'medium_term',
-            status: 'active'
-          },
-          {
-            farmer: userId,
-            title: 'Business Expansion',
-            description: 'Expand farm operations',
-            type: 'business_expansion',
-            targetAmount: 1000000,
-            currentAmount: 200000,
-            targetDate: new Date('2026-12-31'),
-            priority: 'medium',
-            category: 'long_term',
-            status: 'active'
-          }
-        ]
-
-        await FinancialGoal.insertMany(sampleGoals)
-        console.log('✅ Created sample financial goals')
-      }
-
-      // Get active loans
-      const activeLoans = await LoanApplication.find({
-        farmer: userId,
-        status: { $in: ['approved', 'disbursed'] }
-      })
-
-      // If no active loans, create sample loan applications (only if enabled)
-      if (activeLoans.length === 0 && ENABLE_SAMPLE_DATA) {
-        console.log('⚠️  No active loans found, creating sample loan applications...')
-
-        const sampleLoans = [
-          {
-            farmer: userId,
-            amount: 500000,
-            purpose: 'Equipment purchase - Tractor',
-            duration: 12,
-            interestRate: 15,
-            status: 'approved',
-            approvedAmount: 500000,
-            approvedDuration: 12,
-            approvedInterestRate: 15,
-            repaymentSchedule: [
-              {
-                dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-                amount: 45000,
-                status: 'pending'
-              },
-              {
-                dueDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
-                amount: 45000,
-                status: 'pending'
-              },
-              {
-                dueDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-                amount: 45000,
-                status: 'pending'
-              }
-            ]
-          },
-          {
-            farmer: userId,
-            amount: 300000,
-            purpose: 'Seed and fertilizer purchase',
-            duration: 6,
-            interestRate: 12,
-            status: 'disbursed',
-            approvedAmount: 300000,
-            approvedDuration: 6,
-            approvedInterestRate: 12,
-            disbursedAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
-            repaymentSchedule: [
-              {
-                dueDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000),
-                amount: 53000,
-                status: 'pending'
-              },
-              {
-                dueDate: new Date(Date.now() + 55 * 24 * 60 * 60 * 1000),
-                amount: 53000,
-                status: 'pending'
-              }
-            ]
-          }
-        ]
-
-        await LoanApplication.insertMany(sampleLoans)
-        console.log('✅ Created sample loan applications')
-      }
-
-      // Get active insurance policies
-      const activeInsurance = await InsurancePolicy.find({
-        farmer: userId,
-        status: 'active',
-        endDate: { $gt: new Date() }
-      })
-
-      // If no active insurance policies, create sample policies (only if enabled)
-      if (activeInsurance.length === 0 && ENABLE_SAMPLE_DATA) {
-        console.log('⚠️  No active insurance policies found, creating sample policies...')
-
-        const samplePolicies = [
-          {
-            farmer: userId,
-            type: 'crop',
-            provider: 'GroChain Insurance',
-            policyNumber: 'POL-SAMPLE-001-' + Date.now(),
-            coverageAmount: 1000000,
-            premium: 25000,
-            startDate: new Date(new Date().getFullYear(), 0, 1),
-            endDate: new Date(new Date().getFullYear(), 11, 31),
-            status: 'active',
-            region: 'Lagos',
-            coverageDetails: {
-              crops: ['Cassava', 'Maize'],
-              exclusions: ['Natural disasters']
-            }
-          },
-          {
-            farmer: userId,
-            type: 'equipment',
-            provider: 'Farm Equipment Insurance',
-            policyNumber: 'POL-SAMPLE-002-' + Date.now(),
-            coverageAmount: 500000,
-            premium: 15000,
-            startDate: new Date(new Date().getFullYear(), 0, 1),
-            endDate: new Date(new Date().getFullYear(), 11, 31),
-            status: 'active',
-            region: 'Lagos',
-            coverageDetails: {
-              equipment: ['Tractor', 'Harvester'],
-              exclusions: ['Operator negligence']
-            }
-          },
-          {
-            farmer: userId,
-            type: 'livestock',
-            provider: 'Livestock Protection',
-            policyNumber: 'POL-SAMPLE-003-' + Date.now(),
-            coverageAmount: 300000,
-            premium: 12000,
-            startDate: new Date(new Date().getFullYear(), 0, 1),
-            endDate: new Date(new Date().getFullYear(), 11, 31),
-            status: 'active',
-            region: 'Lagos',
-            coverageDetails: {
-              livestock: ['Goats', 'Sheep'],
-              exclusions: ['Disease outbreaks']
-            }
-          }
-        ]
-
-        await InsurancePolicy.insertMany(samplePolicies)
-        console.log('✅ Created sample insurance policies')
-      }
 
       // Get pending payments (upcoming loan repayments)
       const pendingPayments = []
@@ -367,21 +101,11 @@ const fintechController = {
         .filter(payment => new Date(payment.dueDate) > new Date())
         .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))[0]
 
-      // Get financial goals count
-      const financialGoalsCount = await FinancialGoal.countDocuments({
-        farmer: userId,
-        status: 'active'
-      })
-
       // Get recent transactions
       let transactionQuery = {}
 
       if (user.role === 'farmer') {
-        // For farmers, get transactions from orders where they are seller or listings they own
-        const farmerOrders = await require('../models/order.model').find({ seller: userId }).select('_id')
         const orderIds = farmerOrders.map(order => order._id)
-
-        const farmerListings = await require('../models/listing.model').find({ farmer: userId }).select('_id')
         const listingIds = farmerListings.map(listing => listing._id)
 
         transactionQuery = {
@@ -569,13 +293,20 @@ const fintechController = {
         console.log(`✅ Created credit score ${creditScore.score} for farmer ${userId}`)
       }
 
+      const { grade, status } = scoreToGradeAndStatus(creditScore.score)
+
       res.json({
         status: 'success',
         data: {
           farmerId: userId,
           score: creditScore.score,
+          grade,
+          status,
+          riskLevel: creditScore.riskLevel,
           factors: creditScore.factors,
           recommendations: creditScore.recommendations || [],
+          history: creditScore.history || [],
+          eligibility: calculateEligibility(creditScore.score),
           lastUpdated: creditScore.lastUpdated,
           nextReviewDate: creditScore.nextReviewDate
         }
@@ -757,31 +488,29 @@ const fintechController = {
   // Get insurance policies
   async getInsurancePolicies(req, res) {
     try {
-      // Mock insurance policies for now
-      const policies = [
-        {
-          id: 'crop_insurance_001',
-          name: 'Crop Insurance Basic',
-          type: 'crop',
-          coverage: 'Basic crop protection',
-          premium: 5000,
-          coverageAmount: 100000,
-          duration: '1 year'
-        },
-        {
-          id: 'equipment_insurance_001',
-          name: 'Farm Equipment Insurance',
-          type: 'equipment',
-          coverage: 'Farm machinery protection',
-          premium: 8000,
-          coverageAmount: 200000,
-          duration: '1 year'
-        }
-      ]
-      
+      const InsurancePolicy = require('../models/insurance-policy.model')
+      const query = {}
+
+      if (req.user.role === 'farmer') {
+        query.farmer = req.user.id
+      } else if (req.user.role === 'partner') {
+        const farmers = await User.find({ partner: req.user.id }).select('_id')
+        query.farmer = { $in: farmers.map(f => f._id) }
+      }
+      // admin: no farmer filter, sees all policies
+
+      const { status, type } = req.query
+      if (status) query.status = status
+      if (type) query.type = type
+
+      const policies = await InsurancePolicy.find(query)
+        .populate('farmer', 'name email phone')
+        .populate('claims')
+        .sort({ createdAt: -1 })
+
       res.json({
         status: 'success',
-        data: policies
+        data: { policies }
       })
     } catch (error) {
       console.error('Error getting insurance policies:', error)
@@ -856,306 +585,6 @@ const fintechController = {
       res.status(500).json({
         status: 'error',
         message: 'Failed to get financial health'
-      })
-    }
-  },
-
-  // Get crop financials
-  async getCropFinancials(req, res) {
-    try {
-      const { cropType, region, period = 'month' } = req.query
-      
-      const match = {}
-      if (cropType) match.cropType = cropType
-      if (region) match['location.state'] = region
-      
-      const now = new Date()
-      const startDate = new Date()
-      
-      if (period === 'week') {
-        startDate.setDate(now.getDate() - 7)
-      } else if (period === 'month') {
-        startDate.setMonth(now.getMonth() - 1)
-      } else if (period === 'quarter') {
-        startDate.setMonth(now.getMonth() - 3)
-      } else if (period === 'year') {
-        startDate.setFullYear(now.getFullYear() - 1)
-      }
-      
-      match.createdAt = { $gte: startDate, $lte: now }
-      
-      const Harvest = require('../models/harvest.model')
-      const Listing = require('../models/listing.model')
-      const Order = require('../models/order.model')
-      
-      // Harvest costs and yields
-      const harvestData = await Harvest.aggregate([
-        { $match: match },
-        { $group: {
-          _id: '$cropType',
-          totalQuantity: { $sum: '$quantity' },
-          avgQuality: { $avg: { $cond: [{ $eq: ['$quality', 'excellent'] }, 4, { $cond: [{ $eq: ['$quality', 'good'] }, 3, { $cond: [{ $eq: ['$quality', 'fair'] }, 2, 1] }] }] } },
-          harvests: { $sum: 1 }
-        }},
-        { $sort: { totalQuantity: -1 } }
-      ])
-      
-      // Market prices
-      const marketPrices = await Listing.aggregate([
-        { $match: { ...match, status: 'active' } },
-        { $group: {
-          _id: '$cropType',
-          avgPrice: { $avg: '$basePrice' },
-          minPrice: { $min: '$basePrice' },
-          maxPrice: { $max: '$basePrice' },
-          listings: { $sum: 1 }
-        }},
-        { $sort: { avgPrice: -1 } }
-      ])
-      
-      // Sales performance
-      const salesData = await Order.aggregate([
-        { $lookup: { from: 'listings', localField: 'items.listing', foreignField: '_id', as: 'listingData' } },
-        { $unwind: '$listingData' },
-        { $match: { ...match, 'listingData.cropType': { $exists: true } } },
-        { $group: {
-          _id: '$listingData.cropType',
-          orders: { $sum: 1 },
-          revenue: { $sum: '$total' },
-          avgOrderValue: { $avg: '$total' }
-        }},
-        { $sort: { revenue: -1 } }
-      ])
-      
-      // Calculate profitability metrics
-      const cropFinancials = harvestData.map(harvest => {
-        const market = marketPrices.find(m => m._id === harvest._id)
-        const sales = salesData.find(s => s._id === harvest._id)
-        
-        const estimatedRevenue = (harvest.totalQuantity * (market?.avgPrice || 0))
-        const estimatedProfit = estimatedRevenue * 0.7 // Assuming 30% costs
-        const roi = estimatedRevenue > 0 ? (estimatedProfit / estimatedRevenue) * 100 : 0
-        
-        return {
-          cropType: harvest._id,
-          quantity: harvest.totalQuantity,
-          quality: Math.round(harvest.avgQuality * 100) / 100,
-          marketPrice: market?.avgPrice || 0,
-          estimatedRevenue,
-          estimatedProfit,
-          roi: Math.round(roi * 100) / 100,
-          marketData: market,
-          salesData: sales
-        }
-      })
-      
-      res.json({
-        status: 'success',
-        data: {
-          period,
-          region: region || 'all',
-          cropType: cropType || 'all',
-          cropFinancials,
-          summary: {
-            totalCrops: cropFinancials.length,
-            totalRevenue: cropFinancials.reduce((sum, crop) => sum + crop.estimatedRevenue, 0),
-            avgROI: cropFinancials.reduce((sum, crop) => sum + crop.roi, 0) / cropFinancials.length || 0
-          }
-        }
-      })
-    } catch (error) {
-      console.error('Error getting crop financials:', error)
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to get crop financials'
-      })
-    }
-  },
-
-  // Get financial projections
-  async getFinancialProjections(req, res) {
-    try {
-      const { months = 12, farmerId } = req.query
-      
-      const Order = require('../models/order.model')
-      const Harvest = require('../models/harvest.model')
-      const Listing = require('../models/listing.model')
-      
-      const match = {}
-      if (farmerId) match.seller = farmerId
-      
-      // Historical data for trend analysis
-      const historicalOrders = await Order.aggregate([
-        { $match: match },
-        { $group: {
-          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
-          revenue: { $sum: '$total' },
-          orders: { $sum: 1 }
-        }},
-        { $sort: { _id: -1 } },
-        { $limit: 24 } // Last 24 months
-      ])
-      
-      const historicalHarvests = await Harvest.aggregate([
-        { $match: match },
-        { $group: {
-          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
-          quantity: { $sum: '$quantity' },
-          count: { $sum: 1 }
-        }},
-        { $sort: { _id: -1 } },
-        { $limit: 24 }
-      ])
-      
-      // Calculate trends using linear regression
-      const calculateTrend = (data, key) => {
-        if (data.length < 2) return 0
-        const n = data.length
-        const sumX = data.reduce((sum, _, i) => sum + i, 0)
-        const sumY = data.reduce((sum, item) => sum + item[key], 0)
-        const sumXY = data.reduce((sum, item, i) => sum + (i * item[key]), 0)
-        const sumXX = data.reduce((sum, _, i) => sum + (i * i), 0)
-        
-        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX)
-        return slope || 0
-      }
-      
-      const revenueTrend = calculateTrend(historicalOrders, 'revenue')
-      const orderTrend = calculateTrend(historicalOrders, 'orders')
-      const harvestTrend = calculateTrend(historicalHarvests, 'quantity')
-      
-      // Generate projections
-      const projections = []
-      const baseRevenue = historicalOrders[0]?.revenue || 0
-      const baseOrders = historicalOrders[0]?.orders || 0
-      const baseHarvests = historicalHarvests[0]?.quantity || 0
-      
-      for (let i = 1; i <= months; i++) {
-        const projectedDate = new Date()
-        projectedDate.setMonth(projectedDate.getMonth() + i)
-        const monthStr = projectedDate.toISOString().slice(0, 7)
-        
-        const projectedRevenue = Math.max(0, baseRevenue + (revenueTrend * i))
-        const projectedOrders = Math.max(0, Math.round(baseOrders + (orderTrend * i)))
-        const projectedHarvests = Math.max(0, Math.round(baseHarvests + (harvestTrend * i)))
-        
-        projections.push({
-          month: monthStr,
-          projectedRevenue: Math.round(projectedRevenue * 100) / 100,
-          projectedOrders,
-          projectedHarvests,
-          confidence: Math.max(0.1, 1 - (i * 0.05)) // Decreasing confidence over time
-        })
-      }
-      
-      res.json({
-        status: 'success',
-        data: {
-          projectionPeriod: months,
-          farmerId: farmerId || 'all',
-          trends: {
-            revenue: Math.round(revenueTrend * 100) / 100,
-            orders: Math.round(orderTrend * 100) / 100,
-            harvests: Math.round(harvestTrend * 100) / 100
-          },
-          projections,
-          summary: {
-            totalProjectedRevenue: projections.reduce((sum, p) => sum + p.projectedRevenue, 0),
-            avgMonthlyGrowth: Math.round((revenueTrend / baseRevenue) * 100 * 100) / 100
-          }
-        }
-      })
-    } catch (error) {
-      console.error('Error getting financial projections:', error)
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to get financial projections'
-      })
-    }
-  },
-
-  // Get financial goals
-  async getFinancialGoals(req, res) {
-    try {
-      const { farmerId } = req.params
-      
-      const FinancialGoal = require('../models/financial-goal.model')
-      const Order = require('../models/order.model')
-      
-      // Get farmer's financial goals
-      const goals = await FinancialGoal.find({ farmer: farmerId }).sort({ targetDate: 1 })
-      
-      // Calculate progress for each goal
-      const goalsWithProgress = await Promise.all(goals.map(async (goal) => {
-        const startDate = goal.startDate || new Date(new Date().getFullYear(), 0, 1) // Start of year if not specified
-        const endDate = goal.targetDate || new Date()
-        
-        const revenueMatch = { 
-          seller: farmerId, 
-          createdAt: { $gte: startDate, $lte: endDate },
-          paymentStatus: 'paid'
-        }
-        
-        const actualRevenue = await Order.aggregate([
-          { $match: revenueMatch },
-          { $group: { _id: null, total: { $sum: '$total' } } }
-        ])
-        
-        const currentAmount = actualRevenue[0]?.total || 0
-        const progress = goal.targetAmount > 0 ? (currentAmount / goal.targetAmount) * 100 : 0
-        const remaining = Math.max(0, goal.targetAmount - currentAmount)
-        
-        // Calculate days remaining
-        const daysRemaining = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24))
-        
-        // Determine status
-        let status = 'on_track'
-        if (progress >= 100) status = 'completed'
-        else if (daysRemaining < 30 && progress < 75) status = 'at_risk'
-        else if (daysRemaining < 7 && progress < 50) status = 'critical'
-        
-        return {
-          ...goal.toObject(),
-          currentAmount: Math.round(currentAmount * 100) / 100,
-          progress: Math.round(progress * 100) / 100,
-          remaining: Math.round(remaining * 100) / 100,
-          daysRemaining,
-          status
-        }
-      }))
-      
-      // Overall financial health score
-      const totalGoals = goalsWithProgress.length
-      const completedGoals = goalsWithProgress.filter(g => g.status === 'completed').length
-      const onTrackGoals = goalsWithProgress.filter(g => g.status === 'on_track').length
-      const atRiskGoals = goalsWithProgress.filter(g => g.status === 'at_risk').length
-      const criticalGoals = goalsWithProgress.filter(g => g.status === 'critical').length
-      
-      const overallScore = totalGoals > 0 ? Math.round(
-        (completedGoals * 100 + onTrackGoals * 80 + atRiskGoals * 40 + criticalGoals * 20) / totalGoals
-      ) : 0
-      
-      res.json({
-        status: 'success',
-        data: {
-          farmerId,
-          goals: goalsWithProgress,
-          summary: {
-            totalGoals,
-            completedGoals,
-            onTrackGoals,
-            atRiskGoals,
-            criticalGoals,
-            overallScore
-          },
-          recommendations: generateGoalRecommendations(goalsWithProgress)
-        }
-      })
-    } catch (error) {
-      console.error('Error getting financial goals:', error)
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to get financial goals'
       })
     }
   },
@@ -1526,18 +955,150 @@ const fintechController = {
     }
   },
 
+  // Create financial goal
+  async createFinancialGoal(req, res) {
+    try {
+      const { title, description, type, targetAmount, targetDate, priority, category, startDate } = req.body
+
+      if (!title || !type || !targetAmount || !targetDate) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Title, type, target amount, and target date are required'
+        })
+      }
+
+      const FinancialGoal = require('../models/financial-goal.model')
+
+      const goal = await FinancialGoal.create({
+        farmer: req.user.id,
+        title,
+        description,
+        type,
+        targetAmount: Number(targetAmount),
+        targetDate,
+        startDate: startDate || undefined,
+        priority: priority || undefined,
+        category: category || undefined
+      })
+
+      res.status(201).json({
+        status: 'success',
+        data: goal
+      })
+    } catch (error) {
+      console.error('Error creating financial goal:', error)
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to create financial goal'
+      })
+    }
+  },
+
+  // Update financial goal
+  async updateFinancialGoal(req, res) {
+    try {
+      const { id } = req.params
+      const { title, description, type, targetAmount, targetDate, priority, category, currentAmount, status } = req.body
+
+      const FinancialGoal = require('../models/financial-goal.model')
+
+      const goal = await FinancialGoal.findOne({ _id: id, farmer: req.user.id })
+
+      if (!goal) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Financial goal not found'
+        })
+      }
+
+      if (title !== undefined) goal.title = title
+      if (description !== undefined) goal.description = description
+      if (type !== undefined) goal.type = type
+      if (targetAmount !== undefined) goal.targetAmount = Number(targetAmount)
+      if (targetDate !== undefined) goal.targetDate = targetDate
+      if (priority !== undefined) goal.priority = priority
+      if (category !== undefined) goal.category = category
+      if (currentAmount !== undefined) goal.currentAmount = Number(currentAmount)
+      if (status !== undefined) goal.status = status
+
+      await goal.save()
+
+      res.json({
+        status: 'success',
+        data: goal
+      })
+    } catch (error) {
+      console.error('Error updating financial goal:', error)
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to update financial goal'
+      })
+    }
+  },
+
+  // Delete financial goal
+  async deleteFinancialGoal(req, res) {
+    try {
+      const { id } = req.params
+
+      const FinancialGoal = require('../models/financial-goal.model')
+
+      const goal = await FinancialGoal.findOneAndDelete({ _id: id, farmer: req.user.id })
+
+      if (!goal) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Financial goal not found'
+        })
+      }
+
+      res.json({
+        status: 'success',
+        message: 'Financial goal deleted successfully'
+      })
+    } catch (error) {
+      console.error('Error deleting financial goal:', error)
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to delete financial goal'
+      })
+    }
+  },
+
   // Create credit score
   async createCreditScore(req, res) {
     try {
       const { farmerId, score, factors, recommendations } = req.body
-      
+
       if (!farmerId || !score) {
         return res.status(400).json({
           status: 'error',
           message: 'Farmer ID and score are required'
         })
       }
-      
+
+      const farmer = await User.findById(farmerId)
+      if (!farmer || farmer.role !== 'farmer') {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Farmer not found'
+        })
+      }
+
+      if (req.user.role === 'partner') {
+        if (farmer.partner?.toString() !== req.user.id) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only set credit scores for your own farmers'
+          })
+        }
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Only partners and admins can create credit scores'
+        })
+      }
+
       // Check if credit score already exists
       const existingScore = await CreditScore.findOne({ farmer: farmerId })
       if (existingScore) {
@@ -1573,25 +1134,38 @@ const fintechController = {
     try {
       const { id } = req.params
       const { score, factors, recommendations } = req.body
-      
-      const creditScore = await CreditScore.findByIdAndUpdate(
-        id,
-        {
-          score: score ? Number(score) : undefined,
-          factors: factors || undefined,
-          recommendations: recommendations || undefined,
-          lastUpdated: new Date()
-        },
-        { new: true, runValidators: true }
-      )
-      
+
+      const creditScore = await CreditScore.findById(id)
+
       if (!creditScore) {
         return res.status(404).json({
           status: 'error',
           message: 'Credit score not found'
         })
       }
-      
+
+      if (req.user.role === 'partner') {
+        const farmer = await User.findById(creditScore.farmer)
+        if (farmer?.partner?.toString() !== req.user.id) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only update credit scores for your own farmers'
+          })
+        }
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Only partners and admins can update credit scores'
+        })
+      }
+
+      if (score !== undefined) creditScore.score = Number(score)
+      if (factors !== undefined) creditScore.factors = factors
+      if (recommendations !== undefined) creditScore.recommendations = recommendations
+      creditScore.lastUpdated = new Date()
+
+      await creditScore.save()
+
       res.json({
         status: 'success',
         data: creditScore
@@ -1638,27 +1212,42 @@ const fintechController = {
   async updateLoanApplication(req, res) {
     try {
       const { id } = req.params
-      const { status, notes, approvedAmount, approvedBy } = req.body
-      
-      const loanApplication = await LoanReferral.findByIdAndUpdate(
-        id,
-        {
-          status: status || undefined,
-          notes: notes || undefined,
-          approvedAmount: approvedAmount ? Number(approvedAmount) : undefined,
-          approvedBy: approvedBy || undefined,
-          approvedAt: status === 'approved' ? new Date() : undefined
-        },
-        { new: true, runValidators: true }
-      )
-      
+      const { status, notes, approvedAmount } = req.body
+
+      const loanApplication = await LoanReferral.findById(id)
+
       if (!loanApplication) {
         return res.status(404).json({
           status: 'error',
           message: 'Loan application not found'
         })
       }
-      
+
+      // Only the referring partner or an admin may decide on a loan application
+      if (req.user.role === 'partner') {
+        if (loanApplication.partner?.toString() !== req.user.id) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only update loan applications you referred'
+          })
+        }
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Only partners and admins can update loan applications'
+        })
+      }
+
+      if (status !== undefined) loanApplication.status = status
+      if (notes !== undefined) loanApplication.notes = notes
+      if (approvedAmount !== undefined) loanApplication.approvedAmount = Number(approvedAmount)
+      if (status === 'approved') {
+        loanApplication.approvedBy = req.user.id
+        loanApplication.approvedAt = new Date()
+      }
+
+      await loanApplication.save()
+
       res.json({
         status: 'success',
         data: loanApplication
@@ -1676,16 +1265,32 @@ const fintechController = {
   async deleteLoanApplication(req, res) {
     try {
       const { id } = req.params
-      
-      const loanApplication = await LoanReferral.findByIdAndDelete(id)
-      
+
+      const loanApplication = await LoanReferral.findById(id)
+
       if (!loanApplication) {
         return res.status(404).json({
           status: 'error',
           message: 'Loan application not found'
         })
       }
-      
+
+      if (req.user.role === 'partner') {
+        if (loanApplication.partner?.toString() !== req.user.id) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only delete loan applications you referred'
+          })
+        }
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Only partners and admins can delete loan applications'
+        })
+      }
+
+      await loanApplication.deleteOne()
+
       res.json({
         status: 'success',
         message: 'Loan application deleted successfully'
@@ -1703,16 +1308,38 @@ const fintechController = {
   async createInsurancePolicy(req, res) {
     try {
       const { farmerId, type, provider, policyNumber, coverageAmount, premium, startDate, endDate, region } = req.body
-      
+
       if (!farmerId || !type || !provider || !policyNumber || !coverageAmount || !premium || !startDate || !endDate || !region) {
         return res.status(400).json({
           status: 'error',
           message: 'All required fields must be provided'
         })
       }
-      
+
+      const farmer = await User.findById(farmerId)
+      if (!farmer || farmer.role !== 'farmer') {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Farmer not found'
+        })
+      }
+
+      if (req.user.role === 'partner') {
+        if (farmer.partner?.toString() !== req.user.id) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only create insurance policies for your own farmers'
+          })
+        }
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Only partners and admins can create insurance policies'
+        })
+      }
+
       const InsurancePolicy = require('../models/insurance-policy.model')
-      
+
       const insurancePolicy = await InsurancePolicy.create({
         farmer: farmerId,
         type,
@@ -1742,19 +1369,41 @@ const fintechController = {
   async getInsurancePolicy(req, res) {
     try {
       const { id } = req.params
-      
+
       const InsurancePolicy = require('../models/insurance-policy.model')
-      
+
       const insurancePolicy = await InsurancePolicy.findById(id)
-        .populate('farmer', 'name email phone')
-      
+        .populate('farmer', 'name email phone partner')
+        .populate('claims')
+
       if (!insurancePolicy) {
         return res.status(404).json({
           status: 'error',
           message: 'Insurance policy not found'
         })
       }
-      
+
+      if (req.user.role === 'farmer') {
+        if (insurancePolicy.farmer._id.toString() !== req.user.id) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only view your own insurance policies'
+          })
+        }
+      } else if (req.user.role === 'partner') {
+        if (insurancePolicy.farmer.partner?.toString() !== req.user.id) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only view insurance policies for your own farmers'
+          })
+        }
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'You are not authorized to view this insurance policy'
+        })
+      }
+
       res.json({
         status: 'success',
         data: insurancePolicy
@@ -1772,23 +1421,46 @@ const fintechController = {
   async updateInsurancePolicy(req, res) {
     try {
       const { id } = req.params
-      const updateData = req.body
-      
+
       const InsurancePolicy = require('../models/insurance-policy.model')
-      
-      const insurancePolicy = await InsurancePolicy.findByIdAndUpdate(
-        id,
-        updateData,
-        { new: true, runValidators: true }
-      )
-      
+
+      const insurancePolicy = await InsurancePolicy.findById(id)
+
       if (!insurancePolicy) {
         return res.status(404).json({
           status: 'error',
           message: 'Insurance policy not found'
         })
       }
-      
+
+      if (req.user.role === 'partner') {
+        const farmer = await User.findById(insurancePolicy.farmer)
+        if (farmer?.partner?.toString() !== req.user.id) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only update insurance policies for your own farmers'
+          })
+        }
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Only partners and admins can update insurance policies'
+        })
+      }
+
+      const allowedFields = [
+        'type', 'provider', 'coverageAmount', 'premium', 'deductible',
+        'startDate', 'endDate', 'status', 'region', 'coverageDetails',
+        'notes', 'renewalDate', 'autoRenew'
+      ]
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          insurancePolicy[field] = req.body[field]
+        }
+      }
+
+      await insurancePolicy.save()
+
       res.json({
         status: 'success',
         data: insurancePolicy
@@ -1806,18 +1478,35 @@ const fintechController = {
   async deleteInsurancePolicy(req, res) {
     try {
       const { id } = req.params
-      
+
       const InsurancePolicy = require('../models/insurance-policy.model')
-      
-      const insurancePolicy = await InsurancePolicy.findByIdAndDelete(id)
-      
+
+      const insurancePolicy = await InsurancePolicy.findById(id)
+
       if (!insurancePolicy) {
         return res.status(404).json({
           status: 'error',
           message: 'Insurance policy not found'
         })
       }
-      
+
+      if (req.user.role === 'partner') {
+        const farmer = await User.findById(insurancePolicy.farmer)
+        if (farmer?.partner?.toString() !== req.user.id) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only delete insurance policies for your own farmers'
+          })
+        }
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Only partners and admins can delete insurance policies'
+        })
+      }
+
+      await insurancePolicy.deleteOne()
+
       res.json({
         status: 'success',
         message: 'Insurance policy deleted successfully'
@@ -1834,30 +1523,93 @@ const fintechController = {
   // Create insurance claim
   async createInsuranceClaim(req, res) {
     try {
-      const { policyId, claimAmount, description, incidentDate, documents } = req.body
-      
-      if (!policyId || !claimAmount || !description || !incidentDate) {
+      const {
+        policyId,
+        policyNumber,
+        claimType,
+        description,
+        incidentDate,
+        estimatedLoss,
+        location,
+        weatherConditions,
+        documents
+      } = req.body
+
+      if (!claimType || !description || !incidentDate || estimatedLoss === undefined || estimatedLoss === null || (!policyId && !policyNumber)) {
         return res.status(400).json({
           status: 'error',
-          message: 'Policy ID, claim amount, description, and incident date are required'
+          message: 'Policy, claim type, description, incident date, and estimated loss are required'
         })
       }
-      
-      // Mock implementation - in real app, you'd have an InsuranceClaim model
-      const claim = {
-        id: `CLAIM_${Date.now()}`,
-        policyId,
-        claimAmount: Number(claimAmount),
+
+      const validClaimTypes = ['crop_damage', 'equipment_damage', 'livestock_loss', 'natural_disaster', 'theft', 'other']
+      if (!validClaimTypes.includes(claimType)) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Invalid claim type'
+        })
+      }
+
+      // Resolve the policy being claimed against and verify it exists
+      const policy = policyId
+        ? await InsurancePolicy.findById(policyId)
+        : await InsurancePolicy.findOne({ policyNumber })
+
+      if (!policy) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Insurance policy not found'
+        })
+      }
+
+      // Ownership check - only the policyholder, their partner, or an admin may file a claim
+      if (req.user.role === 'farmer') {
+        if (policy.farmer.toString() !== req.user.id) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only file claims against your own insurance policies'
+          })
+        }
+      } else if (req.user.role === 'partner') {
+        const farmer = await User.findById(policy.farmer)
+        if (!farmer || farmer.partner?.toString() !== req.user.id) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only file claims for your own farmers'
+          })
+        }
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Only the policyholder, their partner, or an admin can file a claim'
+        })
+      }
+
+      // claimAmount is intentionally NOT derived from estimatedLoss here - it is set later
+      // by whoever adjudicates the claim (see updateInsuranceClaim)
+      const claim = await InsuranceClaim.create({
+        farmer: policy.farmer,
+        policy: policy._id,
+        claimType,
         description,
         incidentDate: new Date(incidentDate),
-        documents: documents || [],
-        status: 'pending',
-        submittedAt: new Date()
-      }
-      
+        estimatedLoss: Number(estimatedLoss),
+        location,
+        weatherConditions,
+        documents: Array.isArray(documents) ? documents : [],
+        status: 'pending'
+      })
+
+      // Keep the policy's claims list in sync with the dangling ref defined on InsurancePolicy
+      await InsurancePolicy.findByIdAndUpdate(policy._id, { $push: { claims: claim._id } })
+
+      const populatedClaim = await InsuranceClaim.findById(claim._id)
+        .populate('policy', 'policyNumber type provider coverageAmount')
+        .populate('farmer', 'name email phone')
+
       res.status(201).json({
         status: 'success',
-        data: claim
+        data: populatedClaim
       })
     } catch (error) {
       console.error('Error creating insurance claim:', error)
@@ -1872,18 +1624,40 @@ const fintechController = {
   async getInsuranceClaim(req, res) {
     try {
       const { id } = req.params
-      
-      // Mock implementation - in real app, you'd fetch from InsuranceClaim model
-      const claim = {
-        id,
-        policyId: 'POLICY_123',
-        claimAmount: 50000,
-        description: 'Crop damage due to flooding',
-        incidentDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-        status: 'pending',
-        submittedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000)
+
+      const claim = await InsuranceClaim.findById(id)
+        .populate('policy', 'policyNumber type provider coverageAmount region')
+        .populate('farmer', 'name email phone partner')
+
+      if (!claim) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Insurance claim not found'
+        })
       }
-      
+
+      // Ownership check - farmers can only see their own claims, partners only their farmers' claims
+      if (req.user.role === 'farmer') {
+        if (claim.farmer._id.toString() !== req.user.id) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only view your own insurance claims'
+          })
+        }
+      } else if (req.user.role === 'partner') {
+        if (claim.farmer.partner?.toString() !== req.user.id) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only view claims for your own farmers'
+          })
+        }
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'You do not have permission to view this claim'
+        })
+      }
+
       res.json({
         status: 'success',
         data: claim
@@ -1901,24 +1675,71 @@ const fintechController = {
   async updateInsuranceClaim(req, res) {
     try {
       const { id } = req.params
-      const { status, notes, approvedAmount } = req.body
-      
-      // Mock implementation - in real app, you'd update InsuranceClaim model
-      const claim = {
-        id,
-        policyId: 'POLICY_123',
-        claimAmount: 50000,
-        description: 'Crop damage due to flooding',
-        incidentDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-        status: status || 'pending',
-        notes: notes || undefined,
-        approvedAmount: approvedAmount ? Number(approvedAmount) : undefined,
-        submittedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000)
+      const { status, adjusterNotes, claimAmount, paidAmount, decisionDate } = req.body
+
+      const claim = await InsuranceClaim.findById(id).populate('farmer', 'partner')
+
+      if (!claim) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Insurance claim not found'
+        })
       }
-      
+
+      // Ownership / role check - same rules as getInsuranceClaim
+      if (req.user.role === 'farmer') {
+        if (claim.farmer._id.toString() !== req.user.id) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only update your own insurance claims'
+          })
+        }
+      } else if (req.user.role === 'partner') {
+        if (claim.farmer.partner?.toString() !== req.user.id) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'You can only update claims for your own farmers'
+          })
+        }
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'You do not have permission to update this claim'
+        })
+      }
+
+      const validStatuses = ['pending', 'under_review', 'approved', 'rejected', 'paid']
+      if (status && !validStatuses.includes(status)) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Invalid status'
+        })
+      }
+
+      const update = {}
+      if (status) update.status = status
+      if (adjusterNotes !== undefined) update.adjusterNotes = adjusterNotes
+      if (claimAmount !== undefined) update.claimAmount = Number(claimAmount)
+      if (paidAmount !== undefined) update.paidAmount = Number(paidAmount)
+
+      // A decision date is set explicitly, or implied the first time a claim reaches a decided status
+      if (decisionDate) {
+        update.decisionDate = new Date(decisionDate)
+      } else if (status && ['approved', 'rejected'].includes(status) && !claim.decisionDate) {
+        update.decisionDate = new Date()
+      }
+
+      const updatedClaim = await InsuranceClaim.findByIdAndUpdate(
+        id,
+        update,
+        { new: true, runValidators: true }
+      )
+        .populate('policy', 'policyNumber type provider coverageAmount')
+        .populate('farmer', 'name email phone')
+
       res.json({
         status: 'success',
-        data: claim
+        data: updatedClaim
       })
     } catch (error) {
       console.error('Error updating insurance claim:', error)
@@ -2242,36 +2063,72 @@ const fintechController = {
   // Get insurance claims
   async getInsuranceClaims(req, res) {
     try {
-      // Mock insurance claims for now
-      const claims = [
-        {
-          id: 'claim_001',
-          policyId: 'POLICY_123',
-          farmerId: 'farmer_001',
-          claimAmount: 50000,
-          description: 'Crop damage due to flooding',
-          incidentDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-          status: 'pending',
-          submittedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000),
-          documents: ['flood_photos.pdf', 'damage_assessment.pdf']
-        },
-        {
-          id: 'claim_002',
-          policyId: 'POLICY_124',
-          farmerId: 'farmer_002',
-          claimAmount: 30000,
-          description: 'Equipment breakdown',
-          incidentDate: new Date(Date.now() - 19 * 24 * 60 * 60 * 1000),
-          status: 'approved',
-          submittedAt: new Date(Date.now() - 17 * 24 * 60 * 60 * 1000),
-          approvedAt: new Date(Date.now() - 11 * 24 * 60 * 60 * 1000),
-          approvedAmount: 28000
-        }
-      ]
-      
+      const { page = 1, limit = 10, status } = req.query
+      const query = {}
+
+      if (status) query.status = status
+
+      // Role-based filtering - same convention as getLoanApplications
+      if (req.user.role === 'farmer') {
+        query.farmer = req.user.id
+      } else if (req.user.role === 'partner') {
+        const partnerFarmers = await User.find({ partner: req.user.id }).select('_id')
+        query.farmer = { $in: partnerFarmers.map(f => f._id) }
+      }
+      // admin: no filter, sees all claims
+
+      const skip = (parseInt(page) - 1) * parseInt(limit)
+
+      const [claims, total] = await Promise.all([
+        InsuranceClaim.find(query)
+          .populate('policy', 'policyNumber type provider coverageAmount')
+          .populate('farmer', 'name email phone')
+          .sort({ reportedDate: -1 })
+          .skip(skip)
+          .limit(parseInt(limit)),
+        InsuranceClaim.countDocuments(query)
+      ])
+
+      const [pendingClaims, approvedClaims, amountAgg, decidedClaims] = await Promise.all([
+        InsuranceClaim.countDocuments({ ...query, status: 'pending' }),
+        InsuranceClaim.countDocuments({ ...query, status: { $in: ['approved', 'paid'] } }),
+        InsuranceClaim.aggregate([
+          { $match: query },
+          { $group: { _id: null, totalClaimed: { $sum: '$claimAmount' }, totalPaid: { $sum: '$paidAmount' } } }
+        ]),
+        InsuranceClaim.find({ ...query, decisionDate: { $exists: true, $ne: null } })
+          .select('reportedDate decisionDate')
+      ])
+
+      // Derive average processing time from real reportedDate -> decisionDate deltas.
+      // No fabricated fallback - 0 when no claims have been decided yet.
+      let averageProcessingTime = 0
+      if (decidedClaims.length > 0) {
+        const totalDays = decidedClaims.reduce((sum, c) => {
+          return sum + (new Date(c.decisionDate) - new Date(c.reportedDate)) / (1000 * 60 * 60 * 24)
+        }, 0)
+        averageProcessingTime = Number((totalDays / decidedClaims.length).toFixed(1))
+      }
+
       res.json({
         status: 'success',
-        data: claims
+        data: {
+          claims,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(total / parseInt(limit)),
+            totalItems: total,
+            itemsPerPage: parseInt(limit)
+          },
+          stats: {
+            totalClaims: total,
+            pendingClaims,
+            approvedClaims,
+            totalClaimed: amountAgg[0]?.totalClaimed || 0,
+            totalPaid: amountAgg[0]?.totalPaid || 0,
+            averageProcessingTime
+          }
+        }
       })
     } catch (error) {
       console.error('Error getting insurance claims:', error)
@@ -2351,6 +2208,32 @@ const fintechController = {
 }
 
 // Helper functions
+
+// Credit scores in this app follow the standard 300-850 range (see calculateInitialCreditScore)
+function scoreToGradeAndStatus(score) {
+  if (score >= 800) return { grade: 'A', status: 'excellent' }
+  if (score >= 740) return { grade: 'B', status: 'good' }
+  if (score >= 670) return { grade: 'C', status: 'fair' }
+  if (score >= 580) return { grade: 'D', status: 'poor' }
+  if (score >= 500) return { grade: 'E', status: 'very_poor' }
+  return { grade: 'F', status: 'very_poor' }
+}
+
+function calculateEligibility(score) {
+  const clamped = Math.max(300, Math.min(850, score))
+  const normalized = (clamped - 300) / 550 // 0..1 across the 300-850 range
+
+  return {
+    loans: score >= 500,
+    insurance: score >= 450,
+    marketplace: true,
+    limits: {
+      loanAmount: Math.round(normalized * 2000000),
+      insuranceCoverage: Math.round(normalized * 1000000)
+    }
+  }
+}
+
 async function calculateInitialCreditScore(farmerId) {
   try {
     // Analyze farmer's actual data for more accurate credit scoring

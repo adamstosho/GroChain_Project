@@ -83,84 +83,29 @@ export default function NewHarvestPage() {
 
   return (
     <DashboardLayout pageTitle="Log New Harvest">
-      <div className="space-y-4 sm:space-y-6 max-w-6xl mx-auto">
+      <div className="space-y-6 max-w-5xl mx-auto px-2 sm:px-4">
         {/* Page Header */}
-        <div className="space-y-3 sm:space-y-4">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Button variant="ghost" asChild className="text-gray-600 hover:text-gray-900 h-8 sm:h-9">
-              <Link href="/dashboard/harvests" className="flex items-center gap-2 text-sm sm:text-base">
-                <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">Back to Harvests</span>
-                <span className="sm:hidden">Back</span>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground h-9 px-2 -ml-2">
+              <Link href="/dashboard/harvests" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium">
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to Harvests</span>
               </Link>
             </Button>
           </div>
 
-          <div className="space-y-1 sm:space-y-2">
-            <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900">Log New Harvest</h1>
-            <p className="text-xs sm:text-sm lg:text-base text-gray-600">
-              Record your latest harvest for transparency, traceability, and market access
+          <div className="space-y-1">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">Log New Harvest</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Record details of your crop yield on the blockchain ledger for transparency and verification
             </p>
           </div>
         </div>
 
-        {/* Process Steps */}
-        <Card className="border border-gray-200">
-          <CardHeader className="pb-3 px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4">
-            <CardTitle className="text-center text-xs sm:text-sm lg:text-base font-medium">Harvest Logging Process</CardTitle>
-            <CardDescription className="text-center text-xs sm:text-sm">
-              Follow these steps to ensure your harvest is properly recorded and verified
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4">
-            <div className="grid gap-2 sm:gap-3 lg:gap-4 grid-cols-2 sm:grid-cols-4">
-              <div className="text-center space-y-1 sm:space-y-2 p-1 sm:p-2 lg:p-0">
-                <div className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 rounded-full bg-blue-50 flex items-center justify-center mx-auto">
-                  <span className="text-blue-600 font-bold text-xs sm:text-sm">1</span>
-                </div>
-                <h3 className="font-medium text-xs sm:text-sm text-gray-900">Basic Information</h3>
-                <p className="text-xs text-gray-600 leading-tight">Crop type, quantity, and harvest date</p>
-              </div>
-
-              <div className="text-center space-y-1 sm:space-y-2 p-1 sm:p-2 lg:p-0">
-                <div className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 rounded-full bg-blue-50 flex items-center justify-center mx-auto">
-                  <span className="text-blue-600 font-bold text-xs sm:text-sm">2</span>
-                </div>
-                <h3 className="font-medium text-xs sm:text-sm text-gray-900">Quality Assessment</h3>
-                <p className="text-xs text-gray-600 leading-tight">Grade, moisture content, and organic status</p>
-              </div>
-
-              <div className="text-center space-y-1 sm:space-y-2 p-1 sm:p-2 lg:p-0">
-                <div className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 rounded-full bg-blue-50 flex items-center justify-center mx-auto">
-                  <span className="text-blue-600 font-bold text-xs sm:text-sm">3</span>
-                </div>
-                <h3 className="font-medium text-xs sm:text-sm text-gray-900">Advanced Details</h3>
-                <p className="text-xs text-gray-600 leading-tight">Soil type, irrigation, and pest management</p>
-              </div>
-
-              <div className="text-center space-y-1 sm:space-y-2 p-1 sm:p-2 lg:p-0">
-                <div className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 rounded-full bg-blue-50 flex items-center justify-center mx-auto">
-                  <span className="text-blue-600 font-bold text-xs sm:text-sm">4</span>
-                </div>
-                <h3 className="font-medium text-xs sm:text-sm text-gray-900">Verification</h3>
-                <p className="text-xs text-gray-600 leading-tight">Review and submit for approval</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Harvest Form */}
-        <Card className="border border-gray-200">
-          <CardHeader className="pb-3 px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4">
-            <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
-              <Leaf className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500" />
-              Harvest Information
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Fill in the details below to log your harvest. All fields marked with * are required.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4">
+        <Card className="border border-slate-100 shadow-sm bg-white overflow-hidden rounded-2xl">
+          <CardContent className="p-4 sm:p-6 lg:p-8">
             <HarvestForm
               onSubmit={handleSubmit}
               onCancel={handleCancel}
@@ -171,31 +116,26 @@ export default function NewHarvestPage() {
         </Card>
 
         {/* Help Section */}
-        <Card className="border border-gray-200">
-          <CardHeader className="pb-3 px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4">
-            <CardTitle className="text-center text-sm sm:text-base font-medium">Need Help?</CardTitle>
-            <CardDescription className="text-center text-xs sm:text-sm">
-              Our agricultural experts are here to support you
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4">
-            <div className="text-center space-y-2 sm:space-y-3">
-              <p className="text-gray-600 text-xs sm:text-sm">
-                If you have questions about logging your harvest or need assistance with best practices,
-                don&apos;t hesitate to reach out to our support team.
+        <Card className="border border-slate-100 bg-slate-50/50 shadow-none rounded-2xl">
+          <CardContent className="p-4 sm:p-6 text-center space-y-4">
+            <div className="max-w-xl mx-auto space-y-2">
+              <h3 className="text-sm sm:text-base font-semibold text-slate-900">Need Assistance Logging?</h3>
+              <p className="text-xs sm:text-sm text-slate-500 leading-normal">
+                If you have questions about quality standards, grading criteria, or moisture readings, 
+                our cooperative agronomy experts are available to guide you.
               </p>
-              <div className="flex flex-col xs:flex-row items-center justify-center gap-2 sm:gap-3">
-                <Button variant="outline" asChild size="sm" className="w-full xs:w-auto text-xs sm:text-sm h-8 sm:h-9">
-                  <Link href="/dashboard/analytics">
-                    View Harvest Analytics
-                  </Link>
-                </Button>
-                <Button variant="outline" asChild size="sm" className="w-full xs:w-auto text-xs sm:text-sm h-8 sm:h-9">
-                  <Link href="/dashboard/qr-codes">
-                    Manage QR Codes
-                  </Link>
-                </Button>
-              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Button variant="outline" asChild size="sm" className="h-9 text-xs font-semibold bg-white border-slate-200">
+                <Link href="/dashboard/analytics">
+                  View Analytics Hub
+                </Link>
+              </Button>
+              <Button variant="outline" asChild size="sm" className="h-9 text-xs font-semibold bg-white border-slate-200">
+                <Link href="/dashboard/qr-codes">
+                  Manage Active QRs
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>

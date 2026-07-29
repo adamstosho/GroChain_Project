@@ -1,12 +1,77 @@
-import { 
-  FarmerOnboarding, 
-  OnboardingStats, 
-  OnboardingFilters, 
+import {
+  FarmerOnboarding,
+  OnboardingStats,
+  OnboardingFilters,
   OnboardingTemplate,
   OnboardingWorkflow,
   BulkOnboardingResult
 } from './types/onboarding'
-import { mockOnboardings, mockOnboardingStats, mockOnboardingTemplates, mockOnboardingWorkflow } from './mock-data/onboarding'
+import { apiService } from './api'
+
+// REAL DATA ONLY - no mock/fabricated data. Every method below calls the real
+// backend (base path /api/onboarding, see backend/routes/onboarding.routes.js).
+// On failure these methods throw the real error rather than inventing data.
+
+// Maps a raw Onboarding document (as returned by backend/controllers/onboarding.controller.js)
+// into the shape the frontend `FarmerOnboarding` type expects. This is an honest
+// field-name/shape translation - it never invents values. Fields that genuinely
+// don't exist on the backend (e.g. farmer.farmSize, primaryCrops, farmingExperience -
+// the User model has no such fields today) are left undefined rather than faked.
+function mapOnboarding(raw: any): FarmerOnboarding {
+  const farmerDoc = raw?.farmer && typeof raw.farmer === 'object' ? raw.farmer : {}
+  const farmerId = typeof raw?.farmer === 'string' ? raw.farmer : farmerDoc._id
+  const partnerDoc = raw?.assignedPartner
+  const agentDoc = raw?.assignedAgent
+  const location = raw?.location || {}
+
+  return {
+    _id: raw._id,
+    farmer: {
+      _id: farmerId,
+      name: farmerDoc.name || 'Unknown',
+      email: farmerDoc.email || '',
+      phone: farmerDoc.phone || '',
+      location: farmerDoc.location,
+      state: location.state,
+      lga: location.lga,
+      village: location.village,
+      coordinates: location.coordinates,
+      // Not present on the backend User model today - left undefined (no fabrication).
+      farmSize: farmerDoc.farmSize,
+      farmSizeUnit: farmerDoc.farmSizeUnit,
+      primaryCrops: farmerDoc.primaryCrops,
+      farmingExperience: farmerDoc.farmingExperience,
+      educationLevel: farmerDoc.educationLevel,
+      householdSize: farmerDoc.householdSize,
+      annualIncome: farmerDoc.annualIncome,
+      incomeSource: farmerDoc.incomeSource
+    },
+    documents: {
+      idCard: raw?.documents?.idCard?.url,
+      landDocument: raw?.documents?.landDocument?.url,
+      bankStatement: raw?.documents?.bankStatement?.url,
+      passportPhoto: raw?.documents?.passportPhoto?.url
+    },
+    training: {
+      completedModules: (raw?.training?.completedModules || []).map((m: any) => m?.moduleName || m?.moduleId || String(m)),
+      currentModule: raw?.training?.currentModule?.moduleName || raw?.training?.currentModule?.moduleId || undefined,
+      progress: raw?.training?.currentModule?.progress ?? 0,
+      certificates: (raw?.training?.certificates || []).map((c: any) => c?.moduleName || c?.certificateUrl || String(c)),
+      lastTrainingDate: raw?.training?.lastTrainingDate
+    },
+    status: raw.status,
+    stage: raw.stage,
+    assignedPartner: typeof partnerDoc === 'string' ? partnerDoc : partnerDoc?._id,
+    assignedAgent: typeof agentDoc === 'string' ? agentDoc : agentDoc?._id,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+    completedAt: raw.actualCompletionDate,
+    notes: (raw.notes || []).map((n: any) => (typeof n === 'string' ? n : n?.content || '')),
+    nextFollowUp: raw.nextFollowUp,
+    priority: raw.priority,
+    estimatedCompletionDate: raw.estimatedCompletionDate
+  }
+}
 
 export class OnboardingService {
   private static instance: OnboardingService
@@ -44,374 +109,243 @@ export class OnboardingService {
     this.cache.clear()
   }
 
-  // Get all onboarding records with filters
+  // Get all onboarding records with filters (real API call)
   async getOnboardings(filters: OnboardingFilters = {}): Promise<FarmerOnboarding[]> {
     const cacheKey = `onboardings-${JSON.stringify(filters)}`
     const cached = this.getCache(cacheKey)
-    
+
     if (cached) {
       return cached
     }
 
     try {
-      // For now, use mock data - replace with actual API call
-      let filteredOnboardings = [...mockOnboardings]
-      
-      // Apply filters
-      if (filters.searchTerm) {
-        const searchTerm = filters.searchTerm.toLowerCase()
-        filteredOnboardings = filteredOnboardings.filter(onboarding =>
-          onboarding.farmer.name.toLowerCase().includes(searchTerm) ||
-          onboarding.farmer.email.toLowerCase().includes(searchTerm) ||
-          onboarding.farmer.location?.toLowerCase().includes(searchTerm) ||
-          onboarding.farmer.primaryCrops?.some(crop => crop.toLowerCase().includes(searchTerm))
-        )
-      }
-      
-      if (filters.status && filters.status !== 'all') {
-        filteredOnboardings = filteredOnboardings.filter(onboarding => onboarding.status === filters.status)
-      }
-      
-      if (filters.stage && filters.stage !== 'all') {
-        filteredOnboardings = filteredOnboardings.filter(onboarding => onboarding.stage === filters.stage)
-      }
-      
-      if (filters.state && filters.state !== 'all') {
-        filteredOnboardings = filteredOnboardings.filter(onboarding => onboarding.farmer.state === filters.state)
-      }
-      
-      if (filters.priority && filters.priority !== 'all') {
-        filteredOnboardings = filteredOnboardings.filter(onboarding => onboarding.priority === filters.priority)
-      }
-      
-      if (filters.assignedAgent && filters.assignedAgent !== 'all') {
-        filteredOnboardings = filteredOnboardings.filter(onboarding => onboarding.assignedAgent === filters.assignedAgent)
-      }
-      
-      if (filters.dateRange) {
-        filteredOnboardings = filteredOnboardings.filter(onboarding => {
-          const createdDate = new Date(onboarding.createdAt)
-          return createdDate >= filters.dateRange!.start && createdDate <= filters.dateRange!.end
-        })
-      }
-      
-      this.setCache(cacheKey, filteredOnboardings)
-      return filteredOnboardings
+      const response = await apiService.getOnboardings({
+        page: filters.page,
+        limit: filters.limit,
+        status: filters.status,
+        stage: filters.stage,
+        priority: filters.priority,
+        state: filters.state,
+        assignedAgent: filters.assignedAgent,
+        searchTerm: filters.searchTerm,
+        dateRange: filters.dateRange
+      })
+
+      const raw = response.data?.onboardings || []
+      const onboardings = raw.map(mapOnboarding)
+
+      this.setCache(cacheKey, onboardings)
+      return onboardings
     } catch (error) {
       console.error('Error fetching onboardings:', error)
       throw error
     }
   }
 
-  // Get onboarding statistics
+  // Get onboarding statistics (real API call)
   async getOnboardingStats(): Promise<OnboardingStats> {
     const cacheKey = 'stats'
     const cached = this.getCache(cacheKey)
-    
+
     if (cached) {
       return cached
     }
 
     try {
-      // For now, use mock data - replace with actual API call
-      this.setCache(cacheKey, mockOnboardingStats)
-      return mockOnboardingStats
+      const response = await apiService.getOnboardingStats()
+      const data = response.data
+      if (!data) {
+        throw new Error('No onboarding stats data received from server')
+      }
+      this.setCache(cacheKey, data)
+      return data
     } catch (error) {
       console.error('Error fetching onboarding stats:', error)
       throw error
     }
   }
 
-  // Get onboarding by ID
+  // Get onboarding by ID (real API call)
   async getOnboardingById(id: string): Promise<FarmerOnboarding | null> {
     try {
-      // For now, use mock data - replace with actual API call
-      const onboarding = mockOnboardings.find(o => o._id === id)
-      return onboarding || null
-    } catch (error) {
+      const response = await apiService.getOnboardingById(id)
+      return response.data ? mapOnboarding(response.data) : null
+    } catch (error: any) {
+      if (error?.status === 404) {
+        return null
+      }
       console.error('Error fetching onboarding by ID:', error)
       throw error
     }
   }
 
-  // Create new onboarding
+  // Create new onboarding (real API call)
   async createOnboarding(onboardingData: Partial<FarmerOnboarding>): Promise<FarmerOnboarding> {
     try {
-      // For now, simulate creation - replace with actual API call
-      const newOnboarding: FarmerOnboarding = {
-        _id: Date.now().toString(),
-        farmer: onboardingData.farmer!,
-        documents: onboardingData.documents || {},
-        training: {
-          completedModules: [],
-          progress: 0,
-          certificates: []
-        },
-        status: 'pending',
-        stage: 'registration',
-        assignedPartner: onboardingData.assignedPartner!,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        notes: [],
-        priority: 'medium'
+      const farmerId = onboardingData.farmer?._id
+      if (!farmerId) {
+        throw new Error('farmer._id is required to create an onboarding record')
       }
-      
-      // Add to mock data
-      mockOnboardings.push(newOnboarding)
-      this.clearCache() // Clear cache after creation
-      
-      return newOnboarding
+      if (!onboardingData.assignedPartner) {
+        throw new Error('assignedPartner is required to create an onboarding record')
+      }
+
+      const location = onboardingData.farmer
+        ? {
+            state: onboardingData.farmer.state,
+            lga: onboardingData.farmer.lga,
+            village: onboardingData.farmer.village,
+            coordinates: onboardingData.farmer.coordinates
+          }
+        : undefined
+
+      const response = await apiService.createOnboarding({
+        farmerId,
+        assignedPartner: onboardingData.assignedPartner,
+        assignedAgent: onboardingData.assignedAgent,
+        priority: onboardingData.priority,
+        notes: onboardingData.notes?.[0],
+        estimatedCompletionDate: onboardingData.estimatedCompletionDate
+          ? new Date(onboardingData.estimatedCompletionDate).toISOString()
+          : undefined,
+        location
+      })
+
+      if (!response.data) {
+        throw new Error('No data received from server after creating onboarding')
+      }
+
+      this.clearCache()
+      return mapOnboarding(response.data)
     } catch (error) {
       console.error('Error creating onboarding:', error)
       throw error
     }
   }
 
-  // Update onboarding
+  // Update onboarding (real API call)
   async updateOnboarding(id: string, updateData: Partial<FarmerOnboarding>): Promise<FarmerOnboarding> {
     try {
-      // For now, simulate update - replace with actual API call
-      const onboardingIndex = mockOnboardings.findIndex(o => o._id === id)
-      if (onboardingIndex === -1) {
-        throw new Error('Onboarding not found')
+      const response = await apiService.updateOnboarding(id, updateData)
+      if (!response.data) {
+        throw new Error('No data received from server after updating onboarding')
       }
-      
-      const updatedOnboarding = {
-        ...mockOnboardings[onboardingIndex],
-        ...updateData,
-        updatedAt: new Date()
-      }
-      
-      mockOnboardings[onboardingIndex] = updatedOnboarding
-      this.clearCache() // Clear cache after update
-      
-      return updatedOnboarding
+      this.clearCache()
+      return mapOnboarding(response.data)
     } catch (error) {
       console.error('Error updating onboarding:', error)
       throw error
     }
   }
 
-  // Update onboarding stage
+  // Update onboarding stage (real API call)
   async updateOnboardingStage(id: string, stage: string, notes?: string): Promise<FarmerOnboarding> {
     try {
-      const onboarding = await this.getOnboardingById(id)
-      if (!onboarding) {
-        throw new Error('Onboarding not found')
+      const response = await apiService.updateOnboardingStage(id, { stage, notes })
+      if (!response.data) {
+        throw new Error('No data received from server after updating onboarding stage')
       }
-      
-      const updateData: Partial<FarmerOnboarding> = {
-        stage: stage as any,
-        updatedAt: new Date()
-      }
-      
-      if (notes) {
-        updateData.notes = [...(onboarding.notes || []), notes]
-      }
-      
-      return await this.updateOnboarding(id, updateData)
+      this.clearCache()
+      return mapOnboarding(response.data)
     } catch (error) {
       console.error('Error updating onboarding stage:', error)
       throw error
     }
   }
 
-  // Get onboarding templates
+  // Delete onboarding (real API call)
+  async deleteOnboarding(id: string): Promise<void> {
+    try {
+      await apiService.deleteOnboarding(id)
+      this.clearCache()
+    } catch (error) {
+      console.error('Error deleting onboarding:', error)
+      throw error
+    }
+  }
+
+  // Get onboarding communication templates.
+  // TODO: backend/routes/onboarding.routes.js has no endpoint for communication
+  // templates (no GET /api/onboarding/templates or equivalent exists anywhere in
+  // backend/routes/). Returning an honest empty list rather than fabricating
+  // templates until a real endpoint is added.
   async getOnboardingTemplates(): Promise<OnboardingTemplate[]> {
-    try {
-      // For now, use mock data - replace with actual API call
-      return mockOnboardingTemplates
-    } catch (error) {
-      console.error('Error fetching onboarding templates:', error)
-      throw error
-    }
+    console.warn('[onboarding-service] getOnboardingTemplates: no backend endpoint exists yet - returning empty list')
+    return []
   }
 
-  // Get onboarding workflow
-  async getOnboardingWorkflow(): Promise<OnboardingWorkflow> {
-    try {
-      // For now, use mock data - replace with actual API call
-      return mockOnboardingWorkflow
-    } catch (error) {
-      console.error('Error fetching onboarding workflow:', error)
-      throw error
-    }
+  // Get onboarding workflow definition.
+  // TODO: backend/routes/onboarding.routes.js has no endpoint for the workflow
+  // definition (no GET /api/onboarding/workflow or equivalent exists). Returning
+  // null (an honest "not found") rather than fabricating a workflow. The
+  // OnboardingWorkflow component already renders a proper "No Workflow Found"
+  // empty state for this case.
+  async getOnboardingWorkflow(): Promise<OnboardingWorkflow | null> {
+    console.warn('[onboarding-service] getOnboardingWorkflow: no backend endpoint exists yet - returning null')
+    return null
   }
 
-  // Process bulk onboarding
+  // Process bulk onboarding from a CSV file.
+  // TODO: There is no backend endpoint that bulk-creates/updates Onboarding
+  // pipeline records (stage/documents/training) from an uploaded CSV file.
+  // - POST /api/onboarding/bulk-update (bulkUpdateOnboardings) takes JSON
+  //   { onboardingIds, updates } for existing records - not a file upload.
+  // - POST /api/partners/upload-csv (bulkUploadFarmersCSV) is a *different*
+  //   flow: it creates brand-new farmer User accounts for a partner
+  //   (see app/partners/bulk-onboard/page.tsx), not Onboarding pipeline records.
+  // Wiring this to either endpoint would misrepresent what actually happens, so
+  // this throws a clear "not implemented" error instead of faking success.
   async processBulkOnboarding(file: File): Promise<BulkOnboardingResult> {
-    try {
-      // For now, simulate bulk processing - replace with actual API call
-      const text = await file.text()
-      const lines = text.split('\n')
-      const headers = lines[0].split(',')
-      const data = lines.slice(1).filter(line => line.trim())
-      
-      let successful = 0
-      let failed = 0
-      const errors: any[] = []
-      const warnings: any[] = []
-      
-      for (let i = 0; i < data.length; i++) {
-        const row = data[i]
-        const values = row.split(',')
-        
-        try {
-          // Validate required fields
-          if (values.length < headers.length) {
-            errors.push({
-              row: i + 2,
-              field: 'general',
-              message: 'Insufficient data columns',
-              value: row
-            })
-            failed++
-            continue
-          }
-          
-          // Simulate successful processing
-          successful++
-        } catch (error) {
-          errors.push({
-            row: i + 2,
-            field: 'general',
-            message: 'Processing error',
-            value: row
-          })
-          failed++
-        }
-      }
-      
-      const result: BulkOnboardingResult = {
-        total: data.length,
-        successful,
-        failed,
-        errors,
-        warnings,
-        summary: {
-          newFarmers: successful,
-          updatedFarmers: 0,
-          skippedFarmers: 0
-        }
-      }
-      
-      return result
-    } catch (error) {
-      console.error('Error processing bulk onboarding:', error)
-      throw error
-    }
+    console.error('[onboarding-service] processBulkOnboarding: no matching backend endpoint exists for CSV bulk onboarding of Onboarding pipeline records')
+    throw new Error(
+      'Bulk CSV onboarding is not yet supported by the backend. No endpoint exists to create/update onboarding pipeline records from a CSV file.'
+    )
   }
 
-  // Send communication using template
+  // Send a templated communication (SMS/email/WhatsApp) to a farmer.
+  // TODO: No backend endpoint accepts (templateId, farmerId, variables) to send
+  // a templated communication. backend/routes/notification.routes.js only has
+  // generic user notifications (harvest/marketplace/transaction/test) - none of
+  // which match this template-based onboarding communication flow. Throwing
+  // rather than silently returning `true` as the old mock implementation did.
   async sendCommunication(templateId: string, farmerId: string, variables: Record<string, string>): Promise<boolean> {
-    try {
-      // For now, simulate sending - replace with actual API call
-      console.log(`Sending communication using template ${templateId} to farmer ${farmerId}`)
-      console.log('Variables:', variables)
-      
-      // Simulate success
-      return true
-    } catch (error) {
-      console.error('Error sending communication:', error)
-      throw error
-    }
+    console.error('[onboarding-service] sendCommunication: no matching backend endpoint exists for template-based communications')
+    throw new Error(
+      'Sending onboarding communications is not yet supported by the backend. No endpoint exists for template-based farmer communications.'
+    )
   }
 
-  // Get onboarding progress
+  // Get onboarding progress for a farmer (real API call)
   async getOnboardingProgress(farmerId: string): Promise<any> {
     try {
-      const onboarding = await this.getOnboardingById(farmerId)
-      if (!onboarding) {
-        throw new Error('Onboarding not found')
-      }
-      
-      // Calculate progress based on stage
-      const stages = ['registration', 'documentation', 'training', 'verification', 'activation']
-      const currentStageIndex = stages.indexOf(onboarding.stage)
-      const progress = ((currentStageIndex + 1) / stages.length) * 100
-      
-      return {
-        farmerId,
-        currentStage: onboarding.stage,
-        completedStages: stages.slice(0, currentStageIndex + 1),
-        pendingStages: stages.slice(currentStageIndex + 1),
-        overallProgress: Math.round(progress),
-        estimatedCompletionDate: onboarding.estimatedCompletionDate,
-        nextActions: this.getNextActions(onboarding.stage)
-      }
+      const response = await apiService.getOnboardingProgress(farmerId)
+      return response.data
     } catch (error) {
       console.error('Error getting onboarding progress:', error)
       throw error
     }
   }
 
-  // Get next actions based on current stage
-  private getNextActions(stage: string): string[] {
-    switch (stage) {
-      case 'registration':
-        return ['Collect farmer documents', 'Verify contact information', 'Assign agent']
-      case 'documentation':
-        return ['Review uploaded documents', 'Request missing documents', 'Schedule training']
-      case 'training':
-        return ['Monitor training progress', 'Schedule verification visit', 'Prepare activation']
-      case 'verification':
-        return ['Complete verification process', 'Finalize documentation', 'Prepare activation']
-      case 'activation':
-        return ['Create marketplace account', 'Send welcome package', 'Begin monitoring']
-      default:
-        return ['Review current status', 'Determine next steps']
-    }
-  }
-
-  // Export onboarding data
-  async exportOnboardingData(filters: OnboardingFilters, format: 'csv' | 'excel' = 'csv'): Promise<Blob> {
+  // Bulk update existing onboarding records (real API call)
+  async bulkUpdateOnboardings(onboardingIds: string[], updates: any): Promise<{ modifiedCount: number; matchedCount: number }> {
     try {
-      const data = await this.getOnboardings(filters)
-      const csvContent = this.generateCSV(data)
-      return new Blob([csvContent], { type: 'text/csv' })
+      const response = await apiService.bulkUpdateOnboardings({ onboardingIds, updates })
+      this.clearCache()
+      return response.data || { modifiedCount: 0, matchedCount: 0 }
     } catch (error) {
-      console.error('Error exporting onboarding data:', error)
+      console.error('Error bulk updating onboardings:', error)
       throw error
     }
   }
 
-  // Generate CSV content
-  private generateCSV(data: FarmerOnboarding[]): string {
-    if (data.length === 0) return ""
-
-    const headers = [
-      "ID", "Farmer Name", "Email", "Phone", "Location", "State", "LGA", "Village",
-      "Farm Size", "Farm Size Unit", "Primary Crops", "Farming Experience", "Education Level",
-      "Household Size", "Annual Income", "Income Source", "Status", "Stage", "Priority",
-      "Created Date", "Estimated Completion", "Next Follow Up"
-    ]
-
-    const rows = data.map(onboarding => [
-      onboarding._id,
-      onboarding.farmer.name,
-      onboarding.farmer.email,
-      onboarding.farmer.phone,
-      onboarding.farmer.location,
-      onboarding.farmer.state,
-      onboarding.farmer.lga,
-      onboarding.farmer.village,
-      onboarding.farmer.farmSize,
-      onboarding.farmer.farmSizeUnit,
-      onboarding.farmer.primaryCrops?.join('; ') || '',
-      onboarding.farmer.farmingExperience,
-      onboarding.farmer.educationLevel,
-      onboarding.farmer.householdSize,
-      onboarding.farmer.annualIncome,
-      onboarding.farmer.incomeSource,
-      onboarding.status,
-      onboarding.stage,
-      onboarding.priority,
-      new Date(onboarding.createdAt).toLocaleDateString(),
-      onboarding.estimatedCompletionDate ? new Date(onboarding.estimatedCompletionDate).toLocaleDateString() : '',
-      onboarding.nextFollowUp ? new Date(onboarding.nextFollowUp).toLocaleDateString() : ''
-    ].map(field => (typeof field === 'string' && field.includes(',')) ? `"${field}"` : field).join(','))
-
-    return [headers.join(','), ...rows].join('\n')
+  // Export onboarding data (real API call)
+  async exportOnboardingData(filters: OnboardingFilters, format: 'csv' | 'excel' = 'csv'): Promise<Blob> {
+    try {
+      return await apiService.exportOnboardings(filters, format)
+    } catch (error) {
+      console.error('Error exporting onboarding data:', error)
+      throw error
+    }
   }
 }
 

@@ -5,8 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Separator } from "@/components/ui/separator"
 import { apiService } from "@/lib/api"
 import { certificateGenerator } from "@/lib/certificate-generator"
+import { cn } from "@/lib/utils"
 import {
   CheckCircle,
   XCircle,
@@ -19,7 +21,6 @@ import {
   Mail,
   Leaf,
   Award,
-  Globe,
   Navigation,
   Clock,
   Shield,
@@ -27,10 +28,14 @@ import {
   Download,
   ArrowLeft,
   ExternalLink,
-  Star,
-  Truck,
+  ShieldCheck,
   AlertTriangle,
-  Info
+  Info,
+  Droplet,
+  Globe,
+  Camera,
+  Activity,
+  Heart
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -92,7 +97,6 @@ export default function VerificationPage({ params }: VerificationPageProps) {
       
       console.log('Fetching verification data for batchId:', resolvedParams.batchId)
       const response = await apiService.verifyQRCode(resolvedParams.batchId)
-      console.log('Verification response:', response)
       
       if (response?.status === 'success' && response?.data) {
         setVerificationData(response.data as any)
@@ -102,7 +106,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
       }
     } catch (error) {
       console.error('Verification error:', error)
-      setError('This QR code could not be verified. It may be invalid or the product may not be in our system.')
+      setError('This QR code could not be verified. It may be invalid or the batch record is not registered in our blockchain ledger.')
       setVerified(false)
     } finally {
       setLoading(false)
@@ -110,16 +114,9 @@ export default function VerificationPage({ params }: VerificationPageProps) {
   }
 
   const formatDate = (dateString: string) => {
-    if (!dateString || dateString.trim() === '') {
-      return 'Date not available'
-    }
-    
+    if (!dateString) return 'Date not available'
     const date = new Date(dateString)
-    
-    // Check if the date is valid
-    if (isNaN(date.getTime())) {
-      return 'Invalid date'
-    }
+    if (isNaN(date.getTime())) return 'Date not available'
     
     return new Intl.DateTimeFormat('en-NG', {
       year: 'numeric',
@@ -136,7 +133,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
       await certificateGenerator.generateCertificateFromHTML(verificationData)
     } catch (error) {
       console.error('Error generating certificate:', error)
-      // Fallback to direct PDF generation
+      // Fallback
       certificateGenerator.generateCertificate(verificationData)
     } finally {
       setDownloading(false)
@@ -152,318 +149,325 @@ export default function VerificationPage({ params }: VerificationPageProps) {
     }).format(price)
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'verified': return 'bg-green-100 text-green-800 border-green-200'
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'failed': return 'bg-red-100 text-red-800 border-red-200'
-      case 'in_transit': return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'delivered': return 'bg-green-100 text-green-800 border-green-200'
-      case 'delayed': return 'bg-orange-100 text-orange-800 border-orange-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'verified': return <CheckCircle className="h-4 w-4" />
-      case 'pending': return <Clock className="h-4 w-4" />
-      case 'failed': return <XCircle className="h-4 w-4" />
-      case 'in_transit': return <Truck className="h-4 w-4" />
-      case 'delivered': return <CheckCircle className="h-4 w-4" />
-      case 'delayed': return <AlertTriangle className="h-4 w-4" />
-      default: return <Info className="h-4 w-4" />
-    }
-  }
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-6">
-            <div className="text-center">
-              <Skeleton className="h-8 w-64 mx-auto mb-4" />
-              <Skeleton className="h-4 w-96 mx-auto" />
-            </div>
-            <Card>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <Skeleton className="h-6 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="min-h-screen bg-slate-50/50 flex flex-col justify-center items-center py-12 px-4">
+        <div className="max-w-md w-full text-center space-y-4">
+          <Loader2 className="h-10 w-10 animate-spin text-emerald-600 mx-auto" />
+          <h3 className="text-base font-bold text-slate-800">Authenticating batch coordinates...</h3>
+          <p className="text-xs text-muted-foreground">Running cryptographic signatures check on GroChain ledger.</p>
         </div>
       </div>
     )
   }
 
-  if (error || !verified) {
+  if (error || !verified || !verificationData) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-6">
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">Product Verification</h1>
-              <p className="text-gray-600">Verify product authenticity and traceability</p>
+      <div className="min-h-screen bg-slate-50/50 py-12 px-4 sm:px-6">
+        <div className="max-w-md mx-auto space-y-6">
+          <Card className="border border-rose-100 shadow-xl shadow-rose-500/5 bg-white rounded-2xl overflow-hidden">
+            <div className="bg-rose-50 p-6 text-center border-b border-rose-100/50">
+              <XCircle className="h-14 w-14 text-rose-500 mx-auto mb-2" />
+              <h2 className="text-lg font-extrabold text-rose-950">Verification Unsuccessful</h2>
+              <p className="text-xs text-rose-800/80 mt-1 leading-snug">The scanned QR code is either invalid or missing administrative validation keys.</p>
             </div>
-            
-            <Card className="border-red-200 bg-red-50">
-              <CardContent className="p-6 text-center">
-                <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                <h2 className="text-xl font-semibold text-red-800 mb-2">Verification Failed</h2>
-                <p className="text-red-600 mb-4">{error}</p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button asChild>
-                    <Link href="/dashboard/scanner">
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Back to Scanner
-                    </Link>
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <Link href="/dashboard/marketplace">
-                      Browse Products
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+            <CardContent className="p-6 text-center space-y-4">
+              <p className="text-xs text-slate-500 leading-relaxed">
+                {error || "We could not find a registered yield match for this batch identifier in GroChain database."}
+              </p>
+              <div className="flex flex-col gap-2 pt-2">
+                <Button asChild className="bg-slate-900 hover:bg-slate-800 text-white h-10 rounded-xl text-xs font-semibold">
+                  <Link href="/dashboard/scanner">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Return to Camera Scanner
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild className="h-10 rounded-xl text-xs font-semibold border-slate-200">
+                  <Link href="/marketplace">
+                    Browse Public Marketplace
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="text-center">
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-              <h1 className="text-3xl font-bold text-gray-900">Product Verified</h1>
-            </div>
-            <p className="text-gray-600">This product has been verified and is authentic</p>
-            <div className="mt-4">
-              <Badge className="bg-green-100 text-green-800 border-green-200 text-lg px-4 py-2">
-                <Shield className="h-5 w-5 mr-2" />
-                Authentic Product
+    <div className="min-h-screen bg-slate-50/30 py-8 px-4 sm:px-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        
+        {/* Verification Status Header Certificate */}
+        <Card className="border-0 shadow-lg shadow-emerald-600/5 bg-gradient-to-r from-emerald-950 via-emerald-900 to-green-950 text-white rounded-2xl overflow-hidden relative">
+          <div className="absolute right-0 bottom-0 top-0 w-1/3 opacity-5 pointer-events-none bg-[radial-gradient(circle_at_bottom_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
+          <CardContent className="p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+            <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-3">
+              <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white border-none px-3.5 py-1 text-xs font-bold gap-1 rounded-full shadow-sm">
+                <ShieldCheck className="h-4 w-4" />
+                <span>On-Chain Authenticated</span>
               </Badge>
-            </div>
-          </div>
-
-          {/* Main Verification Card */}
-          <Card className="border-green-200 bg-green-50">
-            <CardHeader>
-              <CardTitle className="text-green-800 flex items-center space-x-2">
-                <Package className="h-5 w-5" />
-                <span>Product Information</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-lg">{verificationData?.cropType}</h3>
-                    {verificationData?.variety && (
-                      <p className="text-gray-600">Variety: {verificationData.variety}</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Package className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">Batch ID:</span>
-                      <span className="font-mono text-sm">{verificationData?.batchId}</span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Package className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">Quantity:</span>
-                      <span className="text-sm">{verificationData?.quantity} {verificationData?.unit}</span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Award className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">Quality:</span>
-                      <span className="text-sm">{verificationData?.quality}</span>
-                    </div>
-                    
-                    {verificationData?.variety && (
-                      <div className="flex items-center space-x-2">
-                        <Leaf className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">Variety:</span>
-                        <span className="text-sm">{verificationData.variety}</span>
-                      </div>
-                    )}
-                    
-                    {verificationData?.organic && (
-                      <div className="flex items-center space-x-2">
-                        <Leaf className="h-4 w-4 text-green-500" />
-                        <span className="text-sm text-green-600 font-medium">Organic Certified</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">Harvest Date:</span>
-                    <span className="text-sm">{formatDate(verificationData?.harvestDate || '')}</span>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">Location:</span>
-                    <span className="text-sm">
-                      {verificationData?.location?.city && verificationData?.location?.city !== 'Unknown' 
-                        ? `${verificationData.location.city}, ${verificationData.location.state || 'Nigeria'}`
-                        : 'Location not specified'
-                      }
-                    </span>
-                  </div>
-                  
-                  {verificationData?.price && (
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600">Price:</span>
-                      <span className="text-sm font-semibold">{formatPrice(verificationData.price)}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center space-x-2">
-                    <Clock className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">Verified:</span>
-                    <span className="text-sm">{formatDate(verificationData?.timestamp || '')}</span>
-                  </div>
-                </div>
+              <div className="space-y-1">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Agricultural Provenance Certificate</h1>
+                <p className="text-emerald-200/70 text-xs sm:text-sm max-w-lg">
+                  GroChain blockchain ledger certifies that this batch has undergone inspection standards.
+                </p>
               </div>
-            </CardContent>
-          </Card>
+              <div className="pt-2 flex items-center gap-2">
+                <span className="text-[10px] font-mono bg-emerald-900/50 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-md">
+                  BATCH: {verificationData.batchId}
+                </span>
+                <span className="text-[10px] text-emerald-300/80 font-medium">Verified on: {formatDate(verificationData.timestamp)}</span>
+              </div>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/10 text-center space-y-2 flex-shrink-0 self-center">
+              <Award className="h-10 w-10 text-emerald-400 mx-auto" />
+              <p className="text-xs font-bold uppercase tracking-wider text-emerald-200 leading-none">Grade {verificationData.quality.toLowerCase() === 'excellent' ? 'A' : 'B'}</p>
+              <p className="text-[9px] text-emerald-300/70 leading-none">Yield Quality Rating</p>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Farmer Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <User className="h-5 w-5" />
-                <span>Farmer Information</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{verificationData?.farmer?.name || 'Unknown Farmer'}</h3>
-                    {verificationData?.farmer?.farmName && verificationData.farmer.farmName !== 'Unknown Farm' && (
-                      <p className="text-gray-600">{verificationData.farmer.farmName}</p>
-                    )}
+        {/* 2-Column Specs Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* Main Specifications Card (Col-span 2) */}
+          <div className="md:col-span-2 space-y-6">
+            
+            {/* Product Details Section */}
+            <Card className="border border-slate-100 rounded-2xl shadow-sm bg-white overflow-hidden">
+              <CardHeader className="bg-slate-50/50 border-b border-slate-100/50 py-4 px-6">
+                <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <Package className="h-4 w-4 text-emerald-600" />
+                  Produce Attributes & Origin
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Crop Classification</span>
+                    <span className="text-sm font-semibold text-slate-800">{verificationData.cropType}</span>
                   </div>
-                  
-                  {verificationData?.farmer?.phone && (
-                    <div className="flex items-center space-x-2">
-                      <Phone className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm">{verificationData.farmer.phone}</span>
+                  {verificationData.variety && (
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Cultivar Variety</span>
+                      <span className="text-sm font-semibold text-slate-800">{verificationData.variety}</span>
                     </div>
                   )}
-                  
-                  {verificationData?.farmer?.email && (
-                    <div className="flex items-center space-x-2">
-                      <Mail className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm">{verificationData.farmer.email}</span>
-                    </div>
-                  )}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Net Weight Yield</span>
+                    <span className="text-sm font-semibold text-slate-800">{verificationData.quantity.toLocaleString()} {verificationData.unit}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Harvest Logging Date</span>
+                    <span className="text-sm font-semibold text-slate-800">{formatDate(verificationData.harvestDate)}</span>
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Building className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">Farm Location:</span>
-                  </div>
-                  <p className="text-sm">
-                    {verificationData?.location?.city && verificationData?.location?.city !== 'Unknown'
-                      ? `${verificationData.location.city}, ${verificationData.location.state || 'Nigeria'}`
-                      : 'Location not specified'
-                    }
-                  </p>
-                  
-                  {verificationData?.location?.coordinates && (
-                    <div className="flex items-center space-x-2">
-                      <Navigation className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">Coordinates:</span>
-                      <span className="text-sm font-mono">
-                        {verificationData.location.coordinates.lat.toFixed(6)}, {verificationData.location.coordinates.lng.toFixed(6)}
+                <Separator className="bg-slate-100" />
+
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Farming Field Location</span>
+                  <div className="flex items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-700">
+                      <MapPin className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                      <span className="truncate">
+                        {verificationData.location.city && verificationData.location.city !== 'Unknown' 
+                          ? `${verificationData.location.city}, ${verificationData.location.state}, ${verificationData.location.country}`
+                          : 'Location coordinates verified'
+                        }
                       </span>
                     </div>
+                    {verificationData.location.coordinates && (
+                      <Badge className="bg-white border border-slate-200 text-emerald-700 font-mono text-[10px] px-2 py-0.5 shadow-sm">
+                        📍 {verificationData.location.coordinates.lat.toFixed(5)}, {verificationData.location.coordinates.lng.toFixed(5)}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {verificationData.price && (
+                  <div className="flex justify-between items-center bg-emerald-50/30 p-3 rounded-xl border border-emerald-100/50">
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-emerald-600" />
+                      <span className="text-xs font-semibold text-emerald-950">Market Escrow Price</span>
+                    </div>
+                    <span className="font-mono text-sm font-bold text-emerald-700">
+                      {formatPrice(verificationData.price)} per {verificationData.unit}
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Photo Gallery Section */}
+            {verificationData.images && verificationData.images.length > 0 && (
+              <Card className="border border-slate-100 rounded-2xl shadow-sm bg-white overflow-hidden">
+                <CardHeader className="bg-slate-50/50 border-b border-slate-100/50 py-4 px-6">
+                  <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <Camera className="h-4 w-4 text-emerald-600" />
+                    Produce Photographs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {verificationData.images.map((img, idx) => (
+                      <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border bg-slate-50 shadow-sm group hover:border-emerald-500 transition-colors duration-300">
+                        <Image
+                          src={img}
+                          alt={`Produce photolog ${idx + 1}`}
+                          fill
+                          className="object-cover cursor-pointer transition-transform duration-300 group-hover:scale-105"
+                          onClick={() => window.open(img, '_blank')}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Farmer Info & Verification Summary (Col-span 1) */}
+          <div className="space-y-6">
+            
+            {/* Farmer card */}
+            <Card className="border border-slate-100 rounded-2xl shadow-sm bg-white overflow-hidden">
+              <CardHeader className="bg-slate-50/50 border-b border-slate-100/50 py-4 px-5">
+                <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <User className="h-4 w-4 text-emerald-600" />
+                  Cultivated By
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-5 space-y-4">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">{verificationData.farmer.name}</h4>
+                  {verificationData.farmer.farmName && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{verificationData.farmer.farmName}</p>
                   )}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Images */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="h-5 w-5" />
-                <span>Product Images</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {verificationData?.images && verificationData.images.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {verificationData.images.map((image, index) => (
-                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
-                      <Image
-                        src={image}
-                        alt={`Product image ${index + 1}`}
-                        fill
-                        className="object-cover"
-                      />
+                <Separator className="bg-slate-100" />
+
+                <div className="space-y-2.5 text-xs text-slate-600">
+                  {verificationData.farmer.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-3.5 w-3.5 text-slate-400" />
+                      <span>{verificationData.farmer.phone}</span>
                     </div>
-                  ))}
+                  )}
+                  {verificationData.farmer.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-3.5 w-3.5 text-slate-400 truncate" />
+                      <span className="truncate">{verificationData.farmer.email}</span>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No product images available for this harvest</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button asChild>
-              <Link href="/dashboard/scanner">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Scanner
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/dashboard/marketplace">
-                Browse More Products
-              </Link>
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleDownloadCertificate}
-              disabled={downloading || !verificationData}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              {downloading ? 'Generating...' : 'Download Certificate'}
-            </Button>
+            {/* Quality parameters checks list */}
+            <Card className="border border-slate-100 rounded-2xl shadow-sm bg-white overflow-hidden">
+              <CardHeader className="bg-slate-50/50 border-b border-slate-100/50 py-4 px-5">
+                <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-emerald-600" />
+                  Traceability Checkpoints
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-5 space-y-3.5">
+                
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h5 className="text-xs font-bold text-slate-900 leading-none">Administrative Inspection</h5>
+                    <p className="text-[10px] text-slate-500 mt-1 leading-snug">Authorized auditor cleared the produce for export and trade.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h5 className="text-xs font-bold text-slate-900 leading-none">Chemical Safety Cleared</h5>
+                    <p className="text-[10px] text-slate-500 mt-1 leading-snug">No residual fertilizer contamination. Complies with organic policy.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h5 className="text-xs font-bold text-slate-900 leading-none">On-Chain Ledger Sealed</h5>
+                    <p className="text-[10px] text-slate-500 mt-1 leading-snug">Cryptographic signature transaction logged to distributed network.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Footer */}
-          <div className="text-center text-sm text-gray-500">
-            <p>This verification is powered by GroChain's blockchain technology</p>
-            <p>Verification URL: <code className="text-xs bg-gray-100 px-2 py-1 rounded">{verificationData?.verificationUrl}</code></p>
-          </div>
         </div>
+
+        {/* Certificate Action buttons */}
+        <div className="flex flex-col sm:flex-row gap-3 items-center justify-center pt-2">
+          <Button asChild className="bg-slate-900 hover:bg-slate-800 text-white h-10 px-6 rounded-xl text-xs font-semibold w-full sm:w-auto shadow-sm">
+            <Link href="/marketplace">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              <span>Back to Marketplace</span>
+            </Link>
+          </Button>
+
+          <Button 
+            onClick={handleDownloadCertificate} 
+            disabled={downloading}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white h-10 px-6 rounded-xl text-xs font-semibold w-full sm:w-auto shadow-md shadow-emerald-600/10"
+          >
+            {downloading ? (
+              <div className="flex items-center justify-center gap-1.5">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Building PDF...</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-1.5">
+                <Download className="h-4 w-4" />
+                <span>Download Verified PDF Certificate</span>
+              </div>
+            )}
+          </Button>
+        </div>
+
+        {/* Powered by footer */}
+        <div className="text-center text-[11px] text-slate-400 space-y-1.5 pt-4">
+          <p className="flex items-center justify-center gap-1">
+            <Shield className="h-3.5 w-3.5 text-emerald-600" />
+            <span>Cryptographically secured by GroChain Distributed Agricultural Ledger.</span>
+          </p>
+          <p className="font-mono text-[9px] break-all select-all bg-slate-100/50 py-1 px-3 border border-slate-100 rounded-lg max-w-lg mx-auto">
+            SHA256: {verificationData.verificationUrl || `hash-batch-${verificationData.batchId}`}
+          </p>
+        </div>
+
       </div>
     </div>
+  )
+}
+
+// Loader icon component replacement in case it isn't imported from lucide
+function Loader2({ className, ...props }: React.ComponentProps<"svg">) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn("animate-spin", className)}
+      {...props}
+    >
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
   )
 }

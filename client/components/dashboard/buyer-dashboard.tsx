@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { StatsCard } from "@/components/dashboard/stats-card"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { QuickActions } from "@/components/dashboard/quick-actions"
@@ -12,10 +13,14 @@ import { MarketplaceCard, type MarketplaceProduct } from "@/components/agricultu
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useDashboardRefresh } from "@/hooks/use-dashboard-refresh"
+import { useStableDataFetch } from "@/hooks/use-stable-data-fetch"
+import { extractListingsFromResponse } from "@/lib/marketplace-listings"
 import { useBuyerStore } from "@/hooks/use-buyer-store"
-import { ShoppingCart, Package, Heart, TrendingUp, Search, QrCode, Eye, RefreshCw } from "lucide-react"
+import { ShoppingCart, Package, Heart, TrendingUp, Search, QrCode, Eye, RefreshCw, Brain, Sparkles, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { useAuthStore } from "@/lib/auth"
+import { AiTrustBadge } from "@/components/ai/ai-trust-badge"
 
 interface DashboardStats {
   totalOrders: number
@@ -82,8 +87,8 @@ export function BuyerDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentOrders, setRecentOrders] = useState<BuyerOrder[]>([])
   const [featuredProducts, setFeaturedProducts] = useState<BuyerProduct[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  const { isInitialLoading, isRefreshing, begin, finish } = useStableDataFetch()
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const { toast } = useToast()
   const { addToCart } = useBuyerStore()
@@ -139,15 +144,11 @@ export function BuyerDashboard() {
         break
     }
 
-    // Trigger a refresh to sync with server
-    setTimeout(() => {
-      fetchDashboardData('optimistic_sync')
-    }, 1000)
-  }, [toast])
+  }, [])
 
   const fetchDashboardData = useCallback(async (reason: string = 'manual') => {
+    const generation = begin()
     try {
-      setIsLoading(true)
       console.log(`🔄 Fetching dashboard data (${reason})...`)
 
       // Fetch dashboard data in parallel for better performance
@@ -207,47 +208,37 @@ export function BuyerDashboard() {
       console.log('🎯 Final orders data being set:', ordersData)
       setRecentOrders(Array.isArray(ordersData) ? ordersData.slice(0, 5) : [])
 
-      // Process featured products
-      let listingsData = []
-      if (listingsResponse.status === 'fulfilled') {
-        const response = listingsResponse.value
-        listingsData = (response as any)?.data?.listings ||
-          (response as any)?.data ||
-          (response as any)?.listings ||
-          response || []
-        console.log('✅ Listings data received:', listingsData.length, 'products')
-      } else {
-        console.error('❌ Listings data failed:', listingsResponse.reason)
+      if (listingsResponse.status === "fulfilled") {
+        const listingsData = extractListingsFromResponse(listingsResponse.value)
+        setFeaturedProducts(listingsData)
       }
-      setFeaturedProducts(Array.isArray(listingsData) ? listingsData : [])
 
-      // Update last updated timestamp
       setLastUpdated(new Date())
-
-    } catch (error: any) {
-      console.error('❌ Dashboard data fetch error:', error)
+      finish(generation)
+    } catch (error: unknown) {
+      console.error("❌ Dashboard data fetch error:", error)
+      finish(generation)
+      const message =
+        error instanceof Error ? error.message : "Failed to load dashboard data. Please try again."
       toast({
         title: "Error loading dashboard",
-        description: error.message || "Failed to load dashboard data. Please try again.",
+        description: message,
         variant: "destructive",
       })
-
-      // Set default empty states on error
-      setStats({
-        totalOrders: 0,
-        totalSpent: 0,
-        pendingDeliveries: 0,
-        activeOrders: 0,
-        favoriteProducts: 0,
-        monthlySpent: 0,
-        favorites: 0
-      })
-      setRecentOrders([])
-      setFeaturedProducts([])
-    } finally {
-      setIsLoading(false)
+      setStats((prev) =>
+        prev ?? {
+          totalOrders: 0,
+          totalSpent: 0,
+          pendingDeliveries: 0,
+          activeOrders: 0,
+          favoriteProducts: 0,
+          monthlySpent: 0,
+          favorites: 0,
+        }
+      )
+      setFeaturedProducts((prev) => (prev.length > 0 ? prev : []))
     }
-  }, [toast])
+  }, [toast, begin, finish])
 
   // Smart event-driven refresh system
   const { refresh, optimisticUpdate } = useDashboardRefresh({
@@ -260,7 +251,7 @@ export function BuyerDashboard() {
   }, [fetchDashboardData]) // Added fetchDashboardData dependency
 
   const handleManualRefresh = async () => {
-    setIsRefreshing(true)
+    setIsManualRefreshing(true)
     try {
       await fetchDashboardData('manual')
       toast({
@@ -275,7 +266,7 @@ export function BuyerDashboard() {
         variant: "destructive",
       })
     } finally {
-      setIsRefreshing(false)
+      setIsManualRefreshing(false)
     }
   }
 
@@ -292,7 +283,7 @@ export function BuyerDashboard() {
       description: "Verify product authenticity",
       icon: QrCode,
       href: "/dashboard/scanner",
-      color: "bg-secondary/10 text-secondary",
+      color: "bg-secondary/10 text-secondary border border-secondary/20",
     },
     {
       title: "View Orders",
@@ -404,7 +395,7 @@ export function BuyerDashboard() {
     }
   }
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
         <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -421,39 +412,44 @@ export function BuyerDashboard() {
     )
   }
 
+  const buyerName = useAuthStore.getState().user?.name || "Buyer"
+
   return (
-    <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
-      {/* Dashboard Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Dashboard Overview</h2>
-          <p className="text-muted-foreground">Welcome back! Here's what's happening with your account.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {lastUpdated && (
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
-              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-              Last updated: {lastUpdated.toLocaleTimeString()}
-            </div>
-          )}
-          {isLoading && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-              Loading...
-            </div>
-          )}
-          <Button
-            onClick={handleManualRefresh}
-            disabled={isRefreshing || isLoading}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6 sm:space-y-10 px-4 sm:px-6 max-w-full overflow-hidden">
+      <DashboardPageHeader
+        badge="Buyer Intelligence Active"
+        title="Buyer"
+        titleHighlight="Dashboard"
+        description={
+          <>
+            Welcome back, {buyerName}. Discover premium agricultural products verified by{" "}
+            <span className="font-semibold text-foreground">GroChain</span>.
+          </>
+        }
+        lastUpdated={lastUpdated}
+        actions={
+          <>
+            <Button
+              onClick={handleManualRefresh}
+              disabled={isRefreshing || isManualRefreshing}
+              variant="outline"
+              size="lg"
+              className="group"
+            >
+              <RefreshCw
+                className={`mr-2 h-4 w-4 transition-transform duration-500 group-hover:rotate-180 ${isRefreshing || isManualRefreshing ? "animate-spin" : ""}`}
+              />
+              {isRefreshing || isManualRefreshing ? "Syncing..." : "Refresh"}
+            </Button>
+            <Button asChild size="lg">
+              <Link href="/dashboard/products">
+                <Search className="mr-2 h-5 w-5" />
+                Find Products
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Overview */}
       <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -626,28 +622,53 @@ export function BuyerDashboard() {
             </CardContent>
           </Card>
 
-          {/* Shopping Tips */}
-          <Card>
+          {/* AI Shopping Advice */}
+          <Card className="relative overflow-hidden border border-primary/15 bg-gradient-to-br from-primary/5 to-secondary/10">
+            <div className="pointer-events-none absolute right-0 top-0 p-4 opacity-20">
+              <Brain className="h-20 w-20 text-primary" />
+            </div>
             <CardHeader>
-              <CardTitle>Shopping Tips</CardTitle>
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm sm:text-base">AI Shopping Advice</CardTitle>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-start space-x-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2" />
-                  <p>Always verify products with QR codes before purchasing</p>
+              <div className="relative z-10 space-y-4">
+                <div className="rounded-xl border border-border bg-card/80 p-3 transition-colors hover:bg-muted/50">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="mt-0.5 h-4 w-4 text-primary" />
+                    <div>
+                      <p className="mb-1 text-xs font-semibold text-foreground">Verify Authenticity</p>
+                      <p className="text-[10px] leading-relaxed text-muted-foreground">
+                        Always use the QR scanner to verify crop origin and harvest batch before finalizing payments.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-start space-x-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2" />
-                  <p>Check harvest dates for freshness</p>
+
+                <div className="rounded-xl border border-border bg-card/80 p-3 transition-colors hover:bg-muted/50">
+                  <div className="flex items-start gap-3">
+                    <TrendingUp className="mt-0.5 h-4 w-4 text-primary" />
+                    <div>
+                      <p className="mb-1 text-xs font-semibold text-foreground">Market Pulse Insight</p>
+                      <p className="text-[10px] leading-relaxed text-muted-foreground">
+                        Potato prices are expected to stabilize this week. Good time to stock up on bulk grains from northern farmers.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-start space-x-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2" />
-                  <p>Read farmer reviews and ratings</p>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2" />
-                  <p>Compare prices across different farmers</p>
+
+                <div className="rounded-xl border border-border bg-card/80 p-3 transition-colors hover:bg-muted/50">
+                  <div className="flex items-start gap-3">
+                    <Heart className="mt-0.5 h-4 w-4 text-destructive" />
+                    <div>
+                      <p className="mb-1 text-xs font-semibold text-foreground">Quality First</p>
+                      <p className="text-[10px] leading-relaxed text-muted-foreground">
+                        Look for farmers with &quot;Grade A&quot; trust score for highly sensitive produce like tomatoes and berry crops.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>

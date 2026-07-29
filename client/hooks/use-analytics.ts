@@ -56,19 +56,10 @@ export function useAnalytics(initialFilters: AnalyticsFilters = {}): UseAnalytic
   const exportData = useCallback(async (format: 'csv' | 'excel') => {
     try {
       setIsLoading(true)
-      
-      const blob = await analyticsService.exportData(filters, format)
-      
-      // Create download link
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `analytics-report-${new Date().toISOString().split('T')[0]}.${format}`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-      
+
+      // analyticsService.exportData triggers the file download itself.
+      await analyticsService.exportData(filters, format)
+
       toast({
         title: "Export successful",
         description: `Analytics data exported as ${format.toUpperCase()}`,

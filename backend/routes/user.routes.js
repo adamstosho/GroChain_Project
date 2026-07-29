@@ -1049,27 +1049,6 @@ router.post('/', async (req, res) => {
   return res.status(201).json({ status: 'success', data: user })
 })
 
-// Get user
-router.get('/:userId', async (req, res) => {
-  const user = await User.findById(req.params.userId)
-  if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
-  return res.json({ status: 'success', data: user })
-})
-
-// Update user
-router.put('/:userId', async (req, res) => {
-  const user = await User.findByIdAndUpdate(req.params.userId, req.body, { new: true })
-  if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
-  return res.json({ status: 'success', data: user })
-})
-
-// Delete user
-router.delete('/:userId', async (req, res) => {
-  const user = await User.findByIdAndDelete(req.params.userId)
-  if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
-  return res.json({ status: 'success', message: 'User deleted' })
-})
-
 // Bulk create
 router.post('/bulk-create', async (req, res) => {
   const { users } = req.body || {}
@@ -1099,6 +1078,27 @@ router.get('/search/query', async (req, res) => {
   const { q } = req.query
   const users = await User.find({ $or: [ { name: new RegExp(q, 'i') }, { email: new RegExp(q, 'i') }, { phone: new RegExp(q, 'i') } ] }).limit(50)
   return res.json({ status: 'success', data: users })
+})
+
+// Get user
+router.get('/:userId', async (req, res) => {
+  const user = await User.findById(req.params.userId)
+  if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
+  return res.json({ status: 'success', data: user })
+})
+
+// Update user
+router.put('/:userId', async (req, res) => {
+  const user = await User.findByIdAndUpdate(req.params.userId, req.body, { new: true })
+  if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
+  return res.json({ status: 'success', data: user })
+})
+
+// Delete user
+router.delete('/:userId', async (req, res) => {
+  const user = await User.findByIdAndDelete(req.params.userId)
+  if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
+  return res.json({ status: 'success', message: 'User deleted' })
 })
 
 // Stats & activity
