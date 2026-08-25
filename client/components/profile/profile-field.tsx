@@ -99,7 +99,9 @@ export function ProfileField({
           )}
         >
           {Icon && <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
-          <span className="break-words">{value || emptyText}</span>
+          <span className="break-words">
+            {(type === "select" ? options?.find((o) => o.value === value)?.label : value) || value || emptyText}
+          </span>
         </div>
       )}
     </div>
