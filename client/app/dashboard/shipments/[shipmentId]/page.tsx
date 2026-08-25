@@ -151,15 +151,15 @@ export default function ShipmentDetailsPage() {
       <DashboardLayout>
         <div className="space-y-4 sm:space-y-6">
           <div className="animate-pulse">
-            <div className="h-6 sm:h-8 bg-gray-200 rounded w-1/2 sm:w-1/4 mb-3 sm:mb-4"></div>
+            <div className="h-6 sm:h-8 bg-muted rounded w-1/2 sm:w-1/4 mb-3 sm:mb-4"></div>
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
               <div className="xl:col-span-2 space-y-4 sm:space-y-6">
-                <div className="h-48 sm:h-64 bg-gray-200 rounded"></div>
-                <div className="h-32 sm:h-48 bg-gray-200 rounded"></div>
+                <div className="h-48 sm:h-64 bg-muted rounded"></div>
+                <div className="h-32 sm:h-48 bg-muted rounded"></div>
               </div>
               <div className="space-y-4 sm:space-y-6">
-                <div className="h-24 sm:h-32 bg-gray-200 rounded"></div>
-                <div className="h-32 sm:h-48 bg-gray-200 rounded"></div>
+                <div className="h-24 sm:h-32 bg-muted rounded"></div>
+                <div className="h-32 sm:h-48 bg-muted rounded"></div>
               </div>
             </div>
           </div>
@@ -173,9 +173,9 @@ export default function ShipmentDetailsPage() {
       <DashboardLayout>
         <div className="space-y-4 sm:space-y-6">
           <div className="text-center py-8 sm:py-12 px-4">
-            <AlertTriangle className="h-8 w-8 sm:h-12 sm:w-12 text-red-500 mx-auto mb-3 sm:mb-4" />
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Shipment Not Found</h2>
-            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 break-words">{error || 'The shipment you are looking for does not exist.'}</p>
+            <AlertTriangle className="h-8 w-8 sm:h-12 sm:w-12 text-destructive mx-auto mb-3 sm:mb-4" />
+            <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">Shipment Not Found</h2>
+            <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 break-words">{error || 'The shipment you are looking for does not exist.'}</p>
             <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 justify-center max-w-sm mx-auto">
               <Button onClick={() => router.back()} size="sm" className="w-full xs:w-auto">
                 <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
@@ -201,14 +201,14 @@ export default function ShipmentDetailsPage() {
               variant="outline" 
               size="sm" 
               onClick={() => router.back()} 
-              className="bg-white/80 border-slate-200 hover:bg-slate-50 shadow-sm"
+              className="bg-white/80 border-border hover:bg-muted shadow-sm"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+                <h1 className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight">
                   {shipment.shipmentNumber}
                 </h1>
                 <AiTrustBadge userId={(typeof shipment.seller === 'string' ? shipment.seller : (shipment.seller._id || shipment.seller)) as string} className="scale-90" />
@@ -225,7 +225,7 @@ export default function ShipmentDetailsPage() {
               variant="outline" 
               size="sm" 
               onClick={refreshShipment}
-              className="bg-white/80 border-slate-200 hover:bg-slate-50 text-slate-700 shadow-sm"
+              className="bg-white/80 border-border hover:bg-muted text-foreground shadow-sm"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
@@ -283,7 +283,7 @@ export default function ShipmentDetailsPage() {
             {/* Shipment Items */}
             <Card className="border-none shadow-lg overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-primary/10 to-transparent pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
-                <CardTitle className="flex items-center gap-2 text-slate-800">
+                <CardTitle className="flex items-center gap-2 text-foreground">
                   <Package className="h-5 w-5 text-primary" />
                   Shipment Content
                 </CardTitle>
@@ -291,8 +291,8 @@ export default function ShipmentDetailsPage() {
               <CardContent className="px-4 sm:px-6 pb-6">
                 <div className="space-y-4 pt-4">
                   {shipment.items.map((item, index) => (
-                    <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded-3xl transition-all hover:shadow-md">
-                      <div className="relative h-16 w-16 rounded-2xl overflow-hidden bg-slate-200 flex-shrink-0 shadow-inner">
+                    <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-muted border border-border rounded-3xl transition-all hover:shadow-md">
+                      <div className="relative h-16 w-16 rounded-2xl overflow-hidden bg-muted flex-shrink-0 shadow-inner">
                         <Image
                           src={item.listing.images?.[0] || "/placeholder.svg"}
                           alt={item.listing.cropName}
@@ -303,16 +303,16 @@ export default function ShipmentDetailsPage() {
                       <div className="flex-1 min-w-0 w-full">
                         <div className="flex justify-between items-start">
                           <div>
-                            <h4 className="font-bold text-slate-900 text-base">{item.listing.cropName}</h4>
-                            <p className="text-xs text-slate-500">Source: {item.listing.farmer.name}</p>
+                            <h4 className="font-bold text-foreground text-base">{item.listing.cropName}</h4>
+                            <p className="text-xs text-muted-foreground">Source: {item.listing.farmer.name}</p>
                           </div>
                           <div className="text-right">
                             <p className="font-bold text-primary text-base">{formatPrice((item.quantity || 0) * (item.price || 0))}</p>
-                            <p className="text-xs text-slate-400">{formatPrice(item.price)} per {item.unit}</p>
+                            <p className="text-xs text-muted-foreground">{formatPrice(item.price)} per {item.unit}</p>
                           </div>
                         </div>
                         <div className="mt-3 flex items-center gap-2">
-                          <Badge variant="secondary" className="bg-white/80 border-slate-200 text-slate-600 text-[10px]">
+                          <Badge variant="secondary" className="bg-white/80 border-border text-muted-foreground text-[10px]">
                             {item.quantity} {item.unit}
                           </Badge>
                         </div>
@@ -325,9 +325,9 @@ export default function ShipmentDetailsPage() {
 
             {/* Issues */}
             {shipment.issues && shipment.issues.length > 0 && (
-              <Card className="border-red-100 shadow-lg shadow-red-500/5">
-                <CardHeader className="bg-red-50/50 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
-                  <CardTitle className="flex items-center gap-2 text-red-700">
+              <Card className="border-destructive/10 shadow-lg shadow-red-500/5">
+                <CardHeader className="bg-destructive/50 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+                  <CardTitle className="flex items-center gap-2 text-destructive">
                     <AlertTriangle className="h-5 w-5" />
                     Logistics Alerts
                   </CardTitle>
@@ -335,7 +335,7 @@ export default function ShipmentDetailsPage() {
                 <CardContent className="px-4 sm:px-6 pb-6">
                   <div className="space-y-4 pt-4">
                     {shipment.issues.map((issue, index) => (
-                      <div key={index} className="p-4 border border-red-100 rounded-3xl bg-red-50/30">
+                      <div key={index} className="p-4 border border-destructive/10 rounded-3xl bg-destructive/30">
                         <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-3 mb-3">
                           <Badge variant="destructive" className="text-[10px] uppercase tracking-wider h-5">
                             {issue.type}
@@ -347,14 +347,14 @@ export default function ShipmentDetailsPage() {
                             {issue.status}
                           </Badge>
                         </div>
-                        <p className="text-sm text-slate-700 mb-2 leading-relaxed">{issue.description}</p>
-                        <div className="text-[10px] font-medium text-slate-400 flex items-center gap-1">
+                        <p className="text-sm text-foreground mb-2 leading-relaxed">{issue.description}</p>
+                        <div className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {formatDistanceToNow(new Date(issue.reportedAt), { addSuffix: true })}
                         </div>
                         {issue.resolution && (
-                          <div className="mt-3 p-3 bg-white rounded-2xl border border-green-100">
-                            <p className="text-xs text-green-700 leading-relaxed">
+                          <div className="mt-3 p-3 bg-white rounded-2xl border border-success/10">
+                            <p className="text-xs text-success leading-relaxed">
                               <span className="font-bold">RESOLUTION:</span> {issue.resolution}
                             </p>
                           </div>
@@ -373,7 +373,7 @@ export default function ShipmentDetailsPage() {
             <Card>
               <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                  <Package className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
+                  <Package className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                   Shipment Details
                 </CardTitle>
               </CardHeader>
@@ -381,27 +381,27 @@ export default function ShipmentDetailsPage() {
                 <div className="space-y-2">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
-                      <Truck className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
-                      <span className="text-gray-600">Method:</span>
+                      <Truck className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-muted-foreground">Method:</span>
                     </div>
-                    <span className="font-medium text-gray-900 capitalize break-words">
+                    <span className="font-medium text-foreground capitalize break-words">
                       {shipment.shippingMethod.replace('_', ' ')}
                     </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
-                      <Package className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
-                      <span className="text-gray-600">Carrier:</span>
+                      <Package className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-muted-foreground">Carrier:</span>
                     </div>
-                    <span className="font-medium text-gray-900 break-words">{shipment.carrier}</span>
+                    <span className="font-medium text-foreground break-words">{shipment.carrier}</span>
                   </div>
                   {shipment.trackingNumber && (
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                       <div className="flex items-center gap-2">
-                        <Package className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
-                        <span className="text-gray-600">Tracking:</span>
+                        <Package className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                        <span className="text-muted-foreground">Tracking:</span>
                       </div>
-                      <span className="font-medium text-gray-900 break-all">{shipment.trackingNumber}</span>
+                      <span className="font-medium text-foreground break-all">{shipment.trackingNumber}</span>
                     </div>
                   )}
                 </div>
@@ -411,23 +411,23 @@ export default function ShipmentDetailsPage() {
                 <div className="space-y-2">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
-                      <span className="text-gray-600">Est. Delivery:</span>
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-muted-foreground">Est. Delivery:</span>
                     </div>
                     <span className={`font-medium ${deliveryStatus.color} break-words`}>
                       {deliveryStatus.text}
                     </span>
                   </div>
-                  <div className="text-xs text-gray-500 ml-5 sm:ml-6 break-words">
+                  <div className="text-xs text-muted-foreground ml-5 sm:ml-6 break-words">
                     {formatDate(shipment.estimatedDelivery)}
                   </div>
                   {shipment.actualDelivery && (
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
-                        <span className="text-gray-600">Delivered:</span>
+                        <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-success flex-shrink-0" />
+                        <span className="text-muted-foreground">Delivered:</span>
                       </div>
-                      <span className="font-medium text-gray-900 break-words">
+                      <span className="font-medium text-foreground break-words">
                         {formatDate(shipment.actualDelivery)}
                       </span>
                     </div>
@@ -439,26 +439,26 @@ export default function ShipmentDetailsPage() {
                 <div className="space-y-2">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
-                      <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
-                      <span className="text-gray-600">Shipping:</span>
+                      <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-muted-foreground">Shipping:</span>
                     </div>
-                    <span className="font-medium text-gray-900">{formatPrice(shipment.shippingCost)}</span>
+                    <span className="font-medium text-foreground">{formatPrice(shipment.shippingCost)}</span>
                   </div>
                   {shipment.insuranceCost > 0 && (
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                       <div className="flex items-center gap-2">
-                        <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
-                        <span className="text-gray-600">Insurance:</span>
+                        <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                        <span className="text-muted-foreground">Insurance:</span>
                       </div>
-                      <span className="font-medium text-gray-900">{formatPrice(shipment.insuranceCost)}</span>
+                      <span className="font-medium text-foreground">{formatPrice(shipment.insuranceCost)}</span>
                     </div>
                   )}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm font-semibold">
                     <div className="flex items-center gap-2">
-                      <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
-                      <span className="text-gray-600">Total:</span>
+                      <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-muted-foreground">Total:</span>
                     </div>
-                    <span className="text-gray-900">{formatPrice(shipment.totalCost)}</span>
+                    <span className="text-foreground">{formatPrice(shipment.totalCost)}</span>
                   </div>
                 </div>
 
@@ -467,14 +467,14 @@ export default function ShipmentDetailsPage() {
                 <div className="space-y-2">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
-                      <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
-                      <span className="text-gray-600">Created:</span>
+                      <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-muted-foreground">Created:</span>
                     </div>
-                    <span className="font-medium text-gray-900 break-words">
+                    <span className="font-medium text-foreground break-words">
                       {formatDistanceToNow(new Date(shipment.createdAt), { addSuffix: true })}
                     </span>
                   </div>
-                  <div className="text-xs text-gray-500 ml-5 sm:ml-6 break-words">
+                  <div className="text-xs text-muted-foreground ml-5 sm:ml-6 break-words">
                     {formatDate(shipment.createdAt)}
                   </div>
                 </div>
@@ -485,14 +485,14 @@ export default function ShipmentDetailsPage() {
             <Card>
               <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
+                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                   Route Information
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-4 pb-3 sm:pb-4">
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2 text-sm sm:text-base">Origin</h4>
-                  <div className="text-xs sm:text-sm text-gray-600 space-y-1">
+                  <h4 className="font-medium text-foreground mb-2 text-sm sm:text-base">Origin</h4>
+                  <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
                     <p className="font-medium break-words">{shipment.origin.contactPerson}</p>
                     <p className="break-words">{shipment.origin.address}</p>
                     <p className="break-words">{shipment.origin.city}, {shipment.origin.state}</p>
@@ -507,8 +507,8 @@ export default function ShipmentDetailsPage() {
                 <Separator />
 
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2 text-sm sm:text-base">Destination</h4>
-                  <div className="text-xs sm:text-sm text-gray-600 space-y-1">
+                  <h4 className="font-medium text-foreground mb-2 text-sm sm:text-base">Destination</h4>
+                  <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
                     <p className="font-medium break-words">{shipment.destination.contactPerson}</p>
                     <p className="break-words">{shipment.destination.address}</p>
                     <p className="break-words">{shipment.destination.city}, {shipment.destination.state}</p>
@@ -527,7 +527,7 @@ export default function ShipmentDetailsPage() {
               <Card>
                 <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                   <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                    <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
+                    <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
                     Special Requirements
                   </CardTitle>
                 </CardHeader>
@@ -535,24 +535,24 @@ export default function ShipmentDetailsPage() {
                   {shipment.temperatureControl && (
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                       <div className="flex items-center gap-2">
-                        <Thermometer className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500 flex-shrink-0" />
-                        <span className="text-gray-600">Temperature Control:</span>
+                        <Thermometer className="h-3 w-3 sm:h-4 sm:w-4 text-warning flex-shrink-0" />
+                        <span className="text-muted-foreground">Temperature Control:</span>
                       </div>
-                      <span className="font-medium text-gray-900 break-words">
+                      <span className="font-medium text-foreground break-words">
                         {shipment.temperatureRange?.min}°C - {shipment.temperatureRange?.max}°C
                       </span>
                     </div>
                   )}
                   {shipment.fragile && (
                     <div className="flex items-center gap-2 text-xs sm:text-sm">
-                      <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500 flex-shrink-0" />
-                      <span className="text-gray-600">Fragile Items</span>
+                      <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-warning flex-shrink-0" />
+                      <span className="text-muted-foreground">Fragile Items</span>
                     </div>
                   )}
                   {shipment.specialInstructions && (
                     <div className="text-xs sm:text-sm">
-                      <span className="text-gray-600">Instructions:</span>
-                      <p className="text-gray-900 mt-1 break-words">{shipment.specialInstructions}</p>
+                      <span className="text-muted-foreground">Instructions:</span>
+                      <p className="text-foreground mt-1 break-words">{shipment.specialInstructions}</p>
                     </div>
                   )}
                 </CardContent>

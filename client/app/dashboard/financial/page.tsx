@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -197,39 +198,39 @@ export default function FinancialServicesPage() {
 
   const getRiskLevelColor = (riskLevel: string) => {
     switch (riskLevel) {
-      case 'low': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-      case 'medium': return 'bg-amber-50 text-amber-700 border-amber-200'
-      case 'high': return 'bg-red-50 text-red-700 border-red-200'
-      default: return 'bg-gray-50 text-gray-700 border-gray-200'
+      case 'low': return 'bg-success/10 text-success border-success/10'
+      case 'medium': return 'bg-warning/10 text-warning border-warning/10'
+      case 'high': return 'bg-destructive/10 text-destructive border-destructive/10'
+      default: return 'bg-muted text-foreground border-border'
     }
   }
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
-      case 'income': return <TrendingUp className="h-4 w-4 text-emerald-500" />
-      case 'expense': return <Banknote className="h-4 w-4 text-red-500" />
-      case 'loan': return <CreditCard className="h-4 w-4 text-blue-500" />
-      case 'insurance': return <Shield className="h-4 w-4 text-purple-500" />
-      default: return <Activity className="h-4 w-4 text-gray-500" />
+      case 'income': return <TrendingUp className="h-4 w-4 text-success" />
+      case 'expense': return <Banknote className="h-4 w-4 text-destructive" />
+      case 'loan': return <CreditCard className="h-4 w-4 text-primary" />
+      case 'insurance': return <Shield className="h-4 w-4 text-accent" />
+      default: return <Activity className="h-4 w-4 text-muted-foreground" />
     }
   }
 
   const getTransactionColor = (type: string) => {
     switch (type) {
-      case 'income': return 'text-emerald-600'
-      case 'expense': return 'text-red-600'
-      case 'loan': return 'text-blue-600'
-      case 'insurance': return 'text-purple-600'
-      default: return 'text-gray-600'
+      case 'income': return 'text-success'
+      case 'expense': return 'text-destructive'
+      case 'loan': return 'text-primary'
+      case 'insurance': return 'text-accent'
+      default: return 'text-muted-foreground'
     }
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-      case 'pending': return 'bg-amber-50 text-amber-700 border-amber-200'
-      case 'failed': return 'bg-red-50 text-red-700 border-red-200'
-      default: return 'bg-gray-50 text-gray-700 border-gray-200'
+      case 'completed': return 'bg-success/10 text-success border-success/10'
+      case 'pending': return 'bg-warning/10 text-warning border-warning/10'
+      case 'failed': return 'bg-destructive/10 text-destructive border-destructive/10'
+      default: return 'bg-muted text-foreground border-border'
     }
   }
 
@@ -239,13 +240,13 @@ export default function FinancialServicesPage() {
         <div className="space-y-4 sm:space-y-6">
           <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
+              <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-                  <div className="h-3 sm:h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-3 sm:h-4 bg-muted rounded w-1/2"></div>
                 </CardHeader>
                 <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-                  <div className="h-6 sm:h-8 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-2 sm:h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-6 sm:h-8 bg-muted rounded mb-2"></div>
+                  <div className="h-2 sm:h-3 bg-muted rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
@@ -258,88 +259,84 @@ export default function FinancialServicesPage() {
   return (
     <DashboardLayout pageTitle="Financial Services">
       <div className="space-y-4 sm:space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-          <div className="space-y-1 min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Financial Services</h1>
-            <p className="text-sm sm:text-base text-gray-600 break-words">
-              Manage your finances, loans, insurance, and financial goals
-            </p>
-          </div>
-
-          <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-            <Button variant="outline" asChild size="sm" className="w-full xs:w-auto">
-              <Link href="/dashboard/financial/loans/apply">
-                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                <span className="hidden sm:inline">Apply for Loan</span>
-                <span className="sm:hidden">Apply Loan</span>
-              </Link>
-            </Button>
-            <Button asChild size="sm" className="w-full xs:w-auto">
-              <Link href="/dashboard/financial/insurance/compare">
-                <Shield className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                <span className="hidden sm:inline">Get Insurance</span>
-                <span className="sm:hidden">Insurance</span>
-              </Link>
-            </Button>
-          </div>
-        </div>
+        <DashboardPageHeader
+          badge="Financial Services Active"
+          title="Financial"
+          titleHighlight="Services"
+          description="Manage your finances, loans, insurance, and financial goals."
+          actions={
+            <>
+              <Button variant="outline" asChild size="lg">
+                <Link href="/dashboard/financial/loans/apply">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Apply for Loan
+                </Link>
+              </Button>
+              <Button asChild size="lg">
+                <Link href="/dashboard/financial/insurance/compare">
+                  <Shield className="mr-2 h-4 w-4" />
+                  Get Insurance
+                </Link>
+              </Button>
+            </>
+          }
+        />
 
         {/* Financial Overview Cards */}
         <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1 sm:gap-2">
-                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1 sm:gap-2">
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-success flex-shrink-0" />
                 <span className="truncate">Total Earnings</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">
                 ₦{(overview.totalEarnings / 1000000).toFixed(1)}M
               </div>
-              <p className="text-xs text-gray-500">Lifetime earnings</p>
+              <p className="text-xs text-muted-foreground">Lifetime earnings</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1 sm:gap-2">
-                <PiggyBank className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1 sm:gap-2">
+                <PiggyBank className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                 <span className="truncate">Total Savings</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">
                 ₦{(overview.totalSavings / 1000000).toFixed(1)}M
               </div>
-              <p className="text-xs text-gray-500">Current savings</p>
+              <p className="text-xs text-muted-foreground">Current savings</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1 sm:gap-2">
-                <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 text-purple-500 flex-shrink-0" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1 sm:gap-2">
+                <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 text-accent flex-shrink-0" />
                 <span className="truncate">Active Loans</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{overview.activeLoans}</div>
-              <p className="text-xs text-gray-500">Current loans</p>
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{overview.activeLoans}</div>
+              <p className="text-xs text-muted-foreground">Current loans</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1 sm:gap-2">
-                <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1 sm:gap-2">
+                <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-success flex-shrink-0" />
                 <span className="truncate">Insurance Policies</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{overview.insurancePolicies}</div>
-              <p className="text-xs text-gray-500">Active policies</p>
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{overview.insurancePolicies}</div>
+              <p className="text-xs text-muted-foreground">Active policies</p>
             </CardContent>
           </Card>
         </div>
@@ -369,27 +366,27 @@ export default function FinancialServicesPage() {
           <TabsContent value="overview" className="space-y-4 sm:space-y-6">
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
               {/* Credit Score & Risk Assessment */}
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                   <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
-                    <Target className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                    <Target className="h-4 w-4 text-primary flex-shrink-0" />
                     <span className="break-words">Credit Score & Risk Assessment</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-4 pb-3 sm:pb-4">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
-                    <span className="text-xs sm:text-sm text-gray-600">Credit Score:</span>
-                    <span className="text-xl sm:text-2xl font-bold text-gray-900">{overview.creditScore}</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">Credit Score:</span>
+                    <span className="text-xl sm:text-2xl font-bold text-foreground">{overview.creditScore}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
-                    <span className="text-xs sm:text-sm text-gray-600">Risk Level:</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">Risk Level:</span>
                     <Badge className={getRiskLevelColor(overview.riskLevel)}>
                       {overview.riskLevel.charAt(0).toUpperCase() + overview.riskLevel.slice(1)}
                     </Badge>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
-                    <span className="text-xs sm:text-sm text-gray-600">Financial Goals:</span>
-                    <span className="font-medium text-gray-900">{overview.financialGoals}</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">Financial Goals:</span>
+                    <span className="font-medium text-foreground">{overview.financialGoals}</span>
                   </div>
                   <div className="pt-2">
                     <Button variant="outline" size="sm" className="w-full">
@@ -402,10 +399,10 @@ export default function FinancialServicesPage() {
               </Card>
 
               {/* Quick Actions */}
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                   <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
-                    <Calculator className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <Calculator className="h-4 w-4 text-success flex-shrink-0" />
                     Quick Actions
                   </CardTitle>
                 </CardHeader>
@@ -441,10 +438,10 @@ export default function FinancialServicesPage() {
             </div>
 
             {/* Pending Payments */}
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
-                  <Clock className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                  <Clock className="h-4 w-4 text-warning flex-shrink-0" />
                   Pending Payments
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm break-words">
@@ -453,7 +450,7 @@ export default function FinancialServicesPage() {
               </CardHeader>
               <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
-                  <div className="text-xs sm:text-sm text-gray-600">
+                  <div className="text-xs sm:text-sm text-muted-foreground">
                     Next payment due in 5 days
                   </div>
                   <Button size="sm" className="w-full sm:w-auto">
@@ -467,10 +464,10 @@ export default function FinancialServicesPage() {
 
           {/* Transactions Tab */}
           <TabsContent value="transactions" className="space-y-3 sm:space-y-4">
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
-                  <Activity className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                  <Activity className="h-4 w-4 text-primary flex-shrink-0" />
                   Recent Transactions
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
@@ -480,14 +477,14 @@ export default function FinancialServicesPage() {
               <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
                 <div className="space-y-2 sm:space-y-3">
                   {recentTransactions.map((transaction) => (
-                    <div key={transaction._id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-3 border border-gray-100 rounded-lg">
+                    <div key={transaction._id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-3 border border-border rounded-lg">
                       <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                         <div className="flex-shrink-0">
                           {getTransactionIcon(transaction.type)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="font-medium text-gray-900 text-sm sm:text-base break-words">{transaction.description}</div>
-                          <div className="text-xs sm:text-sm text-gray-500">
+                          <div className="font-medium text-foreground text-sm sm:text-base break-words">{transaction.description}</div>
+                          <div className="text-xs sm:text-sm text-muted-foreground">
                             {new Date(transaction.date).toLocaleDateString()}
                           </div>
                         </div>
@@ -515,10 +512,10 @@ export default function FinancialServicesPage() {
 
           {/* Loans Tab */}
           <TabsContent value="loans" className="space-y-3 sm:space-y-4">
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
-                  <CreditCard className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                  <CreditCard className="h-4 w-4 text-accent flex-shrink-0" />
                   Active Loans
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
@@ -528,31 +525,31 @@ export default function FinancialServicesPage() {
               <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
                 <div className="space-y-3 sm:space-y-4">
                   {activeLoans.map((loan) => (
-                    <div key={loan._id} className="p-3 sm:p-4 border border-gray-200 rounded-lg">
+                    <div key={loan._id} className="p-3 sm:p-4 border border-border rounded-lg">
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-3">
                         <div className="min-w-0 flex-1">
-                          <h4 className="font-medium text-gray-900 text-sm sm:text-base break-words">{loan.purpose}</h4>
-                          <p className="text-xs sm:text-sm text-gray-600 break-all">Loan #{loan._id}</p>
+                          <h4 className="font-medium text-foreground text-sm sm:text-base break-words">{loan.purpose}</h4>
+                          <p className="text-xs sm:text-sm text-muted-foreground break-all">Loan #{loan._id}</p>
                         </div>
-                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 w-fit">
+                        <Badge className="bg-success/10 text-success border-success/10 w-fit">
                           {loan.status}
                         </Badge>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm">
                         <div>
-                          <span className="text-gray-600">Amount:</span>
+                          <span className="text-muted-foreground">Amount:</span>
                           <div className="font-medium break-words">₦{loan.amount.toLocaleString()}</div>
                         </div>
                         <div>
-                          <span className="text-gray-600">Monthly Payment:</span>
+                          <span className="text-muted-foreground">Monthly Payment:</span>
                           <div className="font-medium break-words">₦{loan.monthlyPayment.toLocaleString()}</div>
                         </div>
                         <div>
-                          <span className="text-gray-600">Remaining:</span>
+                          <span className="text-muted-foreground">Remaining:</span>
                           <div className="font-medium break-words">₦{loan.remainingBalance.toLocaleString()}</div>
                         </div>
                         <div>
-                          <span className="text-gray-600">Next Payment:</span>
+                          <span className="text-muted-foreground">Next Payment:</span>
                           <div className="font-medium break-words">
                             {new Date(loan.nextPaymentDate).toLocaleDateString()}
                           </div>
@@ -588,10 +585,10 @@ export default function FinancialServicesPage() {
 
           {/* Insurance Tab */}
           <TabsContent value="insurance" className="space-y-3 sm:space-y-4">
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
-                  <Shield className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  <Shield className="h-4 w-4 text-success flex-shrink-0" />
                   Insurance Policies
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
@@ -601,31 +598,31 @@ export default function FinancialServicesPage() {
               <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
                 <div className="space-y-3 sm:space-y-4">
                   {insurancePolicies.map((policy) => (
-                    <div key={policy._id} className="p-3 sm:p-4 border border-gray-200 rounded-lg">
+                    <div key={policy._id} className="p-3 sm:p-4 border border-border rounded-lg">
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-3">
                         <div className="min-w-0 flex-1">
-                          <h4 className="font-medium text-gray-900 text-sm sm:text-base break-words">{policy.type}</h4>
-                          <p className="text-xs sm:text-sm text-gray-600 break-words">{policy.provider}</p>
+                          <h4 className="font-medium text-foreground text-sm sm:text-base break-words">{policy.type}</h4>
+                          <p className="text-xs sm:text-sm text-muted-foreground break-words">{policy.provider}</p>
                         </div>
-                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 w-fit">
+                        <Badge className="bg-success/10 text-success border-success/10 w-fit">
                           {policy.status}
                         </Badge>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm">
                         <div>
-                          <span className="text-gray-600">Policy #:</span>
+                          <span className="text-muted-foreground">Policy #:</span>
                           <div className="font-medium break-all">{policy.policyNumber}</div>
                         </div>
                         <div>
-                          <span className="text-gray-600">Coverage:</span>
+                          <span className="text-muted-foreground">Coverage:</span>
                           <div className="font-medium break-words">₦{policy.coverageAmount.toLocaleString()}</div>
                         </div>
                         <div>
-                          <span className="text-gray-600">Premium:</span>
+                          <span className="text-muted-foreground">Premium:</span>
                           <div className="font-medium break-words">₦{policy.premium.toLocaleString()}</div>
                         </div>
                         <div>
-                          <span className="text-gray-600">Expires:</span>
+                          <span className="text-muted-foreground">Expires:</span>
                           <div className="font-medium break-words">
                             {new Date(policy.endDate).toLocaleDateString()}
                           </div>
@@ -661,10 +658,10 @@ export default function FinancialServicesPage() {
         </Tabs>
 
         {/* Help & Resources */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
             <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
-              <Info className="h-4 w-4 text-blue-500 flex-shrink-0" />
+              <Info className="h-4 w-4 text-primary flex-shrink-0" />
               Need Help?
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
@@ -673,20 +670,20 @@ export default function FinancialServicesPage() {
           </CardHeader>
           <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              <div className="text-center p-3 sm:p-4 border border-gray-200 rounded-lg">
-                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 mx-auto mb-2" />
-                <h4 className="font-medium text-gray-900 mb-1 text-sm sm:text-base">Financial Advisor</h4>
-                <p className="text-xs sm:text-sm text-gray-600">Get personalized financial advice</p>
+              <div className="text-center p-3 sm:p-4 border border-border rounded-lg">
+                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-primary mx-auto mb-2" />
+                <h4 className="font-medium text-foreground mb-1 text-sm sm:text-base">Financial Advisor</h4>
+                <p className="text-xs sm:text-sm text-muted-foreground">Get personalized financial advice</p>
               </div>
-              <div className="text-center p-3 sm:p-4 border border-gray-200 rounded-lg">
-                <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-green-500 mx-auto mb-2" />
-                <h4 className="font-medium text-gray-900 mb-1 text-sm sm:text-base">Documentation</h4>
-                <p className="text-xs sm:text-sm text-gray-600">Access forms and guides</p>
+              <div className="text-center p-3 sm:p-4 border border-border rounded-lg">
+                <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-success mx-auto mb-2" />
+                <h4 className="font-medium text-foreground mb-1 text-sm sm:text-base">Documentation</h4>
+                <p className="text-xs sm:text-sm text-muted-foreground">Access forms and guides</p>
               </div>
-              <div className="text-center p-3 sm:p-4 border border-gray-200 rounded-lg sm:col-span-2 lg:col-span-1">
-                <Building className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500 mx-auto mb-2" />
-                <h4 className="font-medium text-gray-900 mb-1 text-sm sm:text-base">Partner Banks</h4>
-                <p className="text-xs sm:text-sm text-gray-600">Connect with our banking partners</p>
+              <div className="text-center p-3 sm:p-4 border border-border rounded-lg sm:col-span-2 lg:col-span-1">
+                <Building className="h-6 w-6 sm:h-8 sm:w-8 text-accent mx-auto mb-2" />
+                <h4 className="font-medium text-foreground mb-1 text-sm sm:text-base">Partner Banks</h4>
+                <p className="text-xs sm:text-sm text-muted-foreground">Connect with our banking partners</p>
               </div>
             </div>
             <div className="flex justify-center pt-3 sm:pt-4">

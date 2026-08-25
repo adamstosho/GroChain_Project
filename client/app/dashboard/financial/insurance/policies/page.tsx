@@ -115,19 +115,19 @@ const policyStatuses = [
 ]
 
 const riskLevelColors = {
-  low: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  medium: 'bg-amber-100 text-amber-800 border-amber-200',
-  high: 'bg-red-100 text-red-800 border-red-200'
+  low: 'bg-success/10 text-success border-success/10',
+  medium: 'bg-warning/10 text-warning border-warning/10',
+  high: 'bg-destructive/10 text-destructive border-destructive/10'
 }
 
 const statusColors = {
-  active: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  expired: 'bg-red-100 text-red-800 border-red-200',
-  pending: 'bg-amber-100 text-amber-800 border-amber-200',
-  cancelled: 'bg-gray-100 text-gray-800 border-gray-200',
-  claimed: 'bg-blue-100 text-blue-800 border-blue-200',
-  approved: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  rejected: 'bg-red-100 text-red-800 border-red-200'
+  active: 'bg-success/10 text-success border-success/10',
+  expired: 'bg-destructive/10 text-destructive border-destructive/10',
+  pending: 'bg-warning/10 text-warning border-warning/10',
+  cancelled: 'bg-muted text-foreground border-border',
+  claimed: 'bg-primary/10 text-primary border-primary/10',
+  approved: 'bg-success/10 text-success border-success/10',
+  rejected: 'bg-destructive/10 text-destructive border-destructive/10'
 }
 
 export default function InsurancePoliciesPage() {
@@ -416,23 +416,23 @@ export default function InsurancePoliciesPage() {
 
   const getPolicyTypeIcon = (type: string) => {
     switch (type) {
-      case 'crop': return <Leaf className="h-4 w-4 text-green-500" />
-      case 'livestock': return <Shield className="h-4 w-4 text-blue-500" />
-      case 'equipment': return <Zap className="h-4 w-4 text-purple-500" />
-      case 'health': return <Shield className="h-4 w-4 text-emerald-500" />
-      case 'life': return <Shield className="h-4 w-4 text-red-500" />
-      default: return <Shield className="h-4 w-4 text-gray-500" />
+      case 'crop': return <Leaf className="h-4 w-4 text-success" />
+      case 'livestock': return <Shield className="h-4 w-4 text-primary" />
+      case 'equipment': return <Zap className="h-4 w-4 text-accent" />
+      case 'health': return <Shield className="h-4 w-4 text-success" />
+      case 'life': return <Shield className="h-4 w-4 text-destructive" />
+      default: return <Shield className="h-4 w-4 text-muted-foreground" />
     }
   }
 
   const getPolicyTypeColor = (type: string) => {
     switch (type) {
-      case 'crop': return 'bg-green-100 text-green-800 border-green-200'
-      case 'livestock': return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'equipment': return 'bg-purple-100 text-purple-800 border-purple-200'
-      case 'health': return 'bg-emerald-100 text-emerald-800 border-emerald-200'
-      case 'life': return 'bg-red-100 text-red-800 border-red-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 'crop': return 'bg-success/10 text-success border-success/10'
+      case 'livestock': return 'bg-primary/10 text-primary border-primary/10'
+      case 'equipment': return 'bg-accent/10 text-accent border-accent/10'
+      case 'health': return 'bg-success/10 text-success border-success/10'
+      case 'life': return 'bg-destructive/10 text-destructive border-destructive/10'
+      default: return 'bg-muted text-foreground border-border'
     }
   }
 
@@ -466,14 +466,14 @@ export default function InsurancePoliciesPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
+              <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-3">
-                  <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-5 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-8 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-8 bg-muted rounded mb-2"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
@@ -489,8 +489,8 @@ export default function InsurancePoliciesPage() {
         {/* Page Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-gray-900">Insurance Policies</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-semibold text-foreground">Insurance Policies</h1>
+            <p className="text-muted-foreground">
               Manage your insurance coverage and claims
             </p>
           </div>
@@ -510,62 +510,62 @@ export default function InsurancePoliciesPage() {
         {/* Insurance Stats */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Policies</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Policies</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-primary">
                   {stats.totalPolicies}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <Shield className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm text-gray-500">{stats.activePolicies} active</span>
+                  <Shield className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">{stats.activePolicies} active</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Coverage</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Coverage</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-emerald-600">
+                <div className="text-2xl font-bold text-success">
                   ₦{(stats.totalCoverage / 1000000).toFixed(1)}M
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <TrendingUp className="h-4 w-4 text-emerald-500" />
-                  <span className="text-sm text-gray-500">Across active policies</span>
+                  <TrendingUp className="h-4 w-4 text-success" />
+                  <span className="text-sm text-muted-foreground">Across active policies</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Premium</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Premium</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-amber-600">
+                <div className="text-2xl font-bold text-warning">
                   ₦{(stats.totalPremium / 1000).toFixed(0)}K
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <Banknote className="h-4 w-4 text-amber-500" />
-                  <span className="text-sm text-gray-500">Total across active policies</span>
+                  <Banknote className="h-4 w-4 text-warning" />
+                  <span className="text-sm text-muted-foreground">Total across active policies</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Pending Claims</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Pending Claims</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-2xl font-bold text-destructive">
                   {stats.pendingClaims}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
-                  <span className="text-sm text-red-600">₦{(stats.claimsValue / 1000).toFixed(0)}K value</span>
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  <span className="text-sm text-destructive">₦{(stats.claimsValue / 1000).toFixed(0)}K value</span>
                 </div>
               </CardContent>
             </Card>
@@ -573,7 +573,7 @@ export default function InsurancePoliciesPage() {
         )}
 
         {/* Filters */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader>
             <CardTitle className="text-base font-medium">Filters</CardTitle>
           </CardHeader>
@@ -610,7 +610,7 @@ export default function InsurancePoliciesPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Search</label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search policies..."
                     value={filters.search}
@@ -626,7 +626,7 @@ export default function InsurancePoliciesPage() {
         {/* Policies List */}
         <div className="space-y-4">
           {sortedPolicies.map((policy) => (
-            <Card key={policy.id} className="border border-gray-200">
+            <Card key={policy.id} className="border border-border">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="space-y-2">
@@ -664,22 +664,22 @@ export default function InsurancePoliciesPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Coverage Details */}
                   <div className="space-y-3">
-                    <h4 className="font-medium text-sm text-gray-900">Coverage Details</h4>
+                    <h4 className="font-medium text-sm text-foreground">Coverage Details</h4>
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Coverage Amount:</span>
+                        <span className="text-sm text-muted-foreground">Coverage Amount:</span>
                         <span className="text-sm font-medium">₦{(policy.coverage.amount / 1000000).toFixed(1)}M</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Premium:</span>
+                        <span className="text-sm text-muted-foreground">Premium:</span>
                         <span className="text-sm font-medium">₦{(policy.premium.amount / 1000).toFixed(0)}K</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Frequency:</span>
+                        <span className="text-sm text-muted-foreground">Frequency:</span>
                         <span className="text-sm font-medium capitalize">{policy.premium.frequency}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Next Due:</span>
+                        <span className="text-sm text-muted-foreground">Next Due:</span>
                         <span className="text-sm font-medium">
                           {new Date(policy.premium.nextDue).toLocaleDateString()}
                         </span>
@@ -689,22 +689,22 @@ export default function InsurancePoliciesPage() {
 
                   {/* Policy Period */}
                   <div className="space-y-3">
-                    <h4 className="font-medium text-sm text-gray-900">Policy Period</h4>
+                    <h4 className="font-medium text-sm text-foreground">Policy Period</h4>
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Start Date:</span>
+                        <span className="text-sm text-muted-foreground">Start Date:</span>
                         <span className="text-sm font-medium">
                           {new Date(policy.startDate).toLocaleDateString()}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">End Date:</span>
+                        <span className="text-sm text-muted-foreground">End Date:</span>
                         <span className="text-sm font-medium">
                           {new Date(policy.endDate).toLocaleDateString()}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Days Remaining:</span>
+                        <span className="text-sm text-muted-foreground">Days Remaining:</span>
                         <span className="text-sm font-medium">
                           {Math.ceil((new Date(policy.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}
                         </span>
@@ -714,11 +714,11 @@ export default function InsurancePoliciesPage() {
 
                   {/* Risk Factors */}
                   <div className="space-y-3">
-                    <h4 className="font-medium text-sm text-gray-900">Risk Assessment</h4>
+                    <h4 className="font-medium text-sm text-foreground">Risk Assessment</h4>
                     <div className="space-y-2">
                       {policy.riskFactors.slice(0, 3).map((risk, index) => (
                         <div key={index} className="flex items-center justify-between">
-                          <span className="text-xs text-gray-600">{risk.factor}</span>
+                          <span className="text-xs text-muted-foreground">{risk.factor}</span>
                           <Badge className={riskLevelColors[risk.level]} variant="outline">
                             {risk.level}
                           </Badge>
@@ -730,14 +730,14 @@ export default function InsurancePoliciesPage() {
 
                 {/* Claims Summary */}
                 {policy.claims.length > 0 && (
-                  <div className="mt-6 pt-4 border-t border-gray-100">
-                    <h4 className="font-medium text-sm text-gray-900 mb-3">Recent Claims</h4>
+                  <div className="mt-6 pt-4 border-t border-border">
+                    <h4 className="font-medium text-sm text-foreground mb-3">Recent Claims</h4>
                     <div className="space-y-2">
                       {policy.claims.map((claim) => (
-                        <div key={claim.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div key={claim.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                           <div>
                             <div className="text-sm font-medium">{claim.description}</div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-muted-foreground">
                               {new Date(claim.date).toLocaleDateString()} • ₦{claim.amount.toLocaleString()}
                             </div>
                           </div>
@@ -756,11 +756,11 @@ export default function InsurancePoliciesPage() {
 
         {/* Empty State */}
         {sortedPolicies.length === 0 && (
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardContent className="text-center py-12">
-              <Shield className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Policies Found</h3>
-              <p className="text-gray-600 mb-4">
+              <Shield className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No Policies Found</h3>
+              <p className="text-muted-foreground mb-4">
                 {filters.type !== 'all' || filters.status !== 'all' || filters.search
                   ? "Try adjusting your filters to see more policies."
                   : "You don't have any insurance policies yet."}

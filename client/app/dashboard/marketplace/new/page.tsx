@@ -383,7 +383,7 @@ function CreateListingPage() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
           <div className="space-y-1 sm:space-y-2 min-w-0 flex-1">
             <div className="flex items-center gap-2 sm:gap-3">
-              <Button variant="ghost" asChild className="text-gray-600 hover:text-gray-900 h-8 sm:h-9">
+              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground h-8 sm:h-9">
                 <Link href="/dashboard/marketplace" className="flex items-center gap-2 text-sm sm:text-base">
                   <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Back to Listings</span>
@@ -391,10 +391,10 @@ function CreateListingPage() {
                 </Link>
               </Button>
             </div>
-            <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900">
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-foreground">
               {harvestId ? 'List Your Harvest' : 'Create New Listing'}
             </h1>
-            <p className="text-xs sm:text-sm lg:text-base text-gray-600">
+            <p className="text-xs sm:text-sm lg:text-base text-muted-foreground">
               {harvestId
                 ? 'Set a price and list your approved harvest in your listings'
                 : 'List your agricultural products in your listings to reach more customers'
@@ -407,19 +407,19 @@ function CreateListingPage() {
           {/* Main Form */}
           <div className="lg:col-span-2">
             {loadingHarvest ? (
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-center py-6 sm:py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-500 mr-2 sm:mr-3"></div>
-                    <span className="text-gray-600 text-sm sm:text-base">Loading harvest data...</span>
+                    <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary mr-2 sm:mr-3"></div>
+                    <span className="text-muted-foreground text-sm sm:text-base">Loading harvest data...</span>
                   </div>
                 </CardContent>
               </Card>
             ) : (
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                   <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
-                    <Package className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
+                    <Package className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                     <span className="truncate pr-2 min-w-0 flex-1">{harvestId ? 'Harvest Information' : 'Product Information'}</span>
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
@@ -434,9 +434,9 @@ function CreateListingPage() {
                   {/* Basic Information */}
                   <div className="space-y-3 sm:space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-                      <h3 className="text-sm sm:text-base lg:text-lg font-medium text-gray-900">Basic Information</h3>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-medium text-foreground">Basic Information</h3>
                       {harvestId && (
-                        <Badge className="bg-green-50 text-green-700 border-green-200 text-xs w-fit">
+                        <Badge className="bg-success/10 text-success border-success/10 text-xs w-fit">
                           <CheckCircle className="h-3 w-3 mr-1 flex-shrink-0" />
                           From Approved Harvest
                         </Badge>
@@ -451,10 +451,10 @@ function CreateListingPage() {
                           value={formData.cropName}
                           onChange={(e) => setFormData(prev => ({ ...prev, cropName: e.target.value }))}
                           placeholder="e.g., Fresh Maize, Cassava Tubers"
-                          className={`h-8 sm:h-9 text-xs sm:text-sm ${errors.cropName ? 'border-red-500' : ''}`}
+                          className={`h-8 sm:h-9 text-xs sm:text-sm ${errors.cropName ? 'border-destructive' : ''}`}
                         />
                         {errors.cropName && (
-                          <p className="text-xs text-red-600 flex items-center gap-1">
+                          <p className="text-xs text-destructive flex items-center gap-1">
                             <AlertCircle className="h-3 w-3 flex-shrink-0" />
                             {errors.cropName}
                           </p>
@@ -467,7 +467,7 @@ function CreateListingPage() {
                           value={formData.category} 
                           onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
                         >
-                          <SelectTrigger className={`h-8 sm:h-9 text-xs sm:text-sm ${errors.category ? 'border-red-500' : ''}`}>
+                          <SelectTrigger className={`h-8 sm:h-9 text-xs sm:text-sm ${errors.category ? 'border-destructive' : ''}`}>
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
@@ -482,7 +482,7 @@ function CreateListingPage() {
                           </SelectContent>
                         </Select>
                         {errors.category && (
-                          <p className="text-xs text-red-600 flex items-center gap-1">
+                          <p className="text-xs text-destructive flex items-center gap-1">
                             <AlertCircle className="h-3 w-3 flex-shrink-0" />
                             {errors.category}
                           </p>
@@ -498,10 +498,10 @@ function CreateListingPage() {
                         onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                         placeholder="Describe your product, its quality, benefits, and any special features..."
                         rows={3}
-                        className={`text-xs sm:text-sm ${errors.description ? 'border-red-500' : ''}`}
+                        className={`text-xs sm:text-sm ${errors.description ? 'border-destructive' : ''}`}
                       />
                       {errors.description && (
-                        <p className="text-xs text-red-600 flex items-center gap-1">
+                        <p className="text-xs text-destructive flex items-center gap-1">
                           <AlertCircle className="h-3 w-3 flex-shrink-0" />
                           {errors.description}
                         </p>
@@ -511,13 +511,13 @@ function CreateListingPage() {
 
                   {/* Pricing and Quantity */}
                   <div className="space-y-3 sm:space-y-4">
-                    <h3 className="text-sm sm:text-base lg:text-lg font-medium text-gray-900">Pricing & Quantity</h3>
+                    <h3 className="text-sm sm:text-base lg:text-lg font-medium text-foreground">Pricing & Quantity</h3>
                     
                     <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                       <div className="space-y-1.5 sm:space-y-2">
                         <Label htmlFor="basePrice" className="text-xs sm:text-sm">Base Price (NGN) *</Label>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs sm:text-sm">₦</span>
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-xs sm:text-sm">₦</span>
                           <Input
                             id="basePrice"
                             type="number"
@@ -526,11 +526,11 @@ function CreateListingPage() {
                             placeholder="0"
                             min="0"
                             step="10"
-                            className={`pl-7 sm:pl-8 h-8 sm:h-9 text-xs sm:text-sm ${errors.basePrice ? 'border-red-500' : ''}`}
+                            className={`pl-7 sm:pl-8 h-8 sm:h-9 text-xs sm:text-sm ${errors.basePrice ? 'border-destructive' : ''}`}
                           />
                         </div>
                         {errors.basePrice && (
-                          <p className="text-xs text-red-600 flex items-center gap-1">
+                          <p className="text-xs text-destructive flex items-center gap-1">
                             <AlertCircle className="h-3 w-3 flex-shrink-0" />
                             {errors.basePrice}
                           </p>
@@ -566,10 +566,10 @@ function CreateListingPage() {
                           placeholder="0"
                           min="0"
                           step="1"
-                          className={`h-8 sm:h-9 text-xs sm:text-sm ${errors.quantity ? 'border-red-500' : ''}`}
+                          className={`h-8 sm:h-9 text-xs sm:text-sm ${errors.quantity ? 'border-destructive' : ''}`}
                         />
                         {errors.quantity && (
-                          <p className="text-xs text-red-600 flex items-center gap-1">
+                          <p className="text-xs text-destructive flex items-center gap-1">
                             <AlertCircle className="h-3 w-3 flex-shrink-0" />
                             {errors.quantity}
                           </p>
@@ -588,13 +588,13 @@ function CreateListingPage() {
                         min="0"
                         max={formData.quantity}
                         step="1"
-                        className={`h-8 sm:h-9 text-xs sm:text-sm ${errors.availableQuantity ? 'border-red-500' : ''}`}
+                        className={`h-8 sm:h-9 text-xs sm:text-sm ${errors.availableQuantity ? 'border-destructive' : ''}`}
                       />
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         This should be less than or equal to total quantity
                       </p>
                       {errors.availableQuantity && (
-                        <p className="text-xs text-red-600 flex items-center gap-1">
+                        <p className="text-xs text-destructive flex items-center gap-1">
                           <AlertCircle className="h-3 w-3 flex-shrink-0" />
                           {errors.availableQuantity}
                         </p>
@@ -604,7 +604,7 @@ function CreateListingPage() {
 
                   {/* Location */}
                   <div className="space-y-3 sm:space-y-4">
-                    <h3 className="text-sm sm:text-base lg:text-lg font-medium text-gray-900">Location</h3>
+                    <h3 className="text-sm sm:text-base lg:text-lg font-medium text-foreground">Location</h3>
                     
                     <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
                       <div className="space-y-1.5 sm:space-y-2">
@@ -617,10 +617,10 @@ function CreateListingPage() {
                             location: e.target.value
                           }))}
                           placeholder="e.g., Ibadan, Oyo State, Nigeria"
-                          className={`h-8 sm:h-9 text-xs sm:text-sm ${errors.location ? 'border-red-500' : ''}`}
+                          className={`h-8 sm:h-9 text-xs sm:text-sm ${errors.location ? 'border-destructive' : ''}`}
                         />
                         {errors.location && (
-                          <p className="text-xs text-red-600 flex items-center gap-1">
+                          <p className="text-xs text-destructive flex items-center gap-1">
                             <AlertCircle className="h-3 w-3 flex-shrink-0" />
                             {errors.location}
                           </p>
@@ -631,13 +631,13 @@ function CreateListingPage() {
 
                   {/* Images */}
                   <div className="space-y-3 sm:space-y-4">
-                    <h3 className="text-sm sm:text-base lg:text-lg font-medium text-gray-900">Product Images</h3>
+                    <h3 className="text-sm sm:text-base lg:text-lg font-medium text-foreground">Product Images</h3>
                     
                     <div className="space-y-3 sm:space-y-4">
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center">
-                        <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400 mx-auto mb-2" />
+                      <div className="border-2 border-dashed border-border rounded-lg p-4 sm:p-6 text-center">
+                        <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground mx-auto mb-2" />
                         <Label htmlFor="images" className="cursor-pointer">
-                          <span className="text-xs sm:text-sm text-gray-600">
+                          <span className="text-xs sm:text-sm text-muted-foreground">
                             Click to upload images or drag and drop
                           </span>
                           <Input
@@ -649,7 +649,7 @@ function CreateListingPage() {
                             className="hidden"
                           />
                         </Label>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           PNG, JPG up to 5MB each
                         </p>
                       </div>
@@ -681,7 +681,7 @@ function CreateListingPage() {
 
                   {/* Tags */}
                   <div className="space-y-3 sm:space-y-4">
-                    <h3 className="text-sm sm:text-base lg:text-lg font-medium text-gray-900">Tags</h3>
+                    <h3 className="text-sm sm:text-base lg:text-lg font-medium text-foreground">Tags</h3>
                     
                     <div className="space-y-2 sm:space-y-3">
                       <div className="flex gap-2">
@@ -705,7 +705,7 @@ function CreateListingPage() {
                               <button
                                 type="button"
                                 onClick={() => removeTag(tag)}
-                                className="ml-1 hover:text-red-600"
+                                className="ml-1 hover:text-destructive"
                               >
                                 ×
                               </button>
@@ -715,14 +715,14 @@ function CreateListingPage() {
                       )}
 
                       <div className="space-y-1.5 sm:space-y-2">
-                        <p className="text-xs sm:text-sm text-gray-600">Popular tags:</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Popular tags:</p>
                         <div className="flex flex-wrap gap-1.5 sm:gap-2">
                           {popularTags.map((tag) => (
                             <Badge
                               key={tag}
                               variant="outline"
                               className={`cursor-pointer text-xs ${
-                                formData.tags.includes(tag) ? 'bg-blue-50 text-blue-700 border-blue-200' : ''
+                                formData.tags.includes(tag) ? 'bg-primary/10 text-primary border-primary/10' : ''
                               }`}
                               onClick={() => {
                                 if (formData.tags.includes(tag)) {
@@ -769,52 +769,52 @@ function CreateListingPage() {
           {/* Sidebar */}
           <div className="space-y-4 sm:space-y-6">
             {/* Listing Preview */}
-            <Card className="border border-slate-100 shadow-sm rounded-2xl overflow-hidden bg-white">
+            <Card className="border border-border shadow-sm rounded-2xl overflow-hidden bg-white">
               <CardHeader className="pb-3 px-4 pt-4">
-                <CardTitle className="text-sm font-semibold text-slate-900">Listing Preview</CardTitle>
+                <CardTitle className="text-sm font-semibold text-foreground">Listing Preview</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">How your product card will appear live</CardDescription>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <MarketplaceCard product={previewProduct} className="pointer-events-none border border-slate-100 shadow-sm" />
+                <MarketplaceCard product={previewProduct} className="pointer-events-none border border-border shadow-sm" />
               </CardContent>
             </Card>
 
             {/* Tips */}
-            <Card className="border border-gray-200 h-full">
+            <Card className="border border-border h-full">
               <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                 <CardTitle className="text-sm sm:text-base font-medium">Listing Tips</CardTitle>
               </CardHeader>
               <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 space-y-2 sm:space-y-3">
                 <div className="flex items-start gap-2 text-xs sm:text-sm">
-                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-success mt-0.5 flex-shrink-0" />
                   <span>Use clear, descriptive product names</span>
                 </div>
                 <div className="flex items-start gap-2 text-xs sm:text-sm">
-                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-success mt-0.5 flex-shrink-0" />
                   <span>Include high-quality images</span>
                 </div>
                 <div className="flex items-start gap-2 text-xs sm:text-sm">
-                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-success mt-0.5 flex-shrink-0" />
                   <span>Set competitive pricing</span>
                 </div>
                 <div className="flex items-start gap-2 text-xs sm:text-sm">
-                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-success mt-0.5 flex-shrink-0" />
                   <span>Add relevant tags for better visibility</span>
                 </div>
                 <div className="flex items-start gap-2 text-xs sm:text-sm">
-                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-success mt-0.5 flex-shrink-0" />
                   <span>Keep quantities updated</span>
                 </div>
               </CardContent>
             </Card>
 
             {/* Help */}
-            <Card className="border border-gray-200 h-full">
+            <Card className="border border-border h-full">
               <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                 <CardTitle className="text-sm sm:text-base font-medium">Need Help?</CardTitle>
               </CardHeader>
               <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 space-y-2 sm:space-y-3">
-                <p className="text-xs sm:text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Having trouble creating your listing? Our support team is here to help.
                 </p>
                 <Button variant="outline" size="sm" className="w-full h-8 sm:h-9 text-xs sm:text-sm">

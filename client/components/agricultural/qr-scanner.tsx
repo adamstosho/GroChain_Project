@@ -190,7 +190,7 @@ export function QRScanner({
 
         <CardContent>
           <Tabs defaultValue="scanner" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
               <TabsTrigger value="scanner">Scanner</TabsTrigger>
               <TabsTrigger value="manual">Manual Input</TabsTrigger>
               {showHistory && <TabsTrigger value="history">History</TabsTrigger>}

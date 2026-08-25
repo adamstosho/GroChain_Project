@@ -10,9 +10,6 @@ module.exports = {
       fontFamily: {
         sans: ['var(--font-dm-sans)', 'var(--font-nunito)', 'system-ui', 'sans-serif'],
       },
-      screens: {
-        'xs': '475px',
-      },
     },
   },
   plugins: [],

@@ -26,26 +26,26 @@ interface CommissionDetailsDialogProps {
 const statusConfig = {
   pending: { 
     icon: Clock, 
-    color: "text-yellow-600", 
-    bgColor: "bg-yellow-100",
+    color: "text-warning", 
+    bgColor: "bg-warning/10",
     label: "Pending" 
   },
   approved: { 
     icon: CheckCircle, 
-    color: "text-blue-600", 
-    bgColor: "bg-blue-100",
+    color: "text-primary", 
+    bgColor: "bg-primary/10",
     label: "Approved" 
   },
   paid: { 
     icon: CheckCircle, 
-    color: "text-green-600", 
-    bgColor: "bg-green-100",
+    color: "text-success", 
+    bgColor: "bg-success/10",
     label: "Paid" 
   },
   cancelled: { 
     icon: XCircle, 
-    color: "text-red-600", 
-    bgColor: "bg-red-100",
+    color: "text-destructive", 
+    bgColor: "bg-destructive/10",
     label: "Cancelled" 
   }
 }
@@ -181,7 +181,7 @@ export function CommissionDetailsDialog({ open, onOpenChange, commission }: Comm
               
               {commission.status === 'approved' && (
                 <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                  <div className="w-2 h-2 bg-primary rounded-full" />
                   <div>
                     <p className="text-sm font-medium">Commission Approved</p>
                     <p className="text-xs text-muted-foreground">
@@ -193,7 +193,7 @@ export function CommissionDetailsDialog({ open, onOpenChange, commission }: Comm
               
               {commission.status === 'paid' && commission.paidAt && (
                 <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                  <div className="w-2 h-2 bg-success rounded-full" />
                   <div>
                     <p className="text-sm font-medium">Commission Paid</p>
                     <p className="text-xs text-muted-foreground">

@@ -474,7 +474,7 @@ export function SettingsForm() {
   }
 
   return (
-    <div className="profile-container space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Settings Header - Responsive */}
       <Card>
         <CardHeader>
@@ -505,7 +505,7 @@ export function SettingsForm() {
             <Label className="text-base font-medium">Profile Picture</Label>
             <div className="flex items-center space-x-4">
               <div className="relative">
-                <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center overflow-hidden">
                   {avatarPreview ? (
                     <img
                       src={avatarPreview}
@@ -544,11 +544,11 @@ export function SettingsForm() {
                     />
                   ) : null}
                   {!avatarPreview && !user?.profile?.avatar && (
-                    <User className="w-8 h-8 text-gray-400" />
+                    <User className="w-8 h-8 text-muted-foreground" />
                   )}
                   {/* Hidden fallback avatar for error cases */}
-                  <div className="avatar-fallback absolute inset-0 w-full h-full rounded-full bg-gray-200 items-center justify-center hidden">
-                    <User className="w-8 h-8 text-gray-400" />
+                  <div className="avatar-fallback absolute inset-0 w-full h-full rounded-full bg-muted items-center justify-center hidden">
+                    <User className="w-8 h-8 text-muted-foreground" />
                   </div>
                 </div>
                 <label className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1 cursor-pointer">

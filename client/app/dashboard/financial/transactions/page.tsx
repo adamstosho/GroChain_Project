@@ -266,41 +266,41 @@ export default function TransactionsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-emerald-100 text-emerald-800 border-emerald-200'
-      case 'pending': return 'bg-amber-100 text-amber-800 border-amber-200'
-      case 'failed': return 'bg-red-100 text-red-800 border-red-200'
-      case 'cancelled': return 'bg-gray-100 text-gray-800 border-gray-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 'completed': return 'bg-success/10 text-success border-success/10'
+      case 'pending': return 'bg-warning/10 text-warning border-warning/10'
+      case 'failed': return 'bg-destructive/10 text-destructive border-destructive/10'
+      case 'cancelled': return 'bg-muted text-foreground border-border'
+      default: return 'bg-muted text-foreground border-border'
     }
   }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed': return <CheckCircle className="h-4 w-4 text-emerald-500" />
-      case 'pending': return <Clock className="h-4 w-4 text-amber-500" />
-      case 'failed': return <XCircle className="h-4 w-4 text-red-500" />
-      case 'cancelled': return <XCircle className="h-4 w-4 text-gray-500" />
-      default: return <AlertCircle className="h-4 w-4 text-gray-500" />
+      case 'completed': return <CheckCircle className="h-4 w-4 text-success" />
+      case 'pending': return <Clock className="h-4 w-4 text-warning" />
+      case 'failed': return <XCircle className="h-4 w-4 text-destructive" />
+      case 'cancelled': return <XCircle className="h-4 w-4 text-muted-foreground" />
+      default: return <AlertCircle className="h-4 w-4 text-muted-foreground" />
     }
   }
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'income': return <ArrowDownLeft className="h-4 w-4 text-emerald-500" />
-      case 'expense': return <ArrowUpRight className="h-4 w-4 text-red-500" />
-      case 'transfer': return <ArrowUpRight className="h-4 w-4 text-blue-500" />
-      case 'refund': return <ArrowDownLeft className="h-4 w-4 text-purple-500" />
-      default: return <Minus className="h-4 w-4 text-gray-500" />
+      case 'income': return <ArrowDownLeft className="h-4 w-4 text-success" />
+      case 'expense': return <ArrowUpRight className="h-4 w-4 text-destructive" />
+      case 'transfer': return <ArrowUpRight className="h-4 w-4 text-primary" />
+      case 'refund': return <ArrowDownLeft className="h-4 w-4 text-accent" />
+      default: return <Minus className="h-4 w-4 text-muted-foreground" />
     }
   }
 
   const getSourceIcon = (source: string) => {
     switch (source) {
-      case 'marketplace': return <Package className="h-4 w-4 text-blue-500" />
-      case 'loan': return <CreditCard className="h-4 w-4 text-green-500" />
-      case 'insurance': return <Shield className="h-4 w-4 text-purple-500" />
-      case 'transfer': return <ArrowUpRight className="h-4 w-4 text-indigo-500" />
-      default: return <Banknote className="h-4 w-4 text-gray-500" />
+      case 'marketplace': return <Package className="h-4 w-4 text-primary" />
+      case 'loan': return <CreditCard className="h-4 w-4 text-success" />
+      case 'insurance': return <Shield className="h-4 w-4 text-accent" />
+      case 'transfer': return <ArrowUpRight className="h-4 w-4 text-primary" />
+      default: return <Banknote className="h-4 w-4 text-muted-foreground" />
     }
   }
 
@@ -341,14 +341,14 @@ export default function TransactionsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
+              <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-3">
-                  <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-5 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-8 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-8 bg-muted rounded mb-2"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
@@ -364,8 +364,8 @@ export default function TransactionsPage() {
         {/* Page Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-gray-900">Transactions</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-semibold text-foreground">Transactions</h1>
+            <p className="text-muted-foreground">
               View and manage your financial transaction history
             </p>
           </div>
@@ -379,62 +379,62 @@ export default function TransactionsPage() {
         {/* Transaction Stats */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Income</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Income</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-emerald-600">
+                <div className="text-2xl font-bold text-success">
                   ₦{(stats.totalIncome / 1000).toFixed(0)}K
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <TrendingUp className="h-4 w-4 text-emerald-500" />
-                  <span className="text-sm text-emerald-600">+12.5% from last month</span>
+                  <TrendingUp className="h-4 w-4 text-success" />
+                  <span className="text-sm text-success">+12.5% from last month</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Expenses</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-2xl font-bold text-destructive">
                   ₦{(stats.totalExpenses / 1000).toFixed(0)}K
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <TrendingDown className="h-4 w-4 text-red-500" />
-                  <span className="text-sm text-red-600">-8.2% from last month</span>
+                  <TrendingDown className="h-4 w-4 text-destructive" />
+                  <span className="text-sm text-destructive">-8.2% from last month</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Net Amount</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Net Amount</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-primary">
                   ₦{(stats.netAmount / 1000).toFixed(0)}K
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <TrendingUp className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm text-blue-600">+18.7% from last month</span>
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-primary">+18.7% from last month</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Pending Amount</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Pending Amount</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-amber-600">
+                <div className="text-2xl font-bold text-warning">
                   ₦{(stats.pendingAmount / 1000).toFixed(0)}K
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <Clock className="h-4 w-4 text-amber-500" />
-                  <span className="text-sm text-amber-600">1 transaction pending</span>
+                  <Clock className="h-4 w-4 text-warning" />
+                  <span className="text-sm text-warning">1 transaction pending</span>
                 </div>
               </CardContent>
             </Card>
@@ -442,7 +442,7 @@ export default function TransactionsPage() {
         )}
 
         {/* Filters and Search */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader>
             <CardTitle className="text-base font-medium">Filters & Search</CardTitle>
           </CardHeader>
@@ -509,7 +509,7 @@ export default function TransactionsPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Search</label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search transactions..."
                     value={filters.search}
@@ -523,7 +523,7 @@ export default function TransactionsPage() {
         </Card>
 
         {/* Transactions Table */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -542,11 +542,11 @@ export default function TransactionsPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-600">
+                  <tr className="border-b border-border">
+                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
                       <button
                         onClick={() => handleSort('date')}
-                        className="flex items-center gap-2 hover:text-gray-900"
+                        className="flex items-center gap-2 hover:text-foreground"
                       >
                         Date
                         {sortBy === 'date' && (
@@ -554,13 +554,13 @@ export default function TransactionsPage() {
                         )}
                       </button>
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-600">Type</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-600">Description</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-600">Source</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-600">
+                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Type</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Description</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Source</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
                       <button
                         onClick={() => handleSort('amount')}
-                        className="flex items-center gap-2 hover:text-gray-900"
+                        className="flex items-center gap-2 hover:text-foreground"
                       >
                         Amount
                         {sortBy === 'amount' && (
@@ -568,18 +568,18 @@ export default function TransactionsPage() {
                         )}
                       </button>
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-600">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-600">Actions</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Status</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedTransactions.map((transaction) => (
-                    <tr key={transaction.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <tr key={transaction.id} className="border-b border-border hover:bg-muted">
                       <td className="py-3 px-4">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-foreground">
                           {new Date(transaction.date).toLocaleDateString()}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-muted-foreground">
                           {new Date(transaction.date).toLocaleTimeString()}
                         </div>
                       </td>
@@ -593,11 +593,11 @@ export default function TransactionsPage() {
                       </td>
                       <td className="py-3 px-4">
                         <div className="max-w-xs">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-foreground">
                             {transaction.description}
                           </div>
                           {transaction.metadata && (
-                            <div className="text-xs text-gray-500 mt-1">
+                            <div className="text-xs text-muted-foreground mt-1">
                               {transaction.metadata.cropType && `${transaction.metadata.cropType} - ${transaction.metadata.quantity}kg`}
                               {transaction.metadata.buyerName && ` • Buyer: ${transaction.metadata.buyerName}`}
                             </div>
@@ -607,17 +607,17 @@ export default function TransactionsPage() {
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           {getSourceIcon(transaction.source)}
-                          <span className="text-sm text-gray-600 capitalize">
+                          <span className="text-sm text-muted-foreground capitalize">
                             {transaction.source}
                           </span>
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className={`text-sm font-medium ${transaction.type === 'income' ? 'text-emerald-600' : 'text-red-600'
+                        <div className={`text-sm font-medium ${transaction.type === 'income' ? 'text-success' : 'text-destructive'
                           }`}>
                           {transaction.type === 'income' ? '+' : '-'}₦{transaction.amount.toLocaleString()}
                         </div>
-                        <div className="text-xs text-gray-500">{transaction.currency}</div>
+                        <div className="text-xs text-muted-foreground">{transaction.currency}</div>
                       </td>
                       <td className="py-3 px-4">
                         <Badge className={getStatusColor(transaction.status)} variant="outline">
@@ -644,7 +644,7 @@ export default function TransactionsPage() {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-6">
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-muted-foreground">
                   Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, sortedTransactions.length)} of {sortedTransactions.length} transactions
                 </div>
                 <div className="flex gap-2">

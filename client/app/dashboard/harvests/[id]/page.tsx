@@ -128,17 +128,17 @@ export default function HarvestDetailPage() {
 
   const getQualityBadge = (quality: string) => {
     const q = quality.toLowerCase()
-    if (q === 'excellent') return <Badge className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-emerald-200 font-semibold px-2.5 py-0.5 capitalize">Excellent Grade</Badge>
-    if (q === 'good') return <Badge className="bg-blue-100 hover:bg-blue-200 text-blue-800 border-blue-200 font-semibold px-2.5 py-0.5 capitalize">Good Grade</Badge>
-    if (q === 'fair') return <Badge className="bg-amber-100 hover:bg-amber-200 text-amber-800 border-amber-200 font-semibold px-2.5 py-0.5 capitalize">Fair Grade</Badge>
-    return <Badge className="bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200 font-semibold px-2.5 py-0.5 capitalize">{quality}</Badge>
+    if (q === 'excellent') return <Badge className="bg-success/10 hover:bg-success/10 text-success border-success/10 font-semibold px-2.5 py-0.5 capitalize">Excellent Grade</Badge>
+    if (q === 'good') return <Badge className="bg-primary/10 hover:bg-primary/10 text-primary border-primary/10 font-semibold px-2.5 py-0.5 capitalize">Good Grade</Badge>
+    if (q === 'fair') return <Badge className="bg-warning/10 hover:bg-warning/10 text-warning border-warning/10 font-semibold px-2.5 py-0.5 capitalize">Fair Grade</Badge>
+    return <Badge className="bg-muted hover:bg-muted text-foreground border-border font-semibold px-2.5 py-0.5 capitalize">{quality}</Badge>
   }
 
   const getStatusBadge = (status: string) => {
     const s = status.toLowerCase()
     if (s === 'approved' || s === 'verified') {
       return (
-        <Badge className="bg-emerald-500 text-white font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
+        <Badge className="bg-success text-white font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
           <CheckCircle2 className="h-3.5 w-3.5" />
           <span>Verified Batch</span>
         </Badge>
@@ -146,7 +146,7 @@ export default function HarvestDetailPage() {
     }
     if (s === 'listed') {
       return (
-        <Badge className="bg-blue-500 text-white font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
+        <Badge className="bg-primary text-white font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
           <ExternalLink className="h-3.5 w-3.5" />
           <span>Listed Market</span>
         </Badge>
@@ -154,14 +154,14 @@ export default function HarvestDetailPage() {
     }
     if (s === 'rejected') {
       return (
-        <Badge className="bg-rose-500 text-white font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
+        <Badge className="bg-destructive text-white font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
           <AlertCircle className="h-3.5 w-3.5" />
           <span>Rejected Batch</span>
         </Badge>
       )
     }
     return (
-      <Badge className="bg-amber-500 text-white font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
+      <Badge className="bg-warning text-white font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
         <Clock className="h-3.5 w-3.5 animate-pulse" />
         <span>Pending Review</span>
       </Badge>
@@ -211,8 +211,8 @@ export default function HarvestDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center space-y-4">
-          <Loader2 className="h-10 w-10 animate-spin text-emerald-600 mx-auto" />
-          <p className="text-sm font-semibold text-slate-500">Loading batch passport details...</p>
+          <Loader2 className="h-10 w-10 animate-spin text-success mx-auto" />
+          <p className="text-sm font-semibold text-muted-foreground">Loading batch passport details...</p>
         </div>
       </div>
     )
@@ -221,10 +221,10 @@ export default function HarvestDetailPage() {
   if (!harvest) {
     return (
       <div className="max-w-md mx-auto text-center py-12 space-y-4">
-        <AlertCircle className="h-12 w-12 text-rose-500 mx-auto" />
-        <h2 className="text-lg font-bold text-slate-900">Record Not Found</h2>
-        <p className="text-sm text-slate-500">The harvest record you are looking for is missing or invalid.</p>
-        <Button asChild className="bg-emerald-600 hover:bg-emerald-700">
+        <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+        <h2 className="text-lg font-bold text-foreground">Record Not Found</h2>
+        <p className="text-sm text-muted-foreground">The harvest record you are looking for is missing or invalid.</p>
+        <Button asChild className="bg-success hover:bg-success">
           <Link href="/dashboard/harvests">Back to Registry</Link>
         </Button>
       </div>
@@ -238,7 +238,7 @@ export default function HarvestDetailPage() {
     <div className="max-w-6xl mx-auto space-y-6 px-2 sm:px-4">
       
       {/* Top Breadcrumb & Actions Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
         <div className="space-y-1.5">
           <div className="flex items-center gap-1">
             <Button variant="ghost" asChild className="h-8 px-2 -ml-2 text-muted-foreground hover:text-foreground">
@@ -249,7 +249,7 @@ export default function HarvestDetailPage() {
             </Button>
           </div>
           <div className="flex items-center flex-wrap gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">{harvest.cropType} Batch</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">{harvest.cropType} Batch</h1>
             {getStatusBadge(harvest.status)}
           </div>
           <p className="text-xs font-mono text-muted-foreground">BATCH ID: {harvest.batchId || harvest._id}</p>
@@ -257,15 +257,15 @@ export default function HarvestDetailPage() {
 
         {/* Dynamic CTA Header Actions */}
         <div className="flex items-center flex-wrap gap-2">
-          <Button variant="outline" asChild size="sm" className="h-9 text-xs border-slate-200">
+          <Button variant="outline" asChild size="sm" className="h-9 text-xs border-border">
             <Link href={`/dashboard/harvests/${harvest._id}/edit`} className="flex items-center gap-1.5">
-              <Edit className="h-3.5 w-3.5 text-slate-500" />
+              <Edit className="h-3.5 w-3.5 text-muted-foreground" />
               <span>Edit Attributes</span>
             </Link>
           </Button>
 
           {isApproved && (
-            <Button asChild size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-9 text-xs shadow-md shadow-emerald-600/10">
+            <Button asChild size="sm" className="bg-success hover:bg-success text-white h-9 text-xs shadow-md shadow-emerald-600/10">
               <Link href={`/dashboard/marketplace/new?harvestId=${harvest._id}`} className="flex items-center gap-1">
                 <Plus className="h-3.5 w-3.5" />
                 <span>List on Marketplace</span>
@@ -276,7 +276,7 @@ export default function HarvestDetailPage() {
           {isListed && (
             <Button variant="secondary" asChild size="sm" className="h-9 text-xs">
               <Link href="/dashboard/marketplace" className="flex items-center gap-1">
-                <ExternalLink className="h-3.5 w-3.5 text-slate-600" />
+                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>View Listing</span>
               </Link>
             </Button>
@@ -291,57 +291,57 @@ export default function HarvestDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Produce Details Card */}
-          <Card className="border border-slate-100 rounded-2xl shadow-sm overflow-hidden bg-white">
-            <CardHeader className="bg-slate-50/40 border-b border-slate-100 px-4 sm:px-6 py-4">
-              <CardTitle className="text-sm sm:text-base font-semibold text-slate-900 flex items-center gap-2">
-                <Package className="h-4 w-4 text-emerald-600" />
+          <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-white">
+            <CardHeader className="bg-muted/40 border-b border-border px-4 sm:px-6 py-4">
+              <CardTitle className="text-sm sm:text-base font-semibold text-foreground flex items-center gap-2">
+                <Package className="h-4 w-4 text-success" />
                 Produce Specifications
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 space-y-5">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div className="space-y-1">
-                  <span className="text-[11px] font-medium text-slate-400 block uppercase">Variety</span>
-                  <span className="text-xs sm:text-sm font-semibold text-slate-800">{harvest.variety || "Standard Variety"}</span>
+                  <span className="text-[11px] font-medium text-muted-foreground block uppercase">Variety</span>
+                  <span className="text-xs sm:text-sm font-semibold text-foreground">{harvest.variety || "Standard Variety"}</span>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[11px] font-medium text-slate-400 block uppercase">Batch Yield</span>
-                  <span className="text-xs sm:text-sm font-semibold text-slate-800">{harvest.quantity.toLocaleString()} {harvest.unit}</span>
+                  <span className="text-[11px] font-medium text-muted-foreground block uppercase">Batch Yield</span>
+                  <span className="text-xs sm:text-sm font-semibold text-foreground">{harvest.quantity.toLocaleString()} {harvest.unit}</span>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[11px] font-medium text-slate-400 block uppercase">Quality Rating</span>
+                  <span className="text-[11px] font-medium text-muted-foreground block uppercase">Quality Rating</span>
                   <div className="pt-0.5">{getQualityBadge(harvest.quality)}</div>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[11px] font-medium text-slate-400 block uppercase">Harvest Date</span>
-                  <span className="text-xs sm:text-sm font-semibold text-slate-800">{formatDate(harvest.date)}</span>
+                  <span className="text-[11px] font-medium text-muted-foreground block uppercase">Harvest Date</span>
+                  <span className="text-xs sm:text-sm font-semibold text-foreground">{formatDate(harvest.date)}</span>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[11px] font-medium text-slate-400 block uppercase">Moisture Content</span>
-                  <span className="text-xs sm:text-sm font-semibold text-slate-800">{harvest.moistureContent ?? harvest.qualityMetrics?.moistureContent ?? "N/A"}%</span>
+                  <span className="text-[11px] font-medium text-muted-foreground block uppercase">Moisture Content</span>
+                  <span className="text-xs sm:text-sm font-semibold text-foreground">{harvest.moistureContent ?? harvest.qualityMetrics?.moistureContent ?? "N/A"}%</span>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[11px] font-medium text-slate-400 block uppercase">Base Price</span>
-                  <span className="text-xs sm:text-sm font-semibold text-emerald-700 font-mono">
+                  <span className="text-[11px] font-medium text-muted-foreground block uppercase">Base Price</span>
+                  <span className="text-xs sm:text-sm font-semibold text-success font-mono">
                     {harvest.price ? `₦${harvest.price.toLocaleString()}/${harvest.unit}` : "Not Set"}
                   </span>
                 </div>
               </div>
 
-              <Separator className="bg-slate-100" />
+              <Separator className="bg-muted" />
 
               {/* Location Specification with GPS Badge */}
               <div className="space-y-2.5">
-                <span className="text-[11px] font-medium text-slate-400 block uppercase">Origin & Geolocation</span>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/70 p-3 rounded-xl border border-slate-100">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-700">
-                    <MapPin className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                <span className="text-[11px] font-medium text-muted-foreground block uppercase">Origin & Geolocation</span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/70 p-3 rounded-xl border border-border">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-foreground">
+                    <MapPin className="h-4 w-4 text-success flex-shrink-0" />
                     <span className="font-medium truncate">
                       {typeof harvest.location === 'string' ? harvest.location : 'Origin Recorded'}
                     </span>
                   </div>
                   {harvest.geoLocation && (
-                    <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-white border border-emerald-100 rounded-lg px-2.5 py-1 font-mono shadow-sm self-start sm:self-auto">
+                    <div className="flex items-center gap-1.5 text-xs text-success bg-white border border-success/10 rounded-lg px-2.5 py-1 font-mono shadow-sm self-start sm:self-auto">
                       <Navigation className="h-3 w-3" />
                       <span>{harvest.geoLocation.lat.toFixed(6)}, {harvest.geoLocation.lng.toFixed(6)}</span>
                     </div>
@@ -352,8 +352,8 @@ export default function HarvestDetailPage() {
               {/* Remarks/Notes */}
               {harvest.description && (
                 <div className="space-y-2">
-                  <span className="text-[11px] font-medium text-slate-400 block uppercase">Traceability Notes</span>
-                  <p className="text-xs text-slate-600 bg-slate-50/50 border border-slate-100 rounded-xl p-3.5 leading-relaxed">
+                  <span className="text-[11px] font-medium text-muted-foreground block uppercase">Traceability Notes</span>
+                  <p className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-xl p-3.5 leading-relaxed">
                     {harvest.description}
                   </p>
                 </div>
@@ -361,11 +361,11 @@ export default function HarvestDetailPage() {
 
               {/* Sustainability Indicators */}
               {(harvest.organic || harvest.sustainability?.organicCertified) && (
-                <div className="bg-emerald-50/40 border border-emerald-100/50 rounded-xl p-3.5 flex items-start gap-2.5">
-                  <Shield className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                <div className="bg-success/40 border border-success/50 rounded-xl p-3.5 flex items-start gap-2.5">
+                  <Shield className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                   <div>
-                    <h5 className="text-xs font-semibold text-emerald-950">Certified Organic Produce</h5>
-                    <p className="text-[11px] text-emerald-800 leading-snug mt-0.5">This crop batch complies with strict chemical-free agroecology rules. On-chain validation logged.</p>
+                    <h5 className="text-xs font-semibold text-success">Certified Organic Produce</h5>
+                    <p className="text-[11px] text-success leading-snug mt-0.5">This crop batch complies with strict chemical-free agroecology rules. On-chain validation logged.</p>
                   </div>
                 </div>
               )}
@@ -374,17 +374,17 @@ export default function HarvestDetailPage() {
 
           {/* Visual Photographs Card */}
           {harvest.images && harvest.images.length > 0 && (
-            <Card className="border border-slate-100 rounded-2xl shadow-sm overflow-hidden bg-white">
-              <CardHeader className="bg-slate-50/40 border-b border-slate-100 px-4 sm:px-6 py-4">
-                <CardTitle className="text-sm sm:text-base font-semibold text-slate-900 flex items-center gap-2">
-                  <Camera className="h-4 w-4 text-emerald-600" />
+            <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-white">
+              <CardHeader className="bg-muted/40 border-b border-border px-4 sm:px-6 py-4">
+                <CardTitle className="text-sm sm:text-base font-semibold text-foreground flex items-center gap-2">
+                  <Camera className="h-4 w-4 text-success" />
                   Crop Photographs ({harvest.images.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 sm:p-6">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {harvest.images.map((image, idx) => (
-                    <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border border-slate-100 hover:border-emerald-500 transition-colors shadow-sm bg-slate-50 group">
+                    <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border border-border hover:border-success transition-colors shadow-sm bg-muted group">
                       <Image
                         src={image}
                         alt={`Snapshot ${idx + 1}`}
@@ -404,26 +404,26 @@ export default function HarvestDetailPage() {
 
           {/* Agronomic Conditions Card */}
           {harvest.agriculturalData && (
-            <Card className="border border-slate-100 rounded-2xl shadow-sm overflow-hidden bg-white">
-              <CardHeader className="bg-slate-50/40 border-b border-slate-100 px-4 sm:px-6 py-4">
-                <CardTitle className="text-sm sm:text-base font-semibold text-slate-900 flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-emerald-600" />
+            <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-white">
+              <CardHeader className="bg-muted/40 border-b border-border px-4 sm:px-6 py-4">
+                <CardTitle className="text-sm sm:text-base font-semibold text-foreground flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-success" />
                   Environmental & Agronomic Profile
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 sm:p-6">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Soil Type</span>
-                    <span className="text-xs sm:text-sm font-semibold text-slate-700 mt-1 block capitalize">{harvest.agriculturalData.soilType || "N/A"}</span>
+                  <div className="p-3 bg-muted rounded-xl border border-border">
+                    <span className="text-[10px] font-bold text-muted-foreground block uppercase">Soil Type</span>
+                    <span className="text-xs sm:text-sm font-semibold text-foreground mt-1 block capitalize">{harvest.agriculturalData.soilType || "N/A"}</span>
                   </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Water Supply</span>
-                    <span className="text-xs sm:text-sm font-semibold text-slate-700 mt-1 block capitalize">{harvest.agriculturalData.irrigationMethod || "Rainfed"}</span>
+                  <div className="p-3 bg-muted rounded-xl border border-border">
+                    <span className="text-[10px] font-bold text-muted-foreground block uppercase">Water Supply</span>
+                    <span className="text-xs sm:text-sm font-semibold text-foreground mt-1 block capitalize">{harvest.agriculturalData.irrigationMethod || "Rainfed"}</span>
                   </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Pest Strategy</span>
-                    <span className="text-xs sm:text-sm font-semibold text-slate-700 mt-1 block capitalize">{harvest.agriculturalData.pestControl || "Manual/Organic"}</span>
+                  <div className="p-3 bg-muted rounded-xl border border-border">
+                    <span className="text-[10px] font-bold text-muted-foreground block uppercase">Pest Strategy</span>
+                    <span className="text-xs sm:text-sm font-semibold text-foreground mt-1 block capitalize">{harvest.agriculturalData.pestControl || "Manual/Organic"}</span>
                   </div>
                 </div>
               </CardContent>
@@ -436,15 +436,15 @@ export default function HarvestDetailPage() {
           
           {/* Visual QR Passport Card */}
           {(harvest.qrCode || harvest.qrCodeData) && (
-            <Card className="border border-slate-100 rounded-2xl shadow-sm overflow-hidden bg-white">
-              <CardHeader className="bg-slate-50/40 border-b border-slate-100 px-4 sm:px-5 py-4">
-                <CardTitle className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                  <QrCode className="h-4 w-4 text-emerald-600" />
+            <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-white">
+              <CardHeader className="bg-muted/40 border-b border-border px-4 sm:px-5 py-4">
+                <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <QrCode className="h-4 w-4 text-success" />
                   Authenticity QR Badge
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 sm:p-5 text-center space-y-4">
-                <div className="inline-block p-3 border-2 border-slate-100 bg-white rounded-2xl shadow-sm">
+                <div className="inline-block p-3 border-2 border-border bg-white rounded-2xl shadow-sm">
                   {harvest.qrCode ? (
                     <Image
                       src={harvest.qrCode}
@@ -454,31 +454,31 @@ export default function HarvestDetailPage() {
                       className="rounded-lg w-40 h-40 mx-auto"
                     />
                   ) : (
-                    <div className="w-40 h-40 bg-slate-50 flex flex-col items-center justify-center rounded-lg border">
-                      <QrCode className="h-8 w-8 text-slate-300 mb-1" />
-                      <span className="text-[10px] text-slate-400 font-medium">QR Synchronized</span>
+                    <div className="w-40 h-40 bg-muted flex flex-col items-center justify-center rounded-lg border">
+                      <QrCode className="h-8 w-8 text-muted-foreground mb-1" />
+                      <span className="text-[10px] text-muted-foreground font-medium">QR Synchronized</span>
                     </div>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-slate-900">Cryptographic Identity Badge</h4>
-                  <p className="text-[11px] text-slate-500 leading-snug px-2">Buyers scan this QR code directly to verify provenance parameters on the public verify site.</p>
+                  <h4 className="text-xs font-bold text-foreground">Cryptographic Identity Badge</h4>
+                  <p className="text-[11px] text-muted-foreground leading-snug px-2">Buyers scan this QR code directly to verify provenance parameters on the public verify site.</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 pt-2">
-                  <Button variant="outline" size="sm" onClick={handleDownloadQR} className="h-9 text-xs border-slate-200">
-                    <Download className="h-3.5 w-3.5 mr-1 text-slate-500" />
+                  <Button variant="outline" size="sm" onClick={handleDownloadQR} className="h-9 text-xs border-border">
+                    <Download className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
                     <span>Save QR</span>
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleShare} disabled={sharing} className="h-9 text-xs border-slate-200">
-                    <Share2 className="h-3.5 w-3.5 mr-1 text-slate-500" />
+                  <Button variant="outline" size="sm" onClick={handleShare} disabled={sharing} className="h-9 text-xs border-border">
+                    <Share2 className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
                     <span>{sharing ? "Sharing..." : "Share URL"}</span>
                   </Button>
                 </div>
 
-                <Button variant="secondary" className="w-full text-xs h-9 bg-slate-100 text-slate-700 hover:bg-slate-200" onClick={() => window.open(`/verify/${harvest.batchId}`, '_blank')}>
-                  <Eye className="h-3.5 w-3.5 mr-1 text-slate-600" />
+                <Button variant="secondary" className="w-full text-xs h-9 bg-muted text-foreground hover:bg-muted" onClick={() => window.open(`/verify/${harvest.batchId}`, '_blank')}>
+                  <Eye className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
                   <span>Public Portal Demo</span>
                 </Button>
               </CardContent>
@@ -486,37 +486,37 @@ export default function HarvestDetailPage() {
           )}
 
           {/* On-Chain Verification Timeline */}
-          <Card className="border border-slate-100 rounded-2xl shadow-sm overflow-hidden bg-white">
-            <CardHeader className="bg-slate-50/40 border-b border-slate-100 px-4 sm:px-5 py-4">
-              <CardTitle className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-emerald-600" />
+          <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-white">
+            <CardHeader className="bg-muted/40 border-b border-border px-4 sm:px-5 py-4">
+              <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <FileText className="h-4 w-4 text-success" />
                 On-Chain Audit Trails
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 sm:p-5">
-              <div className="relative border-l border-slate-200 pl-4 space-y-6">
+              <div className="relative border-l border-border pl-4 space-y-6">
                 
                 {/* Milestone 1: Harvest Logged */}
                 <div className="relative">
-                  <div className="absolute -left-[21px] top-0.5 bg-emerald-600 text-white rounded-full p-0.5 border-4 border-white">
+                  <div className="absolute -left-[21px] top-0.5 bg-success text-white rounded-full p-0.5 border-4 border-white">
                     <CheckCircle2 className="h-3 w-3" />
                   </div>
                   <div>
-                    <h5 className="text-xs font-bold text-slate-900">Batch Logged On-Chain</h5>
-                    <p className="text-[10px] text-slate-400 mt-0.5">{formatDate(harvest.createdAt || harvest.date)}</p>
-                    <p className="text-[11px] text-slate-600 mt-1 leading-tight">Farmer compiled crop volume and verified GPS yield origin.</p>
+                    <h5 className="text-xs font-bold text-foreground">Batch Logged On-Chain</h5>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{formatDate(harvest.createdAt || harvest.date)}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">Farmer compiled crop volume and verified GPS yield origin.</p>
                   </div>
                 </div>
 
                 {/* Milestone 2: Quality Inspection */}
                 <div className="relative">
-                  <div className="absolute -left-[21px] top-0.5 bg-emerald-600 text-white rounded-full p-0.5 border-4 border-white">
+                  <div className="absolute -left-[21px] top-0.5 bg-success text-white rounded-full p-0.5 border-4 border-white">
                     <CheckCircle2 className="h-3 w-3" />
                   </div>
                   <div>
-                    <h5 className="text-xs font-bold text-slate-900">Quality Verified</h5>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Automatic validation analysis</p>
-                    <p className="text-[11px] text-slate-600 mt-1 leading-tight">Grade {harvest.qualityGrade || "B"} certification matching moisture standards check.</p>
+                    <h5 className="text-xs font-bold text-foreground">Quality Verified</h5>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Automatic validation analysis</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">Grade {harvest.qualityGrade || "B"} certification matching moisture standards check.</p>
                   </div>
                 </div>
 
@@ -525,15 +525,15 @@ export default function HarvestDetailPage() {
                   <div className={cn(
                     "absolute -left-[21px] top-0.5 rounded-full p-0.5 border-4 border-white",
                     isApproved || isListed
-                      ? "bg-emerald-600 text-white"
-                      : "bg-amber-500 text-white animate-pulse"
+                      ? "bg-success text-white"
+                      : "bg-warning text-white animate-pulse"
                   )}>
                     {isApproved || isListed ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                   </div>
                   <div>
-                    <h5 className="text-xs font-bold text-slate-900">Administrative Check</h5>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Audit checklist approval</p>
-                    <p className="text-[11px] text-slate-600 mt-1 leading-tight">
+                    <h5 className="text-xs font-bold text-foreground">Administrative Check</h5>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Audit checklist approval</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">
                       {isApproved || isListed
                         ? "Batch inspection approved. Released for commercial trading."
                         : "Awaiting administrative review validation from cooperative auditor."}
@@ -546,15 +546,15 @@ export default function HarvestDetailPage() {
                   <div className={cn(
                     "absolute -left-[21px] top-0.5 rounded-full p-0.5 border-4 border-white",
                     isListed
-                      ? "bg-emerald-600 text-white"
-                      : "bg-slate-100 text-slate-400"
+                      ? "bg-success text-white"
+                      : "bg-muted text-muted-foreground"
                   )}>
                     <ExternalLink className="h-3 w-3" />
                   </div>
                   <div>
-                    <h5 className="text-xs font-bold text-slate-900">Public Marketplace</h5>
-                    <p className="text-[10px] text-slate-400 mt-0.5">{isListed ? "Active Live Listing" : "Listing Pending"}</p>
-                    <p className="text-[11px] text-slate-600 mt-1 leading-tight">
+                    <h5 className="text-xs font-bold text-foreground">Public Marketplace</h5>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{isListed ? "Active Live Listing" : "Listing Pending"}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">
                       {isListed
                         ? `Listed on marketplace. Available for verified escrow purchase.`
                         : "Ready to list. Tap the Marketplace CTA button to go live."}

@@ -391,7 +391,7 @@ export function HarvestForm({
           <span>Step {currentStep} of 4: {steps[currentStep - 1].name}</span>
           <span className="text-primary font-bold">{Math.round(completionPercentage)}% Complete</span>
         </div>
-        <Progress value={completionPercentage} className="h-2 bg-slate-100 rounded-full" />
+        <Progress value={completionPercentage} className="h-2 bg-muted rounded-full" />
         
         {/* Horizontal Wizard Stepper Navigation */}
         <div className="grid grid-cols-4 gap-2 pt-2">
@@ -407,19 +407,19 @@ export function HarvestForm({
                 className={cn(
                   "flex flex-col sm:flex-row items-center gap-2 p-2.5 rounded-xl border text-left transition-all duration-300 group",
                   isActive 
-                    ? "bg-emerald-50/50 border-emerald-500 shadow-sm text-emerald-950" 
+                    ? "bg-success/50 border-success shadow-sm text-success" 
                     : isCompleted 
-                      ? "bg-emerald-50/20 border-emerald-100 text-emerald-800" 
-                      : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"
+                      ? "bg-success/20 border-success/10 text-success" 
+                      : "bg-white border-border text-muted-foreground hover:border-border"
                 )}
               >
                 <div className={cn(
                   "flex items-center justify-center w-8 h-8 rounded-lg transition-colors",
                   isActive 
-                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20" 
+                    ? "bg-success text-white shadow-md shadow-emerald-600/20" 
                     : isCompleted 
-                      ? "bg-emerald-100 text-emerald-700" 
-                      : "bg-slate-50 text-slate-400 group-hover:bg-slate-100"
+                      ? "bg-success/10 text-success" 
+                      : "bg-muted text-muted-foreground group-hover:bg-muted"
                 )}>
                   {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <IconComponent className="h-4 w-4" />}
                 </div>
@@ -433,7 +433,7 @@ export function HarvestForm({
         </div>
       </div>
 
-      <Separator className="bg-slate-100" />
+      <Separator className="bg-muted" />
 
       {/* Main Form Fields wrapper */}
       <Form {...form}>
@@ -442,11 +442,11 @@ export function HarvestForm({
           {/* STEP 1: Crop & Origin */}
           {currentStep === 1 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-3 duration-300">
-              <div className="bg-emerald-50/30 p-3 rounded-lg border border-emerald-100/50 flex gap-3 items-start">
-                <Leaf className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+              <div className="bg-success/30 p-3 rounded-lg border border-success/50 flex gap-3 items-start">
+                <Leaf className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="text-xs font-semibold text-emerald-950">Crop Details & Origin</h4>
-                  <p className="text-[11px] text-emerald-800">Identify the type of crop harvested and specify the geographic coordinates of the harvest field for traceability.</p>
+                  <h4 className="text-xs font-semibold text-success">Crop Details & Origin</h4>
+                  <p className="text-[11px] text-success">Identify the type of crop harvested and specify the geographic coordinates of the harvest field for traceability.</p>
                 </div>
               </div>
 
@@ -459,7 +459,7 @@ export function HarvestForm({
                       <FormLabel className="text-xs sm:text-sm font-semibold">Crop Type *</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger className="h-10 text-xs sm:text-sm focus:ring-emerald-500 focus:border-emerald-500 border-slate-200">
+                          <SelectTrigger className="h-10 text-xs sm:text-sm focus:ring-success focus:border-success border-border">
                             <SelectValue placeholder="Select harvested crop" />
                           </SelectTrigger>
                         </FormControl>
@@ -483,7 +483,7 @@ export function HarvestForm({
                     <FormItem>
                       <FormLabel className="text-xs sm:text-sm font-semibold">Variety/Cultivar *</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Basmati, Golden Yellow" className="h-10 text-xs sm:text-sm focus-visible:ring-emerald-500 border-slate-200" {...field} />
+                        <Input placeholder="e.g. Basmati, Golden Yellow" className="h-10 text-xs sm:text-sm focus-visible:ring-success border-border" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -504,12 +504,12 @@ export function HarvestForm({
                             <Button
                               variant="outline"
                               className={cn(
-                                "w-full pl-3 text-left font-normal h-10 text-xs sm:text-sm border-slate-200",
+                                "w-full pl-3 text-left font-normal h-10 text-xs sm:text-sm border-border",
                                 !field.value && "text-muted-foreground"
                               )}
                             >
                               {field.value ? format(field.value, "PPP") : <span>Select harvest date</span>}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50 text-slate-500" />
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50 text-muted-foreground" />
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
@@ -539,7 +539,7 @@ export function HarvestForm({
                           type="number"
                           step="0.01"
                           placeholder="0.00"
-                          className="h-10 text-xs sm:text-sm focus-visible:ring-emerald-500 border-slate-200"
+                          className="h-10 text-xs sm:text-sm focus-visible:ring-success border-border"
                           {...field}
                           onChange={(e) => {
                             const val = e.target.value
@@ -560,7 +560,7 @@ export function HarvestForm({
                       <FormLabel className="text-xs sm:text-sm font-semibold">Measurement Unit *</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger className="h-10 text-xs sm:text-sm focus:ring-emerald-500 border-slate-200">
+                          <SelectTrigger className="h-10 text-xs sm:text-sm focus:ring-success border-border">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
@@ -587,26 +587,26 @@ export function HarvestForm({
                       <span>Farm Field Location *</span>
                       <div className="flex items-center gap-1.5 text-[11px] font-normal">
                         {locationStatus === 'success' && (
-                          <span className="text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> GPS Logged</span>
+                          <span className="text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> GPS Logged</span>
                         )}
                         {locationStatus === 'detecting' && (
-                          <span className="text-blue-600 flex items-center gap-1 animate-pulse"><Loader2 className="h-3 w-3 animate-spin" /> Detecting Coordinates...</span>
+                          <span className="text-primary flex items-center gap-1 animate-pulse"><Loader2 className="h-3 w-3 animate-spin" /> Detecting Coordinates...</span>
                         )}
                       </div>
                     </FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           placeholder="Type address, or click Auto-detect to record precise GPS coordinates"
-                          className="pl-9 pr-28 h-10 text-xs sm:text-sm focus-visible:ring-emerald-500 border-slate-200"
+                          className="pl-9 pr-28 h-10 text-xs sm:text-sm focus-visible:ring-success border-border"
                           {...field}
                         />
                         <Button
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="absolute right-1 top-1 h-8 px-2 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50/50"
+                          className="absolute right-1 top-1 h-8 px-2 text-xs text-success hover:text-success hover:bg-success/50"
                           onClick={handleGetLocation}
                           disabled={locationStatus === 'detecting'}
                         >
@@ -618,7 +618,7 @@ export function HarvestForm({
                     <FormDescription className="flex items-center justify-between text-[11px] text-muted-foreground mt-1">
                       <span>Enter state/LGA details or trigger GPS coordinate recording.</span>
                       {locationStatus === 'success' && geoLocation && (
-                        <span className="font-mono text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5">
+                        <span className="font-mono text-success bg-success/10 border border-success/10 rounded-md px-1.5 py-0.5">
                           LAT: {geoLocation.lat.toFixed(4)}, LNG: {geoLocation.lng.toFixed(4)}
                         </span>
                       )}
@@ -633,11 +633,11 @@ export function HarvestForm({
           {/* STEP 2: Quality & Pricing */}
           {currentStep === 2 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-3 duration-300">
-              <div className="bg-emerald-50/30 p-3 rounded-lg border border-emerald-100/50 flex gap-3 items-start">
-                <Scale className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+              <div className="bg-success/30 p-3 rounded-lg border border-success/50 flex gap-3 items-start">
+                <Scale className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="text-xs font-semibold text-emerald-950">Quality Ratings & Pricing</h4>
-                  <p className="text-[11px] text-emerald-800">Establish product quality metrics and standard listing prices per unit. These affect buyer search filtering and trust badges.</p>
+                  <h4 className="text-xs font-semibold text-success">Quality Ratings & Pricing</h4>
+                  <p className="text-[11px] text-success">Establish product quality metrics and standard listing prices per unit. These affect buyer search filtering and trust badges.</p>
                 </div>
               </div>
 
@@ -650,7 +650,7 @@ export function HarvestForm({
                       <FormLabel className="text-xs sm:text-sm font-semibold">Quality Level *</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger className="h-10 text-xs sm:text-sm border-slate-200">
+                          <SelectTrigger className="h-10 text-xs sm:text-sm border-border">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
@@ -674,7 +674,7 @@ export function HarvestForm({
                       <FormLabel className="text-xs sm:text-sm font-semibold">Market Grade *</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger className="h-10 text-xs sm:text-sm border-slate-200">
+                          <SelectTrigger className="h-10 text-xs sm:text-sm border-border">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
@@ -697,12 +697,12 @@ export function HarvestForm({
                       <FormLabel className="text-xs sm:text-sm font-semibold">Unit Price (₦) *</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-xs sm:text-sm">₦</span>
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-xs sm:text-sm">₦</span>
                           <Input
                             type="number"
                             step="0.01"
                             placeholder="0.00"
-                            className="pl-7 h-10 text-xs sm:text-sm focus-visible:ring-emerald-500 border-slate-200"
+                            className="pl-7 h-10 text-xs sm:text-sm focus-visible:ring-success border-border"
                             {...field}
                             onChange={(e) => {
                               const val = e.target.value
@@ -721,13 +721,13 @@ export function HarvestForm({
                 control={form.control}
                 name="moistureContent"
                 render={({ field }) => (
-                  <FormItem className="bg-slate-50/50 p-4 border border-slate-100 rounded-xl space-y-3">
+                  <FormItem className="bg-muted/50 p-4 border border-border rounded-xl space-y-3">
                     <div className="flex justify-between items-center">
                       <FormLabel className="text-xs sm:text-sm font-semibold flex items-center gap-1.5">
-                        <Droplet className="h-4 w-4 text-emerald-600" />
+                        <Droplet className="h-4 w-4 text-success" />
                         Moisture Content Level
                       </FormLabel>
-                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">{field.value}%</span>
+                      <span className="text-xs font-bold text-success bg-success/10 px-2 py-0.5 rounded-full border border-success/10">{field.value}%</span>
                     </div>
                     <FormControl>
                       <Slider
@@ -751,18 +751,18 @@ export function HarvestForm({
                 control={form.control}
                 name="organic"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-slate-100 bg-white p-4">
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-border bg-white p-4">
                     <FormControl>
                       <Checkbox
                         checked={field.value}
                         onCheckedChange={field.onChange}
-                        className="data-[state=checked]:bg-emerald-600 border-slate-300"
+                        className="data-[state=checked]:bg-success border-border"
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                      <FormLabel className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5">
                         Organic Production Certificate
-                        <Badge className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-emerald-200 text-[10px] py-0 px-1.5 font-normal">Premium Tag</Badge>
+                        <Badge className="bg-success/10 hover:bg-success/10 text-success border-success/10 text-[10px] py-0 px-1.5 font-normal">Premium Tag</Badge>
                       </FormLabel>
                       <FormDescription className="text-[11px] text-muted-foreground">
                         Declare that no chemical pesticides or fertilizers were applied on this crop batch.
@@ -777,11 +777,11 @@ export function HarvestForm({
           {/* STEP 3: Agronomics */}
           {currentStep === 3 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-3 duration-300">
-              <div className="bg-emerald-50/30 p-3 rounded-lg border border-emerald-100/50 flex gap-3 items-start">
-                <Thermometer className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+              <div className="bg-success/30 p-3 rounded-lg border border-success/50 flex gap-3 items-start">
+                <Thermometer className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="text-xs font-semibold text-emerald-950">Agronomic & Farm Conditions</h4>
-                  <p className="text-[11px] text-emerald-800">Add parameters about your farm ecosystem. These support environmental sustainability metrics and verify carbon-neutral logs.</p>
+                  <h4 className="text-xs font-semibold text-success">Agronomic & Farm Conditions</h4>
+                  <p className="text-[11px] text-success">Add parameters about your farm ecosystem. These support environmental sustainability metrics and verify carbon-neutral logs.</p>
                 </div>
               </div>
 
@@ -794,7 +794,7 @@ export function HarvestForm({
                       <FormLabel className="text-xs sm:text-sm font-semibold">Soil Type</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger className="h-10 text-xs sm:text-sm border-slate-200">
+                          <SelectTrigger className="h-10 text-xs sm:text-sm border-border">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
@@ -802,7 +802,7 @@ export function HarvestForm({
                           {soilTypes.map((soil) => (
                             <SelectItem key={soil.value} value={soil.value} className="text-xs sm:text-sm">
                               <div className="text-left">
-                                <p className="font-semibold text-slate-800">{soil.label}</p>
+                                <p className="font-semibold text-foreground">{soil.label}</p>
                                 <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{soil.description}</p>
                               </div>
                             </SelectItem>
@@ -822,7 +822,7 @@ export function HarvestForm({
                       <FormLabel className="text-xs sm:text-sm font-semibold">Irrigation Source</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger className="h-10 text-xs sm:text-sm border-slate-200">
+                          <SelectTrigger className="h-10 text-xs sm:text-sm border-border">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
@@ -830,7 +830,7 @@ export function HarvestForm({
                           {irrigationTypes.map((irr) => (
                             <SelectItem key={irr.value} value={irr.value} className="text-xs sm:text-sm">
                               <div className="text-left">
-                                <p className="font-semibold text-slate-800">{irr.label}</p>
+                                <p className="font-semibold text-foreground">{irr.label}</p>
                                 <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{irr.description}</p>
                               </div>
                             </SelectItem>
@@ -850,7 +850,7 @@ export function HarvestForm({
                       <FormLabel className="text-xs sm:text-sm font-semibold">Pest Management</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger className="h-10 text-xs sm:text-sm border-slate-200">
+                          <SelectTrigger className="h-10 text-xs sm:text-sm border-border">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
@@ -858,7 +858,7 @@ export function HarvestForm({
                           {pestManagementTypes.map((pest) => (
                             <SelectItem key={pest.value} value={pest.value} className="text-xs sm:text-sm">
                               <div className="text-left">
-                                <p className="font-semibold text-slate-800">{pest.label}</p>
+                                <p className="font-semibold text-foreground">{pest.label}</p>
                                 <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{pest.description}</p>
                               </div>
                             </SelectItem>
@@ -876,11 +876,11 @@ export function HarvestForm({
           {/* STEP 4: Media & Submission */}
           {currentStep === 4 && (
             <div className="space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-300">
-              <div className="bg-emerald-50/30 p-3 rounded-lg border border-emerald-100/50 flex gap-3 items-start">
-                <Camera className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+              <div className="bg-success/30 p-3 rounded-lg border border-success/50 flex gap-3 items-start">
+                <Camera className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="text-xs font-semibold text-emerald-950">Visual Verification & Remarks</h4>
-                  <p className="text-[11px] text-emerald-800">Attach real-time photographs of the harvested bags or yield stacks. Transparent media verification builds buyer confidence.</p>
+                  <h4 className="text-xs font-semibold text-success">Visual Verification & Remarks</h4>
+                  <p className="text-[11px] text-success">Attach real-time photographs of the harvested bags or yield stacks. Transparent media verification builds buyer confidence.</p>
                 </div>
               </div>
 
@@ -890,7 +890,7 @@ export function HarvestForm({
                 {/* Image Upload Zone */}
                 <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
                   {images.map((image, index) => (
-                    <div key={index} className="relative aspect-video rounded-xl overflow-hidden border border-slate-100 group shadow-sm bg-slate-50">
+                    <div key={index} className="relative aspect-video rounded-xl overflow-hidden border border-border group shadow-sm bg-muted">
                       <img
                         src={image}
                         alt={`Harvest snapshot ${index + 1}`}
@@ -911,17 +911,17 @@ export function HarvestForm({
                   ))}
                   
                   {images.length < 6 && (
-                    <label className="aspect-video border-2 border-dashed border-slate-200 hover:border-emerald-500 rounded-xl flex flex-col items-center justify-center cursor-pointer bg-slate-50/50 hover:bg-emerald-50/10 transition-all duration-300 group">
+                    <label className="aspect-video border-2 border-dashed border-border hover:border-success rounded-xl flex flex-col items-center justify-center cursor-pointer bg-muted/50 hover:bg-success/10 transition-all duration-300 group">
                       {uploadingImages ? (
                         <div className="text-center">
-                          <Loader2 className="h-6 w-6 animate-spin text-emerald-600 mx-auto mb-1" />
-                          <span className="text-[10px] text-slate-500 font-medium">Uploading to storage...</span>
+                          <Loader2 className="h-6 w-6 animate-spin text-success mx-auto mb-1" />
+                          <span className="text-[10px] text-muted-foreground font-medium">Uploading to storage...</span>
                         </div>
                       ) : (
                         <div className="text-center p-2">
-                          <Upload className="h-5 w-5 text-slate-400 mx-auto group-hover:text-emerald-600 group-hover:scale-110 transition-all mb-1" />
-                          <span className="text-[11px] font-semibold text-slate-600 block group-hover:text-emerald-700">Add Image</span>
-                          <span className="text-[9px] text-slate-400 block mt-0.5">JPEG, PNG up to 5MB</span>
+                          <Upload className="h-5 w-5 text-muted-foreground mx-auto group-hover:text-success group-hover:scale-110 transition-all mb-1" />
+                          <span className="text-[11px] font-semibold text-muted-foreground block group-hover:text-success">Add Image</span>
+                          <span className="text-[9px] text-muted-foreground block mt-0.5">JPEG, PNG up to 5MB</span>
                         </div>
                       )}
                       <input
@@ -946,7 +946,7 @@ export function HarvestForm({
                     <FormControl>
                       <Textarea
                         placeholder="Log any notable weather conditions, soil moisture during harvest, or packing conditions for public records..."
-                        className="min-h-[100px] text-xs sm:text-sm focus-visible:ring-emerald-500 border-slate-200"
+                        className="min-h-[100px] text-xs sm:text-sm focus-visible:ring-success border-border"
                         {...field}
                       />
                     </FormControl>
@@ -958,15 +958,15 @@ export function HarvestForm({
           )}
 
           {/* Stepper Wizard Actions */}
-          <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+          <div className="flex items-center justify-between pt-4 border-t border-border">
             <div>
               {onCancel && currentStep === 1 && (
-                <Button type="button" variant="outline" onClick={onCancel} className="h-10 text-xs sm:text-sm border-slate-200">
+                <Button type="button" variant="outline" onClick={onCancel} className="h-10 text-xs sm:text-sm border-border">
                   Cancel
                 </Button>
               )}
               {currentStep > 1 && (
-                <Button type="button" variant="outline" onClick={prevStep} className="h-10 text-xs sm:text-sm border-slate-200 flex items-center gap-1">
+                <Button type="button" variant="outline" onClick={prevStep} className="h-10 text-xs sm:text-sm border-border flex items-center gap-1">
                   <ArrowLeft className="h-4 w-4" />
                   <span>Back</span>
                 </Button>
@@ -975,12 +975,12 @@ export function HarvestForm({
 
             <div>
               {currentStep < 4 ? (
-                <Button type="button" onClick={nextStep} className="h-10 text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1">
+                <Button type="button" onClick={nextStep} className="h-10 text-xs sm:text-sm bg-success hover:bg-success text-white flex items-center gap-1">
                   <span>Continue</span>
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button type="submit" disabled={isLoading} className="h-10 text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-700 text-white min-w-[140px]">
+                <Button type="submit" disabled={isLoading} className="h-10 text-xs sm:text-sm bg-success hover:bg-success text-white min-w-[140px]">
                   {isLoading ? (
                     <div className="flex items-center justify-center gap-1.5">
                       <Loader2 className="h-4 w-4 animate-spin" />

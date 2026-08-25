@@ -69,12 +69,12 @@ interface LoanStats {
 }
 
 const statusColors = {
-  pending: 'bg-amber-100 text-amber-800',
-  approved: 'bg-blue-100 text-blue-800',
-  rejected: 'bg-red-100 text-red-800',
-  active: 'bg-emerald-100 text-emerald-800',
-  completed: 'bg-gray-100 text-gray-800',
-  overdue: 'bg-red-100 text-red-800'
+  pending: 'bg-warning/10 text-warning',
+  approved: 'bg-primary/10 text-primary',
+  rejected: 'bg-destructive/10 text-destructive',
+  active: 'bg-success/10 text-success',
+  completed: 'bg-muted text-foreground',
+  overdue: 'bg-destructive/10 text-destructive'
 }
 
 const statusIcons = {
@@ -212,14 +212,14 @@ export default function LoansPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
+              <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-3">
-                  <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-5 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-8 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-8 bg-muted rounded mb-2"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
@@ -235,8 +235,8 @@ export default function LoansPage() {
         {/* Page Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-gray-900">Loan Management</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-semibold text-foreground">Loan Management</h1>
+            <p className="text-muted-foreground">
               Track your loan applications and manage active loans
             </p>
           </div>
@@ -258,49 +258,49 @@ export default function LoansPage() {
         {/* Key Metrics */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Applications</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Applications</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">{stats.totalApplications}</div>
-                <div className="text-sm text-gray-600 mt-1">
+                <div className="text-2xl font-bold text-foreground">{stats.totalApplications}</div>
+                <div className="text-sm text-muted-foreground mt-1">
                   {stats.approvedLoans} approved
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Borrowed</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Borrowed</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalBorrowed)}</div>
-                <div className="text-sm text-gray-600 mt-1">
+                <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalBorrowed)}</div>
+                <div className="text-sm text-muted-foreground mt-1">
                   {stats.activeLoans} active loans
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Repaid</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Repaid</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalRepaid)}</div>
-                <div className="text-sm text-gray-600 mt-1">
+                <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalRepaid)}</div>
+                <div className="text-sm text-muted-foreground mt-1">
                   {((stats.totalRepaid / stats.totalBorrowed) * 100).toFixed(1)}% of total
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Monthly Payments</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Monthly Payments</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalMonthlyPayments)}</div>
-                <div className="text-sm text-gray-600 mt-1">
+                <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalMonthlyPayments)}</div>
+                <div className="text-sm text-muted-foreground mt-1">
                   {stats.averageInterestRate}% avg rate
                 </div>
               </CardContent>
@@ -310,7 +310,7 @@ export default function LoansPage() {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="applications">Applications</TabsTrigger>
             <TabsTrigger value="active">Active Loans</TabsTrigger>
@@ -320,10 +320,10 @@ export default function LoansPage() {
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Recent Applications */}
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base font-medium">
-                    <FileText className="h-4 w-4 text-blue-500" />
+                    <FileText className="h-4 w-4 text-primary" />
                     Recent Applications
                   </CardTitle>
                   <CardDescription>Latest loan applications and their status</CardDescription>
@@ -331,7 +331,7 @@ export default function LoansPage() {
                 <CardContent>
                   <div className="space-y-3">
                     {applications.slice(0, 3).map((app) => (
-                      <div key={app.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+                      <div key={app.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <Badge className={statusColors[app.status]}>
@@ -340,13 +340,13 @@ export default function LoansPage() {
                             </Badge>
                           </div>
                           <div className="text-sm font-medium mt-1">{app.purpose}</div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted-foreground">
                             {formatCurrency(app.amount)} • {app.term} months
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="text-sm font-medium">{formatDate(app.submittedDate)}</div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted-foreground">
                             {app.status === 'approved' && app.decisionDate &&
                               `Approved: ${formatDate(app.decisionDate)}`
                             }
@@ -367,10 +367,10 @@ export default function LoansPage() {
               </Card>
 
               {/* Active Loans Summary */}
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base font-medium">
-                    <CreditCard className="h-4 w-4 text-green-500" />
+                    <CreditCard className="h-4 w-4 text-success" />
                     Active Loans Summary
                   </CardTitle>
                   <CardDescription>Current loan obligations and payments</CardDescription>
@@ -379,7 +379,7 @@ export default function LoansPage() {
                   {activeLoans.length > 0 ? (
                     <div className="space-y-3">
                       {activeLoans.map((loan) => (
-                        <div key={loan.id} className="p-3 border border-gray-100 rounded-lg">
+                        <div key={loan.id} className="p-3 border border-border rounded-lg">
                           <div className="flex justify-between items-start mb-2">
                             <div className="text-sm font-medium">Loan #{loan.id}</div>
                             <Badge className={statusColors[loan.status]}>
@@ -388,15 +388,15 @@ export default function LoansPage() {
                           </div>
                           <div className="space-y-1 text-sm">
                             <div className="flex justify-between">
-                              <span className="text-gray-600">Remaining Balance:</span>
+                              <span className="text-muted-foreground">Remaining Balance:</span>
                               <span className="font-medium">{formatCurrency(loan.remainingBalance)}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-600">Monthly Payment:</span>
+                              <span className="text-muted-foreground">Monthly Payment:</span>
                               <span className="font-medium">{formatCurrency(loan.monthlyPayment)}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-600">Next Payment:</span>
+                              <span className="text-muted-foreground">Next Payment:</span>
                               <span className="font-medium">{formatDate(loan.nextPaymentDate)}</span>
                             </div>
                           </div>
@@ -405,9 +405,9 @@ export default function LoansPage() {
                     </div>
                   ) : (
                     <div className="text-center py-6">
-                      <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-sm text-gray-600">No active loans</p>
-                      <p className="text-xs text-gray-500 mt-1">Apply for a loan to get started</p>
+                      <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground">No active loans</p>
+                      <p className="text-xs text-muted-foreground mt-1">Apply for a loan to get started</p>
                     </div>
                   )}
                 </CardContent>
@@ -415,7 +415,7 @@ export default function LoansPage() {
             </div>
 
             {/* Quick Actions */}
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader>
                 <CardTitle className="text-base font-medium">Quick Actions</CardTitle>
                 <CardDescription>Common loan-related tasks</CardDescription>
@@ -424,18 +424,18 @@ export default function LoansPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Button variant="outline" asChild className="h-auto p-4 flex-col gap-2">
                     <Link href="/dashboard/financial/loans/apply">
-                      <Plus className="h-6 w-6 text-blue-500" />
+                      <Plus className="h-6 w-6 text-primary" />
                       <span>Apply for Loan</span>
                     </Link>
                   </Button>
 
                   <Button variant="outline" className="h-auto p-4 flex-col gap-2">
-                    <Calculator className="h-6 w-6 text-green-500" />
+                    <Calculator className="h-6 w-6 text-success" />
                     <span>Loan Calculator</span>
                   </Button>
 
                   <Button variant="outline" className="h-auto p-4 flex-col gap-2">
-                    <Download className="h-6 w-6 text-purple-500" />
+                    <Download className="h-6 w-6 text-accent" />
                     <span>Download Statement</span>
                   </Button>
                 </div>
@@ -447,8 +447,8 @@ export default function LoansPage() {
           <TabsContent value="applications" className="space-y-6">
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Loan Applications</h3>
-                <p className="text-sm text-gray-600">Track all your loan applications and their status</p>
+                <h3 className="text-lg font-medium text-foreground">Loan Applications</h3>
+                <p className="text-sm text-muted-foreground">Track all your loan applications and their status</p>
               </div>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -470,7 +470,7 @@ export default function LoansPage() {
               {applications
                 .filter(app => statusFilter === 'all' || app.status === statusFilter)
                 .map((app) => (
-                  <Card key={app.id} className="border border-gray-200">
+                  <Card key={app.id} className="border border-border">
                     <CardContent className="p-6">
                       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         <div className="flex-1 space-y-3">
@@ -479,43 +479,43 @@ export default function LoansPage() {
                               {getStatusIcon(app.status)}
                               {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
                             </Badge>
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-muted-foreground">
                               Submitted: {formatDate(app.submittedDate)}
                             </span>
                             {app.decisionDate && (
-                              <span className="text-sm text-gray-500">
+                              <span className="text-sm text-muted-foreground">
                                 Decision: {formatDate(app.decisionDate)}
                               </span>
                             )}
                           </div>
 
                           <div>
-                            <h4 className="font-medium text-gray-900">{app.purpose}</h4>
-                            <p className="text-sm text-gray-600 mt-1">{app.description}</p>
+                            <h4 className="font-medium text-foreground">{app.purpose}</h4>
+                            <p className="text-sm text-muted-foreground mt-1">{app.description}</p>
                           </div>
 
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
-                              <span className="text-gray-500">Amount:</span>
+                              <span className="text-muted-foreground">Amount:</span>
                               <div className="font-medium">{formatCurrency(app.amount)}</div>
                             </div>
                             <div>
-                              <span className="text-gray-500">Term:</span>
+                              <span className="text-muted-foreground">Term:</span>
                               <div className="font-medium">{app.term} months</div>
                             </div>
                             <div>
-                              <span className="text-gray-500">Monthly Payment:</span>
+                              <span className="text-muted-foreground">Monthly Payment:</span>
                               <div className="font-medium">{formatCurrency(app.monthlyPayment)}</div>
                             </div>
                             <div>
-                              <span className="text-gray-500">Interest Rate:</span>
+                              <span className="text-muted-foreground">Interest Rate:</span>
                               <div className="font-medium">{app.interestRate}%</div>
                             </div>
                           </div>
 
                           {app.collateral && (
                             <div className="text-sm">
-                              <span className="text-gray-500">Collateral:</span>
+                              <span className="text-muted-foreground">Collateral:</span>
                               <span className="ml-2 font-medium">{app.collateral}</span>
                             </div>
                           )}
@@ -539,11 +539,11 @@ export default function LoansPage() {
                 ))}
 
               {applications.filter(app => statusFilter === 'all' || app.status === statusFilter).length === 0 && (
-                <Card className="border border-gray-200">
+                <Card className="border border-border">
                   <CardContent className="p-12 text-center">
-                    <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No applications found</h3>
-                    <p className="text-gray-600 mb-4">
+                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">No applications found</h3>
+                    <p className="text-muted-foreground mb-4">
                       {statusFilter === 'all'
                         ? "You haven't submitted any loan applications yet."
                         : `No applications with status "${statusFilter}" found.`
@@ -564,14 +564,14 @@ export default function LoansPage() {
           {/* Active Loans Tab */}
           <TabsContent value="active" className="space-y-6">
             <div>
-              <h3 className="text-lg font-medium text-gray-900">Active Loans</h3>
-              <p className="text-sm text-gray-600">Manage your current loan obligations and payments</p>
+              <h3 className="text-lg font-medium text-foreground">Active Loans</h3>
+              <p className="text-sm text-muted-foreground">Manage your current loan obligations and payments</p>
             </div>
 
             {activeLoans.length > 0 ? (
               <div className="space-y-4">
                 {activeLoans.map((loan) => (
-                  <Card key={loan.id} className="border border-gray-200">
+                  <Card key={loan.id} className="border border-border">
                     <CardContent className="p-6">
                       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         <div className="flex-1 space-y-4">
@@ -580,43 +580,43 @@ export default function LoansPage() {
                               {getStatusIcon(loan.status)}
                               {loan.status.charAt(0).toUpperCase() + loan.status.slice(1)}
                             </Badge>
-                            <span className="text-sm text-gray-500">Loan #{loan.id}</span>
+                            <span className="text-sm text-muted-foreground">Loan #{loan.id}</span>
                           </div>
 
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div>
-                              <span className="text-sm text-gray-500">Original Amount:</span>
+                              <span className="text-sm text-muted-foreground">Original Amount:</span>
                               <div className="font-medium">{formatCurrency(loan.amount)}</div>
                             </div>
                             <div>
-                              <span className="text-sm text-gray-500">Remaining Balance:</span>
+                              <span className="text-sm text-muted-foreground">Remaining Balance:</span>
                               <div className="font-medium text-lg">{formatCurrency(loan.remainingBalance)}</div>
                             </div>
                             <div>
-                              <span className="text-sm text-gray-500">Monthly Payment:</span>
+                              <span className="text-sm text-muted-foreground">Monthly Payment:</span>
                               <div className="font-medium">{formatCurrency(loan.monthlyPayment)}</div>
                             </div>
                             <div>
-                              <span className="text-sm text-gray-500">Interest Rate:</span>
+                              <span className="text-sm text-muted-foreground">Interest Rate:</span>
                               <div className="font-medium">{loan.interestRate}%</div>
                             </div>
                           </div>
 
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div>
-                              <span className="text-sm text-gray-500">Next Payment:</span>
+                              <span className="text-sm text-muted-foreground">Next Payment:</span>
                               <div className="font-medium">{formatDate(loan.nextPaymentDate)}</div>
                             </div>
                             <div>
-                              <span className="text-sm text-gray-500">Payments Made:</span>
+                              <span className="text-sm text-muted-foreground">Payments Made:</span>
                               <div className="font-medium">{loan.totalPayments}</div>
                             </div>
                             <div>
-                              <span className="text-sm text-gray-500">Remaining Payments:</span>
+                              <span className="text-sm text-muted-foreground">Remaining Payments:</span>
                               <div className="font-medium">{loan.remainingPayments}</div>
                             </div>
                             <div>
-                              <span className="text-sm text-gray-500">End Date:</span>
+                              <span className="text-sm text-muted-foreground">End Date:</span>
                               <div className="font-medium">{formatDate(loan.endDate)}</div>
                             </div>
                           </div>
@@ -642,11 +642,11 @@ export default function LoansPage() {
                 ))}
               </div>
             ) : (
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardContent className="p-12 text-center">
-                  <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Loans</h3>
-                  <p className="text-gray-600 mb-4">
+                  <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-foreground mb-2">No Active Loans</h3>
+                  <p className="text-muted-foreground mb-4">
                     You don&apos;t have any active loans at the moment.
                   </p>
                   <Button asChild>

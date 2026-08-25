@@ -166,9 +166,9 @@ export default function ShipmentsPage() {
               <CardContent className="p-6 relative">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-500 mb-1">{item.label}</p>
-                    <p className="text-3xl font-bold text-slate-900">
-                      {statsLoading ? <RefreshCw className="h-4 w-4 animate-spin text-slate-300" /> : item.value}
+                    <p className="text-sm font-medium text-muted-foreground mb-1">{item.label}</p>
+                    <p className="text-3xl font-bold text-foreground">
+                      {statsLoading ? <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" /> : item.value}
                     </p>
                   </div>
                   <div className={`p-3 rounded-xl ${item.bg}`}>
@@ -182,17 +182,17 @@ export default function ShipmentsPage() {
 
         {/* Search & Filter & View Toggle */}
         <Card className="border-none shadow-sm overflow-hidden">
-          <div className="bg-slate-50/50 px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+          <div className="bg-muted/50 px-4 py-3 border-b border-border flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-slate-500" />
-              <span className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Search & Distribution</span>
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold text-foreground uppercase tracking-wider">Search & Distribution</span>
             </div>
-            <div className="flex bg-slate-200/50 p-1 rounded-lg">
+            <div className="flex bg-muted/50 p-1 rounded-lg">
               <Button 
                 variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
                 size="sm" 
                 onClick={() => setViewMode('list')}
-                className={`h-7 px-3 rounded-md transition-all ${viewMode === 'list' ? 'shadow-sm bg-white' : 'text-slate-500 hover:text-slate-800'}`}
+                className={`h-7 px-3 rounded-md transition-all ${viewMode === 'list' ? 'shadow-sm bg-white' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <ListIcon className="h-3.5 w-3.5 mr-1.5" />
                 List
@@ -201,7 +201,7 @@ export default function ShipmentsPage() {
                 variant={viewMode === 'map' ? 'secondary' : 'ghost'} 
                 size="sm" 
                 onClick={() => setViewMode('map')}
-                className={`h-7 px-3 rounded-md transition-all ${viewMode === 'map' ? 'shadow-sm bg-white' : 'text-slate-500 hover:text-slate-800'}`}
+                className={`h-7 px-3 rounded-md transition-all ${viewMode === 'map' ? 'shadow-sm bg-white' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <MapIcon className="h-3.5 w-3.5 mr-1.5" />
                 Map
@@ -211,19 +211,19 @@ export default function ShipmentsPage() {
           <CardContent className="p-4 lg:p-6">
             <div className="grid gap-6 grid-cols-1 md:grid-cols-12">
               <div className="md:col-span-5 lg:col-span-4">
-                <label className="text-xs font-bold text-slate-500 uppercase mb-2 block tracking-tight">Keyword Search</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block tracking-tight">Keyword Search</label>
                 <div className="relative group">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input
                     placeholder="Search by ID, Tracking # or City..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 h-10 border-slate-200 focus:border-primary/30 focus:ring-primary/10 transition-all text-sm"
+                    className="pl-10 h-10 border-border focus:border-primary/30 focus:ring-primary/10 transition-all text-sm"
                   />
                   {searchQuery && (
                     <button 
                       onClick={() => setSearchQuery("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                     >
                       ×
                     </button>
@@ -232,12 +232,12 @@ export default function ShipmentsPage() {
               </div>
 
               <div className="md:col-span-3 lg:col-span-2">
-                <label className="text-xs font-bold text-slate-500 uppercase mb-2 block tracking-tight">Status Filter</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block tracking-tight">Status Filter</label>
                 <Select
                   value={filters.status || "all"}
                   onValueChange={(value) => handleFilterChange('status', value === "all" ? undefined : value)}
                 >
-                  <SelectTrigger className="h-10 border-slate-200 text-sm">
+                  <SelectTrigger className="h-10 border-border text-sm">
                     <SelectValue placeholder="All Statuses" />
                   </SelectTrigger>
                   <SelectContent>
@@ -254,12 +254,12 @@ export default function ShipmentsPage() {
               </div>
 
               <div className="md:col-span-4 lg:col-span-3">
-                <label className="text-xs font-bold text-slate-500 uppercase mb-2 block tracking-tight">Shipping Method</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block tracking-tight">Shipping Method</label>
                 <Select
                   value={filters.shippingMethod || "all"}
                   onValueChange={(value) => handleFilterChange('shippingMethod', value === "all" ? undefined : value)}
                 >
-                  <SelectTrigger className="h-10 border-slate-200 text-sm">
+                  <SelectTrigger className="h-10 border-border text-sm">
                     <SelectValue placeholder="Multiple Methods" />
                   </SelectTrigger>
                   <SelectContent>
@@ -273,7 +273,7 @@ export default function ShipmentsPage() {
               </div>
 
               <div className="md:col-span-12 lg:col-span-3">
-                <label className="text-xs font-bold text-slate-500 uppercase mb-2 block tracking-tight">Ordering</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block tracking-tight">Ordering</label>
                 <Select
                   value={`${filters.sortBy}-${filters.sortOrder}`}
                   onValueChange={(value) => {
@@ -282,7 +282,7 @@ export default function ShipmentsPage() {
                     handleFilterChange('sortOrder', sortOrder as 'asc' | 'desc')
                   }}
                 >
-                  <SelectTrigger className="h-10 border-slate-200 text-sm">
+                  <SelectTrigger className="h-10 border-border text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -306,26 +306,26 @@ export default function ShipmentsPage() {
               {loading ? (
                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   {[...Array(6)].map((_, i) => (
-                    <Card key={i} className="animate-pulse border border-slate-100 overflow-hidden">
-                      <div className="h-32 bg-slate-50 border-b border-slate-100"></div>
+                    <Card key={i} className="animate-pulse border border-border overflow-hidden">
+                      <div className="h-32 bg-muted border-b border-border"></div>
                       <CardContent className="p-6 space-y-4">
-                        <div className="h-4 bg-slate-100 rounded w-3/4"></div>
-                        <div className="h-3 bg-slate-50 rounded w-1/2"></div>
+                        <div className="h-4 bg-muted rounded w-3/4"></div>
+                        <div className="h-3 bg-muted rounded w-1/2"></div>
                         <div className="flex gap-2">
-                          <div className="h-6 bg-slate-50 rounded w-16"></div>
-                          <div className="h-6 bg-slate-50 rounded w-24"></div>
+                          <div className="h-6 bg-muted rounded w-16"></div>
+                          <div className="h-6 bg-muted rounded w-24"></div>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               ) : error ? (
-                <Card className="border-red-100 bg-red-50/30">
+                <Card className="border-destructive/10 bg-destructive/30">
                   <CardContent className="p-12 text-center">
-                    <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4 opacity-50" />
-                    <h3 className="text-xl font-bold text-red-900 mb-2">Sync Interrupted</h3>
-                    <p className="text-red-700 max-w-sm mx-auto mb-6">{error}</p>
-                    <Button onClick={handleRefresh} className="bg-red-600 hover:bg-red-700 text-white">
+                    <AlertTriangle className="h-16 w-16 text-destructive mx-auto mb-4 opacity-50" />
+                    <h3 className="text-xl font-bold text-destructive mb-2">Sync Interrupted</h3>
+                    <p className="text-destructive max-w-sm mx-auto mb-6">{error}</p>
+                    <Button onClick={handleRefresh} className="bg-destructive hover:bg-destructive text-white">
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Reconnect Sync
                     </Button>
@@ -335,12 +335,12 @@ export default function ShipmentsPage() {
                 <div className="py-20 flex flex-col items-center justify-center text-center">
                   <div className="relative mb-8">
                     <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl opacity-10 animate-pulse"></div>
-                    <div className="relative bg-white p-6 rounded-3xl shadow-xl border border-slate-100">
-                      <Package className="h-16 w-16 text-slate-300" />
+                    <div className="relative bg-white p-6 rounded-3xl shadow-xl border border-border">
+                      <Package className="h-16 w-16 text-muted-foreground" />
                     </div>
                   </div>
-                  <h3 className="text-2xl font-bold text-slate-800 mb-2">Optimization Horizon Empty</h3>
-                  <p className="text-slate-500 max-w-md mb-8">
+                  <h3 className="text-2xl font-bold text-foreground mb-2">Optimization Horizon Empty</h3>
+                  <p className="text-muted-foreground max-w-md mb-8">
                     {Object.keys(filters).some(key => filters[key as keyof ShipmentFilters] && key !== 'page' && key !== 'limit' && key !== 'sortBy' && key !== 'sortOrder') 
                       ? "No logistics units match the applied algorithmic filters. Attempt widening your parameters."
                       : "No active shipment units detected in the system ledger. Initialize a fulfillment lifecycle from your orders."
@@ -377,19 +377,19 @@ export default function ShipmentsPage() {
 
                   {/* Enhanced Pagination */}
                   {pagination.totalPages > 1 && (
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-6 px-2 gap-4 border-t border-slate-100 mt-8">
-                      <div className="text-sm font-medium text-slate-500 text-center sm:text-left">
-                        Dispensing <span className="text-slate-900 font-bold">{((pagination.currentPage - 1) * pagination.itemsPerPage) + 1}</span> 
-                        {' '}- <span className="text-slate-900 font-bold">{Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)}</span> 
-                        {' '}of <span className="text-slate-900 font-bold">{pagination.totalItems}</span> logistics units
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-6 px-2 gap-4 border-t border-border mt-8">
+                      <div className="text-sm font-medium text-muted-foreground text-center sm:text-left">
+                        Dispensing <span className="text-foreground font-bold">{((pagination.currentPage - 1) * pagination.itemsPerPage) + 1}</span> 
+                        {' '}- <span className="text-foreground font-bold">{Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)}</span> 
+                        {' '}of <span className="text-foreground font-bold">{pagination.totalItems}</span> logistics units
                       </div>
-                      <div className="flex items-center justify-center gap-1 bg-white p-1 rounded-xl shadow-sm border border-slate-100">
+                      <div className="flex items-center justify-center gap-1 bg-white p-1 rounded-xl shadow-sm border border-border">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleFilterChange('page', pagination.currentPage - 1)}
                           disabled={pagination.currentPage <= 1}
-                          className="h-9 w-9 p-0 hover:bg-slate-50 disabled:opacity-30"
+                          className="h-9 w-9 p-0 hover:bg-muted disabled:opacity-30"
                         >
                           <ChevronRight className="h-4 w-4 rotate-180" />
                         </Button>
@@ -402,7 +402,7 @@ export default function ShipmentsPage() {
                               variant={pagination.currentPage === pageNum ? "secondary" : "ghost"}
                               size="sm"
                               onClick={() => handleFilterChange('page', pageNum)}
-                              className={`h-9 w-9 p-0 text-xs font-bold ${pagination.currentPage === pageNum ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'text-slate-500'}`}
+                              className={`h-9 w-9 p-0 text-xs font-bold ${pagination.currentPage === pageNum ? 'bg-primary/10 text-primary border border-primary/10' : 'text-muted-foreground'}`}
                             >
                               {pageNum}
                             </Button>
@@ -414,7 +414,7 @@ export default function ShipmentsPage() {
                           size="sm"
                           onClick={() => handleFilterChange('page', pagination.currentPage + 1)}
                           disabled={pagination.currentPage >= pagination.totalPages}
-                          className="h-9 w-9 p-0 hover:bg-slate-50 disabled:opacity-30"
+                          className="h-9 w-9 p-0 hover:bg-muted disabled:opacity-30"
                         >
                           <ChevronRight className="h-4 w-4" />
                         </Button>

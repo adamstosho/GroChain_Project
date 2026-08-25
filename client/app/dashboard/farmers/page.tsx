@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { useFarmers } from "@/hooks/use-farmers"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -96,7 +97,7 @@ export default function FarmersPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge variant="default" className="bg-green-100 text-green-800 text-xs"><CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" />Active</Badge>
+        return <Badge variant="default" className="bg-success/10 text-success text-xs"><CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" />Active</Badge>
       case "inactive":
         return <Badge variant="secondary" className="text-xs"><AlertCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" />Inactive</Badge>
       case "suspended":
@@ -113,15 +114,12 @@ export default function FarmersPage() {
     return (
       <DashboardLayout pageTitle="Farmers Management">
         <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="min-w-0 flex-1 space-y-1">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">Farmers Management</h1>
-              <p className="text-muted-foreground text-sm sm:text-base">Manage your partner farmers</p>
-            </div>
-            <div className="flex-shrink-0">
-              <div className="h-8 sm:h-9 w-16 sm:w-20 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-          </div>
+          <DashboardPageHeader
+            badge="Farmer Network Active"
+            title="Farmers"
+            titleHighlight="Management"
+            description="Manage your partner farmers and track their performance."
+          />
           <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => (
               <Card key={i} className="animate-pulse">
@@ -144,16 +142,16 @@ export default function FarmersPage() {
     return (
       <DashboardLayout pageTitle="Farmers Management">
         <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="min-w-0 flex-1 space-y-1">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">Farmers Management</h1>
-              <p className="text-muted-foreground text-sm sm:text-base">Manage your partner farmers</p>
-            </div>
-          </div>
+          <DashboardPageHeader
+            badge="Farmer Network Active"
+            title="Farmers"
+            titleHighlight="Management"
+            description="Manage your partner farmers and track their performance."
+          />
 
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12 px-4 sm:px-6">
-              <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-red-500 mb-3 sm:mb-4" />
+              <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-destructive mb-3 sm:mb-4" />
               <h3 className="text-base sm:text-lg font-semibold mb-2 text-center">Error Loading Farmers</h3>
               <p className="text-muted-foreground text-center mb-4 text-sm sm:text-base">
                 We encountered an error while loading your farmers data. Please try refreshing the page.
@@ -177,54 +175,52 @@ export default function FarmersPage() {
   return (
     <DashboardLayout pageTitle="Farmers Management">
       <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="min-w-0 flex-1 space-y-1">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">Farmers Management</h1>
-            <p className="text-muted-foreground text-sm sm:text-base">Manage your partner farmers and track their performance</p>
-          </div>
-          <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 sm:gap-3 flex-shrink-0">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 sm:h-9 text-xs sm:text-sm w-full xs:w-auto">
-                  <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Export</span>
-                  <span className="sm:hidden">Exp</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem 
-                  onClick={() => exportFarmers('csv')}
-                  className="cursor-pointer"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export as CSV
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => exportFarmers('excel')}
-                  className="cursor-pointer"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export as Excel
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button asChild size="sm" className="h-8 sm:h-9 text-xs sm:text-sm w-full xs:w-auto">
-              <Link href="/dashboard/farmers/bulk">
-                <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Bulk Upload</span>
-                <span className="sm:hidden">Bulk</span>
-              </Link>
-            </Button>
-            <Button asChild size="sm" className="h-8 sm:h-9 text-xs sm:text-sm w-full xs:w-auto">
-              <Link href="/dashboard/farmers/add">
-                <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Add Farmer</span>
-                <span className="sm:hidden">Add</span>
-              </Link>
-            </Button>
-          </div>
-        </div>
+        <DashboardPageHeader
+          badge="Farmer Network Active"
+          title="Farmers"
+          titleHighlight="Management"
+          description="Manage your partner farmers and track their performance."
+          actions={
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="lg" className="group">
+                    <Download className="mr-2 h-4 w-4" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem
+                    onClick={() => exportFarmers('csv')}
+                    className="cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export as CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => exportFarmers('excel')}
+                    className="cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export as Excel
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/dashboard/farmers/bulk">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Bulk Upload
+                </Link>
+              </Button>
+              <Button asChild size="lg">
+                <Link href="/dashboard/farmers/add">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Farmer
+                </Link>
+              </Button>
+            </>
+          }
+        />
 
         {/* Stats Cards */}
         <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -243,36 +239,36 @@ export default function FarmersPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
               <CardTitle className="text-xs sm:text-sm font-medium truncate pr-2 min-w-0 flex-1">Active Farmers</CardTitle>
-              <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
+              <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-success flex-shrink-0" />
             </CardHeader>
             <CardContent className="pb-2 sm:pb-3">
               <div className="text-lg sm:text-xl lg:text-2xl font-bold">{stats.activeFarmers}</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-green-600">{stats.totalFarmers > 0 ? Math.round((stats.activeFarmers / stats.totalFarmers) * 100) : 0}%</span> active rate
+                <span className="text-success">{stats.totalFarmers > 0 ? Math.round((stats.activeFarmers / stats.totalFarmers) * 100) : 0}%</span> active rate
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
               <CardTitle className="text-xs sm:text-sm font-medium truncate pr-2 min-w-0 flex-1">Inactive Farmers</CardTitle>
-              <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600 flex-shrink-0" />
+              <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-warning flex-shrink-0" />
             </CardHeader>
             <CardContent className="pb-2 sm:pb-3">
               <div className="text-lg sm:text-xl lg:text-2xl font-bold">{stats.inactiveFarmers}</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-orange-600">{stats.totalFarmers > 0 ? Math.round((stats.inactiveFarmers / stats.totalFarmers) * 100) : 0}%</span> of total
+                <span className="text-warning">{stats.totalFarmers > 0 ? Math.round((stats.inactiveFarmers / stats.totalFarmers) * 100) : 0}%</span> of total
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
               <CardTitle className="text-xs sm:text-sm font-medium truncate pr-2 min-w-0 flex-1">Suspended Farmers</CardTitle>
-              <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-red-600 flex-shrink-0" />
+              <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive flex-shrink-0" />
             </CardHeader>
             <CardContent className="pb-2 sm:pb-3">
               <div className="text-lg sm:text-xl lg:text-2xl font-bold">{stats.suspendedFarmers}</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-red-600">{stats.totalFarmers > 0 ? Math.round((stats.suspendedFarmers / stats.totalFarmers) * 100) : 0}%</span> of total
+                <span className="text-destructive">{stats.totalFarmers > 0 ? Math.round((stats.suspendedFarmers / stats.totalFarmers) * 100) : 0}%</span> of total
               </p>
             </CardContent>
           </Card>

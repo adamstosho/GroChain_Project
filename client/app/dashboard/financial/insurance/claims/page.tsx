@@ -75,11 +75,11 @@ const claimTypes = [
 ]
 
 const statusColors = {
-  pending: 'bg-amber-100 text-amber-800',
-  under_review: 'bg-blue-100 text-blue-800',
-  approved: 'bg-green-100 text-green-800',
-  rejected: 'bg-red-100 text-red-800',
-  paid: 'bg-emerald-100 text-emerald-800'
+  pending: 'bg-warning/10 text-warning',
+  under_review: 'bg-primary/10 text-primary',
+  approved: 'bg-success/10 text-success',
+  rejected: 'bg-destructive/10 text-destructive',
+  paid: 'bg-success/10 text-success'
 }
 
 const statusIcons = {
@@ -267,14 +267,14 @@ export default function InsuranceClaimsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
+              <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-3">
-                  <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-5 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-8 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-8 bg-muted rounded mb-2"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
@@ -290,8 +290,8 @@ export default function InsuranceClaimsPage() {
         {/* Page Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-gray-900">Insurance Claims</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-semibold text-foreground">Insurance Claims</h1>
+            <p className="text-muted-foreground">
               Submit and track your insurance claims for farm protection
             </p>
           </div>
@@ -311,49 +311,49 @@ export default function InsuranceClaimsPage() {
         {/* Key Metrics */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Claims</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Claims</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">{stats.totalClaims}</div>
-                <div className="text-sm text-gray-600 mt-1">
+                <div className="text-2xl font-bold text-foreground">{stats.totalClaims}</div>
+                <div className="text-sm text-muted-foreground mt-1">
                   {stats.pendingClaims} pending
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Claimed</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Claimed</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalClaimed)}</div>
-                <div className="text-sm text-gray-600 mt-1">
+                <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalClaimed)}</div>
+                <div className="text-sm text-muted-foreground mt-1">
                   {stats.approvedClaims} approved
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Paid</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Paid</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalPaid)}</div>
-                <div className="text-sm text-gray-600 mt-1">
+                <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalPaid)}</div>
+                <div className="text-sm text-muted-foreground mt-1">
                   {stats.totalClaimed > 0 ? ((stats.totalPaid / stats.totalClaimed) * 100).toFixed(1) : '0'}% of claimed
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Avg Processing</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Avg Processing</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">{stats.averageProcessingTime} days</div>
-                <div className="text-sm text-gray-600 mt-1">
+                <div className="text-2xl font-bold text-foreground">{stats.averageProcessingTime} days</div>
+                <div className="text-sm text-muted-foreground mt-1">
                   Time to decision
                 </div>
               </CardContent>
@@ -363,10 +363,10 @@ export default function InsuranceClaimsPage() {
 
         {/* New Claim Form */}
         {showNewClaimForm && (
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base font-medium">
-                <Plus className="h-4 w-4 text-blue-500" />
+                <Plus className="h-4 w-4 text-primary" />
                 Submit New Insurance Claim
               </CardTitle>
               <CardDescription>
@@ -496,10 +496,10 @@ export default function InsuranceClaimsPage() {
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Recent Claims */}
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base font-medium">
-                    <FileText className="h-4 w-4 text-blue-500" />
+                    <FileText className="h-4 w-4 text-primary" />
                     Recent Claims
                   </CardTitle>
                   <CardDescription>Latest insurance claims and their status</CardDescription>
@@ -507,7 +507,7 @@ export default function InsuranceClaimsPage() {
                 <CardContent>
                   <div className="space-y-3">
                     {claims.slice(0, 3).map((claim) => (
-                      <div key={claim.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+                      <div key={claim.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <Badge className={statusColors[claim.status]}>
@@ -518,13 +518,13 @@ export default function InsuranceClaimsPage() {
                           <div className="text-sm font-medium mt-1">
                             {claimTypes.find(ct => ct.value === claim.claimType)?.label}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted-foreground">
                             {formatCurrency(claim.estimatedLoss)} • {formatDate(claim.incidentDate)}
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="text-sm font-medium">{formatDate(claim.reportedDate)}</div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted-foreground">
                             {claim.status === 'approved' && claim.decisionDate && 
                               `Approved: ${formatDate(claim.decisionDate)}`
                             }
@@ -543,10 +543,10 @@ export default function InsuranceClaimsPage() {
               </Card>
 
               {/* Claims by Type */}
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base font-medium">
-                    <TrendingUp className="h-4 w-4 text-green-500" />
+                    <TrendingUp className="h-4 w-4 text-success" />
                     Claims by Type
                   </CardTitle>
                   <CardDescription>Distribution of claims by category</CardDescription>
@@ -560,17 +560,17 @@ export default function InsuranceClaimsPage() {
                       if (typeClaims.length === 0) return null
                       
                       return (
-                        <div key={type.value} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+                        <div key={type.value} className="flex items-center justify-between p-3 border border-border rounded-lg">
                           <div className="flex items-center gap-3">
                             {getClaimTypeIcon(type.value)}
                             <div>
                               <div className="font-medium text-sm">{type.label}</div>
-                              <div className="text-xs text-gray-500">{typeClaims.length} claims</div>
+                              <div className="text-xs text-muted-foreground">{typeClaims.length} claims</div>
                             </div>
                           </div>
                           <div className="text-right">
                             <div className="font-medium text-sm">{formatCurrency(totalAmount)}</div>
-                            <div className="text-xs text-gray-500">Total claimed</div>
+                            <div className="text-xs text-muted-foreground">Total claimed</div>
                           </div>
                         </div>
                       )
@@ -581,7 +581,7 @@ export default function InsuranceClaimsPage() {
             </div>
 
             {/* Quick Actions */}
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader>
                 <CardTitle className="text-base font-medium">Quick Actions</CardTitle>
                 <CardDescription>Common insurance-related tasks</CardDescription>
@@ -589,17 +589,17 @@ export default function InsuranceClaimsPage() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Button variant="outline" onClick={() => setShowNewClaimForm(true)} className="h-auto p-4 flex-col gap-2">
-                    <Plus className="h-6 w-6 text-blue-500" />
+                    <Plus className="h-6 w-6 text-primary" />
                     <span>Submit Claim</span>
                   </Button>
                   
                   <Button variant="outline" className="h-auto p-4 flex-col gap-2">
-                    <Download className="h-6 w-6 text-green-500" />
+                    <Download className="h-6 w-6 text-success" />
                     <span>Download Forms</span>
                   </Button>
                   
                   <Button variant="outline" className="h-auto p-4 flex-col gap-2">
-                    <Eye className="h-6 w-6 text-purple-500" />
+                    <Eye className="h-6 w-6 text-accent" />
                     <span>View Policies</span>
                   </Button>
                 </div>
@@ -611,8 +611,8 @@ export default function InsuranceClaimsPage() {
           <TabsContent value="claims" className="space-y-6">
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">All Claims</h3>
-                <p className="text-sm text-gray-600">Track all your insurance claims and their progress</p>
+                <h3 className="text-lg font-medium text-foreground">All Claims</h3>
+                <p className="text-sm text-muted-foreground">Track all your insurance claims and their progress</p>
               </div>
               
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -634,7 +634,7 @@ export default function InsuranceClaimsPage() {
               {claims
                 .filter(claim => statusFilter === 'all' || claim.status === statusFilter)
                 .map((claim) => (
-                  <Card key={claim.id} className="border border-gray-200">
+                  <Card key={claim.id} className="border border-border">
                     <CardContent className="p-6">
                       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         <div className="flex-1 space-y-3">
@@ -643,54 +643,54 @@ export default function InsuranceClaimsPage() {
                               {getStatusIcon(claim.status)}
                               {claim.status.replace('_', ' ').charAt(0).toUpperCase() + claim.status.replace('_', ' ').slice(1)}
                             </Badge>
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-muted-foreground">
                               Policy: {claim.policyNumber}
                             </span>
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-muted-foreground">
                               Incident: {formatDate(claim.incidentDate)}
                             </span>
                           </div>
                           
                           <div className="flex items-center gap-2">
                             {getClaimTypeIcon(claim.claimType)}
-                            <h4 className="font-medium text-gray-900">
+                            <h4 className="font-medium text-foreground">
                               {claimTypes.find(ct => ct.value === claim.claimType)?.label}
                             </h4>
                           </div>
                           
-                          <p className="text-sm text-gray-600">{claim.description}</p>
+                          <p className="text-sm text-muted-foreground">{claim.description}</p>
                           
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
-                              <span className="text-gray-500">Estimated Loss:</span>
+                              <span className="text-muted-foreground">Estimated Loss:</span>
                               <div className="font-medium">{formatCurrency(claim.estimatedLoss)}</div>
                             </div>
                             <div>
-                              <span className="text-gray-500">Claim Amount:</span>
+                              <span className="text-muted-foreground">Claim Amount:</span>
                               <div className="font-medium">{formatCurrency(claim.claimAmount)}</div>
                             </div>
                             {claim.paidAmount && (
                               <div>
-                                <span className="text-gray-500">Paid Amount:</span>
-                                <div className="font-medium text-green-600">{formatCurrency(claim.paidAmount)}</div>
+                                <span className="text-muted-foreground">Paid Amount:</span>
+                                <div className="font-medium text-success">{formatCurrency(claim.paidAmount)}</div>
                               </div>
                             )}
                             <div>
-                              <span className="text-gray-500">Location:</span>
+                              <span className="text-muted-foreground">Location:</span>
                               <div className="font-medium">{claim.location}</div>
                             </div>
                           </div>
                           
                           {claim.weatherConditions && (
                             <div className="text-sm">
-                              <span className="text-gray-500">Weather:</span>
+                              <span className="text-muted-foreground">Weather:</span>
                               <span className="ml-2 font-medium">{claim.weatherConditions}</span>
                             </div>
                           )}
                           
                           {claim.adjusterNotes && (
                             <div className="text-sm">
-                              <span className="text-gray-500">Notes:</span>
+                              <span className="text-muted-foreground">Notes:</span>
                               <span className="ml-2 font-medium">{claim.adjusterNotes}</span>
                             </div>
                           )}
@@ -716,11 +716,11 @@ export default function InsuranceClaimsPage() {
                 ))}
               
               {claims.filter(claim => statusFilter === 'all' || claim.status === statusFilter).length === 0 && (
-                <Card className="border border-gray-200">
+                <Card className="border border-border">
                   <CardContent className="p-12 text-center">
-                    <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No claims found</h3>
-                    <p className="text-gray-600 mb-4">
+                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">No claims found</h3>
+                    <p className="text-muted-foreground mb-4">
                       {statusFilter === 'all' 
                         ? "You haven't submitted any insurance claims yet."
                         : `No claims with status "${statusFilter.replace('_', ' ')}" found.`

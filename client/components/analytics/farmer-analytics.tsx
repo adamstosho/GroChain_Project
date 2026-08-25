@@ -529,25 +529,25 @@ export function FarmerAnalytics() {
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Harvests</CardTitle>
-            <div className="p-1.5 sm:p-2 bg-blue-50 rounded-full flex-shrink-0">
-              <Package className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+            <div className="p-1.5 sm:p-2 bg-primary/10 rounded-full flex-shrink-0">
+              <Package className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
             <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{formatNumber(analyticsData?.totalHarvests || 0)}</div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
-              <CheckCircle className="h-3 w-3 mr-1 text-green-600 flex-shrink-0" />
+              <CheckCircle className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">{analyticsData?.approvalRate || 0}% approval rate</span>
             </div>
           </CardContent>
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-blue-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-bl-full opacity-20" />
         </Card>
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Revenue</CardTitle>
-            <div className="p-1.5 sm:p-2 bg-green-50 rounded-full flex-shrink-0">
-              <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+            <div className="p-1.5 sm:p-2 bg-success/10 rounded-full flex-shrink-0">
+              <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-success" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
@@ -555,50 +555,50 @@ export function FarmerAnalytics() {
               {formatCurrency(analyticsData?.totalRevenue || 0)}
             </div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
-              <TrendingUp className="h-3 w-3 mr-1 text-green-600 flex-shrink-0" />
+              <TrendingUp className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">{analyticsData?.totalOrders || 0} orders completed</span>
             </div>
             {(analyticsData?.totalRevenue || 0) === 0 && (
-              <div className="text-xs text-amber-600 mt-1">
+              <div className="text-xs text-warning mt-1">
                 💡 Start selling to see revenue here
               </div>
             )}
           </CardContent>
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-green-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-success/10 rounded-bl-full opacity-20" />
         </Card>
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Active Listings</CardTitle>
-            <div className="p-1.5 sm:p-2 bg-purple-50 rounded-full flex-shrink-0">
-              <Leaf className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
+            <div className="p-1.5 sm:p-2 bg-accent/10 rounded-full flex-shrink-0">
+              <Leaf className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
             <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{analyticsData?.marketplaceStats?.activeListings || 0}</div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
-              <Users className="h-3 w-3 mr-1 text-blue-600 flex-shrink-0" />
+              <Users className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
               <span className="truncate">{analyticsData?.marketplaceStats?.totalViews || 0} total views</span>
             </div>
           </CardContent>
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-purple-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-accent/10 rounded-bl-full opacity-20" />
         </Card>
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Credit Score</CardTitle>
-            <div className="p-1.5 sm:p-2 bg-orange-50 rounded-full flex-shrink-0">
-              <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
+            <div className="p-1.5 sm:p-2 bg-warning/10 rounded-full flex-shrink-0">
+              <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-warning" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
             <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{analyticsData?.creditScore || 0}</div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
-              <Zap className="h-3 w-3 mr-1 text-orange-600 flex-shrink-0" />
+              <Zap className="h-3 w-3 mr-1 text-warning flex-shrink-0" />
               <span className="truncate">Financial health indicator</span>
             </div>
           </CardContent>
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-orange-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-warning/10 rounded-bl-full opacity-20" />
         </Card>
       </div>
 
@@ -730,12 +730,12 @@ export function FarmerAnalytics() {
             <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
-                  <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
+                  <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-success flex-shrink-0" />
                   <span className="truncate">Best Performing Month</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-success">
                   {analyticsData?.monthlyTrends?.length && analyticsData?.monthlyTrends.length > 0
                     ? analyticsData.monthlyTrends.reduce((best, current) =>
                       current.revenue > best.revenue ? current : best
@@ -755,36 +755,36 @@ export function FarmerAnalytics() {
                   }
                 </p>
               </CardContent>
-              <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 bg-green-50 rounded-bl-full opacity-30" />
+              <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 bg-success/10 rounded-bl-full opacity-30" />
             </Card>
 
             <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
-                  <Package className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />
+                  <Package className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                   <span className="truncate">Average Harvest Size</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600">
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-primary">
                   {formatNumber(analyticsData?.averageHarvestQuantity || 0)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Across {analyticsData?.totalHarvests || 0} total harvests
                 </p>
               </CardContent>
-              <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 bg-blue-50 rounded-bl-full opacity-30" />
+              <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 bg-primary/10 rounded-bl-full opacity-30" />
             </Card>
 
             <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200 sm:col-span-2 xl:col-span-1">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
-                  <Target className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600 flex-shrink-0" />
+                  <Target className="h-3 w-3 sm:h-4 sm:w-4 text-accent flex-shrink-0" />
                   <span className="truncate">Market Success Rate</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-600">
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-accent">
                   {analyticsData?.marketplaceStats?.conversionRate
                     ? `${Math.round(analyticsData.marketplaceStats.conversionRate)}%`
                     : '0%'
@@ -794,7 +794,7 @@ export function FarmerAnalytics() {
                   {analyticsData?.totalOrders || 0} orders from {analyticsData?.totalListings || 0} listings
                 </p>
               </CardContent>
-              <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 bg-purple-50 rounded-bl-full opacity-30" />
+              <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 bg-accent/10 rounded-bl-full opacity-30" />
             </Card>
           </div>
         </TabsContent>
@@ -911,7 +911,7 @@ export function FarmerAnalytics() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-orange-600" />
+                  <Activity className="h-5 w-5 text-warning" />
                   Harvest Quality Trend
                 </CardTitle>
                 <CardDescription>
@@ -960,7 +960,7 @@ export function FarmerAnalytics() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-purple-600" />
+                  <BarChart3 className="h-5 w-5 text-accent" />
                   Performance Summary
                 </CardTitle>
                 <CardDescription>
@@ -974,7 +974,7 @@ export function FarmerAnalytics() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Approved Rate</span>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                  <Badge variant="secondary" className="bg-success/10 text-success">
                     {analyticsData?.approvalRate || 0}%
                   </Badge>
                 </div>
@@ -984,7 +984,7 @@ export function FarmerAnalytics() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Success Rate</span>
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                  <Badge variant="secondary" className="bg-primary/10 text-primary">
                     {analyticsData?.marketplaceStats?.conversionRate
                       ? `${Math.round(analyticsData.marketplaceStats.conversionRate)}%`
                       : '0%'
@@ -1130,7 +1130,7 @@ export function FarmerAnalytics() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5 text-purple-600" />
+                  <Target className="h-5 w-5 text-accent" />
                   Crop Insights & Recommendations
                 </CardTitle>
                 <CardDescription>
@@ -1200,7 +1200,7 @@ export function FarmerAnalytics() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5 text-purple-600" />
+                  <Target className="h-5 w-5 text-accent" />
                   Top Performing Products
                 </CardTitle>
                 <CardDescription>
@@ -1398,7 +1398,7 @@ export function FarmerAnalytics() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5 text-purple-600" />
+                  <Target className="h-5 w-5 text-accent" />
                   Quality Insights & Recommendations
                 </CardTitle>
                 <CardDescription>
@@ -1464,10 +1464,10 @@ export function FarmerAnalytics() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium text-green-700">High Quality Rate</CardTitle>
+                <CardTitle className="text-sm font-medium text-success">High Quality Rate</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-success">
                   {analyticsData?.qualityDistribution?.insights
                     ? Math.round(analyticsData.qualityDistribution.insights
                       .filter(q => q.isHighQuality)
@@ -1482,10 +1482,10 @@ export function FarmerAnalytics() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium text-blue-700">Average Quality Score</CardTitle>
+                <CardTitle className="text-sm font-medium text-primary">Average Quality Score</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-primary">
                   {analyticsData?.qualityDistribution?.insights?.length
                     ? (() => {
                       const avgScore = analyticsData.qualityDistribution.insights.reduce((sum, q) => {
@@ -1504,10 +1504,10 @@ export function FarmerAnalytics() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium text-purple-700">Total Quality Harvests</CardTitle>
+                <CardTitle className="text-sm font-medium text-accent">Total Quality Harvests</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-purple-600">
+                <div className="text-2xl font-bold text-accent">
                   {analyticsData?.qualityDistribution?.insights
                     ? analyticsData.qualityDistribution.insights.reduce((sum, q) => sum + q.count, 0)
                     : 0}
@@ -1525,7 +1525,7 @@ export function FarmerAnalytics() {
       <Card className="mt-4 sm:mt-6 lg:mt-8">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 flex-shrink-0" />
+            <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-warning flex-shrink-0" />
             <span className="truncate">Performance Insights & Recommendations</span>
           </CardTitle>
           <CardDescription className="text-xs sm:text-sm">
@@ -1535,14 +1535,14 @@ export function FarmerAnalytics() {
         <CardContent className="pt-0">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
             {/* Revenue Growth Insight */}
-            <div className="p-3 sm:p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+            <div className="p-3 sm:p-4 bg-gradient-to-br from-success/10 to-success/10 rounded-lg border border-success/10">
               <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                <div className="p-1.5 sm:p-2 bg-green-100 rounded-full flex-shrink-0">
-                  <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+                <div className="p-1.5 sm:p-2 bg-success/10 rounded-full flex-shrink-0">
+                  <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-success" />
                 </div>
-                <h4 className="font-semibold text-green-800 text-sm sm:text-base">Revenue Growth</h4>
+                <h4 className="font-semibold text-success text-sm sm:text-base">Revenue Growth</h4>
               </div>
-              <p className="text-xs sm:text-sm text-green-700 leading-relaxed">
+              <p className="text-xs sm:text-sm text-success leading-relaxed">
                 {analyticsData?.monthlyTrends?.length && analyticsData?.monthlyTrends.length >= 2
                   ? (() => {
                     const first = analyticsData?.monthlyTrends?.[0]?.revenue
@@ -1558,14 +1558,14 @@ export function FarmerAnalytics() {
             </div>
 
             {/* Quality Improvement Insight */}
-            <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+            <div className="p-3 sm:p-4 bg-gradient-to-br from-primary/10 to-primary/10 rounded-lg border border-primary/10">
               <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                <div className="p-1.5 sm:p-2 bg-blue-100 rounded-full flex-shrink-0">
-                  <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+                <div className="p-1.5 sm:p-2 bg-primary/10 rounded-full flex-shrink-0">
+                  <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
                 </div>
-                <h4 className="font-semibold text-blue-800 text-sm sm:text-base">Quality Focus</h4>
+                <h4 className="font-semibold text-primary text-sm sm:text-base">Quality Focus</h4>
               </div>
-              <p className="text-xs sm:text-sm text-blue-700 leading-relaxed">
+              <p className="text-xs sm:text-sm text-primary leading-relaxed">
                 {analyticsData?.monthlyTrends?.length && analyticsData?.monthlyTrends.length > 0
                   ? (() => {
                     const avgQuality = analyticsData?.monthlyTrends?.reduce((sum, item) => sum + item.quality, 0) / analyticsData?.monthlyTrends?.length
@@ -1579,14 +1579,14 @@ export function FarmerAnalytics() {
             </div>
 
             {/* Market Performance Insight */}
-            <div className="p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200 sm:col-span-2 xl:col-span-1">
+            <div className="p-3 sm:p-4 bg-gradient-to-br from-accent/10 to-accent/10 rounded-lg border border-accent/10 sm:col-span-2 xl:col-span-1">
               <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                <div className="p-1.5 sm:p-2 bg-purple-100 rounded-full flex-shrink-0">
-                  <Target className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
+                <div className="p-1.5 sm:p-2 bg-accent/10 rounded-full flex-shrink-0">
+                  <Target className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />
                 </div>
-                <h4 className="font-semibold text-purple-800 text-sm sm:text-base">Market Performance</h4>
+                <h4 className="font-semibold text-accent text-sm sm:text-base">Market Performance</h4>
               </div>
-              <p className="text-xs sm:text-sm text-purple-700 leading-relaxed">
+              <p className="text-xs sm:text-sm text-accent leading-relaxed">
                 {analyticsData?.marketplaceStats?.conversionRate
                   ? analyticsData.marketplaceStats.conversionRate >= 50
                     ? `Strong market performance! ${analyticsData.marketplaceStats.conversionRate}% conversion rate.`
@@ -1598,15 +1598,15 @@ export function FarmerAnalytics() {
           </div>
 
           {/* Actionable Recommendations */}
-          <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-200">
-            <h4 className="font-semibold text-orange-800 mb-3 flex items-center gap-2 text-sm sm:text-base">
+          <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gradient-to-r from-warning/10 to-warning/10 rounded-lg border border-warning/10">
+            <h4 className="font-semibold text-warning mb-3 flex items-center gap-2 text-sm sm:text-base">
               <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
               <span className="truncate">Actionable Recommendations</span>
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {analyticsData?.totalHarvests === 0 && (
                 <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-md">
-                  <Package className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <Package className="h-4 w-4 sm:h-5 sm:w-5 text-warning mt-0.5 flex-shrink-0" />
                   <div className="min-w-0">
                     <p className="font-medium text-xs sm:text-sm">Start Logging Harvests</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">Begin tracking your harvests to unlock detailed analytics and insights.</p>
@@ -1615,7 +1615,7 @@ export function FarmerAnalytics() {
               )}
               {analyticsData?.totalListings === 0 && (
                 <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-md">
-                  <Leaf className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <Leaf className="h-4 w-4 sm:h-5 sm:w-5 text-warning mt-0.5 flex-shrink-0" />
                   <div className="min-w-0">
                     <p className="font-medium text-xs sm:text-sm">Create Marketplace Listings</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">List your products to reach more buyers and increase revenue.</p>
@@ -1624,7 +1624,7 @@ export function FarmerAnalytics() {
               )}
               {analyticsData?.marketplaceStats?.totalViews && analyticsData.marketplaceStats.totalViews > analyticsData.totalOrders * 2 && (
                 <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-md">
-                  <Target className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <Target className="h-4 w-4 sm:h-5 sm:w-5 text-warning mt-0.5 flex-shrink-0" />
                   <div className="min-w-0">
                     <p className="font-medium text-xs sm:text-sm">Improve Product Descriptions</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">High views but low conversions. Enhance your product descriptions and photos.</p>
@@ -1633,7 +1633,7 @@ export function FarmerAnalytics() {
               )}
               {analyticsData?.approvalRate && analyticsData.approvalRate < 80 && (
                 <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-md">
-                  <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-warning mt-0.5 flex-shrink-0" />
                   <div className="min-w-0">
                     <p className="font-medium text-xs sm:text-sm">Focus on Quality Standards</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">Only {analyticsData.approvalRate}% of harvests are approved. Review quality requirements.</p>

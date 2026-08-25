@@ -182,8 +182,8 @@ export function ReferralsPageContent() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Referral Management</h1>
-              <p className="text-sm sm:text-base text-gray-600 mt-1">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">Referral Management</h1>
+              <p className="text-sm sm:text-base text-muted-foreground mt-1">
                 Manage farmer referrals and track performance
               </p>
             </div>
@@ -196,7 +196,7 @@ export function ReferralsPageContent() {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="border border-gray-200">
+              <Card key={i} className="border border-border">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div className="space-y-2">
@@ -213,7 +213,7 @@ export function ReferralsPageContent() {
           {/* Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             <div className="lg:col-span-2">
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardHeader>
                   <Skeleton className="h-6 w-32" />
                   <Skeleton className="h-4 w-48" />
@@ -221,7 +221,7 @@ export function ReferralsPageContent() {
                 <CardContent>
                   <div className="space-y-4">
                     {[...Array(3)].map((_, i) => (
-                      <div key={i} className="flex items-center space-x-4 p-4 border border-gray-100 rounded-lg">
+                      <div key={i} className="flex items-center space-x-4 p-4 border border-border rounded-lg">
                         <Skeleton className="h-10 w-10 rounded-lg" />
                         <div className="flex-1 space-y-2">
                           <Skeleton className="h-4 w-32" />
@@ -235,7 +235,7 @@ export function ReferralsPageContent() {
               </Card>
             </div>
             <div>
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardHeader>
                   <Skeleton className="h-6 w-32" />
                 </CardHeader>
@@ -263,10 +263,10 @@ export function ReferralsPageContent() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
               Referral Management
             </h1>
-            <p className="text-sm sm:text-base text-gray-600 mt-1">
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               Manage farmer referrals and track performance
             </p>
           </div>
@@ -294,72 +294,72 @@ export function ReferralsPageContent() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Referrals</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  <p className="text-sm font-medium text-muted-foreground">Total Referrals</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-foreground">
                     {stats?.totalReferrals || 0}
                   </p>
-                  <p className="text-xs text-green-600 flex items-center mt-1">
+                  <p className="text-xs text-success flex items-center mt-1">
                     <TrendingUp className="h-3 w-3 mr-1" />
                     +{stats?.monthlyGrowth || 0}% from last month
                   </p>
                 </div>
-                <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Users className="h-6 w-6 text-blue-600" />
+                <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
+                  <Users className="h-6 w-6 text-primary" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Active Referrals</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  <p className="text-sm font-medium text-muted-foreground">Active Referrals</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-foreground">
                     {stats?.activeReferrals || 0}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Currently active</p>
+                  <p className="text-xs text-muted-foreground mt-1">Currently active</p>
                 </div>
-                <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
+                <div className="h-12 w-12 bg-success/10 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-6 w-6 text-success" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  <p className="text-sm font-medium text-muted-foreground">Conversion Rate</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-foreground">
                     {stats?.conversionRate || 0}%
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Success rate</p>
+                  <p className="text-xs text-muted-foreground mt-1">Success rate</p>
                 </div>
-                <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center">
-                  <Target className="h-6 w-6 text-purple-600" />
+                <div className="h-12 w-12 bg-accent/10 rounded-full flex items-center justify-center">
+                  <Target className="h-6 w-6 text-accent" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Monthly Growth</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  <p className="text-sm font-medium text-muted-foreground">Monthly Growth</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-foreground">
                     +{stats?.monthlyGrowth || 0}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">New referrals this month</p>
+                  <p className="text-xs text-muted-foreground mt-1">New referrals this month</p>
                 </div>
-                <div className="h-12 w-12 bg-orange-100 rounded-full flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-orange-600" />
+                <div className="h-12 w-12 bg-warning/10 rounded-full flex items-center justify-center">
+                  <TrendingUp className="h-6 w-6 text-warning" />
                 </div>
               </div>
             </CardContent>
@@ -367,7 +367,7 @@ export function ReferralsPageContent() {
         </div>
 
         {/* Search and Filters */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader>
             <CardTitle className="text-lg">Search & Filters</CardTitle>
             <CardDescription>Find specific referrals or filter by criteria</CardDescription>
@@ -376,7 +376,7 @@ export function ReferralsPageContent() {
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search by farmer name or email..."
                     value={searchTerm}
@@ -417,7 +417,7 @@ export function ReferralsPageContent() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Referrals List */}
           <div className="lg:col-span-2">
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader>
                 <CardTitle className="text-lg">Referral Details</CardTitle>
                 <CardDescription>View and manage your farmer referrals</CardDescription>
@@ -425,9 +425,9 @@ export function ReferralsPageContent() {
               <CardContent>
                 {filteredReferrals.length === 0 ? (
                   <div className="text-center py-8">
-                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No referrals found</h3>
-                    <p className="text-gray-500 mb-4">
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">No referrals found</h3>
+                    <p className="text-muted-foreground mb-4">
                       {searchTerm || statusFilter !== "all" 
                         ? "No referrals match your current filters." 
                         : "You haven't created any referrals yet."}
@@ -444,7 +444,7 @@ export function ReferralsPageContent() {
                     {filteredReferrals.map((referral: any) => (
                       <div
                         key={referral._id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors gap-4 sm:gap-2"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg hover:bg-muted transition-colors gap-4 sm:gap-2"
                       >
                         <div className="flex items-center space-x-4 min-w-0 flex-1">
                           <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -482,7 +482,7 @@ export function ReferralsPageContent() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleDeleteReferral(referral)}
-                                className="text-red-600"
+                                className="text-destructive"
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete
@@ -500,7 +500,7 @@ export function ReferralsPageContent() {
 
           {/* Performance Metrics */}
           <div className="space-y-4 sm:space-y-6">
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader>
                 <CardTitle className="text-lg">Performance Metrics</CardTitle>
                 <CardDescription>Track your referral performance over time</CardDescription>
@@ -513,26 +513,26 @@ export function ReferralsPageContent() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Pending</span>
-                    <span className="font-bold text-yellow-600">{stats?.pendingReferrals || 0}</span>
+                    <span className="font-bold text-warning">{stats?.pendingReferrals || 0}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Active</span>
-                    <span className="font-bold text-blue-600">{stats?.activeReferrals || 0}</span>
+                    <span className="font-bold text-primary">{stats?.activeReferrals || 0}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Completed</span>
-                    <span className="font-bold text-green-600">{stats?.completedReferrals || 0}</span>
+                    <span className="font-bold text-success">{stats?.completedReferrals || 0}</span>
                   </div>
                 </div>
                 <div className="border-t pt-4">
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Conversion Rate</span>
-                      <span className="font-bold text-green-600">{stats?.conversionRate || 0}%</span>
+                      <span className="font-bold text-success">{stats?.conversionRate || 0}%</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Monthly Growth</span>
-                      <span className="font-bold text-blue-600">+{stats?.monthlyGrowth || 0}</span>
+                      <span className="font-bold text-primary">+{stats?.monthlyGrowth || 0}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Average Commission</span>

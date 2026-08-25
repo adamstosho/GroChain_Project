@@ -231,10 +231,10 @@ export default function AddFarmerPage() {
                           placeholder="Enter farmer's full name"
                           value={formData.name}
                           onChange={(e) => handleInputChange('name', e.target.value)}
-                          className={errors.name ? "border-red-500" : ""}
+                          className={errors.name ? "border-destructive" : ""}
                         />
                         {errors.name && (
-                          <p className="text-sm text-red-600 flex items-center space-x-1">
+                          <p className="text-sm text-destructive flex items-center space-x-1">
                             <AlertCircle className="h-3 w-3" />
                             <span>{errors.name}</span>
                           </p>
@@ -249,10 +249,10 @@ export default function AddFarmerPage() {
                           placeholder="farmer@example.com"
                           value={formData.email}
                           onChange={(e) => handleInputChange('email', e.target.value)}
-                          className={errors.email ? "border-red-500" : ""}
+                          className={errors.email ? "border-destructive" : ""}
                         />
                         {errors.email && (
-                          <p className="text-sm text-red-600 flex items-center space-x-1">
+                          <p className="text-sm text-destructive flex items-center space-x-1">
                             <AlertCircle className="h-3 w-3" />
                             <span>{errors.email}</span>
                           </p>
@@ -268,10 +268,10 @@ export default function AddFarmerPage() {
                           placeholder="+2348012345678"
                           value={formData.phone}
                           onChange={(e) => handleInputChange('phone', e.target.value)}
-                          className={errors.phone ? "border-red-500" : ""}
+                          className={errors.phone ? "border-destructive" : ""}
                         />
                         {errors.phone && (
-                          <p className="text-sm text-red-600 flex items-center space-x-1">
+                          <p className="text-sm text-destructive flex items-center space-x-1">
                             <AlertCircle className="h-3 w-3" />
                             <span>{errors.phone}</span>
                           </p>
@@ -281,7 +281,7 @@ export default function AddFarmerPage() {
                       <div className="space-y-2">
                         <Label htmlFor="location">Location *</Label>
                         <Select value={formData.location} onValueChange={(value) => handleInputChange('location', value)}>
-                          <SelectTrigger className={errors.location ? "border-red-500" : ""}>
+                          <SelectTrigger className={errors.location ? "border-destructive" : ""}>
                             <SelectValue placeholder="Select location" />
                           </SelectTrigger>
                           <SelectContent>
@@ -293,7 +293,7 @@ export default function AddFarmerPage() {
                           </SelectContent>
                         </Select>
                         {errors.location && (
-                          <p className="text-sm text-red-600 flex items-center space-x-1">
+                          <p className="text-sm text-destructive flex items-center space-x-1">
                             <AlertCircle className="h-3 w-3" />
                             <span>{errors.location}</span>
                           </p>
@@ -325,10 +325,10 @@ export default function AddFarmerPage() {
                           placeholder="e.g., 2 hectares"
                           value={formData.farmSize}
                           onChange={(e) => handleInputChange('farmSize', e.target.value)}
-                          className={errors.farmSize ? "border-red-500" : ""}
+                          className={errors.farmSize ? "border-destructive" : ""}
                         />
                         {errors.farmSize && (
-                          <p className="text-sm text-red-600 flex items-center space-x-1">
+                          <p className="text-sm text-destructive flex items-center space-x-1">
                             <AlertCircle className="h-3 w-3" />
                             <span>{errors.farmSize}</span>
                           </p>
@@ -359,10 +359,10 @@ export default function AddFarmerPage() {
                         placeholder="e.g., Maize, Cassava, Tomatoes"
                         value={formData.primaryCrops}
                         onChange={(e) => handleInputChange('primaryCrops', e.target.value)}
-                        className={errors.primaryCrops ? "border-red-500" : ""}
+                        className={errors.primaryCrops ? "border-destructive" : ""}
                       />
                       {errors.primaryCrops && (
-                        <p className="text-sm text-red-600 flex items-center space-x-1">
+                        <p className="text-sm text-destructive flex items-center space-x-1">
                           <AlertCircle className="h-3 w-3" />
                           <span>{errors.primaryCrops}</span>
                         </p>
@@ -416,19 +416,19 @@ export default function AddFarmerPage() {
               <CardContent>
                 <div className="space-y-3 text-sm">
                   <div className="flex items-start space-x-2">
-                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                     <span>Verify contact information before submission</span>
                   </div>
                   <div className="flex items-start space-x-2">
-                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                     <span>Include accurate farm size and crop information</span>
                   </div>
                   <div className="flex items-start space-x-2">
-                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                     <span>Add notes for future reference</span>
                   </div>
                   <div className="flex items-start space-x-2">
-                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                     <span>Use bulk upload for multiple farmers</span>
                   </div>
                 </div>
@@ -444,27 +444,27 @@ export default function AddFarmerPage() {
               <CardContent>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-destructive rounded-full"></div>
                     <span>Full Name</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-destructive rounded-full"></div>
                     <span>Email Address</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-destructive rounded-full"></div>
                     <span>Phone Number</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-destructive rounded-full"></div>
                     <span>Location</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-destructive rounded-full"></div>
                     <span>Farm Size</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-destructive rounded-full"></div>
                     <span>Primary Crops</span>
                   </div>
                 </div>
@@ -480,19 +480,19 @@ export default function AddFarmerPage() {
               <CardContent>
                 <div className="space-y-3 text-sm">
                   <div className="flex items-start space-x-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                    <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
                     <span>Farmer receives welcome SMS/email</span>
                   </div>
                   <div className="flex items-start space-x-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                    <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
                     <span>Account activation link sent</span>
                   </div>
                   <div className="flex items-start space-x-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                    <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
                     <span>Training materials provided</span>
                   </div>
                   <div className="flex items-start space-x-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                    <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
                     <span>Performance tracking begins</span>
                   </div>
                 </div>

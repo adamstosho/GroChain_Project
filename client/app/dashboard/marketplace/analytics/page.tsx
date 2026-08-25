@@ -187,14 +187,14 @@ export default function MarketplaceAnalyticsPage() {
 
   const getTrendIcon = (trend: 'up' | 'down') => {
     return trend === 'up' ? (
-      <TrendingUp className="h-4 w-4 text-emerald-500" />
+      <TrendingUp className="h-4 w-4 text-success" />
     ) : (
-      <TrendingDown className="h-4 w-4 text-red-500" />
+      <TrendingDown className="h-4 w-4 text-destructive" />
     )
   }
 
   const getTrendColor = (trend: 'up' | 'down') => {
-    return trend === 'up' ? 'text-emerald-600' : 'text-red-600'
+    return trend === 'up' ? 'text-success' : 'text-destructive'
   }
 
   const formatCurrency = (amount: number) => {
@@ -213,13 +213,13 @@ export default function MarketplaceAnalyticsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
+              <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-2">
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-8 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-8 bg-muted rounded mb-2"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
@@ -234,9 +234,9 @@ export default function MarketplaceAnalyticsPage() {
     return (
       <DashboardLayout pageTitle="Marketplace Analytics">
         <div className="text-center py-12">
-          <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Analytics Data</h3>
-          <p className="text-gray-600">
+          <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No Analytics Data</h3>
+          <p className="text-muted-foreground">
             Analytics data will appear here once you start receiving orders.
           </p>
         </div>
@@ -251,15 +251,15 @@ export default function MarketplaceAnalyticsPage() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" asChild className="text-gray-600 hover:text-gray-900">
+              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
                 <Link href="/dashboard/marketplace" className="flex items-center gap-2">
                   <ArrowLeft className="h-4 w-4" />
                   Back to Marketplace
                 </Link>
               </Button>
             </div>
-            <h1 className="text-2xl font-semibold text-gray-900">Marketplace Analytics</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-semibold text-foreground">Marketplace Analytics</h1>
+            <p className="text-muted-foreground">
               Track your sales performance, customer insights, and market trends
             </p>
           </div>
@@ -286,15 +286,15 @@ export default function MarketplaceAnalyticsPage() {
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Banknote className="h-4 w-4 text-emerald-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Banknote className="h-4 w-4 text-success" />
                 Total Revenue
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-2xl font-bold text-foreground">
                 {formatCurrency(analytics?.revenue?.total || 0)}
               </div>
               <div className={`flex items-center gap-1 text-sm ${getTrendColor(analytics?.revenue?.trend || 'up')}`}>
@@ -305,15 +305,15 @@ export default function MarketplaceAnalyticsPage() {
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <ShoppingCart className="h-4 w-4 text-blue-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <ShoppingCart className="h-4 w-4 text-primary" />
                 Total Orders
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{analytics?.orders?.total || 0}</div>
+              <div className="text-2xl font-bold text-foreground">{analytics?.orders?.total || 0}</div>
               <div className={`flex items-center gap-1 text-sm ${getTrendColor(analytics?.orders?.trend || 'up')}`}>
                 {getTrendIcon(analytics?.orders?.trend || 'up')}
                 <span>{analytics?.orders?.change || 0}%</span>
@@ -322,15 +322,15 @@ export default function MarketplaceAnalyticsPage() {
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Users className="h-4 w-4 text-purple-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Users className="h-4 w-4 text-accent" />
                 Total Customers
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{analytics?.customers?.total || 0}</div>
+              <div className="text-2xl font-bold text-foreground">{analytics?.customers?.total || 0}</div>
               <div className={`flex items-center gap-1 text-sm ${getTrendColor(analytics?.customers?.trend || 'up')}`}>
                 {getTrendIcon(analytics?.customers?.trend || 'up')}
                 <span>{analytics?.customers?.change || 0}%</span>
@@ -339,15 +339,15 @@ export default function MarketplaceAnalyticsPage() {
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Eye className="h-4 w-4 text-amber-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Eye className="h-4 w-4 text-warning" />
                 Total Views
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{(analytics?.views?.total || 0).toLocaleString()}</div>
+              <div className="text-2xl font-bold text-foreground">{(analytics?.views?.total || 0).toLocaleString()}</div>
               <div className={`flex items-center gap-1 text-sm ${getTrendColor(analytics?.views?.trend || 'up')}`}>
                 {getTrendIcon(analytics?.views?.trend || 'up')}
                 <span>{analytics?.views?.change || 0}%</span>
@@ -359,10 +359,10 @@ export default function MarketplaceAnalyticsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top Products */}
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base font-medium">
-                <Award className="h-4 w-4 text-blue-500" />
+                <Award className="h-4 w-4 text-primary" />
                 Top Performing Products
               </CardTitle>
               <CardDescription>
@@ -372,23 +372,23 @@ export default function MarketplaceAnalyticsPage() {
             <CardContent>
                               <div className="space-y-4">
                   {(analytics?.topProducts || []).map((product, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-3 border border-border rounded-lg">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-medium text-blue-600">
+                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium text-primary">
                         {index + 1}
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">{product?.name || 'Unknown Product'}</div>
-                        <div className="text-sm text-gray-500">
+                        <div className="font-medium text-foreground">{product?.name || 'Unknown Product'}</div>
+                        <div className="text-sm text-muted-foreground">
                           {product?.orders || 0} orders • ⭐ {product?.rating || 0}
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-medium text-gray-900">
+                      <div className="font-medium text-foreground">
                         {formatCurrency(product?.revenue || 0)}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-muted-foreground">
                         {product?.views || 0} views
                       </div>
                     </div>
@@ -399,10 +399,10 @@ export default function MarketplaceAnalyticsPage() {
           </Card>
 
           {/* Revenue by Category */}
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base font-medium">
-                <PieChart className="h-4 w-4 text-green-500" />
+                <PieChart className="h-4 w-4 text-success" />
                 Revenue by Category
               </CardTitle>
               <CardDescription>
@@ -414,18 +414,18 @@ export default function MarketplaceAnalyticsPage() {
                   {(analytics?.topCategories || []).map((category, index) => (
                   <div key={index} className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-900">{category?.name || 'Unknown'}</span>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm font-medium text-foreground">{category?.name || 'Unknown'}</span>
+                      <span className="text-sm text-muted-foreground">
                         {formatCurrency(category?.revenue || 0)}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-muted rounded-full h-2">
                       <div
-                        className="bg-green-500 h-2 rounded-full"
+                        className="bg-success h-2 rounded-full"
                         style={{ width: `${category?.percentage || 0}%` }}
                       ></div>
                     </div>
-                    <div className="text-xs text-gray-500 text-right">
+                    <div className="text-xs text-muted-foreground text-right">
                       {category?.percentage || 0}% of total revenue
                     </div>
                   </div>
@@ -436,10 +436,10 @@ export default function MarketplaceAnalyticsPage() {
         </div>
 
         {/* Monthly Trends */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base font-medium">
-              <Activity className="h-4 w-4 text-purple-500" />
+              <Activity className="h-4 w-4 text-accent" />
               Monthly Performance Trends
             </CardTitle>
             <CardDescription>
@@ -451,19 +451,19 @@ export default function MarketplaceAnalyticsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Month</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Revenue</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Orders</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Customers</th>
+                    <th className="text-left py-3 px-4 font-medium text-foreground">Month</th>
+                    <th className="text-left py-3 px-4 font-medium text-foreground">Revenue</th>
+                    <th className="text-left py-3 px-4 font-medium text-foreground">Orders</th>
+                    <th className="text-left py-3 px-4 font-medium text-foreground">Customers</th>
                   </tr>
                 </thead>
                                   <tbody>
                     {(analytics?.monthlyData || []).map((month, index) => (
-                    <tr key={index} className="border-b border-gray-100">
-                      <td className="py-3 px-4 font-medium text-gray-900">{month?.month || 'Unknown'}</td>
-                      <td className="py-3 px-4 text-gray-900">{formatCurrency(month?.revenue || 0)}</td>
-                      <td className="py-3 px-4 text-gray-600">{month?.orders || 0}</td>
-                      <td className="py-3 px-4 text-gray-600">{month?.customers || 0}</td>
+                    <tr key={index} className="border-b border-border">
+                      <td className="py-3 px-4 font-medium text-foreground">{month?.month || 'Unknown'}</td>
+                      <td className="py-3 px-4 text-foreground">{formatCurrency(month?.revenue || 0)}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{month?.orders || 0}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{month?.customers || 0}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -473,10 +473,10 @@ export default function MarketplaceAnalyticsPage() {
         </Card>
 
         {/* Customer Insights */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base font-medium">
-              <Target className="h-4 w-4 text-indigo-500" />
+              <Target className="h-4 w-4 text-primary" />
               Customer Insights
             </CardTitle>
             <CardDescription>
@@ -486,20 +486,20 @@ export default function MarketplaceAnalyticsPage() {
           <CardContent>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {(analytics?.customerSegments || []).map((segment, index) => (
-                <div key={index} className="text-center p-4 border border-gray-200 rounded-lg">
-                  <div className="text-2xl font-bold text-gray-900 mb-1">
+                <div key={index} className="text-center p-4 border border-border rounded-lg">
+                  <div className="text-2xl font-bold text-foreground mb-1">
                     {segment?.count || 0}
                   </div>
-                  <div className="text-sm font-medium text-gray-700 mb-2">
+                  <div className="text-sm font-medium text-foreground mb-2">
                     {segment?.segment || 'Unknown Segment'}
                   </div>
-                  <div className="text-xs text-gray-500 mb-3">
+                  <div className="text-xs text-muted-foreground mb-3">
                     {segment?.percentage || 0}% of total customers
                   </div>
-                  <div className="text-lg font-semibold text-emerald-600">
+                  <div className="text-lg font-semibold text-success">
                     {formatCurrency(segment?.revenue || 0)}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-muted-foreground">
                     Total revenue from this segment
                   </div>
                 </div>
@@ -509,7 +509,7 @@ export default function MarketplaceAnalyticsPage() {
         </Card>
 
         {/* Action Items */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader>
             <CardTitle className="text-base font-medium">Recommended Actions</CardTitle>
             <CardDescription>
@@ -518,42 +518,42 @@ export default function MarketplaceAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 border border-gray-200 rounded-lg">
+              <div className="p-4 border border-border rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="h-4 w-4 text-emerald-500" />
-                  <h4 className="font-medium text-gray-900">Increase Product Visibility</h4>
+                  <TrendingUp className="h-4 w-4 text-success" />
+                  <h4 className="font-medium text-foreground">Increase Product Visibility</h4>
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Your top products are performing well. Consider increasing inventory and promoting them more.
                 </p>
               </div>
               
-              <div className="p-4 border border-gray-200 rounded-lg">
+              <div className="p-4 border border-border rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                  <Users className="h-4 w-4 text-blue-500" />
-                  <h4 className="font-medium text-gray-900">Customer Retention</h4>
+                  <Users className="h-4 w-4 text-primary" />
+                  <h4 className="font-medium text-foreground">Customer Retention</h4>
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Focus on retaining existing customers as they generate the most revenue.
                 </p>
               </div>
               
-              <div className="p-4 border border-gray-200 rounded-lg">
+              <div className="p-4 border border-border rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                  <Star className="h-4 w-4 text-amber-500" />
-                  <h4 className="font-medium text-gray-900">Quality Improvement</h4>
+                  <Star className="h-4 w-4 text-warning" />
+                  <h4 className="font-medium text-foreground">Quality Improvement</h4>
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   High ratings are driving sales. Maintain quality standards to keep customers happy.
                 </p>
               </div>
               
-              <div className="p-4 border border-gray-200 rounded-lg">
+              <div className="p-4 border border-border rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                  <Calendar className="h-4 w-4 text-purple-500" />
-                  <h4 className="font-medium text-gray-900">Seasonal Planning</h4>
+                  <Calendar className="h-4 w-4 text-accent" />
+                  <h4 className="font-medium text-foreground">Seasonal Planning</h4>
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Plan inventory based on seasonal trends to maximize revenue opportunities.
                 </p>
               </div>

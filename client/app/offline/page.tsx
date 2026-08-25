@@ -11,11 +11,11 @@ export default function OfflinePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-            <WifiOff className="h-8 w-8 text-red-500" />
+          <div className="mx-auto mb-4 w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
+            <WifiOff className="h-8 w-8 text-destructive" />
           </div>
           <CardTitle className="text-xl">You're Offline</CardTitle>
           <CardDescription>
@@ -24,10 +24,10 @@ export default function OfflinePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-center space-y-2">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               While offline, you can still:
             </p>
-            <ul className="text-sm text-gray-600 space-y-1">
+            <ul className="text-sm text-muted-foreground space-y-1">
               <li>• View cached harvest data</li>
               <li>• Access your profile</li>
               <li>• Browse marketplace listings</li>
@@ -54,7 +54,7 @@ export default function OfflinePage() {
           </div>
           
           <div className="text-center">
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               Your actions will be synchronized when you're back online
             </p>
           </div>

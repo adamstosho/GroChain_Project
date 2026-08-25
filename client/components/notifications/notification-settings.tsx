@@ -157,7 +157,7 @@ export function NotificationSettings() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <MessageSquare className="h-5 w-5 text-blue-600" />
+                <MessageSquare className="h-5 w-5 text-primary" />
                 <div>
                   <Label htmlFor="websocket" className="text-sm font-medium">
                     Real-time Notifications
@@ -178,7 +178,7 @@ export function NotificationSettings() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 text-green-600" />
+                <Mail className="h-5 w-5 text-success" />
                 <div>
                   <Label htmlFor="email" className="text-sm font-medium">
                     Email Notifications
@@ -199,7 +199,7 @@ export function NotificationSettings() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Smartphone className="h-5 w-5 text-purple-600" />
+                <Smartphone className="h-5 w-5 text-accent" />
                 <div>
                   <Label htmlFor="sms" className="text-sm font-medium">
                     SMS Notifications
@@ -220,7 +220,7 @@ export function NotificationSettings() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Bell className="h-5 w-5 text-orange-600" />
+                <Bell className="h-5 w-5 text-warning" />
                 <div>
                   <Label htmlFor="push" className="text-sm font-medium">
                     Push Notifications

@@ -63,12 +63,12 @@ const qualityColors = {
 }
 
 const statusColors = {
-  pending: "bg-amber-50 text-amber-700 border-amber-200",
-  approved: "bg-green-50 text-green-700 border-green-200",
-  rejected: "bg-red-50 text-red-700 border-red-200",
-  shipped: "bg-blue-50 text-blue-700 border-blue-200",
-  verified: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  listed: "bg-purple-50 text-purple-700 border-purple-200"
+  pending: "bg-warning/10 text-warning border-warning/10",
+  approved: "bg-success/10 text-success border-success/10",
+  rejected: "bg-destructive/10 text-destructive border-destructive/10",
+  shipped: "bg-primary/10 text-primary border-primary/10",
+  verified: "bg-success/10 text-success border-success/10",
+  listed: "bg-accent/10 text-accent border-accent/10"
 }
 
 const statusIcons = {

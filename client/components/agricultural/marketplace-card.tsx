@@ -81,9 +81,9 @@ const qualityColors = {
 }
 
 const gradeColors = {
-  A: "bg-gradient-to-r from-yellow-400 to-yellow-600 text-white",
-  B: "bg-gradient-to-r from-blue-400 to-blue-600 text-white",
-  C: "bg-gradient-to-r from-gray-400 to-gray-600 text-white"
+  A: "bg-gradient-to-r from-warning/80 to-warning text-white",
+  B: "bg-gradient-to-r from-primary/80 to-primary text-white",
+  C: "bg-gradient-to-r from-secondary/80 to-secondary text-white"
 }
 
 export function MarketplaceCard({
@@ -218,7 +218,7 @@ export function MarketplaceCard({
                 {product.availableQuantity <= 0 ? (
                   <Button
                     size="sm"
-                    className="h-7 px-2 text-xs bg-gray-500 flex-shrink-0"
+                    className="h-7 px-2 text-xs bg-secondary flex-shrink-0"
                     disabled
                   >
                     Out
@@ -241,7 +241,7 @@ export function MarketplaceCard({
   }
 
   return (
-    <Card className={cn("hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 ease-out group overflow-hidden w-full border border-gray-100 hover:border-emerald-500/20 bg-card", className)}>
+    <Card className={cn("hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 ease-out group overflow-hidden w-full border border-border hover:border-success/20 bg-card", className)}>
       {/* Product Image */}
       <div className="relative aspect-[5/3] sm:aspect-[4/3] overflow-hidden">
         <img
@@ -256,7 +256,7 @@ export function MarketplaceCard({
             Grade {product.grade}
           </Badge>
           {product.organic && (
-            <Badge className="backdrop-blur-md bg-emerald-600/90 text-white text-[10px] sm:text-xs px-2 py-0.5 sm:py-1 font-semibold flex items-center shadow-sm border border-emerald-400/25">
+            <Badge className="backdrop-blur-md bg-success/90 text-white text-[10px] sm:text-xs px-2 py-0.5 sm:py-1 font-semibold flex items-center shadow-sm border border-success/25">
               <Leaf className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
               Organic
             </Badge>
@@ -268,17 +268,17 @@ export function MarketplaceCard({
           <Button
             variant="secondary"
             size="sm"
-            className="h-8 w-8 p-0 bg-white/95 hover:bg-white hover:text-red-500 text-gray-600 shadow-md rounded-full transition-transform hover:scale-105"
+            className="h-8 w-8 p-0 bg-white/95 hover:bg-white hover:text-destructive text-muted-foreground shadow-md rounded-full transition-transform hover:scale-105"
             onClick={handleWishlist}
             disabled={isProcessing}
           >
-            <Heart className={cn("h-4 w-4 transition-colors", isWishlisted ? "fill-red-500 text-red-500" : "")} />
+            <Heart className={cn("h-4 w-4 transition-colors", isWishlisted ? "fill-destructive text-destructive" : "")} />
           </Button>
           {product.qrCode && (
             <Button
               variant="secondary"
               size="sm"
-              className="h-8 w-8 p-0 bg-white/95 hover:bg-white text-emerald-600 hover:text-emerald-700 shadow-md rounded-full transition-transform hover:scale-105"
+              className="h-8 w-8 p-0 bg-white/95 hover:bg-white text-success hover:text-success shadow-md rounded-full transition-transform hover:scale-105"
               onClick={() => router.push(`/verify/${product.qrCode}`)}
               title="Verify Traceability"
             >
@@ -291,11 +291,11 @@ export function MarketplaceCard({
       <div className="p-3 space-y-2 sm:space-y-2.5 overflow-hidden">
         {/* Product Info */}
         <div className="space-y-0.5">
-          <h3 className="font-semibold text-xs sm:text-sm line-clamp-1 flex items-center gap-1 text-gray-900 group-hover:text-primary transition-colors">
+          <h3 className="font-semibold text-xs sm:text-sm line-clamp-1 flex items-center gap-1 text-foreground group-hover:text-primary transition-colors">
             {product.name}
             {product.farmer.verified && (
               <span title="Verified Supply Chain" className="flex-shrink-0">
-                <Shield className="h-3.5 w-3.5 text-emerald-500 fill-emerald-100/50" />
+                <Shield className="h-3.5 w-3.5 text-success fill-success/50" />
               </span>
             )}
           </h3>
@@ -305,25 +305,25 @@ export function MarketplaceCard({
         {/* Price */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-0.5 min-w-0 flex-1">
-            <span className="text-sm sm:text-base font-bold text-emerald-600 truncate">
+            <span className="text-sm sm:text-base font-bold text-success truncate">
               ₦{product.price.toLocaleString()}
             </span>
             <span className="text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">/{product.unit}</span>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
-            <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-            <span className="text-xs font-semibold text-gray-700">{product.rating.toFixed(1)}</span>
+            <Star className="h-3.5 w-3.5 fill-warning text-warning" />
+            <span className="text-xs font-semibold text-foreground">{product.rating.toFixed(1)}</span>
           </div>
         </div>
 
         {/* Key Details */}
-        <div className="grid grid-cols-2 gap-1 text-[10px] sm:text-xs text-muted-foreground border-t border-gray-50 pt-2">
+        <div className="grid grid-cols-2 gap-1 text-[10px] sm:text-xs text-muted-foreground border-t border-border pt-2">
           <div className="flex items-center gap-1 min-w-0">
-            <Scale className="h-3 w-3 flex-shrink-0 text-gray-400" />
+            <Scale className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
             <span className="truncate">{product.availableQuantity} {product.unit} left</span>
           </div>
           <div className="flex items-center gap-1 min-w-0">
-            <MapPin className="h-3 w-3 flex-shrink-0 text-gray-400" />
+            <MapPin className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
             <span className="truncate">{typeof product.location === 'string' ? product.location.split(',')[0] : (product.location as any)?.city || 'Unknown'}</span>
           </div>
         </div>
@@ -331,13 +331,13 @@ export function MarketplaceCard({
         {/* Low Stock Gauge */}
         {product.availableQuantity > 0 && product.availableQuantity < 150 && (
           <div className="space-y-1">
-            <div className="flex justify-between text-[9px] font-semibold text-amber-600">
+            <div className="flex justify-between text-[9px] font-semibold text-warning">
               <span className="flex items-center gap-0.5">⚠️ Low Stock</span>
               <span>{Math.round((product.availableQuantity / (product.quantity || 150)) * 100)}%</span>
             </div>
-            <div className="w-full bg-amber-50 rounded-full h-1 overflow-hidden">
+            <div className="w-full bg-warning/10 rounded-full h-1 overflow-hidden">
               <div 
-                className="bg-gradient-to-r from-amber-500 to-orange-500 h-full rounded-full transition-all duration-500" 
+                className="bg-warning h-full rounded-full transition-all duration-500"
                 style={{ width: `${Math.max(10, Math.min(100, (product.availableQuantity / (product.quantity || 150)) * 100))}%` }}
               />
             </div>
@@ -345,38 +345,38 @@ export function MarketplaceCard({
         )}
 
         {/* Farmer Info */}
-        <div className="flex items-center justify-between gap-2 border-t border-gray-50 pt-2">
+        <div className="flex items-center justify-between gap-2 border-t border-border pt-2">
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <Avatar className="h-5 w-5 flex-shrink-0 border border-gray-100">
-              <AvatarFallback className="bg-emerald-50 text-emerald-700 text-[10px] font-bold">
+            <Avatar className="h-5 w-5 flex-shrink-0 border border-border">
+              <AvatarFallback className="bg-success/10 text-success text-[10px] font-bold">
                 {typeof product.farmer.name === 'string' ? product.farmer.name.charAt(0) : 'U'}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <span className="text-[10px] sm:text-xs font-medium text-gray-700 truncate block">
+              <span className="text-[10px] sm:text-xs font-medium text-foreground truncate block">
                 {typeof product.farmer.name === 'string' ? product.farmer.name : 'Unknown Farmer'}
               </span>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="h-5 sm:h-6 px-1.5 sm:px-2 text-[10px] flex-shrink-0 text-gray-600 border-gray-200 hover:bg-gray-50" onClick={handleContact}>
+          <Button variant="outline" size="sm" className="h-5 sm:h-6 px-1.5 sm:px-2 text-[10px] flex-shrink-0 text-muted-foreground border-border hover:bg-muted" onClick={handleContact}>
             <span className="hidden sm:inline">Contact</span>
             <span className="sm:hidden">Call</span>
           </Button>
         </div>
 
         {/* Actions */}
-        <div className="flex gap-1.5 pt-2 border-t border-gray-50 overflow-hidden">
-          <Button variant="outline" size="sm" className="flex-1 h-7 text-[10px] sm:text-xs min-w-0 hover:bg-gray-50 border-gray-200 text-gray-700" onClick={handleView}>
-            <Eye className="h-3 w-3 mr-1 flex-shrink-0 text-gray-400" />
+        <div className="flex gap-1.5 pt-2 border-t border-border overflow-hidden">
+          <Button variant="outline" size="sm" className="flex-1 h-7 text-[10px] sm:text-xs min-w-0 hover:bg-muted border-border text-foreground" onClick={handleView}>
+            <Eye className="h-3 w-3 mr-1 flex-shrink-0 text-muted-foreground" />
             <span className="truncate">View</span>
           </Button>
           {product.availableQuantity <= 0 ? (
-            <Button size="sm" className="flex-1 h-7 text-[10px] sm:text-xs bg-gray-400 text-white min-w-0" disabled>
+            <Button size="sm" className="flex-1 h-7 text-[10px] sm:text-xs bg-secondary text-white min-w-0" disabled>
               <ShoppingCart className="h-3 w-3 mr-1 flex-shrink-0" />
               <span className="truncate">Sold Out</span>
             </Button>
           ) : (
-            <Button size="sm" className="flex-1 h-7 text-[10px] sm:text-xs bg-emerald-600 hover:bg-emerald-700 text-white min-w-0 font-medium" onClick={handleAddToCart}>
+            <Button size="sm" className="flex-1 h-7 text-[10px] sm:text-xs bg-success hover:bg-success text-white min-w-0 font-medium" onClick={handleAddToCart}>
               <ShoppingCart className="h-3 w-3 mr-1 flex-shrink-0" />
               <span className="truncate">Add to Cart</span>
             </Button>

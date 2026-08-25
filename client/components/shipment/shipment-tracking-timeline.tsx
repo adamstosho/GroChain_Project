@@ -46,38 +46,38 @@ export function ShipmentTrackingTimeline({
   const getEventColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'text-yellow-600'
+        return 'text-warning'
       case 'confirmed':
-        return 'text-blue-600'
+        return 'text-primary'
       case 'in_transit':
-        return 'text-purple-600'
+        return 'text-accent'
       case 'out_for_delivery':
-        return 'text-orange-600'
+        return 'text-warning'
       case 'delivered':
-        return 'text-green-600'
+        return 'text-success'
       case 'failed':
-        return 'text-red-600'
+        return 'text-destructive'
       default:
-        return 'text-gray-600'
+        return 'text-muted-foreground'
     }
   }
 
   const getEventBgColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'bg-yellow-100'
+        return 'bg-warning/10'
       case 'confirmed':
-        return 'bg-blue-100'
+        return 'bg-primary/10'
       case 'in_transit':
-        return 'bg-purple-100'
+        return 'bg-accent/10'
       case 'out_for_delivery':
-        return 'bg-orange-100'
+        return 'bg-warning/10'
       case 'delivered':
-        return 'bg-green-100'
+        return 'bg-success/10'
       case 'failed':
-        return 'bg-red-100'
+        return 'bg-destructive/10'
       default:
-        return 'bg-gray-100'
+        return 'bg-muted'
     }
   }
 
@@ -86,14 +86,14 @@ export function ShipmentTrackingTimeline({
       <Card className={className}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-gray-600" />
+            <Package className="h-5 w-5 text-muted-foreground" />
             Tracking Timeline
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">No tracking events available</p>
+            <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">No tracking events available</p>
           </div>
         </CardContent>
       </Card>
@@ -109,7 +109,7 @@ export function ShipmentTrackingTimeline({
     <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Package className="h-5 w-5 text-gray-600" />
+          <Package className="h-5 w-5 text-muted-foreground" />
           Tracking Timeline
         </CardTitle>
       </CardHeader>
@@ -123,17 +123,17 @@ export function ShipmentTrackingTimeline({
             return (
               <div key={index} className="flex items-start gap-4">
                 <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                  isLatest ? getEventBgColor(event.status) : 'bg-gray-100'
+                  isLatest ? getEventBgColor(event.status) : 'bg-muted'
                 }`}>
                   <Icon className={`h-5 w-5 ${
-                    isLatest ? getEventColor(event.status) : 'text-gray-400'
+                    isLatest ? getEventColor(event.status) : 'text-muted-foreground'
                   }`} />
                 </div>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className={`font-medium ${
-                      isLatest ? 'text-gray-900' : 'text-gray-700'
+                      isLatest ? 'text-foreground' : 'text-foreground'
                     }`}>
                       {event.location}
                     </h4>
@@ -145,26 +145,26 @@ export function ShipmentTrackingTimeline({
                   </div>
                   
                   <p className={`text-sm ${
-                    isLatest ? 'text-gray-800' : 'text-gray-600'
+                    isLatest ? 'text-foreground' : 'text-muted-foreground'
                   }`}>
                     {event.description}
                   </p>
                   
                   <div className="flex items-center gap-2 mt-2">
-                    <Clock className="h-3 w-3 text-gray-400" />
-                    <span className="text-xs text-gray-500">
+                    <Clock className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(event.timestamp), { addSuffix: true })}
                     </span>
-                    <span className="text-xs text-gray-400">•</span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">•</span>
+                    <span className="text-xs text-muted-foreground">
                       {new Date(event.timestamp).toLocaleString()}
                     </span>
                   </div>
                   
                   {event.coordinates && (
                     <div className="flex items-center gap-1 mt-1">
-                      <MapPin className="h-3 w-3 text-gray-400" />
-                      <span className="text-xs text-gray-500">
+                      <MapPin className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">
                         {event.coordinates.lat.toFixed(4)}, {event.coordinates.lng.toFixed(4)}
                       </span>
                     </div>

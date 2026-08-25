@@ -10,16 +10,16 @@ import { PartnerAnalytics } from "@/components/analytics/partner-analytics"
 import { AdminAnalytics } from "@/components/analytics/admin-analytics"
 
 export default function AnalyticsPage() {
-  const { user, isLoading } = useAuthStore()
+  const { user, isLoading, hasHydrated } = useAuthStore()
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (hasHydrated && !isLoading && !user) {
       router.push("/login")
     }
-  }, [user, isLoading, router])
+  }, [user, isLoading, hasHydrated, router])
 
-  if (isLoading) {
+  if (!hasHydrated || isLoading) {
     return (
       <DashboardLayout pageTitle="Analytics Dashboard">
         <div className="flex h-screen bg-background">
@@ -52,8 +52,8 @@ export default function AnalyticsPage() {
         return (
           <div className="flex items-center justify-center p-8">
             <div className="text-center space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Invalid Role</h3>
-              <p className="text-gray-600">Your role does not have access to analytics.</p>
+              <h3 className="text-lg font-medium text-foreground">Invalid Role</h3>
+              <p className="text-muted-foreground">Your role does not have access to analytics.</p>
             </div>
           </div>
         )

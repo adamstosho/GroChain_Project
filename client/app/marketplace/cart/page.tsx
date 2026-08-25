@@ -100,12 +100,12 @@ export default function CartPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50">
+      <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10">
         <div className="container mx-auto px-4 py-8">
           <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-32"></div>
-            <div className="h-32 bg-gray-200 rounded"></div>
-            <div className="h-32 bg-gray-200 rounded"></div>
+            <div className="h-8 bg-muted rounded w-32"></div>
+            <div className="h-32 bg-muted rounded"></div>
+            <div className="h-32 bg-muted rounded"></div>
           </div>
         </div>
       </div>
@@ -113,7 +113,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50">
+    <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10">
       <div className="container mx-auto px-4 py-8">
         <Button variant="ghost" asChild className="mb-6">
           <Link href="/marketplace" className="flex items-center gap-2">
@@ -135,9 +135,9 @@ export default function CartPage() {
               <CardContent>
                 {cart.length === 0 ? (
                   <div className="text-center py-8">
-                    <ShoppingBag className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Your cart is empty</h3>
-                    <p className="text-gray-600 mb-4">Add some fresh products to get started</p>
+                    <ShoppingBag className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Your cart is empty</h3>
+                    <p className="text-muted-foreground mb-4">Add some fresh products to get started</p>
                     <Button asChild>
                       <Link href="/marketplace">Browse Products</Link>
                     </Button>
@@ -160,27 +160,27 @@ export default function CartPage() {
 
                         <div className="flex-1">
                           <h4 className="font-semibold">{item.cropName}</h4>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-muted-foreground">
                             {typeof item.farmer === 'object' ? item.farmer?.name || 'Unknown Farmer' : item.farmer || 'Unknown Farmer'}
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                             {typeof item.location === 'object' ? `${item.location?.city || 'Unknown'}, ${item.location?.state || 'Unknown State'}` : item.location || 'Unknown Location'}
                           </p>
                           {currentProductData[item.listingId] ? (
-                            <div className="text-xs text-gray-400 mt-1">
+                            <div className="text-xs text-muted-foreground mt-1">
                               {currentProductData[item.listingId].quantity <= 0 ? (
-                                <span className="text-red-500 font-medium">Out of Stock</span>
+                                <span className="text-destructive font-medium">Out of Stock</span>
                               ) : (
                                 <span>
                                   {currentProductData[item.listingId].quantity} {item.unit} available
                                   {currentProductData[item.listingId].quantity < item.quantity && (
-                                    <span className="text-orange-500 ml-1">(Low stock!)</span>
+                                    <span className="text-warning ml-1">(Low stock!)</span>
                                   )}
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <div className="text-xs text-blue-400 mt-1">
+                            <div className="text-xs text-primary mt-1">
                               Loading current stock...
                             </div>
                           )}
@@ -208,7 +208,7 @@ export default function CartPage() {
 
                         <div className="text-right">
                           <p className="font-semibold">₦{(item.price * item.quantity).toLocaleString()}</p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                             ₦{item.price}/{item.unit}
                           </p>
                         </div>
@@ -217,7 +217,7 @@ export default function CartPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleRemoveItem(item.id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -253,10 +253,10 @@ export default function CartPage() {
                   {/* Show pending shipping indicator */}
                   {shipping === 0 && subtotal > 0 && (
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600 font-medium">Shipping</span>
+                      <span className="text-muted-foreground font-medium">Shipping</span>
                       <div className="flex items-center gap-1">
-                        <span className="text-gray-600 font-medium">Pending</span>
-                        <span className="text-xs text-gray-500">⏳</span>
+                        <span className="text-muted-foreground font-medium">Pending</span>
+                        <span className="text-xs text-muted-foreground">⏳</span>
                       </div>
                     </div>
                   )}

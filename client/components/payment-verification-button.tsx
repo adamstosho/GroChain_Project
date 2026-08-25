@@ -53,7 +53,7 @@ export function PaymentVerificationButton({
   // Don't show button if already verified
   if (isVerified) {
     return (
-      <div className={`flex items-center gap-2 text-green-600 ${className}`}>
+      <div className={`flex items-center gap-2 text-success ${className}`}>
         <CheckCircle className="h-4 w-4" />
         <span className="text-sm font-medium">Payment Verified</span>
       </div>
@@ -186,7 +186,7 @@ export function BatchVerificationButton({
       {totalCount > 0 && (
         <div className="flex items-center gap-1 text-sm text-muted-foreground">
           <span>{verifiedCount}/{totalCount} verified</span>
-          {verifiedCount > 0 && <CheckCircle className="h-3 w-3 text-green-600" />}
+          {verifiedCount > 0 && <CheckCircle className="h-3 w-3 text-success" />}
         </div>
       )}
     </div>
@@ -229,14 +229,14 @@ export function AutoVerification({
   return (
     <div className={`flex items-center gap-2 text-sm ${className}`}>
       {isVerifying && (
-        <div className="flex items-center gap-2 text-blue-600">
+        <div className="flex items-center gap-2 text-primary">
           <RefreshCw className="h-3 w-3 animate-spin" />
           <span>Verifying payment...</span>
         </div>
       )}
 
       {error && (
-        <div className="flex items-center gap-2 text-red-600">
+        <div className="flex items-center gap-2 text-destructive">
           <AlertCircle className="h-3 w-3" />
           <span>Verification failed</span>
         </div>

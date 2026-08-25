@@ -46,6 +46,16 @@ import type { Product } from "@/lib/types"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
+function formatLocation(location: unknown): string {
+  if (!location) return ""
+  if (typeof location === "string") return location
+  if (typeof location === "object") {
+    const { city, state, country } = location as { city?: string; state?: string; country?: string }
+    return [city, state, country].filter(Boolean).join(", ")
+  }
+  return ""
+}
+
 export default function MarketplacePage() {
   const [products, setProducts] = useState<any[]>([])
   const { isInitialLoading, isRefreshing, begin, finish } = useStableDataFetch()
@@ -229,7 +239,7 @@ export default function MarketplacePage() {
         description: listing.description,
         price: listing.basePrice,
         unit: listing.unit,
-        location: listing.location,
+        location: formatLocation(listing.location),
         images: listing.images || [],
         rating: listing.rating || 4.5,
         isVerified: true,
@@ -433,63 +443,63 @@ export default function MarketplacePage() {
     <div className="min-h-screen flex flex-col bg-background antialiased">
       <Header />
       
-      <main className="flex-1 py-8 bg-gradient-to-b from-slate-50 via-white to-emerald-50/15">
+      <main className="flex-1 py-8 bg-gradient-to-b from-muted via-white to-success/15">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           
           {/* Breadcrumbs / Back navigation */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <Link href="/dashboard" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors">
+              <Link href="/dashboard" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-success transition-colors">
                 <ArrowLeft className="h-4 w-4" />
                 <span>Back to Dashboard</span>
               </Link>
-              <span className="text-gray-300">|</span>
-              <Link href="/" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors">
+              <span className="text-muted-foreground">|</span>
+              <Link href="/" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-success transition-colors">
                 <Home className="h-4 w-4" />
                 <span>Home</span>
               </Link>
             </div>
             
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200/50 flex items-center gap-1 text-[11px] sm:text-xs">
-              <Sparkles className="h-3 w-3 text-emerald-500 fill-emerald-300 animate-pulse" />
+            <Badge variant="outline" className="bg-success/10 text-success border-success/50 flex items-center gap-1 text-[11px] sm:text-xs">
+              <Sparkles className="h-3 w-3 text-success fill-success animate-pulse" />
               Graded Standard Marketplace
             </Badge>
           </div>
 
           {/* Premium Hero Banner */}
-          <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-emerald-900 to-green-900 text-white py-12 px-6 sm:px-12 rounded-2xl shadow-xl mb-10 border border-emerald-800">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+          <div className="relative overflow-hidden bg-gradient-to-r from-primary via-primary to-success text-white py-12 px-6 sm:px-12 rounded-2xl shadow-xl mb-10 border border-primary">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-lime-500/10 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
-            
+
             <div className="relative z-10 max-w-3xl">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-800/60 border border-emerald-700/80 text-xs font-semibold text-emerald-300 mb-4 tracking-wider uppercase">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-semibold text-white mb-4 tracking-wider uppercase">
+                <span className="h-1.5 w-1.5 rounded-full bg-lime-300 animate-pulse" />
                 Zero Middlemen & Blockchain Verified
               </div>
               <h1 className="text-3xl sm:text-5xl font-black tracking-tight mb-4 text-white leading-tight">
-                {greeting}, welcome to the <span className="bg-gradient-to-r from-emerald-400 via-emerald-300 to-lime-300 bg-clip-text text-transparent">GroChain Marketplace</span>
+                {greeting}, welcome to the <span className="bg-gradient-to-r from-lime-300 via-lime-200 to-lime-300 bg-clip-text text-transparent">GroChain Marketplace</span>
               </h1>
-              <p className="text-emerald-100/90 text-sm sm:text-base leading-relaxed mb-6 font-medium">
+              <p className="text-white/90 text-sm sm:text-base leading-relaxed mb-6 font-medium">
                 Source premium, traceably verified farm products directly from certified Nigerian smallholders. Safe escrow payments and integrated cold-chain logistics.
               </p>
-              
+
               {/* Stats Strip */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-5 border-t border-emerald-800/80">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-5 border-t border-white/20">
                 <div className="flex flex-col">
                   <span className="text-2xl font-black text-white">5,000+</span>
-                  <span className="text-xs text-emerald-300 font-medium">Verified Farmers</span>
+                  <span className="text-xs text-white/70 font-medium">Verified Farmers</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-2xl font-black text-white">12,000+</span>
-                  <span className="text-xs text-emerald-300 font-medium">Tons Traced</span>
+                  <span className="text-xs text-white/70 font-medium">Tons Traced</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-2xl font-black text-white">₦0</span>
-                  <span className="text-xs text-emerald-300 font-medium">Broker Commission</span>
+                  <span className="text-xs text-white/70 font-medium">Broker Commission</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-2xl font-black text-white">100%</span>
-                  <span className="text-xs text-emerald-300 font-medium">Escrow Protected</span>
+                  <span className="text-xs text-white/70 font-medium">Escrow Protected</span>
                 </div>
               </div>
             </div>
@@ -511,8 +521,8 @@ export default function MarketplacePage() {
                 onClick={() => setFilters(prev => ({ ...prev, category: cat.id }))}
                 className={`rounded-full px-5 py-1.5 h-auto text-xs font-semibold whitespace-nowrap transition-transform duration-200 hover:scale-105 flex-shrink-0 ${
                   filters.category === cat.id 
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/10 border-none" 
-                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-900"
+                    ? "bg-success hover:bg-success text-white shadow-md shadow-emerald-600/10 border-none" 
+                    : "bg-white text-muted-foreground border-border hover:bg-muted hover:text-foreground"
                 }`}
               >
                 {cat.label}
@@ -524,7 +534,7 @@ export default function MarketplacePage() {
           <div className="mb-6 space-y-4">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   placeholder="Search products, farmers, or locations..."
                   value={searchQuery}
@@ -536,12 +546,12 @@ export default function MarketplacePage() {
                   onKeyDown={handleKeyDown}
                   onFocus={() => setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  className="pl-10 bg-white border-gray-200 focus-visible:ring-emerald-500 h-11 shadow-sm rounded-xl"
+                  className="pl-10 bg-white border-border focus-visible:ring-success h-11 shadow-sm rounded-xl"
                 />
                 
                 {/* Autocomplete List */}
                 {showSuggestions && suggestions.length > 0 && (
-                  <Card className="absolute top-12 left-0 right-0 z-50 shadow-lg border border-gray-200/80 rounded-xl overflow-hidden bg-white max-h-60 overflow-y-auto">
+                  <Card className="absolute top-12 left-0 right-0 z-50 shadow-lg border border-border/80 rounded-xl overflow-hidden bg-white max-h-60 overflow-y-auto">
                     <CardContent className="p-1">
                       {suggestions.map((suggestion, index) => (
                         <button
@@ -550,11 +560,11 @@ export default function MarketplacePage() {
                             setSearchQuery(suggestion)
                             setShowSuggestions(false)
                           }}
-                          className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 transition-colors flex items-center gap-2 ${
-                            index === focusedSuggestionIndex ? "bg-emerald-50 text-emerald-800 font-semibold" : ""
+                          className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm text-foreground hover:bg-success/10 hover:text-success transition-colors flex items-center gap-2 ${
+                            index === focusedSuggestionIndex ? "bg-success/10 text-success font-semibold" : ""
                           }`}
                         >
-                          <Search className="h-3.5 w-3.5 text-gray-400" />
+                          <Search className="h-3.5 w-3.5 text-muted-foreground" />
                           <span>{suggestion}</span>
                         </button>
                       ))}
@@ -566,8 +576,8 @@ export default function MarketplacePage() {
               <div className="flex gap-2">
                 <Sheet>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="flex items-center gap-2 bg-white border-gray-200 hover:bg-gray-50 h-11 lg:hidden rounded-xl">
-                      <Filter className="h-4 w-4 text-gray-500" />
+                    <Button variant="outline" className="flex items-center gap-2 bg-white border-border hover:bg-muted h-11 lg:hidden rounded-xl">
+                      <Filter className="h-4 w-4 text-muted-foreground" />
                       Filters
                     </Button>
                   </SheetTrigger>
@@ -577,7 +587,7 @@ export default function MarketplacePage() {
                     </SheetHeader>
                     <div className="space-y-6 mt-6">
                       <div>
-                        <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Category</label>
+                        <label className="text-xs font-semibold text-foreground uppercase tracking-wider">Category</label>
                         <Select value={filters.category} onValueChange={(value) => setFilters({ ...filters, category: value })}>
                           <SelectTrigger className="mt-1">
                             <SelectValue />
@@ -594,7 +604,7 @@ export default function MarketplacePage() {
                       </div>
 
                       <div>
-                        <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Location</label>
+                        <label className="text-xs font-semibold text-foreground uppercase tracking-wider">Location</label>
                         <Input
                           placeholder="Enter state or city"
                           value={filters.location}
@@ -604,7 +614,7 @@ export default function MarketplacePage() {
                       </div>
 
                       <div>
-                        <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Price Range</label>
+                        <label className="text-xs font-semibold text-foreground uppercase tracking-wider">Price Range</label>
                         <div className="space-y-2 mt-2">
                           <Slider
                             value={filters.priceRange}
@@ -613,7 +623,7 @@ export default function MarketplacePage() {
                             min={0}
                             step={100}
                           />
-                          <div className="flex justify-between text-xs text-gray-600 font-medium">
+                          <div className="flex justify-between text-xs text-muted-foreground font-medium">
                             <span>₦{filters.priceRange[0]}</span>
                             <span>₦{filters.priceRange[1]}</span>
                           </div>
@@ -621,7 +631,7 @@ export default function MarketplacePage() {
                       </div>
 
                       <div>
-                        <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Sort By</label>
+                        <label className="text-xs font-semibold text-foreground uppercase tracking-wider">Sort By</label>
                         <Select value={filters.sortBy} onValueChange={(value) => setFilters({ ...filters, sortBy: value })}>
                           <SelectTrigger className="mt-1">
                             <SelectValue />
@@ -645,16 +655,16 @@ export default function MarketplacePage() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">
             
             {/* Desktop Sticky Filters Sidebar */}
-            <div className="col-span-1 hidden lg:block h-fit sticky top-24 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-gray-50">
-                <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-emerald-600" />
+            <div className="col-span-1 hidden lg:block h-fit sticky top-24 bg-white p-6 rounded-2xl border border-border shadow-sm space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-border">
+                <h3 className="font-bold text-foreground flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-success" />
                   Filter Options
                 </h3>
                 {hasActiveFilters && (
                   <button 
                     onClick={() => setFilters({ category: "all", location: "", priceRange: [0, 10000], sortBy: "newest" })}
-                    className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold"
+                    className="text-xs text-success hover:text-success font-semibold"
                   >
                     Clear All
                   </button>
@@ -663,7 +673,7 @@ export default function MarketplacePage() {
               
               {/* Category radio selectors */}
               <div className="space-y-3">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Category</label>
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Category</label>
                 <div className="space-y-2">
                   {[
                     { id: "all", label: "All Products" },
@@ -673,13 +683,13 @@ export default function MarketplacePage() {
                     { id: "fruits", label: "🍎 Fruits" },
                     { id: "legumes", label: "🫘 Legumes" }
                   ].map((cat) => (
-                    <label key={cat.id} className="flex items-center gap-2.5 text-xs sm:text-sm text-gray-600 hover:text-gray-900 cursor-pointer py-0.5">
+                    <label key={cat.id} className="flex items-center gap-2.5 text-xs sm:text-sm text-muted-foreground hover:text-foreground cursor-pointer py-0.5">
                       <input 
                         type="radio" 
                         name="desktop-category" 
                         checked={filters.category === cat.id} 
                         onChange={() => setFilters(prev => ({ ...prev, category: cat.id }))}
-                        className="text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                        className="text-success focus:ring-success border-border"
                       />
                       <span>{cat.label}</span>
                     </label>
@@ -689,21 +699,21 @@ export default function MarketplacePage() {
               
               {/* Location Input */}
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Location</label>
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Location</label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     placeholder="E.g. Lagos, Zaria..."
                     value={filters.location}
                     onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
-                    className="pl-9 text-xs h-9 border-gray-200 focus-visible:ring-emerald-500"
+                    className="pl-9 text-xs h-9 border-border focus-visible:ring-success"
                   />
                 </div>
               </div>
 
               {/* Price Slider */}
               <div className="space-y-3">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Price Range</label>
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Price Range</label>
                 <Slider
                   value={filters.priceRange}
                   onValueChange={(value) => setFilters(prev => ({ ...prev, priceRange: value }))}
@@ -712,7 +722,7 @@ export default function MarketplacePage() {
                   step={100}
                   className="py-1"
                 />
-                <div className="flex justify-between text-xs text-gray-600 font-semibold">
+                <div className="flex justify-between text-xs text-muted-foreground font-semibold">
                   <span>₦{filters.priceRange[0]}</span>
                   <span>₦{filters.priceRange[1]}</span>
                 </div>
@@ -720,9 +730,9 @@ export default function MarketplacePage() {
 
               {/* Sort selector */}
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Sort By</label>
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Sort By</label>
                 <Select value={filters.sortBy} onValueChange={(value) => setFilters(prev => ({ ...prev, sortBy: value }))}>
-                  <SelectTrigger className="w-full text-xs h-9 border-gray-200">
+                  <SelectTrigger className="w-full text-xs h-9 border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -739,9 +749,9 @@ export default function MarketplacePage() {
             <div className="col-span-1 lg:col-span-3 space-y-6">
               
               {/* Desktop Sorting Toolbar */}
-              <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-                <div className="text-xs sm:text-sm font-semibold text-gray-700">
-                  Showing <span className="text-emerald-600">{products.length}</span> verified results
+              <div className="bg-white p-4 rounded-xl border border-border shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="text-xs sm:text-sm font-semibold text-foreground">
+                  Showing <span className="text-success">{products.length}</span> verified results
                 </div>
                 
                 <div className="flex items-center gap-3 w-full md:w-auto justify-end">
@@ -749,7 +759,7 @@ export default function MarketplacePage() {
                     value={filters.sortBy} 
                     onValueChange={(value) => setFilters(prev => ({ ...prev, sortBy: value }))}
                   >
-                    <SelectTrigger className="w-[130px] text-xs h-8 border-gray-200 lg:hidden">
+                    <SelectTrigger className="w-[130px] text-xs h-8 border-border lg:hidden">
                       <SelectValue placeholder="Sort" />
                     </SelectTrigger>
                     <SelectContent>
@@ -760,12 +770,12 @@ export default function MarketplacePage() {
                     </SelectContent>
                   </Select>
 
-                  <div className="flex border border-gray-200 rounded-lg overflow-hidden bg-gray-50 p-0.5">
+                  <div className="flex border border-border rounded-lg overflow-hidden bg-muted p-0.5">
                     <Button
                       variant={viewMode === "grid" ? "default" : "ghost"}
                       size="sm"
                       onClick={() => setViewMode("grid")}
-                      className={`h-7 w-7 p-0 rounded-md ${viewMode === "grid" ? "bg-white text-emerald-600 shadow-sm border border-gray-100" : "text-gray-400 hover:text-gray-600"}`}
+                      className={`h-7 w-7 p-0 rounded-md ${viewMode === "grid" ? "bg-white text-success shadow-sm border border-border" : "text-muted-foreground hover:text-muted-foreground"}`}
                     >
                       <Grid className="h-4 w-4" />
                     </Button>
@@ -773,7 +783,7 @@ export default function MarketplacePage() {
                       variant={viewMode === "list" ? "default" : "ghost"}
                       size="sm"
                       onClick={() => setViewMode("list")}
-                      className={`h-7 w-7 p-0 rounded-md ${viewMode === "list" ? "bg-white text-emerald-600 shadow-sm border border-gray-100" : "text-gray-400 hover:text-gray-600"}`}
+                      className={`h-7 w-7 p-0 rounded-md ${viewMode === "list" ? "bg-white text-success shadow-sm border border-border" : "text-muted-foreground hover:text-muted-foreground"}`}
                     >
                       <List className="h-4 w-4" />
                     </Button>
@@ -786,26 +796,26 @@ export default function MarketplacePage() {
                 <div className="flex flex-wrap gap-2 items-center">
                   <span className="text-xs text-muted-foreground font-semibold">Active:</span>
                   {filters.category !== "all" && (
-                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/40 rounded-full transition-colors font-medium text-[11px]">
+                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1 bg-success/10 hover:bg-success/20 text-success border border-success/40 rounded-full transition-colors font-medium text-[11px]">
                       <span className="capitalize">Category: {filters.category}</span>
-                      <button onClick={() => setFilters(prev => ({ ...prev, category: "all" }))} className="text-emerald-800 hover:text-emerald-950 font-bold ml-0.5">×</button>
+                      <button onClick={() => setFilters(prev => ({ ...prev, category: "all" }))} className="text-success hover:text-success font-bold ml-0.5">×</button>
                     </Badge>
                   )}
                   {filters.location && (
-                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/40 rounded-full transition-colors font-medium text-[11px]">
+                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1 bg-success/10 hover:bg-success/20 text-success border border-success/40 rounded-full transition-colors font-medium text-[11px]">
                       <span>Loc: {filters.location}</span>
-                      <button onClick={() => setFilters(prev => ({ ...prev, location: "" }))} className="text-emerald-800 hover:text-emerald-950 font-bold ml-0.5">×</button>
+                      <button onClick={() => setFilters(prev => ({ ...prev, location: "" }))} className="text-success hover:text-success font-bold ml-0.5">×</button>
                     </Badge>
                   )}
                   {(filters.priceRange[0] > 0 || filters.priceRange[1] < 10000) && (
-                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/40 rounded-full transition-colors font-medium text-[11px]">
+                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1 bg-success/10 hover:bg-success/20 text-success border border-success/40 rounded-full transition-colors font-medium text-[11px]">
                       <span>Price: ₦{filters.priceRange[0]} - ₦{filters.priceRange[1]}</span>
-                      <button onClick={() => setFilters(prev => ({ ...prev, priceRange: [0, 10000] }))} className="text-emerald-800 hover:text-emerald-950 font-bold ml-0.5">×</button>
+                      <button onClick={() => setFilters(prev => ({ ...prev, priceRange: [0, 10000] }))} className="text-success hover:text-success font-bold ml-0.5">×</button>
                     </Badge>
                   )}
                   <button 
                     onClick={() => setFilters({ category: "all", location: "", priceRange: [0, 10000], sortBy: "newest" })}
-                    className="text-xs text-emerald-600 hover:text-emerald-700 hover:underline font-bold ml-1.5"
+                    className="text-xs text-success hover:text-success hover:underline font-bold ml-1.5"
                   >
                     Clear All
                   </button>
@@ -815,8 +825,8 @@ export default function MarketplacePage() {
               {/* Products Listings Grid */}
               <div className="relative">
                 {isRefreshing && (
-                  <div className="absolute right-0 -top-12 z-10 flex items-center gap-2 rounded-md bg-white/95 px-2.5 py-1 text-xs text-emerald-700 border border-emerald-100 shadow-sm">
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                  <div className="absolute right-0 -top-12 z-10 flex items-center gap-2 rounded-md bg-white/95 px-2.5 py-1 text-xs text-success border border-success/10 shadow-sm">
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin text-success" />
                     Syncing database…
                   </div>
                 )}
@@ -844,16 +854,16 @@ export default function MarketplacePage() {
 
               {/* Empty state */}
               {products.length === 0 && !isInitialLoading && !isRefreshing && (
-                <div className="text-center py-16 bg-white border border-gray-100 rounded-2xl shadow-sm">
-                  <div className="text-gray-300 mb-4">
+                <div className="text-center py-16 bg-white border border-border rounded-2xl shadow-sm">
+                  <div className="text-muted-foreground mb-4">
                     <Search className="h-16 w-16 mx-auto" />
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">No products found</h3>
-                  <p className="text-gray-500 text-sm mb-4 max-w-sm mx-auto">Try adjusting your filters or keyword to discover other available harvests.</p>
+                  <h3 className="text-lg font-bold text-foreground mb-1">No products found</h3>
+                  <p className="text-muted-foreground text-sm mb-4 max-w-sm mx-auto">Try adjusting your filters or keyword to discover other available harvests.</p>
                   <Button 
                     onClick={() => setFilters({ category: "all", location: "", priceRange: [0, 10000], sortBy: "newest" })}
                     variant="outline"
-                    className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 rounded-xl"
+                    className="border-success text-success hover:bg-success/10 rounded-xl"
                   >
                     Reset All Filters
                   </Button>
@@ -863,22 +873,22 @@ export default function MarketplacePage() {
           </div>
 
           {/* Premium Market Intelligence Section */}
-          <div className="border-t border-gray-100 pt-10 mt-16 space-y-8">
+          <div className="border-t border-border pt-10 mt-16 space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
               <div>
-                <Badge className="bg-emerald-100 text-emerald-800 border-none font-semibold mb-2">
+                <Badge className="bg-success/10 text-success border-none font-semibold mb-2">
                   Live Market Intelligence
                 </Badge>
-                <h3 className="text-xl sm:text-2xl font-black text-gray-900">
+                <h3 className="text-xl sm:text-2xl font-black text-foreground">
                   Real-time Trade Activity & Verified Volume
                 </h3>
-                <p className="text-gray-500 text-sm">
+                <p className="text-muted-foreground text-sm">
                   Transparency metrics and buyer transactions directly sourced from the GroChain ledger.
                 </p>
               </div>
-              <Button asChild variant="outline" className="border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-xs sm:text-sm">
+              <Button asChild variant="outline" className="border-border hover:bg-muted text-foreground rounded-xl text-xs sm:text-sm">
                 <Link href="/marketplace/buyers" className="inline-flex items-center gap-2">
-                  <UserCheck className="h-4 w-4 text-emerald-600" />
+                  <UserCheck className="h-4 w-4 text-success" />
                   Show Verified Buyers List
                 </Link>
               </Button>
@@ -887,43 +897,43 @@ export default function MarketplacePage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               {/* Column 1: Live Stats */}
-              <Card className="bg-gradient-to-br from-emerald-900 to-green-950 text-white shadow-lg border-none overflow-hidden relative rounded-2xl h-full">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+              <Card className="bg-gradient-to-br from-success/80 to-success text-white shadow-lg border-none overflow-hidden relative rounded-2xl h-full">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-success/10 rounded-full blur-2xl pointer-events-none" />
                 <CardHeader>
-                  <CardTitle className="text-sm font-semibold tracking-wider text-emerald-300 uppercase flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-emerald-400" />
+                  <CardTitle className="text-sm font-semibold tracking-wider text-success uppercase flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-success" />
                     Market Ticker
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-5 pt-0">
-                  <div className="bg-emerald-800/40 p-4 rounded-xl border border-emerald-700/30">
+                  <div className="bg-success/40 p-4 rounded-xl border border-success/30">
                     <div className="text-3xl font-extrabold text-white mb-0.5">
                       {buyerActivity.activeBuyers}
                     </div>
-                    <div className="text-xs text-emerald-300 font-semibold">Active Buyers Last 30 Days</div>
+                    <div className="text-xs text-success font-semibold">Active Buyers Last 30 Days</div>
                   </div>
 
-                  <div className="bg-emerald-800/40 p-4 rounded-xl border border-emerald-700/30">
+                  <div className="bg-success/40 p-4 rounded-xl border border-success/30">
                     <div className="text-3xl font-extrabold text-white mb-0.5">
                       {buyerActivity.todaysTransactions}
                     </div>
-                    <div className="text-xs text-emerald-300 font-semibold">Trades Settled Today</div>
+                    <div className="text-xs text-success font-semibold">Trades Settled Today</div>
                   </div>
 
-                  <div className="bg-emerald-800/40 p-4 rounded-xl border border-emerald-700/30">
+                  <div className="bg-success/40 p-4 rounded-xl border border-success/30">
                     <div className="text-3xl font-extrabold text-white mb-0.5">
                       {buyerActivity.averageRating > 0 ? `${buyerActivity.averageRating} ★` : "—"}
                     </div>
-                    <div className="text-xs text-emerald-300 font-semibold">Average Farmer Quality Score</div>
+                    <div className="text-xs text-success font-semibold">Average Farmer Quality Score</div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Column 2: Recently Listed (real data) */}
-              <Card className="bg-white border border-gray-100 shadow-sm rounded-2xl h-full flex flex-col">
+              <Card className="bg-white border border-border shadow-sm rounded-2xl h-full flex flex-col">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-emerald-600" />
+                  <CardTitle className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-success" />
                     Recently Listed
                   </CardTitle>
                 </CardHeader>
@@ -931,63 +941,63 @@ export default function MarketplacePage() {
                   {products.length > 0 ? (
                     <div className="space-y-3.5">
                       {products.slice(0, 4).map((product) => (
-                        <div key={product.id} className="flex justify-between items-start text-xs border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                        <div key={product.id} className="flex justify-between items-start text-xs border-b border-border pb-3 last:border-0 last:pb-0">
                           <div className="space-y-0.5 pr-2">
-                            <p className="font-semibold text-gray-800 leading-tight">
+                            <p className="font-semibold text-foreground leading-tight">
                               {product.name} · {product.location}
                             </p>
-                            <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+                            <span className="text-[10px] text-success font-medium flex items-center gap-1">
                               <CheckCircle className="h-3 w-3" /> {product.isVerified ? "Verified Listing" : "Listed"}
                             </span>
                           </div>
-                          <span className="text-[10px] font-medium text-gray-400 flex-shrink-0">
+                          <span className="text-[10px] font-medium text-muted-foreground flex-shrink-0">
                             ₦{Number(product.price || 0).toLocaleString()}/{product.unit}
                           </span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-400 py-6 text-center">No recent listings yet.</p>
+                    <p className="text-xs text-muted-foreground py-6 text-center">No recent listings yet.</p>
                   )}
                 </CardContent>
               </Card>
 
               {/* Column 3: Trust & Testimonials */}
-              <Card className="bg-white border border-gray-100 shadow-sm rounded-2xl h-full flex flex-col justify-between">
+              <Card className="bg-white border border-border shadow-sm rounded-2xl h-full flex flex-col justify-between">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-emerald-600" />
+                  <CardTitle className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-success" />
                     Consumer Verification
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 pt-0">
-                  <p className="text-xs text-gray-500 leading-relaxed">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     Every bag of produce bought here contains a QR code linked to the farmer's batch record. Scan it to verify harvest dates, soil health logs, and chemical spray inputs.
                   </p>
                   
-                  <div className="p-3 bg-slate-50 border border-gray-100 rounded-xl flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 text-emerald-700 font-bold text-xs">
+                  <div className="p-3 bg-muted border border-border rounded-xl flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0 text-success font-bold text-xs">
                       FO
                     </div>
                     <div className="space-y-0.5">
-                      <p className="text-[11px] sm:text-xs text-gray-600 italic">
+                      <p className="text-[11px] sm:text-xs text-muted-foreground italic">
                         "Uncompromising cassava quality directly from the source. The verification logs ensure complete safety compliance for my restaurants."
                       </p>
-                      <p className="text-[10px] font-semibold text-gray-800">
+                      <p className="text-[10px] font-semibold text-foreground">
                         - Food Vendor, Victoria Island
                       </p>
                     </div>
                   </div>
 
-                  <div className="p-3 bg-slate-50 border border-gray-100 rounded-xl flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 text-emerald-700 font-bold text-xs">
+                  <div className="p-3 bg-muted border border-border rounded-xl flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0 text-success font-bold text-xs">
                       SM
                     </div>
                     <div className="space-y-0.5">
-                      <p className="text-[11px] sm:text-xs text-gray-600 italic">
+                      <p className="text-[11px] sm:text-xs text-muted-foreground italic">
                         "Direct delivery to our distribution center. Bypassing intermediaries reduced our supply cost by 25%."
                       </p>
-                      <p className="text-[10px] font-semibold text-gray-800">
+                      <p className="text-[10px] font-semibold text-foreground">
                         - Procurement, Retail Chain, Abuja
                       </p>
                     </div>

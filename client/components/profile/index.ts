@@ -1,5 +1,5 @@
-export { FarmerProfile } from './farmer-profile'
-export { BuyerProfile } from './buyer-profile'
-export { PartnerProfile } from './partner-profile'
 export { AdminProfile } from './admin-profile'
-
+export { ProfileForm } from './profile-form'
+export { BuyerProfileForm } from './buyer-profile-form'
+export { SettingsForm } from './settings-form'
+export { BuyerSettingsForm } from './buyer-settings-form'

@@ -65,10 +65,25 @@ const UserSchema = new mongoose.Schema({
     state: { type: String },
     country: { type: String, default: 'Nigeria' },
     postalCode: { type: String },
+    farmSize: { type: String },
+    experience: { type: String },
+    certifications: [{ type: String }],
     coordinates: {
       lat: { type: Number },
       lng: { type: Number }
     }
+  },
+  adminProfile: {
+    employeeId: { type: String },
+    department: { type: String },
+    position: { type: String },
+    officeAddress: { type: String },
+    officeCity: { type: String },
+    officeState: { type: String },
+    workPhone: { type: String },
+    extension: { type: String },
+    emergencyContact: { type: String },
+    emergencyPhone: { type: String }
   },
   settings: {
     language: { type: String, default: 'en' },

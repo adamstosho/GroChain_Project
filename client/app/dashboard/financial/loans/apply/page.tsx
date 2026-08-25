@@ -338,11 +338,11 @@ export default function LoanApplicationPage() {
 
   const getEligibilityColor = (eligibility: string) => {
     switch (eligibility) {
-      case "excellent": return "text-emerald-600"
-      case "good": return "text-blue-600"
-      case "fair": return "text-amber-600"
-      case "poor": return "text-red-600"
-      default: return "text-gray-600"
+      case "excellent": return "text-success"
+      case "good": return "text-primary"
+      case "fair": return "text-warning"
+      case "poor": return "text-destructive"
+      default: return "text-muted-foreground"
     }
   }
 
@@ -363,32 +363,32 @@ export default function LoanApplicationPage() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" asChild className="text-gray-600 hover:text-gray-900">
+              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
                 <Link href="/dashboard/financial" className="flex items-center gap-2">
                   <ArrowLeft className="h-4 w-4" />
                   Back to Financial Services
                 </Link>
               </Button>
             </div>
-            <h1 className="text-2xl font-semibold text-gray-900">Apply for Loan</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-semibold text-foreground">Apply for Loan</h1>
+            <p className="text-muted-foreground">
               Access affordable financing to grow your farming business
             </p>
           </div>
 
           {/* User Profile Card */}
           {userProfile && (
-            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <Card className="bg-gradient-to-r from-primary/10 to-primary/10 border-primary/10">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
+                  <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
                     <User className="h-5 w-5 text-white" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{userProfile.name}</p>
-                    <p className="text-sm text-gray-600">{userProfile.email}</p>
+                    <p className="font-medium text-foreground">{userProfile.name}</p>
+                    <p className="text-sm text-muted-foreground">{userProfile.email}</p>
                     {userProfile.creditScore && (
-                      <p className="text-xs text-blue-600 font-medium">
+                      <p className="text-xs text-primary font-medium">
                         Credit Score: {userProfile.creditScore}
                       </p>
                     )}
@@ -402,10 +402,10 @@ export default function LoanApplicationPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Loan Application Form */}
           <div className="lg:col-span-2">
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base font-medium">
-                  <CreditCard className="h-4 w-4 text-blue-500" />
+                  <CreditCard className="h-4 w-4 text-primary" />
                   Loan Application Details
                 </CardTitle>
                 <CardDescription>
@@ -517,10 +517,10 @@ export default function LoanApplicationPage() {
                   </div>
 
                   {/* Document Upload Section */}
-                  <div className="space-y-4 pt-6 border-t border-gray-200">
+                  <div className="space-y-4 pt-6 border-t border-border">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900 mb-3">Required Documents</h4>
-                      <p className="text-xs text-gray-600 mb-4">
+                      <h4 className="text-sm font-medium text-foreground mb-3">Required Documents</h4>
+                      <p className="text-xs text-muted-foreground mb-4">
                         Please upload the following documents to complete your loan application
                       </p>
                     </div>
@@ -539,16 +539,16 @@ export default function LoanApplicationPage() {
                           />
                           <Label
                             htmlFor="id-upload"
-                            className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                            className="flex items-center gap-2 px-3 py-2 border border-border rounded-md cursor-pointer hover:bg-muted transition-colors"
                           >
-                            <Upload className="h-4 w-4 text-gray-500" />
+                            <Upload className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">Choose File</span>
                           </Label>
                           {uploadedDocuments.some(doc => doc.type === 'id') && (
-                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <CheckCircle className="h-4 w-4 text-success" />
                           )}
                         </div>
-                        <p className="text-xs text-gray-500">Valid ID card or passport</p>
+                        <p className="text-xs text-muted-foreground">Valid ID card or passport</p>
                       </div>
 
                       {/* Proof of Income */}
@@ -564,16 +564,16 @@ export default function LoanApplicationPage() {
                           />
                           <Label
                             htmlFor="income-upload"
-                            className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                            className="flex items-center gap-2 px-3 py-2 border border-border rounded-md cursor-pointer hover:bg-muted transition-colors"
                           >
-                            <Upload className="h-4 w-4 text-gray-500" />
+                            <Upload className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">Choose File</span>
                           </Label>
                           {uploadedDocuments.some(doc => doc.type === 'income') && (
-                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <CheckCircle className="h-4 w-4 text-success" />
                           )}
                         </div>
-                        <p className="text-xs text-gray-500">Bank statements or income proof</p>
+                        <p className="text-xs text-muted-foreground">Bank statements or income proof</p>
                       </div>
 
                       {/* Farm Registration */}
@@ -589,16 +589,16 @@ export default function LoanApplicationPage() {
                           />
                           <Label
                             htmlFor="farm-upload"
-                            className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                            className="flex items-center gap-2 px-3 py-2 border border-border rounded-md cursor-pointer hover:bg-muted transition-colors"
                           >
-                            <Upload className="h-4 w-4 text-gray-500" />
+                            <Upload className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">Choose File</span>
                           </Label>
                           {uploadedDocuments.some(doc => doc.type === 'farm') && (
-                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <CheckCircle className="h-4 w-4 text-success" />
                           )}
                         </div>
-                        <p className="text-xs text-gray-500">Farm registration documents</p>
+                        <p className="text-xs text-muted-foreground">Farm registration documents</p>
                       </div>
 
                       {/* Business Plan */}
@@ -614,16 +614,16 @@ export default function LoanApplicationPage() {
                           />
                           <Label
                             htmlFor="business-upload"
-                            className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                            className="flex items-center gap-2 px-3 py-2 border border-border rounded-md cursor-pointer hover:bg-muted transition-colors"
                           >
-                            <Upload className="h-4 w-4 text-gray-500" />
+                            <Upload className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">Choose File</span>
                           </Label>
                           {uploadedDocuments.some(doc => doc.type === 'business') && (
-                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <CheckCircle className="h-4 w-4 text-success" />
                           )}
                         </div>
-                        <p className="text-xs text-gray-500">For amounts over ₦500,000</p>
+                        <p className="text-xs text-muted-foreground">For amounts over ₦500,000</p>
                       </div>
                     </div>
 
@@ -633,17 +633,17 @@ export default function LoanApplicationPage() {
                         <Label className="text-sm">Uploaded Documents</Label>
                         <div className="space-y-2">
                           {uploadedDocuments.map((doc) => (
-                            <div key={doc.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                            <div key={doc.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
                               <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-gray-500" />
+                                <FileText className="h-4 w-4 text-muted-foreground" />
                                 <span className="text-sm font-medium">{doc.name}</span>
-                                <span className="text-xs text-gray-500 capitalize">({doc.type})</span>
+                                <span className="text-xs text-muted-foreground capitalize">({doc.type})</span>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => removeDocument(doc.id)}
-                                className="text-red-500 hover:text-red-700"
+                                className="text-destructive hover:text-destructive"
                               >
                                 <X className="h-4 w-4" />
                               </Button>
@@ -677,10 +677,10 @@ export default function LoanApplicationPage() {
           {/* Loan Calculator & Eligibility */}
           <div className="space-y-6">
             {/* Loan Calculator */}
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base font-medium">
-                  <Calculator className="h-4 w-4 text-green-500" />
+                  <Calculator className="h-4 w-4 text-success" />
                   Loan Calculator
                 </CardTitle>
                 <CardDescription>Estimate your monthly payments</CardDescription>
@@ -688,21 +688,21 @@ export default function LoanApplicationPage() {
               <CardContent className="space-y-3">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Loan Amount:</span>
+                    <span className="text-muted-foreground">Loan Amount:</span>
                     <span className="font-medium">₦{formData.amount.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Term:</span>
+                    <span className="text-muted-foreground">Term:</span>
                     <span className="font-medium">{formData.term} months</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Interest Rate:</span>
+                    <span className="text-muted-foreground">Interest Rate:</span>
                     <span className="font-medium">{formData.interestRate}% APR</span>
                   </div>
                   <div className="border-t pt-2">
                     <div className="flex justify-between text-sm font-medium">
                       <span>Estimated Monthly Payment:</span>
-                      <span className="text-green-600">₦{calculateMonthlyPayment().toLocaleString()}</span>
+                      <span className="text-success">₦{calculateMonthlyPayment().toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -710,10 +710,10 @@ export default function LoanApplicationPage() {
             </Card>
 
             {/* Eligibility Checker */}
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base font-medium">
-                  <CheckCircle className="h-4 w-4 text-emerald-500" />
+                  <CheckCircle className="h-4 w-4 text-success" />
                   Eligibility Checker
                 </CardTitle>
                 <CardDescription>Quick assessment of your loan eligibility</CardDescription>
@@ -722,20 +722,20 @@ export default function LoanApplicationPage() {
                 {formData.monthlyIncome > 0 && formData.amount > 0 ? (
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Debt-to-Income Ratio:</span>
+                      <span className="text-muted-foreground">Debt-to-Income Ratio:</span>
                       <span className="font-medium">
                         {((calculateMonthlyPayment() + formData.existingLoans) / formData.monthlyIncome * 100).toFixed(1)}%
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Eligibility:</span>
+                      <span className="text-muted-foreground">Eligibility:</span>
                       <span className={`font-medium ${getEligibilityColor(getLoanEligibility())}`}>
                         {getEligibilityLabel(getLoanEligibility())}
                       </span>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     Enter your monthly income and loan amount to check eligibility.
                   </p>
                 )}
@@ -743,29 +743,29 @@ export default function LoanApplicationPage() {
             </Card>
 
             {/* Loan Benefits */}
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base font-medium">
-                  <Info className="h-4 w-4 text-blue-500" />
+                  <Info className="h-4 w-4 text-primary" />
                   Why Choose Our Loans?
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2 text-sm">
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                     <span>Competitive interest rates starting at {Math.min(formData.interestRate, 15)}% APR</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                     <span>Quick approval process within 48 hours</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                     <span>Flexible repayment terms up to 5 years</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                     <span>No hidden fees or prepayment penalties</span>
                   </div>
                 </div>
@@ -773,10 +773,10 @@ export default function LoanApplicationPage() {
             </Card>
 
             {/* Required Documents */}
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base font-medium">
-                  <FileText className="h-4 w-4 text-amber-500" />
+                  <FileText className="h-4 w-4 text-warning" />
                   Required Documents
                 </CardTitle>
                 <CardDescription>Documents needed for loan processing</CardDescription>
@@ -784,19 +784,19 @@ export default function LoanApplicationPage() {
               <CardContent className="space-y-2">
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    <CheckCircle className="h-4 w-4 text-success" />
                     <span>Valid government ID</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    <CheckCircle className="h-4 w-4 text-success" />
                     <span>Proof of income (bank statements)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    <CheckCircle className="h-4 w-4 text-success" />
                     <span>Farm registration documents</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    <CheckCircle className="h-4 w-4 text-success" />
                     <span>Business plan (for large amounts)</span>
                   </div>
                 </div>

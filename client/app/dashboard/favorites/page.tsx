@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { useToast } from "@/hooks/use-toast"
 import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { useAuthStore } from "@/lib/auth"
@@ -368,58 +370,54 @@ export default function FavoritesPage() {
     <DashboardLayout pageTitle="My Favorites">
       <div className="space-y-6">
 
-        {/* Header Section */}
-        <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">My Favorites</h1>
-            <p className="text-muted-foreground text-sm sm:text-base">
-              Manage your saved products, set price alerts, and track price changes
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={loading}
-              className="flex-shrink-0"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Refresh</span>
-            </Button>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-shrink-0"
-                    onClick={handleExportFavorites}
-                    disabled={isExporting || favorites.length === 0}
-                  >
-                    <Download className={`h-4 w-4 mr-2 ${isExporting ? 'animate-spin' : ''}`} />
-                    <span className="hidden sm:inline">Export</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>
-                    {favorites.length === 0
-                      ? 'No favorites to export'
-                      : `Export ${favorites.length} favorites to CSV`
-                    }
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <Button size="sm" asChild className="flex-shrink-0">
-              <Link href="/dashboard/products">
-                <Plus className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Browse Products</span>
-                <span className="sm:hidden">Browse</span>
-              </Link>
-            </Button>
-          </div>
-        </div>
+        <DashboardPageHeader
+          badge="Favorites Active"
+          title="My"
+          titleHighlight="Favorites"
+          description="Manage your saved products, set price alerts, and track price changes."
+          actions={
+            <>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleRefresh}
+                disabled={loading}
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={handleExportFavorites}
+                      disabled={isExporting || favorites.length === 0}
+                    >
+                      <Download className={`mr-2 h-4 w-4 ${isExporting ? 'animate-spin' : ''}`} />
+                      Export
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {favorites.length === 0
+                        ? 'No favorites to export'
+                        : `Export ${favorites.length} favorites to CSV`
+                      }
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <Button size="lg" asChild>
+                <Link href="/dashboard/products">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Browse Products
+                </Link>
+              </Button>
+            </>
+          }
+        />
 
         {/* Stats Cards - Using Design System */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6">
@@ -572,33 +570,32 @@ export default function FavoritesPage() {
 
             {/* Favorites Grid/List */}
             {filteredFavorites.length === 0 ? (
-              <div className="text-center py-12">
-                <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  {searchQuery ? 'No matching favorites found' : 'No favorites found'}
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  {searchQuery
+              <EmptyState
+                icon={Heart}
+                title={searchQuery ? 'No matching favorites found' : 'No favorites found'}
+                description={
+                  searchQuery
                     ? 'Try adjusting your search terms or clear the search to see all favorites.'
                     : 'You haven\'t added any products to your favorites yet.'
-                  }
-                </p>
-                <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                  {searchQuery && (
-                    <Button
-                      variant="outline"
-                      onClick={() => setSearchQuery('')}
-                    >
-                      Clear Search
+                }
+                action={
+                  <>
+                    {searchQuery && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setSearchQuery('')}
+                      >
+                        Clear Search
+                      </Button>
+                    )}
+                    <Button asChild>
+                      <Link href="/dashboard/products">
+                        Browse Products
+                      </Link>
                     </Button>
-                  )}
-                  <Button asChild>
-                    <Link href="/dashboard/products">
-                      Browse Products
-                    </Link>
-                  </Button>
-                </div>
-              </div>
+                  </>
+                }
+              />
             ) : (
               <div className={viewMode === 'grid'
                 ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3'
@@ -675,12 +672,12 @@ function FavoriteCard({
                 className="rounded-lg object-cover"
               />
               {listing.organic && (
-                <Badge className="absolute top-1 left-1 bg-green-600 text-white text-[10px] px-1 py-0.5">
+                <Badge className="absolute top-1 left-1 bg-success text-white text-[10px] px-1 py-0.5">
                   Organic
                 </Badge>
               )}
               {qualityGrade === 'premium' && (
-                <Badge className="absolute top-1 right-1 bg-yellow-600 text-white text-[10px] px-1 py-0.5">
+                <Badge className="absolute top-1 right-1 bg-warning text-white text-[10px] px-1 py-0.5">
                   Premium
                 </Badge>
               )}
@@ -697,7 +694,7 @@ function FavoriteCard({
                     by {listing.farmer?.name || 'Unknown'}
                   </p>
                   {product.notes && (
-                    <p className="text-xs text-blue-600 italic mb-1">
+                    <p className="text-xs text-primary italic mb-1">
                       Note: {product.notes}
                     </p>
                   )}
@@ -715,7 +712,7 @@ function FavoriteCard({
                     variant="ghost"
                     size="sm"
                     onClick={() => onRemoveFromFavorites(product._id, listing._id)}
-                    className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
+                    className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -779,12 +776,12 @@ function FavoriteCard({
           {/* Badges */}
           <div className="absolute top-1.5 left-1.5 flex flex-col gap-1">
             {listing.organic && (
-              <Badge className="bg-green-600 text-white text-[10px] px-1.5 py-0.5">
+              <Badge className="bg-success text-white text-[10px] px-1.5 py-0.5">
                 Organic
               </Badge>
             )}
             {qualityGrade === 'premium' && (
-              <Badge className="bg-yellow-600 text-white text-[10px] px-1.5 py-0.5">
+              <Badge className="bg-warning text-white text-[10px] px-1.5 py-0.5">
                 Premium
               </Badge>
             )}
@@ -795,17 +792,17 @@ function FavoriteCard({
             variant="ghost"
             size="sm"
             onClick={() => onRemoveFromFavorites(product._id, listing._id)}
-            className="absolute top-1.5 right-1.5 h-6 w-6 p-0 bg-white/90 hover:bg-white text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
+            className="absolute top-1.5 right-1.5 h-6 w-6 p-0 bg-white/90 hover:bg-white text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
           >
             <Trash2 className="h-3 w-3" />
           </Button>
 
           {/* Price overlay */}
           <div className="absolute bottom-1.5 right-1.5 bg-white/95 backdrop-blur-sm rounded-md px-1.5 py-1">
-            <div className="text-sm font-bold text-gray-900">
+            <div className="text-sm font-bold text-foreground">
               {formatPrice(listing.basePrice)}
             </div>
-            <div className="text-[10px] text-gray-600 text-center leading-none">
+            <div className="text-[10px] text-muted-foreground text-center leading-none">
               per {listing.unit}
             </div>
           </div>
@@ -823,7 +820,7 @@ function FavoriteCard({
               by {listing.farmer?.name || 'Unknown'}
             </p>
             {product.notes && (
-              <p className="text-xs text-blue-600 italic line-clamp-1">
+              <p className="text-xs text-primary italic line-clamp-1">
                 &quot;{product.notes}&quot;
               </p>
             )}

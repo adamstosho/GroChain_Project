@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -40,7 +41,7 @@ export function OnboardingList() {
       case "in_progress":
         return <Badge variant="default"><TrendingUp className="w-3 h-3 mr-1" />In Progress</Badge>
       case "completed":
-        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Completed</Badge>
+        return <Badge variant="default" className="bg-success/10 text-success"><CheckCircle className="w-3 h-3 mr-1" />Completed</Badge>
       case "rejected":
         return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>
       case "on_hold":
@@ -207,9 +208,9 @@ export function OnboardingList() {
                                 {onboarding.training.progress}% Complete
                               </span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="w-full bg-muted rounded-full h-2">
                               <div 
-                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                className="bg-primary h-2 rounded-full transition-all duration-300"
                                 style={{ width: `${onboarding.training.progress}%` }}
                               />
                             </div>
@@ -223,8 +224,8 @@ export function OnboardingList() {
                         
                         {/* Notes */}
                         {onboarding.notes.length > 0 && (
-                          <div className="bg-blue-50 p-3 rounded-lg">
-                            <p className="text-sm text-blue-800">
+                          <div className="bg-primary/10 p-3 rounded-lg">
+                            <p className="text-sm text-primary">
                               <strong>Latest Note:</strong> {onboarding.notes[onboarding.notes.length - 1]}
                             </p>
                           </div>
@@ -232,8 +233,8 @@ export function OnboardingList() {
                         
                         {/* Next Follow-up */}
                         {onboarding.nextFollowUp && (
-                          <div className="bg-yellow-50 p-3 rounded-lg">
-                            <p className="text-sm text-yellow-800">
+                          <div className="bg-warning/10 p-3 rounded-lg">
+                            <p className="text-sm text-warning">
                               <strong>Next Follow-up:</strong> {new Date(onboarding.nextFollowUp).toLocaleDateString()}
                             </p>
                           </div>
@@ -266,11 +267,12 @@ export function OnboardingList() {
             ))}
             
             {filteredOnboardings.length === 0 && (
-              <div className="text-center py-8">
-                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No onboardings found</p>
-                <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
-              </div>
+              <EmptyState
+                icon={Users}
+                title="No onboardings found"
+                description="Try adjusting your search or filters."
+                className="py-8"
+              />
             )}
           </div>
         </CardContent>

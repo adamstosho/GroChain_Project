@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -89,25 +90,25 @@ interface WeatherStats {
 }
 
 const weatherConditions = {
-  'clear': { icon: Sun, color: 'text-yellow-500', bg: 'bg-yellow-100' },
-  'partly-cloudy': { icon: Cloudy, color: 'text-blue-500', bg: 'bg-blue-100' },
-  'cloudy': { icon: Cloud, color: 'text-gray-500', bg: 'bg-gray-100' },
-  'rainy': { icon: CloudRain, color: 'text-blue-600', bg: 'bg-blue-100' },
-  'stormy': { icon: Zap, color: 'text-purple-600', bg: 'bg-purple-100' },
-  'windy': { icon: Wind, color: 'text-green-500', bg: 'bg-green-100' }
+  'clear': { icon: Sun, color: 'text-warning', bg: 'bg-warning/10' },
+  'partly-cloudy': { icon: Cloudy, color: 'text-primary', bg: 'bg-primary/10' },
+  'cloudy': { icon: Cloud, color: 'text-muted-foreground', bg: 'bg-muted' },
+  'rainy': { icon: CloudRain, color: 'text-primary', bg: 'bg-primary/10' },
+  'stormy': { icon: Zap, color: 'text-accent', bg: 'bg-accent/10' },
+  'windy': { icon: Wind, color: 'text-success', bg: 'bg-success/10' }
 }
 
 const alertColors = {
-  severe: 'bg-red-100 text-red-800 border-red-200',
-  warning: 'bg-amber-100 text-amber-800 border-amber-200',
-  watch: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  advisory: 'bg-blue-100 text-blue-800 border-blue-200'
+  severe: 'bg-destructive/10 text-destructive border-destructive/10',
+  warning: 'bg-warning/10 text-warning border-warning/10',
+  watch: 'bg-warning/10 text-warning border-warning/10',
+  advisory: 'bg-primary/10 text-primary border-primary/10'
 }
 
 const priorityColors = {
-  low: 'bg-green-100 text-green-800',
-  medium: 'bg-amber-100 text-amber-800',
-  high: 'bg-red-100 text-red-800'
+  low: 'bg-success/10 text-success',
+  medium: 'bg-warning/10 text-warning',
+  high: 'bg-destructive/10 text-destructive'
 }
 
 const NIGERIAN_CITIES = [
@@ -463,12 +464,12 @@ export default function WeatherPage() {
       const IconComponent = weather.icon
       return <IconComponent className={`h-6 w-6 ${weather.color}`} />
     }
-    return <Cloud className="h-6 w-6 text-gray-500" />
+    return <Cloud className="h-6 w-6 text-muted-foreground" />
   }
 
   const getWeatherBackground = (condition: string) => {
     const weather = weatherConditions[condition as keyof typeof weatherConditions]
-    return weather ? weather.bg : 'bg-gray-100'
+    return weather ? weather.bg : 'bg-muted'
   }
 
   const formatDate = (dateString: string) => {
@@ -492,14 +493,14 @@ export default function WeatherPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
+              <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-3">
-                  <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-5 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-8 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-8 bg-muted rounded mb-2"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
@@ -512,54 +513,52 @@ export default function WeatherPage() {
   return (
     <DashboardLayout pageTitle="Weather">
       <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-gray-900">Weather Dashboard</h1>
-            <p className="text-gray-600">
-              {locating ? "Detecting location..." : "Monitor weather conditions and get farming recommendations"}
-            </p>
-          </div>
-          
-          <div className="flex gap-2 items-center">
-            <Button variant="outline" onClick={handleRefresh} disabled={locating}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${locating ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
-            
-            <Select 
-              onValueChange={async (val) => {
-                if (val === 'current') {
-                  locateAndFetch()
-                } else {
-                  const cityObj = NIGERIAN_CITIES.find(c => c.name === val)
-                  if (cityObj) {
-                    const newCoords = { lat: cityObj.lat, lng: cityObj.lng }
-                    setCoords(newCoords)
-                    await loadWeatherForCoords(cityObj.lat, cityObj.lng, cityObj.name, cityObj.state, cityObj.country)
+        <DashboardPageHeader
+          badge="Weather Monitoring Active"
+          title="Weather"
+          titleHighlight="Dashboard"
+          description={locating ? "Detecting location..." : "Monitor weather conditions and get farming recommendations."}
+          actions={
+            <>
+              <Button variant="outline" size="lg" onClick={handleRefresh} disabled={locating}>
+                <RefreshCw className={`mr-2 h-4 w-4 ${locating ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+
+              <Select
+                onValueChange={async (val) => {
+                  if (val === 'current') {
+                    locateAndFetch()
+                  } else {
+                    const cityObj = NIGERIAN_CITIES.find(c => c.name === val)
+                    if (cityObj) {
+                      const newCoords = { lat: cityObj.lat, lng: cityObj.lng }
+                      setCoords(newCoords)
+                      await loadWeatherForCoords(cityObj.lat, cityObj.lng, cityObj.name, cityObj.state, cityObj.country)
+                    }
                   }
-                }
-              }}
-            >
-              <SelectTrigger className="w-[180px] bg-white border border-gray-200 text-gray-700">
-                <MapPin className="h-4 w-4 mr-2 text-emerald-600 animate-pulse" />
-                <SelectValue placeholder="Change Location" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="current">📍 Detect Location</SelectItem>
-                {NIGERIAN_CITIES.map((city) => (
-                  <SelectItem key={city.name} value={city.name}>
-                    {city.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-[210px] bg-card border border-border text-foreground">
+                  <MapPin className="h-4 w-4 mr-2 text-success animate-pulse" />
+                  <SelectValue placeholder="Change Location" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="current">📍 Detect Location</SelectItem>
+                  {NIGERIAN_CITIES.map((city) => (
+                    <SelectItem key={city.name} value={city.name}>
+                      {city.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          }
+        />
 
         {/* Current Weather Overview */}
         {currentWeather && (
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardContent className="p-6">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                 <div className="flex items-center gap-6">
@@ -568,17 +567,17 @@ export default function WeatherPage() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <h2 className="text-3xl font-bold text-gray-900">
+                      <h2 className="text-3xl font-bold text-foreground">
                         {currentWeather.temperature}°C
                       </h2>
-                      <span className="text-lg text-gray-600">
+                      <span className="text-lg text-muted-foreground">
                         Feels like {currentWeather.feelsLike}°C
                       </span>
                     </div>
-                    <p className="text-xl text-gray-700 capitalize">
+                    <p className="text-xl text-foreground capitalize">
                       {currentWeather.condition.replace('-', ' ')}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {location} • Last updated {formatTime(currentWeather.lastUpdated)}
                     </p>
                   </div>
@@ -587,33 +586,33 @@ export default function WeatherPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                   <div>
                     <div className="flex items-center justify-center gap-1 mb-1">
-                      <Droplets className="h-4 w-4 text-blue-500" />
-                      <span className="text-sm text-gray-600">Humidity</span>
+                      <Droplets className="h-4 w-4 text-primary" />
+                      <span className="text-sm text-muted-foreground">Humidity</span>
                     </div>
                     <p className="text-lg font-semibold">{currentWeather.humidity}%</p>
                   </div>
                   <div>
                     <div className="flex items-center justify-center gap-1 mb-1">
-                      <Wind className="h-4 w-4 text-green-500" />
-                      <span className="text-sm text-gray-600">Wind</span>
+                      <Wind className="h-4 w-4 text-success" />
+                      <span className="text-sm text-muted-foreground">Wind</span>
                     </div>
                     <p className="text-lg font-semibold">{currentWeather.windSpeed} km/h</p>
-                    <p className="text-xs text-gray-500">{currentWeather.windDirection}</p>
+                    <p className="text-xs text-muted-foreground">{currentWeather.windDirection}</p>
                   </div>
                   <div>
                     <div className="flex items-center justify-center gap-1 mb-1">
-                      <Eye className="h-4 w-4 text-purple-500" />
-                      <span className="text-sm text-gray-600">Visibility</span>
+                      <Eye className="h-4 w-4 text-accent" />
+                      <span className="text-sm text-muted-foreground">Visibility</span>
                     </div>
                     <p className="text-lg font-semibold">{currentWeather.visibility} km</p>
                   </div>
                   <div>
                     <div className="flex items-center justify-center gap-1 mb-1">
-                      <Shield className="h-4 w-4 text-orange-500" />
-                      <span className="text-sm text-gray-600">UV Index</span>
+                      <Shield className="h-4 w-4 text-warning" />
+                      <span className="text-sm text-muted-foreground">UV Index</span>
                     </div>
                     <p className="text-lg font-semibold">{currentWeather.uvIndex}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       {currentWeather.uvIndex > 7 ? 'High' : currentWeather.uvIndex > 4 ? 'Moderate' : 'Low'}
                     </p>
                   </div>
@@ -630,7 +629,7 @@ export default function WeatherPage() {
               <Card key={alert.id} className={`border ${alertColors[alert.type]}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <AlertTriangle className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-medium">{alert.title}</h3>
@@ -639,7 +638,7 @@ export default function WeatherPage() {
                         </Badge>
                       </div>
                       <p className="text-sm mb-2">{alert.description}</p>
-                      <div className="flex items-center gap-4 text-xs text-gray-600">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span>From: {formatTime(alert.startTime)}</span>
                         <span>To: {formatTime(alert.endTime)}</span>
                         <span>Areas: {alert.affectedAreas.join(', ')}</span>
@@ -654,7 +653,7 @@ export default function WeatherPage() {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="forecast">7-Day Forecast</TabsTrigger>
             <TabsTrigger value="recommendations">Farming Tips</TabsTrigger>
@@ -665,10 +664,10 @@ export default function WeatherPage() {
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Quick Forecast */}
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base font-medium">
-                    <Calendar className="h-4 w-4 text-blue-500" />
+                    <Calendar className="h-4 w-4 text-primary" />
                     Next 3 Days
                   </CardTitle>
                   <CardDescription>Quick weather outlook</CardDescription>
@@ -676,19 +675,19 @@ export default function WeatherPage() {
                 <CardContent>
                   <div className="space-y-3">
                     {forecast.slice(1, 4).map((day, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+                      <div key={index} className="flex items-center justify-between p-3 border border-border rounded-lg">
                         <div className="flex items-center gap-3">
                           {getWeatherIcon(day.condition)}
                           <div>
                             <div className="font-medium text-sm">{formatDate(day.date)}</div>
-                            <div className="text-xs text-gray-500 capitalize">
+                            <div className="text-xs text-muted-foreground capitalize">
                               {day.condition.replace('-', ' ')}
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="font-medium text-sm">{day.high}° / {day.low}°</div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted-foreground">
                             {day.precipitation > 0 ? `${day.precipitation}mm` : 'No rain'}
                           </div>
                         </div>
@@ -699,10 +698,10 @@ export default function WeatherPage() {
               </Card>
 
               {/* Farming Recommendations Summary */}
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base font-medium">
-                    <Leaf className="h-4 w-4 text-green-500" />
+                    <Leaf className="h-4 w-4 text-success" />
                     Top Recommendations
                   </CardTitle>
                   <CardDescription>Weather-based farming advice</CardDescription>
@@ -710,15 +709,15 @@ export default function WeatherPage() {
                 <CardContent>
                   <div className="space-y-3">
                     {recommendations.slice(0, 3).map((rec) => (
-                      <div key={rec.id} className="p-3 border border-gray-100 rounded-lg">
+                      <div key={rec.id} className="p-3 border border-border rounded-lg">
                         <div className="flex items-start gap-2 mb-2">
                           <Badge className={priorityColors[rec.priority]}>
                             {rec.priority}
                           </Badge>
                           <span className="text-sm font-medium">{rec.crop}</span>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{rec.recommendation}</p>
-                        <div className="text-xs text-gray-500">
+                        <p className="text-sm text-muted-foreground mb-2">{rec.recommendation}</p>
+                        <div className="text-xs text-muted-foreground">
                           <span className="font-medium">Action:</span> {rec.action}
                         </div>
                       </div>
@@ -730,7 +729,7 @@ export default function WeatherPage() {
 
             {/* Weather Stats */}
             {stats && (
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardHeader>
                   <CardTitle className="text-base font-medium">Weekly Weather Summary</CardTitle>
                   <CardDescription>Key weather metrics for the week</CardDescription>
@@ -738,28 +737,28 @@ export default function WeatherPage() {
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
                     <div>
-                      <div className="text-2xl font-bold text-gray-900">{stats.averageTemperature}°C</div>
-                      <div className="text-sm text-gray-600">Avg Temperature</div>
+                      <div className="text-2xl font-bold text-foreground">{stats.averageTemperature}°C</div>
+                      <div className="text-sm text-muted-foreground">Avg Temperature</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-gray-900">{stats.totalPrecipitation}mm</div>
-                      <div className="text-sm text-gray-600">Total Rainfall</div>
+                      <div className="text-2xl font-bold text-foreground">{stats.totalPrecipitation}mm</div>
+                      <div className="text-sm text-muted-foreground">Total Rainfall</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-gray-900">{stats.averageHumidity}%</div>
-                      <div className="text-sm text-gray-600">Avg Humidity</div>
+                      <div className="text-2xl font-bold text-foreground">{stats.averageHumidity}%</div>
+                      <div className="text-sm text-muted-foreground">Avg Humidity</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-gray-900">{stats.windEvents}</div>
-                      <div className="text-sm text-gray-600">Wind Events</div>
+                      <div className="text-2xl font-bold text-foreground">{stats.windEvents}</div>
+                      <div className="text-sm text-muted-foreground">Wind Events</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-gray-900">{stats.sunnyDays}</div>
-                      <div className="text-sm text-gray-600">Sunny Days</div>
+                      <div className="text-2xl font-bold text-foreground">{stats.sunnyDays}</div>
+                      <div className="text-sm text-muted-foreground">Sunny Days</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-gray-900">{stats.rainyDays}</div>
-                      <div className="text-sm text-gray-600">Rainy Days</div>
+                      <div className="text-2xl font-bold text-foreground">{stats.rainyDays}</div>
+                      <div className="text-sm text-muted-foreground">Rainy Days</div>
                     </div>
                   </div>
                 </CardContent>
@@ -770,47 +769,47 @@ export default function WeatherPage() {
           {/* Forecast Tab */}
           <TabsContent value="forecast" className="space-y-6">
             <div>
-              <h3 className="text-lg font-medium text-gray-900">7-Day Weather Forecast</h3>
-              <p className="text-sm text-gray-600">Detailed weather predictions for the week ahead</p>
+              <h3 className="text-lg font-medium text-foreground">7-Day Weather Forecast</h3>
+              <p className="text-sm text-muted-foreground">Detailed weather predictions for the week ahead</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {forecast.map((day, index) => (
-                <Card key={index} className="border border-gray-200">
+                <Card key={index} className="border border-border">
                   <CardContent className="p-4 text-center">
                     <div className="mb-3">
-                      <div className="text-sm font-medium text-gray-900 mb-1">
+                      <div className="text-sm font-medium text-foreground mb-1">
                         {index === 0 ? 'Today' : formatDate(day.date)}
                       </div>
                       <div className="flex justify-center mb-2">
                         {getWeatherIcon(day.condition)}
                       </div>
-                      <div className="text-xs text-gray-500 capitalize mb-2">
+                      <div className="text-xs text-muted-foreground capitalize mb-2">
                         {day.condition.replace('-', ' ')}
                       </div>
                     </div>
                     
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">High:</span>
+                        <span className="text-muted-foreground">High:</span>
                         <span className="font-medium">{day.high}°C</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Low:</span>
+                        <span className="text-muted-foreground">Low:</span>
                         <span className="font-medium">{day.low}°C</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Rain:</span>
+                        <span className="text-muted-foreground">Rain:</span>
                         <span className="font-medium">
                           {day.precipitation > 0 ? `${day.precipitation}mm` : '0mm'}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Humidity:</span>
+                        <span className="text-muted-foreground">Humidity:</span>
                         <span className="font-medium">{day.humidity}%</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Wind:</span>
+                        <span className="text-muted-foreground">Wind:</span>
                         <span className="font-medium">{day.windSpeed} km/h</span>
                       </div>
                     </div>
@@ -823,13 +822,13 @@ export default function WeatherPage() {
           {/* Recommendations Tab */}
           <TabsContent value="recommendations" className="space-y-6">
             <div>
-              <h3 className="text-lg font-medium text-gray-900">Farming Recommendations</h3>
-              <p className="text-sm text-gray-600">Weather-based advice for optimal farming decisions</p>
+              <h3 className="text-lg font-medium text-foreground">Farming Recommendations</h3>
+              <p className="text-sm text-muted-foreground">Weather-based advice for optimal farming decisions</p>
             </div>
 
             <div className="space-y-4">
               {recommendations.map((rec) => (
-                <Card key={rec.id} className="border border-gray-200">
+                <Card key={rec.id} className="border border-border">
                   <CardContent className="p-6">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                       <div className="flex-1 space-y-3">
@@ -837,25 +836,25 @@ export default function WeatherPage() {
                           <Badge className={priorityColors[rec.priority]}>
                             {rec.priority} Priority
                           </Badge>
-                          <span className="text-sm text-gray-500">Crop: {rec.crop}</span>
+                          <span className="text-sm text-muted-foreground">Crop: {rec.crop}</span>
                         </div>
                         
                         <div>
-                          <h4 className="font-medium text-gray-900 mb-2">{rec.recommendation}</h4>
-                          <p className="text-sm text-gray-600">{rec.action}</p>
+                          <h4 className="font-medium text-foreground mb-2">{rec.recommendation}</h4>
+                          <p className="text-sm text-muted-foreground">{rec.action}</p>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                           <div>
-                            <span className="text-gray-500">Weather Factor:</span>
+                            <span className="text-muted-foreground">Weather Factor:</span>
                             <div className="font-medium">{rec.weatherFactor}</div>
                           </div>
                           <div>
-                            <span className="text-gray-500">Timeframe:</span>
+                            <span className="text-muted-foreground">Timeframe:</span>
                             <div className="font-medium">{rec.timeframe}</div>
                           </div>
                           <div>
-                            <span className="text-gray-500">Priority:</span>
+                            <span className="text-muted-foreground">Priority:</span>
                             <div className="font-medium capitalize">{rec.priority}</div>
                           </div>
                         </div>
@@ -881,16 +880,16 @@ export default function WeatherPage() {
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
             <div>
-              <h3 className="text-lg font-medium text-gray-900">Weather Analytics</h3>
-              <p className="text-sm text-gray-600">Historical weather patterns and trends</p>
+              <h3 className="text-lg font-medium text-foreground">Weather Analytics</h3>
+              <p className="text-sm text-muted-foreground">Historical weather patterns and trends</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Temperature Trends */}
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base font-medium">
-                    <Thermometer className="h-4 w-4 text-red-500" />
+                    <Thermometer className="h-4 w-4 text-destructive" />
                     Temperature Trends
                   </CardTitle>
                   <CardDescription>Weekly temperature variations</CardDescription>
@@ -899,13 +898,13 @@ export default function WeatherPage() {
                   <div className="space-y-3">
                     {forecast.map((day, index) => (
                       <div key={index} className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-muted-foreground">
                           {index === 0 ? 'Today' : formatDate(day.date)}
                         </span>
                         <div className="flex items-center gap-2">
-                          <div className="w-24 bg-gray-200 rounded-full h-2">
+                          <div className="w-24 bg-muted rounded-full h-2">
                             <div 
-                              className="bg-red-500 h-2 rounded-full" 
+                              className="bg-destructive h-2 rounded-full" 
                               style={{ width: `${((day.high - 15) / 20) * 100}%` }}
                             ></div>
                           </div>
@@ -920,10 +919,10 @@ export default function WeatherPage() {
               </Card>
 
               {/* Precipitation Analysis */}
-              <Card className="border border-gray-200">
+              <Card className="border border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base font-medium">
-                    <Droplets className="h-4 w-4 text-blue-500" />
+                    <Droplets className="h-4 w-4 text-primary" />
                     Precipitation Analysis
                   </CardTitle>
                   <CardDescription>Rainfall patterns and predictions</CardDescription>
@@ -932,13 +931,13 @@ export default function WeatherPage() {
                   <div className="space-y-3">
                     {forecast.map((day, index) => (
                       <div key={index} className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-muted-foreground">
                           {index === 0 ? 'Today' : formatDate(day.date)}
                         </span>
                         <div className="flex items-center gap-2">
-                          <div className="w-24 bg-gray-200 rounded-full h-2">
+                          <div className="w-24 bg-muted rounded-full h-2">
                             <div 
-                              className="bg-blue-500 h-2 rounded-full" 
+                              className="bg-primary h-2 rounded-full" 
                               style={{ width: `${(day.precipitation / 50) * 100}%` }}
                             ></div>
                           </div>

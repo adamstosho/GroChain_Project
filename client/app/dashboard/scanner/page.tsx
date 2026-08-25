@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import QRGenerator from "@/components/qr-generator"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import {
@@ -434,13 +435,13 @@ export default function QRScannerPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'verified': return 'bg-green-100 text-green-800 border-green-200'
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'failed': return 'bg-red-100 text-red-800 border-red-200'
-      case 'in_transit': return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'delivered': return 'bg-green-100 text-green-800 border-green-200'
-      case 'delayed': return 'bg-orange-100 text-orange-800 border-orange-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 'verified': return 'bg-success/10 text-success border-success/10'
+      case 'pending': return 'bg-warning/10 text-warning border-warning/10'
+      case 'failed': return 'bg-destructive/10 text-destructive border-destructive/10'
+      case 'in_transit': return 'bg-primary/10 text-primary border-primary/10'
+      case 'delivered': return 'bg-success/10 text-success border-success/10'
+      case 'delayed': return 'bg-warning/10 text-warning border-warning/10'
+      default: return 'bg-muted text-foreground border-border'
     }
   }
 
@@ -501,33 +502,31 @@ export default function QRScannerPage() {
   return (
     <DashboardLayout pageTitle="QR Scanner">
       <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
-        {/* Header Section */}
-        <div className="flex flex-col space-y-3 sm:space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">QR Scanner</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Scan QR codes to verify product authenticity and track shipments
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={exportHistory} 
-              disabled={scanHistory.length === 0}
-              className="h-8 sm:h-9 text-xs sm:text-sm flex-1 sm:flex-none"
-            >
-              <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              Export
-            </Button>
-            <Button size="sm" asChild className="h-8 sm:h-9 text-xs sm:text-sm flex-1 sm:flex-none">
-              <Link href="/dashboard/marketplace">
-                <Package className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                Browse
-              </Link>
-            </Button>
-          </div>
-        </div>
+        <DashboardPageHeader
+          badge="Verification Active"
+          title="QR"
+          titleHighlight="Scanner"
+          description="Scan QR codes to verify product authenticity and track shipments."
+          actions={
+            <>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={exportHistory}
+                disabled={scanHistory.length === 0}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+              <Button size="lg" asChild>
+                <Link href="/dashboard/marketplace">
+                  <Package className="mr-2 h-4 w-4" />
+                  Browse
+                </Link>
+              </Button>
+            </>
+          }
+        />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
@@ -545,7 +544,7 @@ export default function QRScannerPage() {
           <Card className="hover:shadow-md transition-shadow">
             <CardContent className="p-2 sm:p-3 md:p-4">
               <div className="flex items-center space-x-1 sm:space-x-2">
-                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-green-600 flex-shrink-0" />
+                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-success flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">Verified</p>
                   <p className="text-sm sm:text-lg md:text-2xl font-bold">{scanStats.verifiedScans}</p>
@@ -556,7 +555,7 @@ export default function QRScannerPage() {
           <Card className="hover:shadow-md transition-shadow">
             <CardContent className="p-2 sm:p-3 md:p-4">
               <div className="flex items-center space-x-1 sm:space-x-2">
-                <XCircle className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-red-600 flex-shrink-0" />
+                <XCircle className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-destructive flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">Failed</p>
                   <p className="text-sm sm:text-lg md:text-2xl font-bold">{scanStats.failedScans}</p>
@@ -567,7 +566,7 @@ export default function QRScannerPage() {
           <Card className="hover:shadow-md transition-shadow">
             <CardContent className="p-2 sm:p-3 md:p-4">
               <div className="flex items-center space-x-1 sm:space-x-2">
-                <Package className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-blue-600 flex-shrink-0" />
+                <Package className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">Unique Products</p>
                   <p className="text-sm sm:text-lg md:text-2xl font-bold">{scanStats.uniqueProducts}</p>
@@ -610,12 +609,12 @@ export default function QRScannerPage() {
               <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
                 {/* Camera Permission Status */}
                 {cameraPermission === 'denied' && (
-                  <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="p-3 sm:p-4 bg-destructive/10 border border-destructive/10 rounded-lg">
                     <div className="flex items-start space-x-2 sm:space-x-3">
-                      <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                      <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive flex-shrink-0 mt-0.5" />
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-red-800 text-sm sm:text-base">Camera access denied</p>
-                        <p className="text-xs sm:text-sm text-red-600 mt-1">
+                        <p className="font-medium text-destructive text-sm sm:text-base">Camera access denied</p>
+                        <p className="text-xs sm:text-sm text-destructive mt-1">
                           Please enable camera access in your browser settings to use the scanner
                         </p>
                       </div>
@@ -625,12 +624,12 @@ export default function QRScannerPage() {
 
                 {/* Last Scan Error */}
                 {lastScanError && (
-                  <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="p-3 sm:p-4 bg-destructive/10 border border-destructive/10 rounded-lg">
                     <div className="flex items-start space-x-2 sm:space-x-3">
-                      <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                      <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive flex-shrink-0 mt-0.5" />
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-red-800 text-sm sm:text-base">Scan Error</p>
-                        <p className="text-xs sm:text-sm text-red-600 mt-1 break-words">{lastScanError}</p>
+                        <p className="font-medium text-destructive text-sm sm:text-base">Scan Error</p>
+                        <p className="text-xs sm:text-sm text-destructive mt-1 break-words">{lastScanError}</p>
                       </div>
                     </div>
                   </div>
@@ -721,11 +720,11 @@ export default function QRScannerPage() {
 
                 {/* Current Scan Result */}
                 {currentScan && (
-                  <Card className="border-green-200 bg-green-50">
+                  <Card className="border-success/10 bg-success/10">
                     <CardHeader className="p-4 sm:p-6">
                       <div className="flex items-center space-x-2">
-                        <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-                        <CardTitle className="text-green-800 text-sm sm:text-base">Product Verified</CardTitle>
+                        <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
+                        <CardTitle className="text-success text-sm sm:text-base">Product Verified</CardTitle>
                       </div>
                     </CardHeader>
                     <CardContent className="p-4 sm:p-6 pt-0">
@@ -773,8 +772,8 @@ export default function QRScannerPage() {
                         )}
                       </div>
                       {currentScan.message && (
-                        <div className="mt-3 sm:mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                          <p className="text-xs sm:text-sm text-blue-800 break-words">{currentScan.message}</p>
+                        <div className="mt-3 sm:mt-4 p-3 bg-primary/10 border border-primary/10 rounded-lg">
+                          <p className="text-xs sm:text-sm text-primary break-words">{currentScan.message}</p>
                         </div>
                       )}
                     </CardContent>
@@ -831,10 +830,10 @@ export default function QRScannerPage() {
                   </Button>
                 </div>
 
-                <div className="p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="p-3 sm:p-4 bg-primary/10 border border-primary/10 rounded-lg">
                   <div className="flex items-start space-x-2 sm:space-x-3">
-                    <Info className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-xs sm:text-sm text-blue-800 min-w-0 flex-1">
+                    <Info className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0 mt-0.5" />
+                    <div className="text-xs sm:text-sm text-primary min-w-0 flex-1">
                       <p className="font-medium">Manual Input Tips:</p>
                       <ul className="mt-1 space-y-1">
                         <li>• Enter the complete batch ID or QR code</li>
@@ -902,7 +901,7 @@ export default function QRScannerPage() {
                               </p>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <Badge className={`text-xs ${item.verified ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'}`}>
+                              <Badge className={`text-xs ${item.verified ? 'bg-success/10 text-success border-success/10' : 'bg-destructive/10 text-destructive border-destructive/10'}`}>
                                 {item.verified ? <CheckCircle className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
                                 {item.verified ? 'Verified' : 'Failed'}
                               </Badge>

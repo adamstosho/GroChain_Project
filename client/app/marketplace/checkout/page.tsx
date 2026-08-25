@@ -23,12 +23,11 @@ import Image from "next/image"
 export default function CheckoutPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { cart, createOrder, clearCart } = useBuyerStore()
+  const { cart, clearCart } = useBuyerStore()
   const { user } = useAuthStore()
 
   const [processing, setProcessing] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("paystack")
-  const [paymentProvider, setPaymentProvider] = useState("paystack")
   const [shippingMethod, setShippingMethod] = useState("road_standard")
   const [shippingInfo, setShippingInfo] = useState({
     fullName: user?.name || "",
@@ -40,6 +39,9 @@ export default function CheckoutPage() {
     notes: "",
   })
   const [mounted, setMounted] = useState(false)
+  // Reused across retries (cancel/fail/script-error then "Place Order" again) so a single
+  // checkout attempt can't pile up multiple unpaid orders for the same cart.
+  const [pendingOrder, setPendingOrder] = useState<{ id: string; signature: string } | null>(null)
 
   // Handle hydration and cart initialization
   useEffect(() => {
@@ -48,7 +50,6 @@ export default function CheckoutPage() {
     // Check if user is authenticated
     const token = localStorage.getItem('grochain_auth_token')
     if (!token || token === 'undefined') {
-      console.log('⚠️ No authentication token found - redirecting to login')
       toast({
         title: "Authentication Required",
         description: "Please log in to place an order.",
@@ -73,22 +74,15 @@ export default function CheckoutPage() {
   // Ensure payment scripts are loaded
   useEffect(() => {
     if (mounted && typeof window !== 'undefined') {
-      console.log('🔄 Checkout page mounted, loading payment scripts...')
       
       // Load Paystack script
       loadPaystackScript()
-        .then(() => {
-          console.log('✅ Paystack script loaded successfully in checkout')
-        })
         .catch(error => {
           console.warn('⚠️ Paystack script loading failed:', error.message)
         })
-      
+
       // Load Flutterwave script
       loadFlutterwaveScript()
-        .then(() => {
-          console.log('✅ Flutterwave script loaded successfully in checkout')
-        })
         .catch(error => {
           console.warn('⚠️ Flutterwave script loading failed:', error.message)
         })
@@ -104,6 +98,33 @@ export default function CheckoutPage() {
 
   const handleInputChange = (field: string, value: string) => {
     setShippingInfo((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const getOrderSignature = () =>
+    JSON.stringify({
+      cart: cart.map((item) => ({ id: item.listingId || item.id, qty: item.quantity, price: item.price })),
+      shippingInfo,
+      shippingMethod,
+      paymentMethod,
+    })
+
+  // Creates an order, or reuses the one from a previous attempt in this same session if
+  // nothing about the cart/shipping/payment method has changed since — avoids leaving a
+  // trail of duplicate unpaid orders when a user cancels/fails and retries.
+  const getOrCreateOrder = async (orderData: any) => {
+    const signature = getOrderSignature()
+    if (pendingOrder && pendingOrder.signature === signature) {
+      return { _id: pendingOrder.id }
+    }
+
+    const orderResponse = await apiService.createOrder(orderData)
+    if (!orderResponse || orderResponse.status !== 'success' || !orderResponse.data) {
+      throw new Error(orderResponse?.message || 'Failed to create order')
+    }
+
+    const order = orderResponse.data
+    setPendingOrder({ id: order._id, signature })
+    return order
   }
 
   const handlePlaceOrder = async () => {
@@ -155,10 +176,8 @@ export default function CheckoutPage() {
 
       // Handle different payment methods
       if (paymentMethod === 'paystack') {
-        setPaymentProvider('paystack')
         await handlePaystackPayment()
       } else if (paymentMethod === 'flutterwave') {
-        setPaymentProvider('flutterwave')
         await handleFlutterwavePayment()
       } else if (paymentMethod === 'bank_transfer') {
         await handleBankTransferOrder()
@@ -204,21 +223,10 @@ export default function CheckoutPage() {
         shippingMethod: shippingMethod // Include selected shipping method
       }
 
-      console.log('🛒 Creating order before Flutterwave payment...')
-      console.log('📤 Order data:', orderData)
 
-      const orderResponse = await apiService.createOrder(orderData)
-      console.log('📥 Order creation response:', orderResponse)
-
-      if (!orderResponse || orderResponse.status !== 'success' || !orderResponse.data) {
-        throw new Error(orderResponse?.message || 'Failed to create order')
-      }
-
-      const order = orderResponse.data
-      console.log('✅ Order created:', order._id)
+      const order = await getOrCreateOrder(orderData)
 
       // Now initialize Flutterwave payment
-      console.log('💳 Initializing Flutterwave payment...')
 
       const paymentResult = await processFlutterwaveOrderPayment(
         order._id,
@@ -226,10 +234,7 @@ export default function CheckoutPage() {
         shippingInfo.email,
         // Success callback
         async (response) => {
-          console.log('✅ Flutterwave payment successful:', response)
 
-          console.log('✅ Flutterwave payment successful - starting post-payment cleanup')
-          console.log('📦 Order details:', { orderId: order._id, totalItems: (order as any).items?.length || 0 })
 
           toast({
             title: "Payment successful!",
@@ -237,23 +242,20 @@ export default function CheckoutPage() {
           })
 
           // Clear cart after successful payment
-          console.log('🗑️ Clearing cart...')
           clearCart()
+          setPendingOrder(null)
 
           // Force refresh of marketplace products by clearing cache
           try {
-            console.log('🔄 Setting marketplace refresh flag...')
             // Clear any cached product data
             if (typeof window !== 'undefined') {
               // Force a hard refresh of the marketplace page data
               localStorage.setItem('marketplace_refresh_needed', 'true')
-              console.log('✅ Refresh flag set successfully')
             }
-          } catch (error) {
-            console.log('❌ Could not set refresh flag:', error)
+          } catch {
+            // ignore — refresh flag is best-effort
           }
 
-          console.log('🚀 Post-payment cleanup completed')
 
           // Redirect to order success page first
           setTimeout(() => {
@@ -262,7 +264,6 @@ export default function CheckoutPage() {
         },
         // Close callback
         () => {
-          console.log('❌ Flutterwave payment cancelled by user')
           toast({
             title: "Payment cancelled",
             description: "You cancelled the payment. Your order has been saved and you can pay later.",
@@ -272,9 +273,7 @@ export default function CheckoutPage() {
       )
 
       // Handle payment result
-      if (paymentResult.status === 'cancelled') {
-        console.log('Flutterwave payment was cancelled')
-      } else if (paymentResult.status === 'failed') {
+      if (paymentResult.status === 'failed') {
         throw new Error('Flutterwave payment failed. Please try again.')
       }
 
@@ -308,22 +307,10 @@ export default function CheckoutPage() {
         shippingMethod: shippingMethod // Include selected shipping method
       }
 
-      console.log('🛒 Creating order before payment...')
-      console.log('📤 Order data:', orderData)
-      console.log('📡 API call to:', 'http://localhost:5000/api/marketplace/orders')
 
-      const orderResponse = await apiService.createOrder(orderData)
-      console.log('📥 Order creation response:', orderResponse)
-
-      if (!orderResponse || orderResponse.status !== 'success' || !orderResponse.data) {
-        throw new Error(orderResponse?.message || 'Failed to create order')
-      }
-
-      const order = orderResponse.data
-      console.log('✅ Order created:', order._id)
+      const order = await getOrCreateOrder(orderData)
 
       // Now initialize Paystack payment
-      console.log('💳 Initializing Paystack payment...')
 
       const paymentResult = await processOrderPayment(
         order._id,
@@ -331,10 +318,7 @@ export default function CheckoutPage() {
         shippingInfo.email,
         // Success callback
         async (response) => {
-          console.log('✅ Payment successful:', response)
 
-          console.log('✅ Payment successful - starting post-payment cleanup')
-          console.log('📦 Order details:', { orderId: order._id, totalItems: (order as any).items?.length || 0 })
 
           toast({
             title: "Payment successful!",
@@ -342,23 +326,20 @@ export default function CheckoutPage() {
           })
 
           // Clear cart after successful payment
-          console.log('🗑️ Clearing cart...')
           clearCart()
+          setPendingOrder(null)
 
           // Force refresh of marketplace products by clearing cache
           try {
-            console.log('🔄 Setting marketplace refresh flag...')
             // Clear any cached product data
             if (typeof window !== 'undefined') {
               // Force a hard refresh of the marketplace page data
               localStorage.setItem('marketplace_refresh_needed', 'true')
-              console.log('✅ Refresh flag set successfully')
             }
-          } catch (error) {
-            console.log('❌ Could not set refresh flag:', error)
+          } catch {
+            // ignore — refresh flag is best-effort
           }
 
-          console.log('🚀 Post-payment cleanup completed')
 
           // Redirect to order success page first
           setTimeout(() => {
@@ -367,7 +348,6 @@ export default function CheckoutPage() {
         },
         // Close callback
         () => {
-          console.log('❌ Payment cancelled by user')
           toast({
             title: "Payment cancelled",
             description: "You cancelled the payment. Your order has been saved and you can pay later.",
@@ -377,9 +357,7 @@ export default function CheckoutPage() {
       )
 
       // Handle payment result
-      if (paymentResult.status === 'cancelled') {
-        console.log('Payment was cancelled')
-      } else if (paymentResult.status === 'failed') {
+      if (paymentResult.status === 'failed') {
         throw new Error('Payment failed. Please try again.')
       }
 
@@ -420,6 +398,7 @@ export default function CheckoutPage() {
 
       // Clear cart after successful order creation
       clearCart()
+      setPendingOrder(null)
 
       // Redirect to order success page with bank transfer instructions
       router.push(`/marketplace/order-success/${response.data._id}?payment_method=bank_transfer`)
@@ -459,6 +438,7 @@ export default function CheckoutPage() {
 
       // Clear cart after successful order creation
       clearCart()
+      setPendingOrder(null)
 
       // Redirect to order success page
       router.push(`/marketplace/order-success/${response.data._id}?payment_method=cash`)
@@ -511,13 +491,13 @@ export default function CheckoutPage() {
   // Show loading state only after component has mounted and cart is empty
   if (mounted && cart.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50" suppressHydrationWarning>
+      <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10" suppressHydrationWarning>
         <div className="container mx-auto px-4 py-8">
           <div className="space-y-6">
-            <div className="h-8 bg-gray-100 animate-pulse rounded w-32"></div>
+            <div className="h-8 bg-muted animate-pulse rounded w-32"></div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="h-96 bg-gray-100 animate-pulse rounded"></div>
-              <div className="h-96 bg-gray-100 animate-pulse rounded"></div>
+              <div className="h-96 bg-muted animate-pulse rounded"></div>
+              <div className="h-96 bg-muted animate-pulse rounded"></div>
             </div>
           </div>
         </div>
@@ -528,17 +508,17 @@ export default function CheckoutPage() {
   // Show loading skeleton during hydration
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50" suppressHydrationWarning>
+      <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10" suppressHydrationWarning>
         <div className="container mx-auto px-4 py-8">
           <div className="space-y-6">
-            <div className="h-8 bg-gray-100 animate-pulse rounded w-64"></div>
+            <div className="h-8 bg-muted animate-pulse rounded w-64"></div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-6">
-                <div className="h-64 bg-gray-100 animate-pulse rounded"></div>
-                <div className="h-48 bg-gray-100 animate-pulse rounded"></div>
-                <div className="h-32 bg-gray-100 animate-pulse rounded"></div>
+                <div className="h-64 bg-muted animate-pulse rounded"></div>
+                <div className="h-48 bg-muted animate-pulse rounded"></div>
+                <div className="h-32 bg-muted animate-pulse rounded"></div>
               </div>
-              <div className="h-96 bg-gray-100 animate-pulse rounded"></div>
+              <div className="h-96 bg-muted animate-pulse rounded"></div>
             </div>
           </div>
         </div>
@@ -547,7 +527,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50" suppressHydrationWarning>
+    <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10" suppressHydrationWarning>
       <div className="container mx-auto px-4 py-8">
         <Button variant="ghost" asChild className="mb-6">
           <Link href="/marketplace/cart" className="flex items-center gap-2">
@@ -570,7 +550,7 @@ export default function CheckoutPage() {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="fullName" className="text-sm font-medium text-gray-700 block">
+                    <Label htmlFor="fullName" className="text-sm font-medium text-foreground block">
                       Full Name
                     </Label>
                     <Input
@@ -578,16 +558,16 @@ export default function CheckoutPage() {
                       value={shippingInfo.fullName}
                       onChange={(e) => handleInputChange("fullName", e.target.value)}
                       placeholder="Enter your full name"
-                      className="w-full h-11 px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      className="w-full h-11 px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-success focus:border-success transition-colors"
                     />
                     {user?.name && (
-                      <p className="text-xs text-green-600 mt-1">
+                      <p className="text-xs text-success mt-1">
                         Using your registered name
                       </p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium text-gray-700 block">
+                    <Label htmlFor="email" className="text-sm font-medium text-foreground block">
                       Email Address
                     </Label>
                     <Input
@@ -595,17 +575,17 @@ export default function CheckoutPage() {
                       type="email"
                       value={shippingInfo.email}
                       readOnly
-                      className="w-full h-11 px-4 py-3 bg-gray-50 border border-gray-200 rounded-md cursor-not-allowed text-gray-600"
+                      className="w-full h-11 px-4 py-3 bg-muted border border-border rounded-md cursor-not-allowed text-muted-foreground"
                       placeholder="Your registered email"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Using your registered email address
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-sm font-medium text-gray-700 block">
+                  <Label htmlFor="phone" className="text-sm font-medium text-foreground block">
                     Phone Number
                   </Label>
                   <Input
@@ -613,17 +593,17 @@ export default function CheckoutPage() {
                     value={shippingInfo.phone}
                     onChange={(e) => handleInputChange("phone", e.target.value)}
                     placeholder="Enter your phone number"
-                    className="w-full h-11 px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    className="w-full h-11 px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-success focus:border-success transition-colors"
                   />
                   {user?.phone && (
-                    <p className="text-xs text-green-600 mt-1">
+                    <p className="text-xs text-success mt-1">
                       Using your registered phone number
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address" className="text-sm font-medium text-gray-700 block">
+                  <Label htmlFor="address" className="text-sm font-medium text-foreground block">
                     Address
                   </Label>
                   <Textarea
@@ -631,14 +611,14 @@ export default function CheckoutPage() {
                     value={shippingInfo.address}
                     onChange={(e) => handleInputChange("address", e.target.value)}
                     placeholder="Enter your full address"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors resize-none"
+                    className="w-full px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-success focus:border-success transition-colors resize-none"
                     rows={3}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="city" className="text-sm font-medium text-gray-700 block">
+                    <Label htmlFor="city" className="text-sm font-medium text-foreground block">
                       City
                     </Label>
                     <Input
@@ -646,11 +626,11 @@ export default function CheckoutPage() {
                       value={shippingInfo.city}
                       onChange={(e) => handleInputChange("city", e.target.value)}
                       placeholder="Enter your city"
-                      className="w-full h-11 px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      className="w-full h-11 px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-success focus:border-success transition-colors"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="state" className="text-sm font-medium text-gray-700 block">
+                    <Label htmlFor="state" className="text-sm font-medium text-foreground block">
                       State
                     </Label>
                     <Input
@@ -658,13 +638,13 @@ export default function CheckoutPage() {
                       value={shippingInfo.state}
                       onChange={(e) => handleInputChange("state", e.target.value)}
                       placeholder="Enter your state"
-                      className="w-full h-11 px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      className="w-full h-11 px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-success focus:border-success transition-colors"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="notes" className="text-sm font-medium text-gray-700 block">
+                  <Label htmlFor="notes" className="text-sm font-medium text-foreground block">
                     Delivery Notes (Optional)
                   </Label>
                   <Textarea
@@ -672,7 +652,7 @@ export default function CheckoutPage() {
                     value={shippingInfo.notes}
                     onChange={(e) => handleInputChange("notes", e.target.value)}
                     placeholder="Any special delivery instructions"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors resize-none"
+                    className="w-full px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-success focus:border-success transition-colors resize-none"
                     rows={3}
                   />
                 </div>
@@ -699,17 +679,17 @@ export default function CheckoutPage() {
                     )
                     
                     return (
-                      <div key={method.id} className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                      <div key={method.id} className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-muted transition-colors">
                         <RadioGroupItem value={method.id} id={method.id} />
                         <Label htmlFor={method.id} className="flex-1 cursor-pointer">
                           <div className="flex items-center justify-between w-full">
                             <div>
                               <p className="font-medium">{method.name}</p>
-                              <p className="text-sm text-gray-500">{method.estimatedDays} day{method.estimatedDays > 1 ? 's' : ''} delivery</p>
+                              <p className="text-sm text-muted-foreground">{method.estimatedDays} day{method.estimatedDays > 1 ? 's' : ''} delivery</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-medium text-green-600">₦{methodCost.totalCost.toLocaleString()}</p>
-                              <p className="text-xs text-gray-500">{methodCost.distance}km</p>
+                              <p className="font-medium text-success">₦{methodCost.totalCost.toLocaleString()}</p>
+                              <p className="text-xs text-muted-foreground">{methodCost.distance}km</p>
                             </div>
                           </div>
                         </Label>
@@ -719,8 +699,8 @@ export default function CheckoutPage() {
                 </RadioGroup>
                 
                 {shippingInfo.city && shippingInfo.state && (
-                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                    <p className="text-sm text-blue-700">
+                  <div className="mt-4 p-3 bg-primary/10 border border-primary/10 rounded-md">
+                    <p className="text-sm text-primary">
                       <strong>Shipping Details:</strong><br/>
                       From: Lagos, Lagos<br/>
                       To: {shippingInfo.city}, {shippingInfo.state}<br/>
@@ -747,53 +727,53 @@ export default function CheckoutPage() {
               </CardHeader>
               <CardContent>
                 <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-muted transition-colors">
                     <RadioGroupItem value="paystack" id="paystack" />
                     <Label htmlFor="paystack" className="flex-1 cursor-pointer">
                       <div className="flex items-center gap-3">
-                        <CreditCard className="h-5 w-5 text-blue-600" />
+                        <CreditCard className="h-5 w-5 text-primary" />
                         <div>
                           <p className="font-medium">Paystack (Recommended)</p>
-                          <p className="text-sm text-gray-500">Pay securely with card, bank transfer, or USSD</p>
+                          <p className="text-sm text-muted-foreground">Pay securely with card, bank transfer, or USSD</p>
                         </div>
                       </div>
                     </Label>
                   </div>
 
-                  <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-muted transition-colors">
                     <RadioGroupItem value="flutterwave" id="flutterwave" />
                     <Label htmlFor="flutterwave" className="flex-1 cursor-pointer">
                       <div className="flex items-center gap-3">
-                        <CreditCard className="h-5 w-5 text-purple-600" />
+                        <CreditCard className="h-5 w-5 text-accent" />
                         <div>
                           <p className="font-medium">Flutterwave</p>
-                          <p className="text-sm text-gray-500">Pay with card, mobile money, or bank transfer</p>
+                          <p className="text-sm text-muted-foreground">Pay with card, mobile money, or bank transfer</p>
                         </div>
                       </div>
                     </Label>
                   </div>
 
-                  <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-muted transition-colors">
                     <RadioGroupItem value="bank_transfer" id="bank_transfer" />
                     <Label htmlFor="bank_transfer" className="flex-1 cursor-pointer">
                       <div className="flex items-center gap-3">
-                        <Phone className="h-5 w-5 text-green-600" />
+                        <Phone className="h-5 w-5 text-success" />
                         <div>
                           <p className="font-medium">Direct Bank Transfer</p>
-                          <p className="text-sm text-gray-500">Transfer directly to our account</p>
+                          <p className="text-sm text-muted-foreground">Transfer directly to our account</p>
                         </div>
                       </div>
                     </Label>
                   </div>
 
-                  <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-muted transition-colors">
                     <RadioGroupItem value="cash" id="cash" />
                     <Label htmlFor="cash" className="flex-1 cursor-pointer">
                       <div className="flex items-center gap-3">
-                        <Mail className="h-5 w-5 text-orange-600" />
+                        <Mail className="h-5 w-5 text-warning" />
                         <div>
                           <p className="font-medium">Cash on Delivery</p>
-                          <p className="text-sm text-gray-500">Pay when you receive your order</p>
+                          <p className="text-sm text-muted-foreground">Pay when you receive your order</p>
                         </div>
                       </div>
                     </Label>
@@ -826,7 +806,7 @@ export default function CheckoutPage() {
                       </div>
                       <div className="flex-1">
                         <p className="font-medium text-sm">{item.cropName}</p>
-                        <p className="text-xs text-gray-500">Qty: {item.quantity} {item.unit}</p>
+                        <p className="text-xs text-muted-foreground">Qty: {item.quantity} {item.unit}</p>
                       </div>
                       <p className="font-medium">₦{(item.price * item.quantity).toLocaleString()}</p>
                     </div>
@@ -849,7 +829,7 @@ export default function CheckoutPage() {
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-gray-600">VAT</span>
+                    <span className="text-muted-foreground">VAT</span>
                     <span>₦{tax.toLocaleString()}</span>
                   </div>
                 </div>
@@ -880,7 +860,7 @@ export default function CheckoutPage() {
                   )}
                 </Button>
 
-                <p className="text-xs text-gray-500 text-center">
+                <p className="text-xs text-muted-foreground text-center">
                   By placing your order, you agree to our Terms of Service and Privacy Policy
                 </p>
               </CardContent>

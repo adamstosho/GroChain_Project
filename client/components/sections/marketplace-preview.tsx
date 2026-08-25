@@ -125,14 +125,14 @@ export function MarketplacePreview() {
   }
 
   return (
-    <section id="marketplace" className="py-16 bg-gray-50">
+    <section id="marketplace" className="py-16 bg-muted">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl font-bold text-foreground mb-4">
             Fresh Products from Verified Farmers
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
             Discover high-quality agricultural products directly from trusted farmers.
             Browse, verify authenticity, and purchase with confidence.
           </p>
@@ -161,7 +161,7 @@ export function MarketplacePreview() {
             products.map((product) => (
               <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                 {/* Product Image */}
-                <div className="relative h-48 bg-gray-100">
+                <div className="relative h-48 bg-muted">
                   {product.images && product.images.length > 0 ? (
                     <Image
                       src={product.images[0]}
@@ -171,20 +171,20 @@ export function MarketplacePreview() {
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full">
-                      <div className="text-gray-400 text-sm">No Image</div>
+                      <div className="text-muted-foreground text-sm">No Image</div>
                     </div>
                   )}
 
                   {/* Quality Badge */}
                   {product.quality && (
-                    <Badge className="absolute top-2 left-2 bg-green-600">
+                    <Badge className="absolute top-2 left-2 bg-success">
                       {product.quality}
                     </Badge>
                   )}
 
                   {/* Organic Badge */}
                   {product.organic && (
-                    <Badge className="absolute top-2 right-2 bg-yellow-600">
+                    <Badge className="absolute top-2 right-2 bg-warning">
                       Organic
                     </Badge>
                   )}
@@ -193,18 +193,18 @@ export function MarketplacePreview() {
                 <CardContent className="p-4">
                   {/* Product Name & Category */}
                   <div className="mb-2">
-                    <h3 className="font-semibold text-lg text-gray-900 line-clamp-1">
+                    <h3 className="font-semibold text-lg text-foreground line-clamp-1">
                       {typeof product.name === 'string' ? product.name : 'Unnamed Product'}
                     </h3>
-                    <p className="text-sm text-gray-600 capitalize">
+                    <p className="text-sm text-muted-foreground capitalize">
                       {typeof product.category === 'string' ? product.category : 'Agricultural Product'}
                     </p>
                   </div>
 
                   {/* Farmer Info */}
                   <div className="flex items-center gap-1 mb-2">
-                    <span className="text-sm text-gray-600">by</span>
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm text-muted-foreground">by</span>
+                    <span className="text-sm font-medium text-foreground">
                       {typeof product.farmerName === 'string'
                         ? product.farmerName
                         : typeof product.farmerName === 'object' && product.farmerName
@@ -216,8 +216,8 @@ export function MarketplacePreview() {
 
                   {/* Location */}
                   <div className="flex items-center gap-1 mb-3">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
                       {typeof product.location === 'string'
                         ? product.location
                         : typeof product.location === 'object' && product.location
@@ -229,8 +229,8 @@ export function MarketplacePreview() {
 
                   {/* Rating */}
                   <div className="flex items-center gap-1 mb-3">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm text-gray-600">
+                    <Star className="h-4 w-4 fill-warning text-warning" />
+                    <span className="text-sm text-muted-foreground">
                       {typeof product.rating === 'number' ? product.rating.toFixed(1) : '4.5'} ({Math.floor(Math.random() * 50) + 10} reviews)
                     </span>
                   </div>
@@ -238,10 +238,10 @@ export function MarketplacePreview() {
                   {/* Price */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-2xl font-bold text-green-600">
+                      <span className="text-2xl font-bold text-success">
                         ₦{typeof product.price === 'number' ? product.price.toLocaleString() : '0'}
                       </span>
-                      <span className="text-sm text-gray-600 ml-1">
+                      <span className="text-sm text-muted-foreground ml-1">
                         per {typeof product.unit === 'string' ? product.unit : 'unit'}
                       </span>
                     </div>
@@ -293,10 +293,10 @@ export function MarketplacePreview() {
         {/* View All Products CTA */}
         <div className="text-center">
           <div className="bg-white rounded-lg shadow-sm p-8">
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-xl font-semibold text-foreground mb-2">
               Explore More Products
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               Discover thousands of fresh agricultural products from verified farmers across Nigeria.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

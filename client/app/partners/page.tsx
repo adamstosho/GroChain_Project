@@ -197,10 +197,10 @@ export default function PartnersPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-8 bg-muted rounded w-1/3"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
+              <div key={i} className="h-32 bg-muted rounded"></div>
             ))}
           </div>
         </div>
@@ -209,7 +209,7 @@ export default function PartnersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-muted">
       {/* Navigation Header */}
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -261,10 +261,10 @@ export default function PartnersPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="hidden md:flex flex-col items-start">
-                      <span className="text-sm font-medium text-gray-900">{user?.name || 'Partner'}</span>
-                      <span className="text-xs text-gray-500">{user?.email || ''}</span>
+                      <span className="text-sm font-medium text-foreground">{user?.name || 'Partner'}</span>
+                      <span className="text-xs text-muted-foreground">{user?.email || ''}</span>
                     </div>
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
@@ -283,7 +283,7 @@ export default function PartnersPage() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => logout()} className="flex items-center text-red-600">
+                  <DropdownMenuItem onClick={() => logout()} className="flex items-center text-destructive">
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign Out
                   </DropdownMenuItem>
@@ -320,8 +320,8 @@ export default function PartnersPage() {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Partner Dashboard</h1>
-            <p className="text-gray-600 mt-1">Manage your farmer network and track performance</p>
+            <h1 className="text-3xl font-bold text-foreground">Partner Dashboard</h1>
+            <p className="text-muted-foreground mt-1">Manage your farmer network and track performance</p>
           </div>
         </div>
 
@@ -331,12 +331,12 @@ export default function PartnersPage() {
           {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
-                <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-muted rounded w-24 animate-pulse"></div>
+                <div className="h-4 w-4 bg-muted rounded animate-pulse"></div>
               </CardHeader>
               <CardContent>
-                <div className="h-8 bg-gray-200 rounded w-16 animate-pulse mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-32 animate-pulse"></div>
+                <div className="h-8 bg-muted rounded w-16 animate-pulse mb-2"></div>
+                <div className="h-3 bg-muted rounded w-32 animate-pulse"></div>
               </CardContent>
             </Card>
           ))}
@@ -401,7 +401,7 @@ export default function PartnersPage() {
           {/* Search and Filters */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search farmers..."
                 value={searchTerm}
@@ -412,7 +412,7 @@ export default function PartnersPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-success"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -450,11 +450,11 @@ export default function PartnersPage() {
                   </thead>
                   <tbody>
                     {filteredFarmers.map((farmer, index) => (
-                      <tr key={farmer._id || farmer.email || index} className="border-b hover:bg-gray-50">
+                      <tr key={farmer._id || farmer.email || index} className="border-b hover:bg-muted">
                         <td className="py-3 px-4">
                           <div>
                             <p className="font-medium">{farmer.name}</p>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-muted-foreground">
                               Joined {farmer.joinedDate || farmer.joinedAt ? new Date(farmer.joinedDate || farmer.joinedAt || Date.now()).toLocaleDateString() : 'N/A'}
                             </p>
                           </div>
@@ -462,7 +462,7 @@ export default function PartnersPage() {
                         <td className="py-3 px-4">
                           <div>
                             <p className="text-sm">{farmer.email}</p>
-                            <p className="text-sm text-gray-500">{farmer.phone || 'N/A'}</p>
+                            <p className="text-sm text-muted-foreground">{farmer.phone || 'N/A'}</p>
                           </div>
                         </td>
                         <td className="py-3 px-4">{typeof farmer.location === 'string' ? farmer.location : `${(farmer.location as any)?.city || 'Unknown'}, ${(farmer.location as any)?.state || 'Unknown State'}`}</td>
@@ -525,29 +525,29 @@ export default function PartnersPage() {
                 </div>
 
                 {/* Pending Approvals Summary */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="bg-primary/10 border border-primary/10 rounded-lg p-4">
                   <div className="flex items-center gap-3">
-                    <Clock className="h-8 w-8 text-blue-600" />
+                    <Clock className="h-8 w-8 text-primary" />
                     <div>
-                      <h3 className="font-semibold text-blue-900">Pending Approvals: {stats?.pendingApprovals || 0}</h3>
-                      <p className="text-sm text-blue-700">Farmers are waiting for harvest approval</p>
+                      <h3 className="font-semibold text-primary">Pending Approvals: {stats?.pendingApprovals || 0}</h3>
+                      <p className="text-sm text-primary">Farmers are waiting for harvest approval</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Recent Pending Approvals */}
                 <div className="space-y-3">
-                  <h4 className="font-medium text-gray-900">Recent Pending Approvals</h4>
+                  <h4 className="font-medium text-foreground">Recent Pending Approvals</h4>
                   <div className="space-y-2">
                     {/* This would be populated from real API data */}
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                          <Users className="h-5 w-5 text-green-600" />
+                        <div className="w-10 h-10 bg-success/10 rounded-full flex items-center justify-center">
+                          <Users className="h-5 w-5 text-success" />
                         </div>
                         <div>
                           <p className="font-medium">Sample Harvest</p>
-                          <p className="text-sm text-gray-600">Farmer: Emmanuel Nwosu</p>
+                          <p className="text-sm text-muted-foreground">Farmer: Emmanuel Nwosu</p>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -591,28 +591,28 @@ export default function PartnersPage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-2xl font-bold text-success">
                       {stats?.approvalRate || 0}%
                     </div>
-                    <p className="text-sm text-gray-600">Approval Rate</p>
+                    <p className="text-sm text-muted-foreground">Approval Rate</p>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-2xl font-bold text-primary">
                       {stats?.activeFarmers || 0}
                     </div>
-                    <p className="text-sm text-gray-600">Active Farmers</p>
+                    <p className="text-sm text-muted-foreground">Active Farmers</p>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">
+                    <div className="text-2xl font-bold text-warning">
                       {stats?.totalFarmers ? Math.round(((stats.activeFarmers || 0) / stats.totalFarmers) * 100) : 0}%
                     </div>
-                    <p className="text-sm text-gray-600">Activation Rate</p>
+                    <p className="text-sm text-muted-foreground">Activation Rate</p>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">
+                    <div className="text-2xl font-bold text-accent">
                       {filteredFarmers.length}
                     </div>
-                    <p className="text-sm text-gray-600">Filtered Results</p>
+                    <p className="text-sm text-muted-foreground">Filtered Results</p>
                   </div>
                 </div>
 
@@ -639,19 +639,19 @@ export default function PartnersPage() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Monthly Commission</span>
-                    <span className="text-lg font-bold text-green-600">
+                    <span className="text-lg font-bold text-success">
                       ₦{(stats?.monthlyCommissions || stats?.monthlyCommission || 0).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Total Earned</span>
-                    <span className="text-lg font-bold text-blue-600">
+                    <span className="text-lg font-bold text-primary">
                       ₦{(stats?.totalCommissions || stats?.totalCommission || 0).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Commission Rate</span>
-                    <span className="text-lg font-bold text-purple-600">
+                    <span className="text-lg font-bold text-accent">
                       {stats?.commissionRate ? (stats.commissionRate * 100) : 0}%
                     </span>
                   </div>
@@ -680,7 +680,7 @@ export default function PartnersPage() {
             <CardContent>
               <div className="space-y-3">
                 {filteredFarmers.slice(0, 5).map((farmer, index) => (
-                  <div key={farmer._id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={farmer._id || index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback>
@@ -689,21 +689,21 @@ export default function PartnersPage() {
                       </Avatar>
                       <div>
                         <p className="font-medium text-sm">{farmer.name}</p>
-                        <p className="text-xs text-gray-600">{farmer.location || 'Location N/A'}</p>
+                        <p className="text-xs text-muted-foreground">{farmer.location || 'Location N/A'}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <Badge variant={farmer.status === 'active' ? 'default' : 'secondary'}>
                         {farmer.status}
                       </Badge>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {farmer.totalHarvests || 0} harvests
                       </p>
                     </div>
                   </div>
                 ))}
                 {filteredFarmers.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-muted-foreground">
                     <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
                     <p>No farmers found</p>
                   </div>

@@ -36,35 +36,35 @@ export function NotificationToast({
   const getIcon = () => {
     switch (notification.type) {
       case "success":
-        return <CheckCircle className="h-4 w-4 text-green-600" />
+        return <CheckCircle className="h-4 w-4 text-success" />
       case "warning":
-        return <AlertTriangle className="h-4 w-4 text-yellow-600" />
+        return <AlertTriangle className="h-4 w-4 text-warning" />
       case "error":
-        return <AlertCircle className="h-4 w-4 text-red-600" />
+        return <AlertCircle className="h-4 w-4 text-destructive" />
       default:
-        return <Info className="h-4 w-4 text-blue-600" />
+        return <Info className="h-4 w-4 text-primary" />
     }
   }
 
   const getBorderColor = () => {
     switch (notification.type) {
       case "success":
-        return "border-l-green-500"
+        return "border-l-success"
       case "warning":
-        return "border-l-yellow-500"
+        return "border-l-warning"
       case "error":
-        return "border-l-red-500"
+        return "border-l-destructive"
       default:
-        return "border-l-blue-500"
+        return "border-l-primary"
     }
   }
 
   const getPriorityStyles = () => {
     switch (notification.priority) {
       case 'urgent':
-        return 'ring-2 ring-red-300 shadow-lg'
+        return 'ring-2 ring-destructive shadow-lg'
       case 'high':
-        return 'ring-1 ring-orange-300 shadow-md'
+        return 'ring-1 ring-warning shadow-md'
       case 'low':
         return 'opacity-90'
       default:
@@ -98,7 +98,7 @@ export function NotificationToast({
                 {notification.title}
               </h4>
               {notification.priority === 'urgent' && (
-                <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">
+                <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded-full">
                   Urgent
                 </span>
               )}

@@ -189,13 +189,13 @@ export default function EditHarvestPage() {
     return (
       <DashboardLayout pageTitle="Loading Harvest...">
         <div className="max-w-4xl mx-auto">
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardContent className="p-8 sm:p-12">
               <div className="text-center space-y-4">
                 <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-medium text-gray-900 mb-2">Loading Harvest Data</h2>
-                  <p className="text-sm sm:text-base text-gray-600">Please wait while we fetch your harvest information...</p>
+                  <h2 className="text-lg sm:text-xl font-medium text-foreground mb-2">Loading Harvest Data</h2>
+                  <p className="text-sm sm:text-base text-muted-foreground">Please wait while we fetch your harvest information...</p>
                 </div>
               </div>
             </CardContent>
@@ -209,13 +209,13 @@ export default function EditHarvestPage() {
     return (
       <DashboardLayout pageTitle="Error">
         <div className="max-w-4xl mx-auto">
-          <Card className="border border-red-200 bg-red-50">
+          <Card className="border border-destructive/10 bg-destructive/10">
             <CardContent className="p-8 sm:p-12">
               <div className="text-center space-y-6">
-                <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
+                <AlertCircle className="h-16 w-16 text-destructive mx-auto" />
                 <div>
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Error Loading Harvest</h2>
-                  <p className="text-sm sm:text-base text-gray-600 mb-6">{error}</p>
+                  <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">Error Loading Harvest</h2>
+                  <p className="text-sm sm:text-base text-muted-foreground mb-6">{error}</p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <Button onClick={() => window.location.reload()}>
                       Try Again
@@ -249,16 +249,16 @@ export default function EditHarvestPage() {
 
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">Edit Harvest</h1>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Edit Harvest</h1>
               <div className="flex flex-wrap gap-2">
                 {hasUnsavedChanges && (
-                  <Badge variant="secondary" className="bg-amber-50 text-amber-800 border-amber-100 text-xs">
+                  <Badge variant="secondary" className="bg-warning/10 text-warning border-warning/10 text-xs">
                     <AlertCircle className="h-3 w-3 mr-1" />
                     Unsaved Changes
                   </Badge>
                 )}
                 {lastSaved && !hasUnsavedChanges && (
-                  <Badge variant="outline" className="text-emerald-700 border-emerald-200 text-xs">
+                  <Badge variant="outline" className="text-success border-success/10 text-xs">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     Saved {format(lastSaved, 'HH:mm')}
                   </Badge>
@@ -272,7 +272,7 @@ export default function EditHarvestPage() {
         </div>
 
         {/* Harvest Form */}
-        <Card className="border border-slate-100 shadow-sm bg-white overflow-hidden rounded-2xl">
+        <Card className="border border-border shadow-sm bg-white overflow-hidden rounded-2xl">
           <CardContent className="p-4 sm:p-6 lg:p-8">
             <HarvestForm
               initialData={initialData}

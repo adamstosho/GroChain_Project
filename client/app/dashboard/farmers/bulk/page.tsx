@@ -319,17 +319,17 @@ Mike Johnson,mike@farmer.com,+2348012345680,Kano`
                         </div>
 
                         <div className="grid grid-cols-3 gap-2 text-sm">
-                          <div className="text-center p-2 sm:p-3 bg-green-50 rounded">
-                            <div className="font-bold text-green-600 text-sm sm:text-base">{validationResult.valid.length}</div>
-                            <div className="text-green-600 text-xs sm:text-sm">Valid</div>
+                          <div className="text-center p-2 sm:p-3 bg-success/10 rounded">
+                            <div className="font-bold text-success text-sm sm:text-base">{validationResult.valid.length}</div>
+                            <div className="text-success text-xs sm:text-sm">Valid</div>
                           </div>
-                          <div className="text-center p-2 sm:p-3 bg-red-50 rounded">
-                            <div className="font-bold text-red-600 text-sm sm:text-base">{validationResult.errors.length}</div>
-                            <div className="text-red-600 text-xs sm:text-sm">Errors</div>
+                          <div className="text-center p-2 sm:p-3 bg-destructive/10 rounded">
+                            <div className="font-bold text-destructive text-sm sm:text-base">{validationResult.errors.length}</div>
+                            <div className="text-destructive text-xs sm:text-sm">Errors</div>
                           </div>
-                          <div className="text-center p-2 sm:p-3 bg-blue-50 rounded">
-                            <div className="font-bold text-blue-600 text-sm sm:text-base">{validationResult.totalRows}</div>
-                            <div className="text-blue-600 text-xs sm:text-sm">Total</div>
+                          <div className="text-center p-2 sm:p-3 bg-primary/10 rounded">
+                            <div className="font-bold text-primary text-sm sm:text-base">{validationResult.totalRows}</div>
+                            <div className="text-primary text-xs sm:text-sm">Total</div>
                           </div>
                         </div>
 
@@ -416,7 +416,7 @@ Mike Johnson,mike@farmer.com,+2348012345680,Kano`
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-                    <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 flex-shrink-0" />
+                    <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive flex-shrink-0" />
                     <span className="truncate">Validation Errors</span>
                   </CardTitle>
                   <CardDescription className="text-sm sm:text-base">
@@ -427,8 +427,8 @@ Mike Johnson,mike@farmer.com,+2348012345680,Kano`
                   <div className="space-y-2 max-h-40 sm:max-h-60 overflow-y-auto">
                     {validationResult.errors.map((error, index) => (
                       <div key={index} className="flex items-start space-x-2 text-xs sm:text-sm">
-                        <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                        <span className="text-red-700">{error}</span>
+                        <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive mt-0.5 flex-shrink-0" />
+                        <span className="text-destructive">{error}</span>
                       </div>
                     ))}
                   </div>
@@ -441,7 +441,7 @@ Mike Johnson,mike@farmer.com,+2348012345680,Kano`
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-                    <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 flex-shrink-0" />
+                    <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-success flex-shrink-0" />
                     <span className="truncate">Data Preview</span>
                   </CardTitle>
                   <CardDescription className="text-sm sm:text-base">

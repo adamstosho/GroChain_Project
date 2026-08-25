@@ -27,10 +27,10 @@ router.get('/forecast/:location', (req, res) => {
 })
 
 // Alias: agricultural (docs)
-router.get('/agricultural', weatherController.getAgriculturalInsights)
+router.get('/agricultural', (req, res) => weatherController.getAgriculturalInsights(req, res))
 
 // Get agricultural weather insights
-router.get('/agricultural-insights', weatherController.getAgriculturalInsights)
+router.get('/agricultural-insights', (req, res) => weatherController.getAgriculturalInsights(req, res))
 
 // Get weather alerts
 router.get('/alerts', weatherController.getWeatherAlerts)

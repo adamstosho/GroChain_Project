@@ -216,10 +216,6 @@ const connectDB = async () => {
       
       console.log('✅ MongoDB connected successfully');
       console.log('Connection state:', mongoose.connection.readyState);
-      // Don't log sensitive connection string in production
-      if (process.env.NODE_ENV !== 'production') {
-        console.log("MONGODB_URI:", process.env.MONGODB_URI);
-      }
     } catch (connectErr) {
       console.error('❌ MongoDB connection failed:', connectErr && connectErr.message ? connectErr.message : connectErr);
       // Print error stack for debugging

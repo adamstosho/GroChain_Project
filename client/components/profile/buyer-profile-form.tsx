@@ -1,28 +1,27 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { AvatarUpload } from "@/components/ui/avatar-upload"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import { useAuthStore } from "@/lib/auth"
+import { ProfileHero } from "@/components/profile/profile-hero"
+import { ProfileSectionCard } from "@/components/profile/profile-section-card"
+import { ProfileField } from "@/components/profile/profile-field"
+import { ProfileStat, ProfileStatGrid } from "@/components/profile/profile-stat"
 import {
   User,
   MapPin,
-  Save,
-  Edit,
-  Camera,
   AlertCircle,
   Banknote,
   ShoppingCart,
-  Activity,
-  Building
+  Heart,
+  Building,
+  ShoppingBag,
+  SlidersHorizontal,
+  Mail,
 } from "lucide-react"
 
 interface BuyerProfile {
@@ -48,7 +47,7 @@ interface BuyerProfile {
     totalOrders: number
     totalSpent: number
     favoriteProducts: number
-    lastActive: Date
+    lastActive: string
   }
   preferences: {
     cropTypes: string[]
@@ -59,8 +58,50 @@ interface BuyerProfile {
     qualityPreferences: string[]
     organicPreference: boolean
   }
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
+  updatedAt: string
+}
+
+const CROP_OPTIONS = ['Maize', 'Rice', 'Cassava', 'Yam', 'Tomato', 'Pepper', 'Onion', 'Potato', 'Sorghum', 'Millet']
+const QUALITY_OPTIONS = ['Premium', 'Standard', 'Organic', 'Fair Trade', 'Local']
+
+function ProfileSkeleton() {
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="h-24 sm:h-32 animate-pulse bg-muted" />
+        <div className="px-4 pb-6 sm:px-8">
+          <div className="-mt-12 flex flex-col items-center gap-3 sm:-mt-14 sm:flex-row sm:items-end sm:gap-5">
+            <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-background bg-muted animate-pulse" />
+            <div className="space-y-2 pb-1 text-center sm:text-left">
+              <div className="h-6 w-40 sm:w-56 animate-pulse rounded bg-muted" />
+              <div className="h-4 w-28 sm:w-36 animate-pulse rounded bg-muted" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-16 sm:h-20 animate-pulse rounded-xl border border-border/60 bg-muted/40" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {[...Array(2)].map((_, i) => (
+          <Card key={i}>
+            <CardContent className="space-y-4 p-4 sm:p-6">
+              <div className="h-5 w-40 animate-pulse rounded bg-muted" />
+              {[...Array(3)].map((_, j) => (
+                <div key={j} className="space-y-2">
+                  <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+                  <div className="h-9 animate-pulse rounded bg-muted" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export function BuyerProfileForm() {
@@ -82,7 +123,7 @@ export function BuyerProfileForm() {
 
       if (response.status === 'success' && response.data) {
         const profileData = response.data as any
-        
+
         const buyerProfile: BuyerProfile = {
           _id: profileData._id,
           name: profileData.name,
@@ -106,7 +147,7 @@ export function BuyerProfileForm() {
             totalOrders: profileData.stats?.totalOrders || 0,
             totalSpent: profileData.stats?.totalSpent || 0,
             favoriteProducts: profileData.stats?.favoriteProducts || 0,
-            lastActive: profileData.stats?.lastActive || new Date()
+            lastActive: profileData.stats?.lastActive || new Date().toISOString()
           },
           preferences: {
             cropTypes: profileData.preferences?.cropTypes || [],
@@ -154,7 +195,7 @@ export function BuyerProfileForm() {
 
       if (!profile.phone?.trim()) {
         toast({
-          title: "Validation Error", 
+          title: "Validation Error",
           description: "Phone number is required",
           variant: "destructive"
         })
@@ -190,19 +231,6 @@ export function BuyerProfileForm() {
           profile: (response.data as any).profile
         })
 
-        // Also update localStorage to ensure persistence
-        const currentUser = JSON.parse(localStorage.getItem('zustand-auth-store') || '{}')
-        if (currentUser.state?.user) {
-          currentUser.state.user = {
-            ...currentUser.state.user,
-            name: (response.data as any).name,
-            email: (response.data as any).email,
-            phone: (response.data as any).phone,
-            profile: (response.data as any).profile
-          }
-          localStorage.setItem('zustand-auth-store', JSON.stringify(currentUser))
-        }
-
         toast({
           title: "Profile updated",
           description: "Your profile has been updated successfully",
@@ -214,10 +242,10 @@ export function BuyerProfileForm() {
       }
     } catch (error: any) {
       console.error('Error updating profile:', error)
-      
+
       // Handle different types of errors
       let errorMessage = "Failed to save profile. Please try again."
-      
+
       if (error.message?.includes('network') || error.message?.includes('fetch')) {
         errorMessage = "Network error. Please check your connection and try again."
       } else if (error.message?.includes('validation')) {
@@ -225,7 +253,7 @@ export function BuyerProfileForm() {
       } else if (error.message?.includes('unauthorized')) {
         errorMessage = "Session expired. Please log in again."
       }
-      
+
       toast({
         title: "Error saving profile",
         description: errorMessage,
@@ -238,493 +266,174 @@ export function BuyerProfileForm() {
 
   const handleAvatarUpdate = (newAvatarUrl: string) => {
     if (profile) {
-      // Update local profile state
       setProfile({ ...profile, avatar: newAvatarUrl })
-
-      // Update auth store to sync avatar across the app
       updateUser({
         profile: {
           ...user?.profile,
           avatar: newAvatarUrl
         }
       })
-
-      // Also update localStorage to ensure persistence across page refreshes
-      const currentUser = JSON.parse(localStorage.getItem('zustand-auth-store') || '{}')
-      if (currentUser.state?.user) {
-        currentUser.state.user.profile = {
-          ...currentUser.state.user.profile,
-          avatar: newAvatarUrl
-        }
-        localStorage.setItem('zustand-auth-store', JSON.stringify(currentUser))
-      }
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
-        {/* Profile Header Skeleton */}
-        <Card>
-          <CardHeader className="pb-4">
-            <div className="flex flex-col space-y-4 sm:space-y-6 lg:flex-row lg:items-center lg:space-y-0">
-              <div className="h-16 w-16 sm:h-20 sm:w-20 bg-muted rounded-full animate-pulse" />
-              <div className="flex-1 space-y-2">
-                <div className="h-6 sm:h-8 bg-muted rounded w-48 sm:w-64 animate-pulse" />
-                <div className="h-4 sm:h-5 bg-muted rounded w-32 sm:w-40 animate-pulse" />
-                <div className="flex flex-wrap gap-2">
-                  <div className="h-5 bg-muted rounded w-16 animate-pulse" />
-                  <div className="h-5 bg-muted rounded w-20 animate-pulse" />
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-                <div className="h-9 sm:h-10 bg-muted rounded w-full sm:w-20 animate-pulse" />
-                <div className="h-9 sm:h-10 bg-muted rounded w-full sm:w-16 animate-pulse" />
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
-
-        {/* Stats Cards Skeleton */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-2 sm:p-3 md:p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="h-4 w-4 sm:h-5 sm:w-5 bg-muted rounded animate-pulse" />
-                  <div className="space-y-1 flex-1">
-                    <div className="h-3 bg-muted rounded w-16 sm:w-20 animate-pulse" />
-                    <div className="h-6 sm:h-8 bg-muted rounded w-12 sm:w-16 animate-pulse" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Form Skeleton */}
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="h-5 sm:h-6 bg-muted rounded w-40 sm:w-48 animate-pulse" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <div className="h-4 bg-muted rounded w-24 sm:w-32 animate-pulse" />
-                  <div className="h-9 sm:h-10 bg-muted rounded animate-pulse" />
-                </div>
-              ))}
-            </div>
-            <div className="space-y-2">
-              <div className="h-4 bg-muted rounded w-16 animate-pulse" />
-              <div className="h-20 bg-muted rounded animate-pulse" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  if (isLoading) return <ProfileSkeleton />
 
   if (!profile) {
     return (
-      <div className="text-center py-8">
-        <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium mb-2">Profile not found</h3>
-        <p className="text-muted-foreground">Unable to load your profile information.</p>
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-16 text-center">
+        <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold mb-1">Profile not found</h3>
+        <p className="text-muted-foreground mb-4 max-w-sm text-sm">
+          We couldn't load your profile information. Check your connection and try again.
+        </p>
+        <Button variant="outline" onClick={fetchProfile}>Try Again</Button>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
-      {/* Profile Header */}
-      <Card>
-        <CardHeader className="pb-4">
-          <div className="flex flex-col space-y-4 sm:space-y-6 lg:flex-row lg:items-center lg:space-y-0">
-            <AvatarUpload
-              currentAvatar={profile.avatar}
-              userName={profile.name}
-              onAvatarUpdate={handleAvatarUpdate}
-              disabled={!isEditing}
-              size="lg"
-            />
-            <div className="flex-1 space-y-2">
-              <CardTitle className="text-xl sm:text-2xl lg:text-3xl">{profile.name}</CardTitle>
-              <CardDescription className="text-sm sm:text-base lg:text-lg">
-                Buyer {profile.company && `• ${profile.company}`}
-              </CardDescription>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={profile.status === 'active' ? 'default' : 'secondary'} className="text-xs">
-                  {profile.status}
-                </Badge>
-                <Badge variant="outline" className="text-xs">
-                  Buyer since {profile.createdAt ? new Date(profile.createdAt).getFullYear() : 'N/A'}
-                </Badge>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(!isEditing)}
-                className="h-9 sm:h-10 text-xs sm:text-sm"
-              >
-                <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                {isEditing ? 'Cancel' : 'Edit'}
-              </Button>
-              {isEditing && (
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="h-9 sm:h-10 text-xs sm:text-sm"
-                >
-                  <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  {isSaving ? 'Saving...' : 'Save'}
-                </Button>
-              )}
-            </div>
+    <div className="space-y-4 sm:space-y-6">
+      <ProfileHero
+        name={profile.name}
+        subtitle={<>Buyer{profile.company && ` • ${profile.company}`}</>}
+        avatar={profile.avatar}
+        isEditing={isEditing}
+        isSaving={isSaving}
+        onToggleEdit={() => setIsEditing(!isEditing)}
+        onSave={handleSave}
+        onAvatarUpdate={handleAvatarUpdate}
+        badges={
+          <>
+            <Badge variant={profile.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+              {profile.status}
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              Buyer since {profile.createdAt ? new Date(profile.createdAt).getFullYear() : 'N/A'}
+            </Badge>
+          </>
+        }
+        stats={
+          <ProfileStatGrid>
+            <ProfileStat icon={ShoppingCart} label="Orders" value={profile.stats?.totalOrders || 0} />
+            <ProfileStat icon={Banknote} label="Total Spent" value={`₦${(profile.stats?.totalSpent || 0).toLocaleString()}`} colorClassName="bg-success/10 text-success" />
+            <ProfileStat icon={Heart} label="Favorites" value={profile.stats?.favoriteProducts || 0} colorClassName="bg-accent/10 text-accent" />
+            <ProfileStat icon={Building} label="Last Active" value={profile.stats?.lastActive ? new Date(profile.stats.lastActive).toLocaleDateString() : 'N/A'} colorClassName="bg-warning/10 text-warning" />
+          </ProfileStatGrid>
+        }
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <ProfileSectionCard icon={User} title="Personal Information" description="Your name and business details">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+            <ProfileField label="Full Name" value={profile.name || ''} isEditing={isEditing} required
+              onChange={(v) => setProfile({ ...profile, name: v })} />
+            <ProfileField label="Email Address" value={profile.email || ''} isEditing={isEditing} locked icon={Mail} />
+            <ProfileField label="Phone Number" value={profile.phone || ''} isEditing={isEditing} required
+              onChange={(v) => setProfile({ ...profile, phone: v })} />
+            <ProfileField label="Company Name" value={profile.company || ''} isEditing={isEditing} placeholder="Your company name"
+              onChange={(v) => setProfile({ ...profile, company: v })} />
+            <ProfileField label="Business Type" value={profile.businessType || ''} isEditing={isEditing} placeholder="e.g. Restaurant, Retail, Export"
+              onChange={(v) => setProfile({ ...profile, businessType: v })} />
+            <ProfileField label="Website" value={profile.website || ''} isEditing={isEditing} placeholder="https://example.com"
+              onChange={(v) => setProfile({ ...profile, website: v })} />
           </div>
-        </CardHeader>
-      </Card>
+          <ProfileField label="Bio" value={profile.bio || ''} isEditing={isEditing} type="textarea"
+            placeholder="Tell us about your business..." emptyText="No bio added yet"
+            onChange={(v) => setProfile({ ...profile, bio: v })} />
+        </ProfileSectionCard>
 
-      {/* Buyer Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <Card>
-          <CardContent className="p-2 sm:p-3 md:p-4">
-            <div className="flex items-center space-x-2">
-              <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm text-muted-foreground truncate">Total Orders</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold">{profile.stats?.totalOrders || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-2 sm:p-3 md:p-4">
-            <div className="flex items-center space-x-2">
-              <Banknote className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm text-muted-foreground truncate">Total Spent</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold">₦{(profile.stats?.totalSpent || 0).toLocaleString()}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-2 sm:p-3 md:p-4">
-            <div className="flex items-center space-x-2">
-              <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm text-muted-foreground truncate">Favorites</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold">{profile.stats?.favoriteProducts || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-2 sm:p-3 md:p-4">
-            <div className="flex items-center space-x-2">
-              <Building className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm text-muted-foreground truncate">Last Active</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold">
-                  {profile.stats?.lastActive ? new Date(profile.stats.lastActive).toLocaleDateString() : 'N/A'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ProfileSectionCard icon={MapPin} title="Address" description="Where we can reach you" iconClassName="bg-secondary/15 text-secondary-foreground">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+            <ProfileField label="Street Address" value={profile.address?.street || ''} isEditing={isEditing} className="sm:col-span-2"
+              onChange={(v) => setProfile({ ...profile, address: { ...profile.address, street: v } })} />
+            <ProfileField label="City" value={profile.address?.city || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, address: { ...profile.address, city: v } })} />
+            <ProfileField label="State" value={profile.address?.state || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, address: { ...profile.address, state: v } })} />
+            <ProfileField label="Postal Code" value={profile.address?.postalCode || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, address: { ...profile.address, postalCode: v } })} />
+            <ProfileField label="Country" value={profile.address?.country || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, address: { ...profile.address, country: v } })} />
+          </div>
+        </ProfileSectionCard>
       </div>
 
-      {/* Personal Information */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center text-base sm:text-lg">
-            <User className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-            Personal Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
-                <Input
-                  id="name"
-                  value={profile.name || ''}
-                  onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                  disabled={!isEditing}
-                  className="h-9 sm:h-10 text-sm"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={profile.email || ''}
-                  disabled // Email should not be editable
-                  className="h-9 sm:h-10 text-sm bg-muted"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
-                <Input
-                  id="phone"
-                  value={profile.phone || ''}
-                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                  disabled={!isEditing}
-                  className="h-9 sm:h-10 text-sm"
-                />
-              </div>
-            <div className="space-y-2">
-              <Label htmlFor="company" className="text-sm font-medium">Company Name</Label>
-              <Input
-                id="company"
-                value={profile.company || ''}
-                onChange={(e) => setProfile({ ...profile, company: e.target.value })}
-                disabled={!isEditing}
-                placeholder="Your company name"
-                className="h-9 sm:h-10 text-sm"
-              />
+      <ProfileSectionCard icon={ShoppingBag} title="Buying Preferences" description="Helps sellers surface produce you'll actually want" iconClassName="bg-accent/15 text-accent">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preferred Crop Types</p>
+          {isEditing ? (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {CROP_OPTIONS.map((crop) => {
+                const active = (profile.preferences?.cropTypes || []).includes(crop)
+                return (
+                  <Badge
+                    key={crop}
+                    variant={active ? "default" : "outline"}
+                    className="cursor-pointer select-none px-3 py-1.5 text-xs font-medium"
+                    onClick={() => {
+                      const current = profile.preferences?.cropTypes || []
+                      const newCrops = active ? current.filter(c => c !== crop) : [...current, crop]
+                      setProfile({ ...profile, preferences: { ...(profile.preferences || {}) as any, cropTypes: newCrops } })
+                    }}
+                  >
+                    {crop}
+                  </Badge>
+                )
+              })}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="businessType" className="text-sm font-medium">Business Type</Label>
-              <Input
-                id="businessType"
-                value={profile.businessType || ''}
-                onChange={(e) => setProfile({ ...profile, businessType: e.target.value })}
-                disabled={!isEditing}
-                placeholder="e.g. Restaurant, Retail, Export"
-                className="h-9 sm:h-10 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="website" className="text-sm font-medium">Website</Label>
-              <Input
-                id="website"
-                value={profile.website || ''}
-                onChange={(e) => setProfile({ ...profile, website: e.target.value })}
-                disabled={!isEditing}
-                placeholder="https://example.com"
-                className="h-9 sm:h-10 text-sm"
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="bio" className="text-sm font-medium">Bio</Label>
-            <Textarea
-              id="bio"
-              value={profile.bio || ''}
-              onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-              disabled={!isEditing}
-              placeholder="Tell us about your business..."
-              rows={3}
-              className="text-sm"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Address Information */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center text-base sm:text-lg">
-            <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-            Address Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="street" className="text-sm font-medium">Street Address</Label>
-              <Input
-                id="street"
-                value={(profile.address?.street) || ''}
-                onChange={(e) => setProfile({
-                  ...profile,
-                  address: { ...(profile.address || {}), street: e.target.value }
-                })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="city" className="text-sm font-medium">City</Label>
-              <Input
-                id="city"
-                value={(profile.address?.city) || ''}
-                onChange={(e) => setProfile({
-                  ...profile,
-                  address: { ...(profile.address || {}), city: e.target.value }
-                })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="state" className="text-sm font-medium">State</Label>
-              <Input
-                id="state"
-                value={(profile.address?.state) || ''}
-                onChange={(e) => setProfile({
-                  ...profile,
-                  address: { ...(profile.address || {}), state: e.target.value }
-                })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="postalCode" className="text-sm font-medium">Postal Code</Label>
-              <Input
-                id="postalCode"
-                value={(profile.address?.postalCode) || ''}
-                onChange={(e) => setProfile({
-                  ...profile,
-                  address: { ...(profile.address || {}), postalCode: e.target.value }
-                })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10 text-sm"
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="country" className="text-sm font-medium">Country</Label>
-              <Input
-                id="country"
-                value={(profile.address?.country) || ''}
-                onChange={(e) => setProfile({
-                  ...profile,
-                  address: { ...(profile.address || {}), country: e.target.value }
-                })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10 text-sm"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Buying Preferences */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center text-base sm:text-lg">
-            <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-            Buying Preferences
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Preferred Crop Types</Label>
-            <div className="flex flex-wrap gap-2">
-              {['Maize', 'Rice', 'Cassava', 'Yam', 'Tomato', 'Pepper', 'Onion', 'Potato', 'Sorghum', 'Millet'].map((crop) => (
-                <Button
-                  key={crop}
-                  variant={((profile.preferences?.cropTypes) || []).includes(crop) ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    if (!isEditing) return
-                    const currentCrops = profile.preferences?.cropTypes || []
-                    const newCrops = currentCrops.includes(crop)
-                      ? currentCrops.filter(c => c !== crop)
-                      : [...currentCrops, crop]
-                    setProfile({
-                      ...profile,
-                      preferences: {
-                        ...(profile.preferences || {}),
-                        cropTypes: newCrops
-                      }
-                    })
-                  }}
-                  disabled={!isEditing}
-                  className="h-8 text-xs sm:text-sm"
-                >
-                  {crop}
-                </Button>
+          ) : (profile.preferences?.cropTypes || []).length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {profile.preferences.cropTypes.map((c) => (
+                <Badge key={c} variant="secondary" className="font-normal">{c}</Badge>
               ))}
             </div>
-          </div>
+          ) : (
+            <p className="text-sm italic text-muted-foreground">No crop preferences set</p>
+          )}
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="priceMin" className="text-sm font-medium">Minimum Price Range (₦)</Label>
-              <Input
-                id="priceMin"
-                type="number"
-                value={(profile.preferences?.priceRange?.min) || 0}
-                onChange={(e) => setProfile({
-                  ...profile,
-                  preferences: {
-                    ...(profile.preferences || {}),
-                    priceRange: {
-                      ...(profile.preferences?.priceRange || {}),
-                      min: parseInt(e.target.value) || 0
-                    }
-                  }
-                })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="priceMax" className="text-sm font-medium">Maximum Price Range (₦)</Label>
-              <Input
-                id="priceMax"
-                type="number"
-                value={(profile.preferences?.priceRange?.max) || 100000}
-                onChange={(e) => setProfile({
-                  ...profile,
-                  preferences: {
-                    ...(profile.preferences || {}),
-                    priceRange: {
-                      ...(profile.preferences?.priceRange || {}),
-                      max: parseInt(e.target.value) || 100000
-                    }
-                  }
-                })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10 text-sm"
-              />
-            </div>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+          <ProfileField label="Minimum Price Range (₦)" value={String(profile.preferences?.priceRange?.min ?? 0)} isEditing={isEditing} type="number"
+            onChange={(v) => setProfile({ ...profile, preferences: { ...(profile.preferences || {}) as any, priceRange: { ...(profile.preferences?.priceRange || {}), min: parseInt(v) || 0 } } })} />
+          <ProfileField label="Maximum Price Range (₦)" value={String(profile.preferences?.priceRange?.max ?? 100000)} isEditing={isEditing} type="number"
+            onChange={(v) => setProfile({ ...profile, preferences: { ...(profile.preferences || {}) as any, priceRange: { ...(profile.preferences?.priceRange || {}), max: parseInt(v) || 100000 } } })} />
+        </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Quality Preferences</Label>
-            <div className="flex flex-wrap gap-2">
-              {['Premium', 'Standard', 'Organic', 'Fair Trade', 'Local'].map((quality) => (
-                <Button
-                  key={quality}
-                  variant={((profile.preferences?.qualityPreferences) || []).includes(quality) ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    if (!isEditing) return
-                    const currentQualities = profile.preferences?.qualityPreferences || []
-                    const newQualities = currentQualities.includes(quality)
-                      ? currentQualities.filter(q => q !== quality)
-                      : [...currentQualities, quality]
-                    setProfile({
-                      ...profile,
-                      preferences: {
-                        ...(profile.preferences || {}),
-                        qualityPreferences: newQualities
-                      }
-                    })
-                  }}
-                  disabled={!isEditing}
-                  className="h-8 text-xs sm:text-sm"
-                >
-                  {quality}
-                </Button>
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+            <SlidersHorizontal className="h-3 w-3" /> Quality Preferences
+          </p>
+          {isEditing ? (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {QUALITY_OPTIONS.map((quality) => {
+                const active = (profile.preferences?.qualityPreferences || []).includes(quality)
+                return (
+                  <Badge
+                    key={quality}
+                    variant={active ? "default" : "outline"}
+                    className="cursor-pointer select-none px-3 py-1.5 text-xs font-medium"
+                    onClick={() => {
+                      const current = profile.preferences?.qualityPreferences || []
+                      const newQualities = active ? current.filter(q => q !== quality) : [...current, quality]
+                      setProfile({ ...profile, preferences: { ...(profile.preferences || {}) as any, qualityPreferences: newQualities } })
+                    }}
+                  >
+                    {quality}
+                  </Badge>
+                )
+              })}
+            </div>
+          ) : (profile.preferences?.qualityPreferences || []).length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {profile.preferences.qualityPreferences.map((q) => (
+                <Badge key={q} variant="secondary" className="font-normal">{q}</Badge>
               ))}
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          ) : (
+            <p className="text-sm italic text-muted-foreground">No quality preferences set</p>
+          )}
+        </div>
+      </ProfileSectionCard>
     </div>
   )
 }

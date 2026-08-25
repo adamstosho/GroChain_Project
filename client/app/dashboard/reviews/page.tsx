@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useAuthStore } from "@/lib/auth"
@@ -142,10 +143,10 @@ export default function ReviewsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved': return 'bg-green-100 text-green-800'
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'rejected': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'approved': return 'bg-success/10 text-success'
+      case 'pending': return 'bg-warning/10 text-warning'
+      case 'rejected': return 'bg-destructive/10 text-destructive'
+      default: return 'bg-muted text-foreground'
     }
   }
 
@@ -183,22 +184,19 @@ export default function ReviewsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Reviews & Ratings</h1>
-            <p className="text-muted-foreground">
-              Manage customer reviews and respond to feedback
-            </p>
-          </div>
-        </div>
+        <DashboardPageHeader
+          badge="Feedback Active"
+          title="Reviews"
+          titleHighlight="& Ratings"
+          description="Manage customer reviews and respond to feedback."
+        />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-blue-500" />
+                <MessageCircle className="h-5 w-5 text-primary" />
                 <div>
                   <p className="text-sm text-muted-foreground">Total Reviews</p>
                   <p className="text-2xl font-bold">{stats.totalReviews}</p>
@@ -210,7 +208,7 @@ export default function ReviewsPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Star className="h-5 w-5 text-yellow-500" />
+                <Star className="h-5 w-5 text-warning" />
                 <div>
                   <p className="text-sm text-muted-foreground">Average Rating</p>
                   <p className="text-2xl font-bold">{stats.averageRating.toFixed(1)}</p>
@@ -222,7 +220,7 @@ export default function ReviewsPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-yellow-500" />
+                <Clock className="h-5 w-5 text-warning" />
                 <div>
                   <p className="text-sm text-muted-foreground">Pending</p>
                   <p className="text-2xl font-bold">{stats.pendingReviews}</p>
@@ -234,7 +232,7 @@ export default function ReviewsPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
+                <CheckCircle className="h-5 w-5 text-success" />
                 <div>
                   <p className="text-sm text-muted-foreground">Approved</p>
                   <p className="text-2xl font-bold">{stats.approvedReviews}</p>
@@ -302,8 +300,8 @@ export default function ReviewsPage() {
                                   className={cn(
                                     "h-4 w-4",
                                     star <= review.rating
-                                      ? "fill-yellow-400 text-yellow-400"
-                                      : "text-gray-300"
+                                      ? "fill-warning text-warning"
+                                      : "text-muted-foreground"
                                   )}
                                 />
                               ))}
@@ -325,7 +323,7 @@ export default function ReviewsPage() {
                       </div>
 
                       {review.comment && (
-                        <p className="text-gray-700">{review.comment}</p>
+                        <p className="text-foreground">{review.comment}</p>
                       )}
 
                       {/* Review Images */}
@@ -344,14 +342,14 @@ export default function ReviewsPage() {
 
                       {/* Farmer Response */}
                       {review.response ? (
-                        <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="p-3 bg-muted rounded-lg">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium text-gray-700">Your Response:</span>
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm font-medium text-foreground">Your Response:</span>
+                            <span className="text-sm text-muted-foreground">
                               {formatDate(review.response.respondedAt)}
                             </span>
                           </div>
-                          <p className="text-gray-600 text-sm">{review.response.comment}</p>
+                          <p className="text-muted-foreground text-sm">{review.response.comment}</p>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
@@ -373,7 +371,7 @@ export default function ReviewsPage() {
           ) : (
             <Card>
               <CardContent className="p-6 text-center">
-                <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No Reviews Found</h3>
                 <p className="text-muted-foreground">
                   {searchTerm || statusFilter !== 'all' 
@@ -393,7 +391,7 @@ export default function ReviewsPage() {
             </DialogHeader>
             {selectedReview && (
               <div className="space-y-4">
-                <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="p-3 bg-muted rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="font-medium">{selectedReview.buyer.name}</span>
                     <div className="flex items-center gap-1">
@@ -403,14 +401,14 @@ export default function ReviewsPage() {
                           className={cn(
                             "h-4 w-4",
                             star <= selectedReview.rating
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "text-gray-300"
+                              ? "fill-warning text-warning"
+                              : "text-muted-foreground"
                           )}
                         />
                       ))}
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600">{selectedReview.comment}</p>
+                  <p className="text-sm text-muted-foreground">{selectedReview.comment}</p>
                 </div>
                 
                 <div className="space-y-2">

@@ -266,25 +266,25 @@ export function BuyerAnalytics() {
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Orders</CardTitle>
-            <div className="p-1 sm:p-1.5 lg:p-2 bg-blue-50 rounded-full flex-shrink-0">
-              <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+            <div className="p-1 sm:p-1.5 lg:p-2 bg-primary/10 rounded-full flex-shrink-0">
+              <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
             </div>
           </CardHeader>
           <CardContent className="pb-2 sm:pb-3 lg:pb-6">
             <div className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold">{analyticsData?.totalOrders || 0}</div>
             <div className="flex items-center text-xs text-muted-foreground mt-0.5 sm:mt-1">
-              <CheckCircle className="h-3 w-3 mr-1 text-green-600 flex-shrink-0" />
+              <CheckCircle className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">{analyticsData?.completedOrders || 0} completed</span>
             </div>
           </CardContent>
-          <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-blue-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-primary/10 rounded-bl-full opacity-20" />
         </Card>
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Spent</CardTitle>
-            <div className="p-1 sm:p-1.5 lg:p-2 bg-green-50 rounded-full flex-shrink-0">
-              <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+            <div className="p-1 sm:p-1.5 lg:p-2 bg-success/10 rounded-full flex-shrink-0">
+              <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-success" />
             </div>
           </CardHeader>
           <CardContent className="pb-2 sm:pb-3 lg:pb-6">
@@ -292,35 +292,35 @@ export function BuyerAnalytics() {
               {formatCurrency(analyticsData?.totalSpent || 0)}
             </div>
             <div className="flex items-center text-xs text-muted-foreground mt-0.5 sm:mt-1">
-              <TrendingUp className="h-3 w-3 mr-1 text-green-600 flex-shrink-0" />
+              <TrendingUp className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">Avg: {formatCurrency(analyticsData?.averageOrderValue || 0)}</span>
             </div>
           </CardContent>
-          <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-green-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-success/10 rounded-bl-full opacity-20" />
         </Card>
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Completion Rate</CardTitle>
-            <div className="p-1 sm:p-1.5 lg:p-2 bg-purple-50 rounded-full flex-shrink-0">
-              <Target className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
+            <div className="p-1 sm:p-1.5 lg:p-2 bg-accent/10 rounded-full flex-shrink-0">
+              <Target className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />
             </div>
           </CardHeader>
           <CardContent className="pb-2 sm:pb-3 lg:pb-6">
             <div className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold">{analyticsData?.completionRate || 0}%</div>
             <div className="flex items-center text-xs text-muted-foreground mt-0.5 sm:mt-1">
-              <Activity className="h-3 w-3 mr-1 text-blue-600 flex-shrink-0" />
+              <Activity className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
               <span className="truncate">Order success rate</span>
             </div>
           </CardContent>
-          <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-purple-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-accent/10 rounded-bl-full opacity-20" />
         </Card>
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Active Orders</CardTitle>
-            <div className="p-1 sm:p-1.5 lg:p-2 bg-orange-50 rounded-full flex-shrink-0">
-              <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
+            <div className="p-1 sm:p-1.5 lg:p-2 bg-warning/10 rounded-full flex-shrink-0">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-warning" />
             </div>
           </CardHeader>
           <CardContent className="pb-2 sm:pb-3 lg:pb-6">
@@ -328,11 +328,11 @@ export function BuyerAnalytics() {
               {(analyticsData?.totalOrders || 0) - (analyticsData?.completedOrders || 0)}
             </div>
             <div className="flex items-center text-xs text-muted-foreground mt-0.5 sm:mt-1">
-              <Package className="h-3 w-3 mr-1 text-blue-600 flex-shrink-0" />
+              <Package className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
               <span className="truncate">Pending completion</span>
             </div>
           </CardContent>
-          <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-orange-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-warning/10 rounded-bl-full opacity-20" />
         </Card>
       </div>
 
@@ -477,7 +477,7 @@ export function BuyerAnalytics() {
                   )
                   return (
                     <>
-                      <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">{bestMonth.month}</div>
+                      <div className="text-lg sm:text-xl lg:text-2xl font-bold text-success">{bestMonth.month}</div>
                       <p className="text-xs text-muted-foreground">
                         {bestMonth.orders} orders • {formatCurrency(bestMonth.spending)} spent
                       </p>
@@ -499,7 +499,7 @@ export function BuyerAnalytics() {
                 <CardTitle className="text-xs sm:text-sm font-medium">Completion Rate</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600">
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-primary">
                   {analyticsData?.completionRate || 0}%
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -513,7 +513,7 @@ export function BuyerAnalytics() {
                 <CardTitle className="text-xs sm:text-sm font-medium">Average Order Value</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-600">
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-accent">
                   {formatCurrency(analyticsData?.averageOrderValue || 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -710,7 +710,7 @@ export function BuyerAnalytics() {
                           <td className="p-1 sm:p-2 text-xs sm:text-sm">{supplier.orders}</td>
                           <td className="p-1 sm:p-2 text-xs sm:text-sm">{formatCurrency(supplier.totalSpent)}</td>
                           <td className="p-1 sm:p-2 flex items-center gap-1 text-xs sm:text-sm">
-                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
+                            <Star className="h-3 w-3 fill-warning text-warning flex-shrink-0" />
                             {supplier.rating.toFixed(1)}
                           </td>
                           <td className="p-1 sm:p-2">

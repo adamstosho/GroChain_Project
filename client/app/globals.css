@@ -77,6 +77,7 @@
 }
 
 @theme inline {
+  --breakpoint-xs: 475px;
   --font-sans: var(--font-dm-sans);
   --font-serif: var(--font-nunito);
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
@@ -128,69 +129,11 @@
     @apply bg-background text-foreground;
   }
 
-  /* Improve button hover visibility */
-  button:hover {
-    color: hsl(var(--primary-foreground)) !important;
-  }
-
-  /* Fix outline button hover states */
-  button[data-variant="outline"]:hover {
-    background-color: hsl(var(--accent)) !important;
-    color: hsl(var(--accent-foreground)) !important;
-    border-color: hsl(var(--accent)) !important;
-  }
-
-  /* Fix ghost button hover states */
-  button[data-variant="ghost"]:hover {
-    background-color: hsl(var(--accent)) !important;
-    color: hsl(var(--accent-foreground)) !important;
-  }
-
-  /* Ensure all button text remains visible on hover */
-  .inline-flex:hover {
-    color: hsl(var(--primary-foreground)) !important;
-  }
-
-  /* Fix link hover states */
-  a:hover {
-    color: hsl(var(--primary)) !important;
-  }
-
-  /* Ensure navigation links have proper hover contrast */
-  nav a:hover {
-    color: hsl(var(--primary)) !important;
-    background-color: transparent !important;
-  }
-
-  /* Fix any text that becomes invisible on hover */
-  [class*="hover:text-"]:hover {
-    color: hsl(var(--primary)) !important;
-  }
-
-  /* Ensure all interactive elements maintain visibility */
+  /* Interactive elements get a smooth transition; hover colors are owned by
+     each component's own variant classes (see components/ui/button.tsx etc.)
+     so background and text always change together with correct contrast. */
   button, a, [role="button"] {
     transition: all 0.2s ease-in-out;
-  }
-
-  button:hover, a:hover, [role="button"]:hover {
-    opacity: 1 !important;
-  }
-
-  /* Fix specific component hover issues */
-  [class*="notification-bell"] button:hover {
-    background-color: hsl(var(--muted)) !important;
-    color: hsl(var(--foreground)) !important;
-  }
-
-  /* Ensure dropdown items remain visible */
-  [role="menuitem"]:hover {
-    background-color: hsl(var(--accent)) !important;
-    color: hsl(var(--accent-foreground)) !important;
-  }
-
-  /* Fix any remaining invisible text issues */
-  *:hover {
-    color: inherit;
   }
 
   /* Added custom scrollbar styling */

@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { HarvestAnalytics } from "@/components/agricultural/harvest-analytics"
@@ -80,30 +81,30 @@ interface HarvestData {
 function getHarvestStatusColor(status: string) {
   switch (status) {
     case "pending":
-      return "bg-amber-50 text-amber-700 border-amber-200"
+      return "bg-warning/10 text-warning border-warning/10"
     case "approved":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200"
+      return "bg-success/10 text-success border-success/10"
     case "rejected":
-      return "bg-red-50 text-red-700 border-red-200"
+      return "bg-destructive/10 text-destructive border-destructive/10"
     case "shipped":
-      return "bg-blue-50 text-blue-700 border-blue-200"
+      return "bg-primary/10 text-primary border-primary/10"
     default:
-      return "bg-gray-50 text-gray-700 border-gray-200"
+      return "bg-muted text-foreground border-border"
   }
 }
 
 function getHarvestQualityColor(quality: string) {
   switch (quality) {
     case "excellent":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200"
+      return "bg-success/10 text-success border-success/10"
     case "good":
-      return "bg-blue-50 text-blue-700 border-blue-200"
+      return "bg-primary/10 text-primary border-primary/10"
     case "fair":
-      return "bg-amber-50 text-amber-700 border-amber-200"
+      return "bg-warning/10 text-warning border-warning/10"
     case "poor":
-      return "bg-red-50 text-red-700 border-red-200"
+      return "bg-destructive/10 text-destructive border-destructive/10"
     default:
-      return "bg-gray-50 text-gray-700 border-gray-200"
+      return "bg-muted text-foreground border-border"
   }
 }
 
@@ -117,7 +118,7 @@ function FarmerHarvestListingCard({
   onDeleteRequest: (harvest: HarvestData) => void
 }) {
   return (
-    <Card className="group h-full border border-gray-200 transition-all duration-200 hover:shadow-lg">
+    <Card className="group h-full border border-border transition-all duration-200 hover:shadow-lg">
       <div className="relative">
         {harvest.images && harvest.images.length > 0 ? (
           <div className="aspect-video overflow-hidden rounded-t-lg">
@@ -130,8 +131,8 @@ function FarmerHarvestListingCard({
             />
           </div>
         ) : (
-          <div className="flex aspect-video items-center justify-center rounded-t-lg border-b bg-gradient-to-br from-gray-50 to-gray-100">
-            <Leaf className="h-8 w-8 text-gray-400 sm:h-10 sm:w-10" />
+          <div className="flex aspect-video items-center justify-center rounded-t-lg border-b bg-muted">
+            <Leaf className="h-8 w-8 text-muted-foreground sm:h-10 sm:w-10" />
           </div>
         )}
 
@@ -145,31 +146,31 @@ function FarmerHarvestListingCard({
       <CardContent className="p-3 sm:p-4">
         <div className="space-y-2 sm:space-y-3">
           <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold text-gray-900 transition-colors group-hover:text-primary sm:text-base">
+            <h3 className="truncate text-sm font-semibold text-foreground transition-colors group-hover:text-primary sm:text-base">
               {harvest.cropType}
             </h3>
             {harvest.variety && (
-              <p className="truncate text-xs text-gray-600 sm:text-sm">{harvest.variety}</p>
+              <p className="truncate text-xs text-muted-foreground sm:text-sm">{harvest.variety}</p>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <div className="space-y-1">
-              <div className="flex items-center gap-1 text-xs text-gray-500 sm:gap-2">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground sm:gap-2">
                 <Scale className="h-3 w-3 flex-shrink-0" />
                 <span className="truncate">Quantity</span>
               </div>
-              <p className="truncate text-xs font-medium text-gray-900 sm:text-sm">
+              <p className="truncate text-xs font-medium text-foreground sm:text-sm">
                 {harvest.quantity} {harvest.unit}
               </p>
             </div>
 
             <div className="space-y-1">
-              <div className="flex items-center gap-1 text-xs text-gray-500 sm:gap-2">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground sm:gap-2">
                 <Calendar className="h-3 w-3 flex-shrink-0" />
                 <span className="truncate">Date</span>
               </div>
-              <p className="truncate text-xs font-medium text-gray-900 sm:text-sm">
+              <p className="truncate text-xs font-medium text-foreground sm:text-sm">
                 {new Date(harvest.harvestDate).toLocaleDateString()}
               </p>
             </div>
@@ -177,8 +178,8 @@ function FarmerHarvestListingCard({
 
           <div className="space-y-1 sm:space-y-2">
             <div className="flex min-w-0 items-center gap-1 sm:gap-2">
-              <MapPin className="h-3 w-3 flex-shrink-0 text-gray-400" />
-              <span className="min-w-0 flex-1 truncate text-xs text-gray-600 sm:text-sm">
+              <MapPin className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+              <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground sm:text-sm">
                 {typeof harvest.location === "string"
                   ? harvest.location
                   : `${harvest.location?.city || "Unknown"}, ${harvest.location?.state || "Unknown State"}`}
@@ -191,7 +192,7 @@ function FarmerHarvestListingCard({
               </Badge>
               {harvest.organic && (
                 <Badge
-                  className="border-emerald-200 bg-emerald-50 text-xs text-emerald-700"
+                  className="border-success/10 bg-success/10 text-xs text-success"
                   variant="outline"
                 >
                   <Shield className="mr-1 h-2 w-2 sm:h-3 sm:w-3" />
@@ -201,7 +202,7 @@ function FarmerHarvestListingCard({
             </div>
 
             {harvest.price ? (
-              <div className="flex items-center gap-1 text-xs font-medium text-emerald-600 sm:gap-2 sm:text-sm">
+              <div className="flex items-center gap-1 text-xs font-medium text-success sm:gap-2 sm:text-sm">
                 <Banknote className="h-3 w-3 flex-shrink-0" />
                 <span className="truncate">₦{harvest.price.toLocaleString()}</span>
               </div>
@@ -271,7 +272,7 @@ function FarmerHarvestListingCard({
                   Export Data
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600" onClick={() => onDeleteRequest(harvest)}>
+                <DropdownMenuItem className="text-destructive" onClick={() => onDeleteRequest(harvest)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete Harvest
                 </DropdownMenuItem>
@@ -609,45 +610,41 @@ export default function FarmerHarvestsPage() {
   return (
     <DashboardLayout pageTitle="Harvest Management">
       <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-          <div className="min-w-0 flex-1 space-y-1">
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 truncate">Harvest Management</h1>
-            <p className="text-sm sm:text-base text-gray-600">
-              Track and manage your agricultural harvests for better yields and market access
-            </p>
-          </div>
-
-          <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 flex-shrink-0">
-            <Button asChild size="sm" className="w-full xs:w-auto">
-              <Link href="/dashboard/harvests/new">
-                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                <span className="hidden sm:inline">Log New Harvest</span>
-                <span className="sm:hidden">New Harvest</span>
-              </Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={isRefreshing}
-              onClick={async () => {
-                await Promise.all([loadHarvests(), loadStats(true)])
-              }}
-              className="w-full xs:w-auto"
-            >
-              <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-              <span className="hidden sm:inline">Refresh</span>
-              <span className="sm:hidden">Refresh</span>
-            </Button>
-          </div>
-        </div>
+        <DashboardPageHeader
+          badge="Harvest Tracking Active"
+          title="Harvest"
+          titleHighlight="Management"
+          description="Track and manage your agricultural harvests for better yields and market access."
+          actions={
+            <>
+              <Button
+                variant="outline"
+                size="lg"
+                disabled={isRefreshing}
+                onClick={async () => {
+                  await Promise.all([loadHarvests(), loadStats(true)])
+                }}
+                className="group"
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 transition-transform duration-500 group-hover:rotate-180 ${isRefreshing ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+              <Button asChild size="lg">
+                <Link href="/dashboard/harvests/new">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Log New Harvest
+                </Link>
+              </Button>
+            </>
+          }
+        />
 
         {/* Stats Overview */}
         <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          <Card className="border border-gray-200 h-full">
+          <Card className="border border-border h-full">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
-                <Package className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
+                <Package className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                 <span className="truncate">Total Harvests</span>
               </CardTitle>
             </CardHeader>
@@ -655,19 +652,19 @@ export default function FarmerHarvestsPage() {
               {statsLoading ? (
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
-                  <span className="text-xs sm:text-sm text-gray-500">Loading...</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">Loading...</span>
                 </div>
               ) : (
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">{stats.total}</div>
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground truncate">{stats.total}</div>
               )}
-              <p className="text-xs text-gray-500 truncate">All time harvests</p>
+              <p className="text-xs text-muted-foreground truncate">All time harvests</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200 h-full">
+          <Card className="border border-border h-full">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
-                <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500 flex-shrink-0" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
+                <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-warning flex-shrink-0" />
                 <span className="truncate">Pending</span>
               </CardTitle>
             </CardHeader>
@@ -675,19 +672,19 @@ export default function FarmerHarvestsPage() {
               {statsLoading ? (
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
-                  <span className="text-xs sm:text-sm text-gray-500">Loading...</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">Loading...</span>
                 </div>
               ) : (
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">{stats.pending}</div>
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground truncate">{stats.pending}</div>
               )}
-              <p className="text-xs text-gray-500 truncate">Awaiting verification</p>
+              <p className="text-xs text-muted-foreground truncate">Awaiting verification</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200 h-full">
+          <Card className="border border-border h-full">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
-                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
+                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-success flex-shrink-0" />
                 <span className="truncate">Approved</span>
               </CardTitle>
             </CardHeader>
@@ -695,19 +692,19 @@ export default function FarmerHarvestsPage() {
               {statsLoading ? (
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
-                  <span className="text-xs sm:text-sm text-gray-500">Loading...</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">Loading...</span>
                 </div>
               ) : (
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">{stats.approved}</div>
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground truncate">{stats.approved}</div>
               )}
-              <p className="text-xs text-gray-500 truncate">Verified harvests</p>
+              <p className="text-xs text-muted-foreground truncate">Verified harvests</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200 h-full">
+          <Card className="border border-border h-full">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
-                <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 flex-shrink-0" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
+                <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive flex-shrink-0" />
                 <span className="truncate">Rejected</span>
               </CardTitle>
             </CardHeader>
@@ -715,19 +712,19 @@ export default function FarmerHarvestsPage() {
               {statsLoading ? (
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
-                  <span className="text-xs sm:text-sm text-gray-500">Loading...</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">Loading...</span>
                 </div>
               ) : (
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">{stats.rejected}</div>
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground truncate">{stats.rejected}</div>
               )}
-              <p className="text-xs text-gray-500 truncate">Rejected harvests</p>
+              <p className="text-xs text-muted-foreground truncate">Rejected harvests</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200 h-full">
+          <Card className="border border-border h-full">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
-                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                 <span className="truncate">Total Value</span>
               </CardTitle>
             </CardHeader>
@@ -735,12 +732,12 @@ export default function FarmerHarvestsPage() {
               {statsLoading ? (
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
-                  <span className="text-xs sm:text-sm text-gray-500">Loading...</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">Loading...</span>
                 </div>
               ) : (
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">₦{(stats.totalValue || 0).toLocaleString()}</div>
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground truncate">₦{(stats.totalValue || 0).toLocaleString()}</div>
               )}
-              <p className="text-xs text-gray-500 truncate">Estimated value</p>
+              <p className="text-xs text-muted-foreground truncate">Estimated value</p>
             </CardContent>
           </Card>
         </div>
@@ -749,17 +746,17 @@ export default function FarmerHarvestsPage() {
         <HarvestAnalytics />
 
         {/* Filters and Search */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
             <CardTitle className="text-sm sm:text-base font-medium flex items-center gap-2">
-              <Filter className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500" />
+              <Filter className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               Search & Filter
             </CardTitle>
           </CardHeader>
           <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 space-y-3">
             <div className="grid gap-3 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-4">
               <div className="xs:col-span-2 sm:col-span-2 md:col-span-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-3 w-3 sm:h-4 sm:w-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-3 w-3 sm:h-4 sm:w-4" />
                 <Input
                   placeholder="Search by crop, location..."
                   value={searchQuery}
@@ -844,13 +841,13 @@ export default function FarmerHarvestsPage() {
             {isInitialLoading && harvests.length === 0 ? (
               <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
                 {[...Array(6)].map((_, i) => (
-                  <Card key={i} className="animate-pulse border border-gray-200 h-full">
-                    <div className="h-32 sm:h-40 bg-gray-200 rounded-t-lg"></div>
+                  <Card key={i} className="animate-pulse border border-border h-full">
+                    <div className="h-32 sm:h-40 bg-muted rounded-t-lg"></div>
                     <CardContent className="p-3 sm:p-4">
-                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded mb-3"></div>
-                      <div className="h-6 sm:h-8 bg-gray-200 rounded"></div>
+                      <div className="h-4 bg-muted rounded mb-2"></div>
+                      <div className="h-3 bg-muted rounded mb-2"></div>
+                      <div className="h-3 bg-muted rounded mb-3"></div>
+                      <div className="h-6 sm:h-8 bg-muted rounded"></div>
                     </CardContent>
                   </Card>
                 ))}
@@ -875,12 +872,12 @@ export default function FarmerHarvestsPage() {
                 </div>
               </div>
             ) : (
-              <Card className="text-center py-6 sm:py-8 border border-gray-200">
-                <div className="text-gray-400 mb-3 sm:mb-4">
+              <Card className="text-center py-6 sm:py-8 border border-border">
+                <div className="text-muted-foreground mb-3 sm:mb-4">
                   <Leaf className="h-10 w-10 sm:h-12 sm:w-12 mx-auto" />
                 </div>
-                <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-2">No harvests found</h3>
-                <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+                <h3 className="text-sm sm:text-base font-medium text-foreground mb-2">No harvests found</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                   {searchQuery || statusFilter !== "all" || cropFilter !== "all"
                     ? "Try adjusting your search or filters"
                     : "Start by logging your first harvest to track your agricultural progress"}
@@ -936,7 +933,7 @@ export default function FarmerHarvestsPage() {
 
         {/* Quick Actions & Help */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-medium">Quick Actions</CardTitle>
               <CardDescription>Common tasks and shortcuts</CardDescription>
@@ -981,7 +978,7 @@ export default function FarmerHarvestsPage() {
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-medium">Need Help?</CardTitle>
               <CardDescription>Get support and access resources</CardDescription>

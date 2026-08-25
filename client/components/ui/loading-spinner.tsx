@@ -10,13 +10,13 @@ interface LoadingSpinnerProps {
 export function LoadingSpinner({ size = "md", className, text }: LoadingSpinnerProps) {
   const sizeClasses = {
     sm: "h-4 w-4",
-    md: "h-6 w-6", 
+    md: "h-6 w-6",
     lg: "h-8 w-8"
   }
 
   return (
     <div className={cn("flex items-center justify-center space-x-2", className)}>
-      <Loader2 className={cn("animate-spin text-green-600", sizeClasses[size])} />
+      <Loader2 className={cn("animate-spin text-primary", sizeClasses[size])} />
       {text && (
         <span className="text-sm text-muted-foreground animate-pulse">
           {text}
@@ -28,17 +28,17 @@ export function LoadingSpinner({ size = "md", className, text }: LoadingSpinnerP
 
 export function PageLoadingSpinner({ text = "Loading..." }: { text?: string }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-yellow-50">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-secondary/10">
       <div className="text-center space-y-4">
         <div className="relative">
-          <Loader2 className="h-12 w-12 animate-spin text-green-600 mx-auto" />
-          <div className="absolute inset-0 h-12 w-12 animate-ping rounded-full bg-green-200 opacity-20 mx-auto" />
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+          <div className="absolute inset-0 h-12 w-12 animate-ping rounded-full bg-primary/20 opacity-20 mx-auto" />
         </div>
-        <p className="text-lg font-medium text-green-700 animate-pulse">{text}</p>
+        <p className="text-lg font-medium text-primary animate-pulse">{text}</p>
         <div className="flex justify-center space-x-1">
-          <div className="h-2 w-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-          <div className="h-2 w-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-          <div className="h-2 w-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          <div className="h-2 w-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="h-2 w-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="h-2 w-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
         </div>
       </div>
     </div>
@@ -49,7 +49,7 @@ export function InlineLoadingSpinner({ text = "Loading..." }: { text?: string })
   return (
     <div className="flex items-center justify-center py-8">
       <div className="flex items-center space-x-3">
-        <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
         <span className="text-sm text-muted-foreground">{text}</span>
       </div>
     </div>

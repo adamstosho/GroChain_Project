@@ -1,6 +1,7 @@
 "use client"
 
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -63,13 +64,12 @@ export default function CartPage() {
   return (
     <DashboardLayout pageTitle="Shopping Cart">
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Shopping Cart</h1>
-          <p className="text-muted-foreground">
-            Review your items and proceed to checkout
-          </p>
-        </div>
+        <DashboardPageHeader
+          badge="Cart Active"
+          title="Shopping"
+          titleHighlight="Cart"
+          description="Review your items and proceed to checkout."
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Cart Items */}

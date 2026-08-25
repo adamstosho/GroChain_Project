@@ -354,25 +354,25 @@ export function AdminAnalytics() {
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Users</CardTitle>
-            <div className="p-1.5 sm:p-2 bg-blue-50 rounded-full flex-shrink-0">
-              <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+            <div className="p-1.5 sm:p-2 bg-primary/10 rounded-full flex-shrink-0">
+              <Users className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
             <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{formatNumber(analyticsData?.totalUsers || 0)}</div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
-              <TrendingUp className="h-3 w-3 mr-1 text-green-600 flex-shrink-0" />
+              <TrendingUp className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">{formatNumber(analyticsData?.activeUsers || 0)} active</span>
             </div>
           </CardContent>
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-blue-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-bl-full opacity-20" />
         </Card>
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Revenue</CardTitle>
-            <div className="p-1.5 sm:p-2 bg-green-50 rounded-full flex-shrink-0">
-              <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+            <div className="p-1.5 sm:p-2 bg-success/10 rounded-full flex-shrink-0">
+              <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-success" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
@@ -380,45 +380,45 @@ export function AdminAnalytics() {
               {formatCurrency(analyticsData?.totalRevenue || 0)}
             </div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
-              <TrendingUp className="h-3 w-3 mr-1 text-green-600 flex-shrink-0" />
+              <TrendingUp className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">From {formatNumber(analyticsData?.totalOrders || 0)} orders</span>
             </div>
           </CardContent>
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-green-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-success/10 rounded-bl-full opacity-20" />
         </Card>
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Harvests</CardTitle>
-            <div className="p-1.5 sm:p-2 bg-purple-50 rounded-full flex-shrink-0">
-              <Package className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
+            <div className="p-1.5 sm:p-2 bg-accent/10 rounded-full flex-shrink-0">
+              <Package className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
             <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{formatNumber(analyticsData?.totalHarvests || 0)}</div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
-              <Target className="h-3 w-3 mr-1 text-blue-600 flex-shrink-0" />
+              <Target className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
               <span className="truncate">{analyticsData?.approvalRate || 0}% approval rate</span>
             </div>
           </CardContent>
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-purple-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-accent/10 rounded-bl-full opacity-20" />
         </Card>
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Credit Score</CardTitle>
-            <div className="p-1.5 sm:p-2 bg-orange-50 rounded-full flex-shrink-0">
-              <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
+            <div className="p-1.5 sm:p-2 bg-warning/10 rounded-full flex-shrink-0">
+              <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-warning" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
             <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{analyticsData?.averageCreditScore || 0}</div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
-              <Shield className="h-3 w-3 mr-1 text-blue-600 flex-shrink-0" />
+              <Shield className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
               <span className="truncate">Platform average</span>
             </div>
           </CardContent>
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-orange-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-warning/10 rounded-bl-full opacity-20" />
         </Card>
       </div>
 
@@ -517,9 +517,9 @@ export function AdminAnalytics() {
                   </ComposedChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-64 text-gray-500">
+                <div className="flex items-center justify-center h-64 text-muted-foreground">
                   <div className="text-center">
-                    <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <p>No growth data available for the selected period</p>
                   </div>
                 </div>
@@ -534,7 +534,7 @@ export function AdminAnalytics() {
                 <CardTitle className="text-sm font-medium">User Growth</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-primary">
                   {formatNumber(analyticsData?.newRegistrations || 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -548,7 +548,7 @@ export function AdminAnalytics() {
                 <CardTitle className="text-sm font-medium">Platform Health</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-success">
                   {analyticsData?.approvalRate || 0}%
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -562,7 +562,7 @@ export function AdminAnalytics() {
                 <CardTitle className="text-sm font-medium">Active Users</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-purple-600">
+                <div className="text-2xl font-bold text-accent">
                   {analyticsData?.totalUsers ? Math.round((analyticsData.activeUsers / analyticsData.totalUsers) * 100) : 0}%
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -608,9 +608,9 @@ export function AdminAnalytics() {
                     </RechartsPieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center justify-center h-64 text-gray-500">
+                  <div className="flex items-center justify-center h-64 text-muted-foreground">
                     <div className="text-center">
-                      <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                       <p>No user distribution data available</p>
                     </div>
                   </div>
@@ -641,10 +641,10 @@ export function AdminAnalytics() {
                           <div
                             className={cn(
                               "h-2 rounded-full transition-all duration-300",
-                              status._id === "active" && "bg-green-500",
-                              status._id === "pending" && "bg-yellow-500",
-                              status._id === "suspended" && "bg-red-500",
-                              status._id === "verified" && "bg-blue-500"
+                              status._id === "active" && "bg-success",
+                              status._id === "pending" && "bg-warning",
+                              status._id === "suspended" && "bg-destructive",
+                              status._id === "verified" && "bg-primary"
                             )}
                             style={{
                               width: `${Math.min(100, (status.count / (analyticsData?.totalUsers || 1)) * 100)}%`
@@ -655,9 +655,9 @@ export function AdminAnalytics() {
                     ))}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-64 text-gray-500">
+                  <div className="flex items-center justify-center h-64 text-muted-foreground">
                     <div className="text-center">
-                      <Activity className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <Activity className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                       <p>Loading user activity data...</p>
                     </div>
                   </div>
@@ -700,9 +700,9 @@ export function AdminAnalytics() {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-64 text-gray-500">
+                <div className="flex items-center justify-center h-64 text-muted-foreground">
                   <div className="text-center">
-                    <MapPin className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <p>Loading regional data...</p>
                   </div>
                 </div>
@@ -774,10 +774,10 @@ export function AdminAnalytics() {
                           <div
                             className={cn(
                               "h-2 rounded-full transition-all duration-300",
-                              quality.quality === "excellent" && "bg-green-500",
-                              quality.quality === "good" && "bg-blue-500",
-                              quality.quality === "fair" && "bg-yellow-500",
-                              quality.quality === "poor" && "bg-red-500"
+                              quality.quality === "excellent" && "bg-success",
+                              quality.quality === "good" && "bg-primary",
+                              quality.quality === "fair" && "bg-warning",
+                              quality.quality === "poor" && "bg-destructive"
                             )}
                             style={{ width: `${quality.percentage}%` }}
                           />
@@ -786,9 +786,9 @@ export function AdminAnalytics() {
                     ))}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-64 text-gray-500">
+                  <div className="flex items-center justify-center h-64 text-muted-foreground">
                     <div className="text-center">
-                      <Target className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                       <p>Loading quality data...</p>
                     </div>
                   </div>
@@ -816,7 +816,7 @@ export function AdminAnalytics() {
                   </div>
                   <div className="w-full bg-muted rounded-full h-2">
                     <div
-                      className="h-2 rounded-full bg-blue-500 transition-all duration-300"
+                      className="h-2 rounded-full bg-primary transition-all duration-300"
                       style={{
                         width: `${analyticsData?.totalUsers && analyticsData.totalUsers > 0 ? (analyticsData.activeUsers / analyticsData.totalUsers) * 100 : 0}%`
                       }}
@@ -831,7 +831,7 @@ export function AdminAnalytics() {
                   </div>
                   <div className="w-full bg-muted rounded-full h-2">
                     <div
-                      className="h-2 rounded-full bg-green-500 transition-all duration-300"
+                      className="h-2 rounded-full bg-success transition-all duration-300"
                       style={{ width: `${analyticsData?.approvalRate || 0}%` }}
                     />
                   </div>
@@ -844,7 +844,7 @@ export function AdminAnalytics() {
                   </div>
                   <div className="w-full bg-muted rounded-full h-2">
                     <div
-                      className="h-2 rounded-full bg-purple-500 transition-all duration-300"
+                      className="h-2 rounded-full bg-accent transition-all duration-300"
                       style={{ width: `${Math.min(100, analyticsData?.averageCreditScore || 0)}%` }}
                     />
                   </div>
@@ -859,7 +859,7 @@ export function AdminAnalytics() {
                       </div>
                       <div className="w-full bg-muted rounded-full h-2">
                         <div
-                          className="h-2 rounded-full bg-green-500 transition-all duration-300"
+                          className="h-2 rounded-full bg-success transition-all duration-300"
                           style={{
                             width: `${qualityData.approvalMetrics.total > 0 ? (qualityData.approvalMetrics.approved / qualityData.approvalMetrics.total) * 100 : 0}%`
                           }}

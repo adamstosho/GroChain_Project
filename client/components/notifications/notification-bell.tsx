@@ -48,13 +48,13 @@ export function NotificationBell() {
   const getNotificationColor = (type: string) => {
     switch (type) {
       case "success":
-        return "text-green-600"
+        return "text-success"
       case "warning":
-        return "text-yellow-600"
+        return "text-warning"
       case "error":
-        return "text-red-600"
+        return "text-destructive"
       default:
-        return "text-blue-600"
+        return "text-primary"
     }
   }
 
@@ -115,15 +115,15 @@ export function NotificationBell() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CardTitle className="text-lg">Notifications</CardTitle>
-                <div className={`flex items-center gap-1 text-xs ${connected ? 'text-green-600' : 'text-red-600'}`}>
+                <div className={`flex items-center gap-1 text-xs ${connected ? 'text-success' : 'text-destructive'}`}>
                   {connected ? (
                     <>
-                      <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <div className="h-2 w-2 bg-success rounded-full animate-pulse"></div>
                       Connected
                     </>
                   ) : (
                     <>
-                      <div className="h-2 w-2 bg-red-500 rounded-full"></div>
+                      <div className="h-2 w-2 bg-destructive rounded-full"></div>
                       {error ? 'Error' : 'Disconnected'}
                     </>
                   )}
@@ -144,7 +144,7 @@ export function NotificationBell() {
               </div>
             </div>
             {error && (
-              <div className="text-xs text-red-600 bg-red-50 p-2 rounded mt-2">
+              <div className="text-xs text-destructive bg-destructive/10 p-2 rounded mt-2">
                 {error}
               </div>
             )}
@@ -179,7 +179,7 @@ export function NotificationBell() {
                     <div
                       key={notification.id}
                       className={`p-2 hover:bg-muted/50 cursor-pointer transition-colors ${
-                        !notification.isRead ? "bg-blue-50/50" : ""
+                        !notification.isRead ? "bg-primary/50" : ""
                       }`}
                       onClick={() => handleNotificationClick(notification)}
                     >
@@ -214,7 +214,7 @@ export function NotificationBell() {
                                 <ExternalLink className="h-3 w-3 text-muted-foreground" />
                               )}
                               {!notification.isRead && (
-                                <div className="h-2 w-2 bg-blue-600 rounded-full"></div>
+                                <div className="h-2 w-2 bg-primary rounded-full"></div>
                               )}
                             </div>
                           </div>

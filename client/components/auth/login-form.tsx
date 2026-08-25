@@ -11,6 +11,11 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { useAuthStore } from "@/lib/auth"
+import {
+  clearRememberEmail,
+  getRememberEmail,
+  saveRememberEmail,
+} from "@/lib/auth-storage"
 import { Eye, EyeOff, Mail, Lock } from "lucide-react"
 
 export function LoginForm() {
@@ -29,13 +34,12 @@ export function LoginForm() {
   const emailFromUrl = searchParams.get("email")
   const { login } = useAuthStore()
 
-  // Pre-fill email from localStorage if remember me was checked
+  // Pre-fill email when the user previously chose "Remember me"
   useEffect(() => {
-    // Check if email was saved from previous session
-    const savedEmail = localStorage.getItem('grochain_remember_email')
-    if (savedEmail && !formData.email) {
+    const savedEmail = getRememberEmail()
+    if (savedEmail) {
       setFormData(prev => ({ ...prev, email: savedEmail, rememberMe: true }))
-    } else if (emailFromUrl && !formData.email) {
+    } else if (emailFromUrl) {
       setFormData(prev => ({ ...prev, email: emailFromUrl }))
     }
   }, [emailFromUrl])
@@ -45,15 +49,12 @@ export function LoginForm() {
     setIsLoading(true)
 
     try {
-      await login(formData.email, formData.password)
+      await login(formData.email, formData.password, formData.rememberMe)
 
-      // Handle "Remember Me" functionality
       if (formData.rememberMe) {
-        // Save email to localStorage for future logins
-        localStorage.setItem('grochain_remember_email', formData.email)
+        saveRememberEmail(formData.email)
       } else {
-        // Remove saved email if "Remember Me" is unchecked
-        localStorage.removeItem('grochain_remember_email')
+        clearRememberEmail()
       }
 
       // Check for redirect URL in query parameters
@@ -98,30 +99,30 @@ export function LoginForm() {
         </div>
       )}
       {needsVerification && (
-        <div className="p-4 rounded-lg border border-blue-200 bg-blue-50 text-sm">
+        <div className="p-4 rounded-lg border border-primary/10 bg-primary/10 text-sm">
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-medium text-blue-800 mb-1">
+              <h3 className="text-sm font-medium text-primary mb-1">
                 Email Verification Required
               </h3>
-              <p className="text-blue-700 mb-2">
+              <p className="text-primary mb-2">
                 We've sent a verification email to your address. Please check your inbox (and spam folder) for the verification token.
               </p>
               <div className="flex space-x-2">
                 <Link 
                   href="/verify-email" 
-                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
+                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 rounded-md hover:bg-primary/10 transition-colors"
                 >
                   Enter Token
                 </Link>
                 <Link 
                   href="/verify-email" 
-                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-primary hover:text-primary transition-colors"
                 >
                   Resend Email
                 </Link>
@@ -177,7 +178,9 @@ export function LoginForm() {
             <Checkbox
               id="remember"
               checked={formData.rememberMe}
-              onCheckedChange={(checked) => setFormData({ ...formData, rememberMe: checked as boolean })}
+              onCheckedChange={(checked) =>
+                setFormData(prev => ({ ...prev, rememberMe: checked === true }))
+              }
             />
             <Label htmlFor="remember" className="text-sm">
               Remember me

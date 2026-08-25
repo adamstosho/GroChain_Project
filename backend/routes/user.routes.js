@@ -346,6 +346,135 @@ router.get('/dashboard', authenticate, authorize('admin','partner','farmer','buy
   }
 })
 
+async function buildProfileData(user) {
+  // Get additional profile data based on user role
+  let profileData = {
+    ...user.toObject(),
+    stats: {
+      totalHarvests: 0,
+      totalListings: 0,
+      totalOrders: 0,
+      totalRevenue: 0,
+      lastActive: user.stats?.lastActive || user.createdAt
+    }
+  }
+
+  if (user.role === 'farmer') {
+    // Get farmer-specific stats
+    const Harvest = require('../models/harvest.model')
+    const Listing = require('../models/listing.model')
+    const Order = require('../models/order.model')
+
+    // Get farmer's listings first
+    const farmerListings = await Listing.find({ farmer: user._id }).select('_id')
+    const listingIds = farmerListings.map(listing => listing._id)
+
+    // Check if farmer has a partner
+    const hasPartner = user.partner
+
+    // Platform fee rate (3%)
+    const platformFeeRate = 0.03
+    // Partner commission rate (2%)
+    const partnerCommissionRate = hasPartner ? 0.02 : 0
+
+    const [totalHarvests, totalListings, totalOrders, totalRevenueResult] = await Promise.all([
+      Harvest.countDocuments({ farmer: user._id }),
+      Listing.countDocuments({ farmer: user._id }),
+      Order.countDocuments({ 'items.listing': { $in: listingIds } }),
+      // Calculate total revenue from farmer's orders
+      Order.aggregate([
+        {
+          $match: {
+            'items.listing': { $in: listingIds },
+            paymentStatus: 'paid'
+          }
+        },
+        {
+          $unwind: '$items'
+        },
+        {
+          $match: {
+            'items.listing': { $in: listingIds }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: { $multiply: ['$items.price', '$items.quantity'] } }
+          }
+        }
+      ])
+    ])
+
+    // Calculate net revenue after fees
+    let totalRevenue = totalRevenueResult[0]?.total || 0
+    const platformFee = totalRevenue * platformFeeRate
+    const partnerCommission = totalRevenue * partnerCommissionRate
+    totalRevenue = totalRevenue - platformFee - partnerCommission
+
+    profileData.stats = {
+      totalHarvests,
+      totalListings,
+      totalOrders,
+      totalRevenue,
+      lastActive: user.stats?.lastActive || user.createdAt
+    }
+
+    // Get recent harvests
+    const recentHarvests = await Harvest.find({ farmer: user._id })
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .select('cropType quantity qualityGrade status createdAt')
+
+    profileData.recentHarvests = recentHarvests
+
+  } else if (user.role === 'buyer') {
+    // Get buyer-specific stats
+    const Order = require('../models/order.model')
+    const Transaction = require('../models/transaction.model')
+    const Favorite = require('../models/favorite.model')
+
+    const [totalOrders, totalSpent, favoriteProducts] = await Promise.all([
+      Order.countDocuments({ buyer: user._id }),
+      Transaction.aggregate([
+        { $match: { userId: user._id, type: 'payment', status: 'completed' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      Favorite.countDocuments({ user: user._id })
+    ])
+
+    profileData.stats = {
+      totalOrders,
+      totalSpent: totalSpent[0]?.total || 0,
+      favoriteProducts,
+      lastActive: user.stats?.lastActive || user.createdAt
+    }
+
+    // Get recent orders
+    const recentOrders = await Order.find({ buyer: user._id })
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .select('status total paymentStatus createdAt')
+
+    profileData.recentOrders = recentOrders
+
+  } else if (user.role === 'partner') {
+    // Get partner-specific data
+    const partnerFarmers = await User.countDocuments({ partner: user.partner?._id, role: 'farmer' })
+    const partnerHarvests = await require('../models/harvest.model').countDocuments({
+      farmer: { $in: await User.find({ partner: user.partner?._id, role: 'farmer' }).distinct('_id') }
+    })
+
+    profileData.partnerStats = {
+      totalFarmers: partnerFarmers,
+      totalHarvests: partnerHarvests,
+      partnerInfo: user.partner
+    }
+  }
+
+  return profileData
+}
+
 router.get('/profile/me', authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).populate('partner').select('-password -resetPasswordToken -resetPasswordExpires -emailVerificationToken -emailVerificationExpires -smsOtpToken -smsOtpExpires')
@@ -354,131 +483,7 @@ router.get('/profile/me', authenticate, async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'User not found' })
     }
 
-    // Get additional profile data based on user role
-    let profileData = {
-      ...user.toObject(),
-      stats: {
-        totalHarvests: 0,
-        totalListings: 0,
-        totalOrders: 0,
-        totalRevenue: 0,
-        lastActive: user.stats?.lastActive || user.createdAt
-      }
-    }
-
-    if (user.role === 'farmer') {
-      // Get farmer-specific stats
-      const Harvest = require('../models/harvest.model')
-      const Listing = require('../models/listing.model')
-      const Order = require('../models/order.model')
-      const Transaction = require('../models/transaction.model')
-
-      // Get farmer's listings first
-      const farmerListings = await Listing.find({ farmer: user._id }).select('_id')
-      const listingIds = farmerListings.map(listing => listing._id)
-
-      // Check if farmer has a partner
-      const hasPartner = user.partner
-
-      // Platform fee rate (3%)
-      const platformFeeRate = 0.03
-      // Partner commission rate (2%)
-      const partnerCommissionRate = hasPartner ? 0.02 : 0
-
-      const [totalHarvests, totalListings, totalOrders, totalRevenueResult] = await Promise.all([
-        Harvest.countDocuments({ farmer: user._id }),
-        Listing.countDocuments({ farmer: user._id }),
-        Order.countDocuments({ 'items.listing': { $in: listingIds } }),
-        // Calculate total revenue from farmer's orders
-        Order.aggregate([
-          {
-            $match: {
-              'items.listing': { $in: listingIds },
-              paymentStatus: 'paid'
-            }
-          },
-          {
-            $unwind: '$items'
-          },
-          {
-            $match: {
-              'items.listing': { $in: listingIds }
-            }
-          },
-          {
-            $group: {
-              _id: null,
-              total: { $sum: { $multiply: ['$items.price', '$items.quantity'] } }
-            }
-          }
-        ])
-      ])
-
-      // Calculate net revenue after fees
-      let totalRevenue = totalRevenueResult[0]?.total || 0
-      const platformFee = totalRevenue * platformFeeRate
-      const partnerCommission = totalRevenue * partnerCommissionRate
-      totalRevenue = totalRevenue - platformFee - partnerCommission
-
-      profileData.stats = {
-        totalHarvests,
-        totalListings,
-        totalOrders,
-        totalRevenue: totalRevenue[0]?.total || 0,
-        lastActive: user.stats?.lastActive || user.createdAt
-      }
-
-      // Get recent harvests
-      const recentHarvests = await Harvest.find({ farmer: user._id })
-        .sort({ createdAt: -1 })
-        .limit(3)
-        .select('cropType quantity qualityGrade status createdAt')
-
-      profileData.recentHarvests = recentHarvests
-
-    } else if (user.role === 'buyer') {
-      // Get buyer-specific stats
-      const Order = require('../models/order.model')
-      const Transaction = require('../models/transaction.model')
-      const Favorite = require('../models/favorite.model')
-
-      const [totalOrders, totalSpent, favoriteProducts] = await Promise.all([
-        Order.countDocuments({ buyer: user._id }),
-        Transaction.aggregate([
-          { $match: { userId: user._id, type: 'payment', status: 'completed' } },
-          { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]),
-        Favorite.countDocuments({ user: user._id })
-      ])
-
-      profileData.stats = {
-        totalOrders,
-        totalSpent: totalSpent[0]?.total || 0,
-        favoriteProducts,
-        lastActive: user.stats?.lastActive || user.createdAt
-      }
-
-      // Get recent orders
-      const recentOrders = await Order.find({ buyer: user._id })
-        .sort({ createdAt: -1 })
-        .limit(3)
-        .select('status total paymentStatus createdAt')
-
-      profileData.recentOrders = recentOrders
-
-    } else if (user.role === 'partner') {
-      // Get partner-specific data
-      const partnerFarmers = await User.countDocuments({ partner: user.partner?._id, role: 'farmer' })
-      const partnerHarvests = await require('../models/harvest.model').countDocuments({
-        farmer: { $in: await User.find({ partner: user.partner?._id, role: 'farmer' }).distinct('_id') }
-      })
-
-      profileData.partnerStats = {
-        totalFarmers: partnerFarmers,
-        totalHarvests: partnerHarvests,
-        partnerInfo: user.partner
-      }
-    }
+    const profileData = await buildProfileData(user)
 
     return res.json({ status: 'success', data: profileData })
   } catch (error) {
@@ -590,6 +595,8 @@ router.post('/profile/avatar', authenticate, (req, res) => {
 router.put('/profile/me', authenticate, async (req, res) => {
   try {
     const updateData = { ...req.body }
+    const partnerUpdate = updateData.partner
+    delete updateData.partner
 
     // Remove sensitive fields that shouldn't be updated via profile
     delete updateData.password
@@ -607,6 +614,11 @@ router.put('/profile/me', authenticate, async (req, res) => {
     delete updateData.suspendedAt
     delete updateData.suspendedBy
 
+    // Only admins may edit adminProfile via other routes; strip here unless role is admin
+    if (req.user.role !== 'admin') {
+      delete updateData.adminProfile
+    }
+
     // Update last active timestamp
     updateData.stats = {
       ...updateData.stats,
@@ -617,13 +629,33 @@ router.put('/profile/me', authenticate, async (req, res) => {
       req.user.id,
       updateData,
       { new: true, runValidators: true }
-    ).select('-password -resetPasswordToken -resetPasswordExpires -emailVerificationToken -emailVerificationExpires -smsOtpToken -smsOtpExpires')
+    ).populate('partner').select('-password -resetPasswordToken -resetPasswordExpires -emailVerificationToken -emailVerificationExpires -smsOtpToken -smsOtpExpires')
 
     if (!user) {
       return res.status(404).json({ status: 'error', message: 'User not found' })
     }
 
-    return res.json({ status: 'success', data: user })
+    // Partner org data lives on the linked Partner document, not on User
+    if (req.user.role === 'partner' && user.partner && partnerUpdate && typeof partnerUpdate === 'object') {
+      const Partner = require('../models/partner.model')
+      const partnerUpdateData = {}
+      if (partnerUpdate.organization !== undefined) partnerUpdateData.organization = partnerUpdate.organization
+      if (partnerUpdate.organizationType !== undefined) partnerUpdateData.type = partnerUpdate.organizationType
+      if (partnerUpdate.website !== undefined) partnerUpdateData.website = partnerUpdate.website
+      if (partnerUpdate.description !== undefined) partnerUpdateData.description = partnerUpdate.description
+      if (partnerUpdate.logo !== undefined) partnerUpdateData.logo = partnerUpdate.logo
+      if (partnerUpdate.contactPerson !== undefined) partnerUpdateData.contactPerson = partnerUpdate.contactPerson
+      if (partnerUpdate.services !== undefined) partnerUpdateData.services = partnerUpdate.services
+      if (partnerUpdate.coverageAreas !== undefined) partnerUpdateData.coverageAreas = partnerUpdate.coverageAreas
+      if (partnerUpdate.certifications !== undefined) partnerUpdateData.certifications = partnerUpdate.certifications
+
+      const updatedPartner = await Partner.findByIdAndUpdate(user.partner._id, partnerUpdateData, { new: true, runValidators: true })
+      user.partner = updatedPartner
+    }
+
+    const profileData = await buildProfileData(user)
+
+    return res.json({ status: 'success', data: profileData })
   } catch (error) {
     console.error('Error updating profile:', error)
     return res.status(500).json({ status: 'error', message: 'Failed to update profile' })

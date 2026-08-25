@@ -5,8 +5,8 @@ export default function Loading() {
     <div className="mx-auto max-w-md p-6">
       <Card>
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-            <div className="h-8 w-8 bg-blue-600 rounded-full animate-pulse" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <div className="h-8 w-8 bg-primary rounded-full animate-pulse" />
           </div>
           <CardTitle>Loading verification...</CardTitle>
           <CardDescription>

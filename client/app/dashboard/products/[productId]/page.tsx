@@ -304,11 +304,11 @@ export default function ProductDetailPage() {
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto text-center">
             <div className="mb-6">
-              <Package className="h-24 w-24 mx-auto text-gray-400 mb-4" />
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              <Package className="h-24 w-24 mx-auto text-muted-foreground mb-4" />
+              <h1 className="text-2xl font-bold text-foreground mb-2">
                 {error || "Product Not Found"}
               </h1>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 The product you&apos;re looking for doesn&apos;t exist or has been removed.
               </p>
             </div>
@@ -349,7 +349,7 @@ export default function ProductDetailPage() {
             {/* Product Images */}
             <div className="space-y-4">
               {/* Main Image */}
-              <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+              <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
                 <Image
                   src={(product.images && product.images.length > 0) ? product.images[selectedImage] : "/placeholder.svg"}
                   alt={product.cropName || 'Product image'}
@@ -373,7 +373,7 @@ export default function ProductDetailPage() {
                     <button
                       key={index}
                       onClick={() => setSelectedImage(index)}
-                      className={`flex-shrink-0 w-20 h-20 rounded border-2 overflow-hidden ${selectedImage === index ? 'border-green-500' : 'border-gray-200'
+                      className={`flex-shrink-0 w-20 h-20 rounded border-2 overflow-hidden ${selectedImage === index ? 'border-success' : 'border-border'
                         }`}
                     >
                       <Image
@@ -395,7 +395,7 @@ export default function ProductDetailPage() {
               <div>
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                    <h1 className="text-3xl font-bold text-foreground mb-2">
                       {product.cropName || product.name || 'Product Name'}
                     </h1>
                     <div className="flex items-center gap-2 mb-2">
@@ -404,7 +404,7 @@ export default function ProductDetailPage() {
                         <Badge variant="outline">{product.qualityGrade}</Badge>
                       )}
                       {product.organic && (
-                        <Badge variant="outline" className="text-green-600 border-green-600">
+                        <Badge variant="outline" className="text-success border-success">
                           <Leaf className="h-3 w-3 mr-1" />
                           Organic
                         </Badge>
@@ -415,7 +415,7 @@ export default function ProductDetailPage() {
                     variant="ghost"
                     size="sm"
                     onClick={handleToggleFavorite}
-                    className={isFavorite ? "text-red-500" : "text-gray-400"}
+                    className={isFavorite ? "text-destructive" : "text-muted-foreground"}
                   >
                     <Heart className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
                   </Button>
@@ -427,29 +427,29 @@ export default function ProductDetailPage() {
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`h-4 w-4 ${i < 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                        className={`h-4 w-4 ${i < 4 ? 'text-warning fill-current' : 'text-muted-foreground'
                           }`}
                       />
                     ))}
                   </div>
-                  <span className="text-sm text-gray-600">(0 reviews)</span>
+                  <span className="text-sm text-muted-foreground">(0 reviews)</span>
                 </div>
               </div>
 
               {/* Price */}
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-green-600">
+                <span className="text-3xl font-bold text-success">
                   ₦{(product.basePrice || product.price || 0).toLocaleString()}
                 </span>
-                <span className="text-lg text-gray-500">
+                <span className="text-lg text-muted-foreground">
                   per {product.unit || 'unit'}
                 </span>
               </div>
 
               {/* Availability */}
               <div className="flex items-center gap-2 text-sm">
-                <Package className="h-4 w-4 text-gray-500" />
-                <span className="text-gray-600">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
                   {(product.availableQuantity || 0).toLocaleString()} {product.unit || 'unit'} available
                 </span>
                 {currentCartQuantity > 0 && (
@@ -461,7 +461,7 @@ export default function ProductDetailPage() {
 
               {/* Location */}
               {product.location && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4" />
                   <span>
                     {product.location.city || 'Unknown City'}, {product.location.state || 'Unknown State'}
@@ -493,7 +493,7 @@ export default function ProductDetailPage() {
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-muted-foreground">
                     Max: {product.availableQuantity || 0}
                   </span>
                 </div>
@@ -540,18 +540,18 @@ export default function ProductDetailPage() {
                       {product.farmer.name || `${product.farmer.firstName || ''} ${product.farmer.lastName || ''}`.trim() || 'Unknown Farmer'}
                     </div>
                     {product.farmer.farmLocation && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <MapPin className="h-3 w-3" />
                         {product.farmer.farmLocation}
                       </div>
                     )}
                     {product.farmer.phoneNumber && (
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-muted-foreground">
                         Phone: {product.farmer.phoneNumber}
                       </div>
                     )}
                     {product.farmer.email && (
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-muted-foreground">
                         Email: {product.farmer.email}
                       </div>
                     )}
@@ -587,14 +587,14 @@ export default function ProductDetailPage() {
               <CardContent className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-2">Description</h4>
-                  <p className="text-gray-600 leading-relaxed">
+                  <p className="text-muted-foreground leading-relaxed">
                     {product.description || `Fresh ${product.cropName || product.name || 'product'} harvested and ready for delivery. This product meets quality standards and is sourced directly from verified farmers.`}
                   </p>
                 </div>
 
                 {product.harvestDate && (
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">
                       Harvested on: {new Date(product.harvestDate).toLocaleDateString()}
                     </span>
@@ -603,7 +603,7 @@ export default function ProductDetailPage() {
 
                 {product.certification && product.certification.length > 0 && (
                   <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-green-500" />
+                    <Shield className="h-4 w-4 text-success" />
                     <span className="text-sm">
                       Certifications: {product.certification.join(', ')}
                     </span>
@@ -618,10 +618,10 @@ export default function ProductDetailPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
-                  <Truck className="h-8 w-8 text-green-600" />
+                  <Truck className="h-8 w-8 text-success" />
                   <div>
                     <h3 className="font-medium">Fast Delivery</h3>
-                    <p className="text-sm text-gray-600">Delivered within 24-48 hours</p>
+                    <p className="text-sm text-muted-foreground">Delivered within 24-48 hours</p>
                   </div>
                 </div>
               </CardContent>
@@ -630,10 +630,10 @@ export default function ProductDetailPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
-                  <Shield className="h-8 w-8 text-blue-600" />
+                  <Shield className="h-8 w-8 text-primary" />
                   <div>
                     <h3 className="font-medium">Quality Assured</h3>
-                    <p className="text-sm text-gray-600">Verified and tested products</p>
+                    <p className="text-sm text-muted-foreground">Verified and tested products</p>
                   </div>
                 </div>
               </CardContent>
@@ -642,10 +642,10 @@ export default function ProductDetailPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
-                  <Leaf className="h-8 w-8 text-green-600" />
+                  <Leaf className="h-8 w-8 text-success" />
                   <div>
                     <h3 className="font-medium">Fresh Produce</h3>
-                    <p className="text-sm text-gray-600">Direct from farm to you</p>
+                    <p className="text-sm text-muted-foreground">Direct from farm to you</p>
                   </div>
                 </div>
               </CardContent>

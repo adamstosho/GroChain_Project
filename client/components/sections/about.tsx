@@ -77,11 +77,11 @@ export function About() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent rounded-2xl" />
             <div className="absolute bottom-6 left-6 right-6">
               <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4">
-                <p className="text-sm font-semibold text-gray-900">
+                <p className="text-sm font-semibold text-foreground">
                   "GroChain has transformed how I sell my products. The QR codes give my customers confidence, and I can
                   reach buyers directly without middlemen."
                 </p>
-                <p className="text-xs text-gray-600 mt-2">- Adunni Adebayo, Farmer from Ogun</p>
+                <p className="text-xs text-muted-foreground mt-2">- Adunni Adebayo, Farmer from Ogun</p>
               </div>
             </div>
           </div>

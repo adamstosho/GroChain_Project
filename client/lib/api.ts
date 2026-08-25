@@ -1,4 +1,10 @@
 import { APP_CONFIG } from "./constants"
+import {
+  clearAuthTokens,
+  getRefreshTokenFromStorage,
+  getTokenFromStorage,
+  setRefreshTokenInStorage,
+} from "./auth-storage"
 import type { ApiResponse, User, Harvest, Listing, Order, WeatherData, DashboardStats } from "./types"
 
 class ApiService {
@@ -31,7 +37,7 @@ class ApiService {
 
   private loadTokenFromStorage() {
     if (typeof window !== "undefined") {
-      this.token = localStorage.getItem(APP_CONFIG.auth.tokenKey)
+      this.token = getTokenFromStorage()
     }
   }
 
@@ -245,19 +251,15 @@ class ApiService {
   clearToken() {
     this.token = null
     if (typeof window !== "undefined") {
-      localStorage.removeItem(APP_CONFIG.auth.tokenKey)
-      localStorage.removeItem(APP_CONFIG.auth.refreshTokenKey)
-      // Also clear the auth store keys for consistency
-      localStorage.removeItem('grochain-auth')
+      clearAuthTokens()
     }
   }
 
   // Check if token exists and is valid
   hasValidToken(): boolean {
     if (!this.token || this.token === 'undefined') {
-      // Try to load from localStorage
       if (typeof window !== "undefined") {
-        this.token = localStorage.getItem(APP_CONFIG.auth.tokenKey)
+        this.token = getTokenFromStorage()
       }
     }
     return !!(this.token && this.token !== 'undefined')
@@ -267,7 +269,7 @@ class ApiService {
   async refreshTokenIfNeeded(): Promise<boolean> {
     try {
       const refreshToken = typeof window !== "undefined" ?
-        localStorage.getItem(APP_CONFIG.auth.refreshTokenKey) : null
+        getRefreshTokenFromStorage() : null
 
       if (!refreshToken) {
         console.log('❌ No refresh token available')
@@ -308,7 +310,7 @@ class ApiService {
             authStore.setToken(newAccessToken)
             if (newRefreshToken) {
               authStore.refreshToken = newRefreshToken
-              localStorage.setItem(APP_CONFIG.auth.refreshTokenKey, newRefreshToken)
+              setRefreshTokenInStorage(newRefreshToken)
             }
           } catch (error) {
             console.warn('Could not update auth store:', error)

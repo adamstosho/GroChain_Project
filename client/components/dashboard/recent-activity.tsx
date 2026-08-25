@@ -139,13 +139,13 @@ export function RecentActivity() {
       case "user":
         return "bg-accent/10 text-accent"
       case "favorite":
-        return "bg-pink-100 text-pink-600"
+        return "bg-accent/10 text-accent"
       case "verification":
-        return "bg-green-100 text-green-600"
+        return "bg-success/10 text-success"
       case "onboarding":
-        return "bg-blue-100 text-blue-600"
+        return "bg-primary/10 text-primary"
       case "commission":
-        return "bg-yellow-100 text-yellow-600"
+        return "bg-warning/10 text-warning"
       default:
         return "bg-muted/10 text-muted-foreground"
     }

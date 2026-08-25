@@ -11,6 +11,15 @@ const PartnerSchema = new mongoose.Schema({
   description: { type: String },
   website: { type: String },
   logo: { type: String },
+  contactPerson: {
+    name: { type: String },
+    position: { type: String },
+    phone: { type: String },
+    email: { type: String }
+  },
+  services: [{ type: String }],
+  coverageAreas: [{ type: String }],
+  certifications: [{ type: String }],
   status: { type: String, enum: ['active', 'inactive', 'suspended'], default: 'active' },
   commissionRate: { type: Number, default: 0.02, min: 0, max: 1 },
   farmers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],

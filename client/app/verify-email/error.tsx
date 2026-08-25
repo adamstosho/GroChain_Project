@@ -21,10 +21,10 @@ export default function Error({
     <div className="mx-auto max-w-md p-6">
       <Card>
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
-            <AlertCircle className="h-8 w-8 text-red-600" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+            <AlertCircle className="h-8 w-8 text-destructive" />
           </div>
-          <CardTitle className="text-red-600">Something went wrong</CardTitle>
+          <CardTitle className="text-destructive">Something went wrong</CardTitle>
           <CardDescription>
             There was an error loading the verification page. This can happen when opening the link in a different browser.
           </CardDescription>

@@ -559,15 +559,17 @@ const marketplaceController = {
         return res.status(400).json({ status: 'error', message: 'Items are required' })
       }
 
-      // Validate inventory before processing order
+      // Validate inventory before processing order, and source prices from the
+      // listing itself — never trust a client-submitted price.
+      const listingPriceById = new Map()
       for (const item of items) {
         const listing = await Listing.findById(item.listingId)
         if (!listing) {
           await session.abortTransaction()
           session.endSession()
-          return res.status(404).json({ 
-            status: 'error', 
-            message: `Listing ${item.listingId} not found` 
+          return res.status(404).json({
+            status: 'error',
+            message: `Listing ${item.listingId} not found`
           })
         }
 
@@ -583,15 +585,17 @@ const marketplaceController = {
         if (listing.availableQuantity < item.quantity) {
           await session.abortTransaction()
           session.endSession()
-          return res.status(400).json({ 
-            status: 'error', 
-            message: `Insufficient inventory for ${listing.cropName}. Requested: ${item.quantity}, Available: ${listing.availableQuantity}` 
+          return res.status(400).json({
+            status: 'error',
+            message: `Insufficient inventory for ${listing.cropName}. Requested: ${item.quantity}, Available: ${listing.availableQuantity}`
           })
         }
+
+        listingPriceById.set(item.listingId.toString(), listing.basePrice)
       }
 
-      // Calculate totals
-      const subtotal = items.reduce((s, it) => s + (Number(it.quantity) * Number(it.price || 0)), 0)
+      // Calculate totals from the authoritative listing price, not the client-submitted one
+      const subtotal = items.reduce((s, it) => s + (Number(it.quantity) * listingPriceById.get(it.listingId.toString())), 0)
       
       // Calculate shipping cost if not provided or if it's 0
       let shippingCost = shipping || 0

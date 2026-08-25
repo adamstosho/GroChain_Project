@@ -234,26 +234,26 @@ export default function QRCodeDetailPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200"
+        return "bg-success/10 text-success border-success/10"
       case "expired":
-        return "bg-amber-50 text-amber-700 border-amber-200"
+        return "bg-warning/10 text-warning border-warning/10"
       case "revoked":
-        return "bg-red-50 text-red-700 border-red-200"
+        return "bg-destructive/10 text-destructive border-destructive/10"
       default:
-        return "bg-gray-50 text-gray-700 border-gray-200"
+        return "bg-muted text-foreground border-border"
     }
   }
 
   if (loading) {
     return (
       <DashboardLayout pageTitle="Loading QR Code...">
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardContent className="p-12">
             <div className="text-center space-y-4">
               <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
               <div>
-                <h2 className="text-xl font-medium text-gray-900 mb-2">Loading QR Code Data</h2>
-                <p className="text-gray-600">Please wait while we fetch your QR code information...</p>
+                <h2 className="text-xl font-medium text-foreground mb-2">Loading QR Code Data</h2>
+                <p className="text-muted-foreground">Please wait while we fetch your QR code information...</p>
               </div>
             </div>
           </CardContent>
@@ -265,13 +265,13 @@ export default function QRCodeDetailPage() {
   if (!qrCode) {
     return (
       <DashboardLayout pageTitle="QR Code Not Found">
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardContent className="p-12">
             <div className="text-center space-y-4">
-              <QrCode className="h-16 w-16 text-gray-400 mx-auto" />
+              <QrCode className="h-16 w-16 text-muted-foreground mx-auto" />
               <div>
-                <h2 className="text-xl font-medium text-gray-900 mb-2">QR Code Not Found</h2>
-                <p className="text-gray-600 mb-4">The QR code you're looking for doesn't exist or has been removed.</p>
+                <h2 className="text-xl font-medium text-foreground mb-2">QR Code Not Found</h2>
+                <p className="text-muted-foreground mb-4">The QR code you're looking for doesn't exist or has been removed.</p>
                 <Button asChild>
                   <Link href="/dashboard/qr-codes">
                     <ArrowLeft className="h-4 w-4 mr-2" />
@@ -293,15 +293,15 @@ export default function QRCodeDetailPage() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" asChild className="text-gray-600 hover:text-gray-900">
+              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
                 <Link href="/dashboard/qr-codes" className="flex items-center gap-2">
                   <ArrowLeft className="h-4 w-4" />
                   Back to QR Codes
                 </Link>
               </Button>
             </div>
-            <h1 className="text-2xl font-semibold text-gray-900">QR Code Details</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-semibold text-foreground">QR Code Details</h1>
+            <p className="text-muted-foreground">
               Comprehensive information about your QR code and its usage
             </p>
           </div>
@@ -327,7 +327,7 @@ export default function QRCodeDetailPage() {
         {/* QR Code Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* QR Code Display */}
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-medium">QR Code</CardTitle>
             </CardHeader>
@@ -341,12 +341,12 @@ export default function QRCodeDetailPage() {
                   />
                 </div>
               ) : (
-                <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center mx-auto">
-                  <QrCode className="h-24 w-24 text-gray-400" />
+                <div className="w-48 h-48 bg-muted rounded-lg flex items-center justify-center mx-auto">
+                  <QrCode className="h-24 w-24 text-muted-foreground" />
                 </div>
               )}
               <div className="mt-4 space-y-2">
-                <p className="font-medium text-gray-900">{qrCode.batchId}</p>
+                <p className="font-medium text-foreground">{qrCode.batchId}</p>
                 <Badge className={getStatusColor(qrCode.status)}>
                   {qrCode.status.charAt(0).toUpperCase() + qrCode.status.slice(1)}
                 </Badge>
@@ -355,37 +355,37 @@ export default function QRCodeDetailPage() {
           </Card>
 
           {/* Basic Information */}
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-medium">Basic Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-600">Crop:</span>
-                <span className="font-medium text-gray-900">{qrCode.cropType}</span>
+                <Package className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Crop:</span>
+                <span className="font-medium text-foreground">{qrCode.cropType}</span>
               </div>
               {qrCode.variety && (
                 <div className="flex items-center gap-2">
-                  <Package className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-600">Variety:</span>
-                  <span className="font-medium text-gray-900">{qrCode.variety}</span>
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Variety:</span>
+                  <span className="font-medium text-foreground">{qrCode.variety}</span>
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-600">Quantity:</span>
-                <span className="font-medium text-gray-900">{qrCode.quantity} {qrCode.unit}</span>
+                <Package className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Quantity:</span>
+                <span className="font-medium text-foreground">{qrCode.quantity} {qrCode.unit}</span>
               </div>
               <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-600">Location:</span>
-                <span className="font-medium text-gray-900">{typeof qrCode.location === 'string' ? qrCode.location : `${(qrCode.location as any)?.city || 'Unknown'}, ${(qrCode.location as any)?.state || 'Unknown State'}`}</span>
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Location:</span>
+                <span className="font-medium text-foreground">{typeof qrCode.location === 'string' ? qrCode.location : `${(qrCode.location as any)?.city || 'Unknown'}, ${(qrCode.location as any)?.state || 'Unknown State'}`}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-600">Generated:</span>
-                <span className="font-medium text-gray-900">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Generated:</span>
+                <span className="font-medium text-foreground">
                   {new Date(qrCode.generatedAt).toLocaleDateString()}
                 </span>
               </div>
@@ -393,28 +393,28 @@ export default function QRCodeDetailPage() {
           </Card>
 
           {/* Usage Statistics */}
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-medium">Usage Statistics</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-600">Total Scans:</span>
-                <span className="font-medium text-gray-900">{qrCode.scanCount}</span>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Total Scans:</span>
+                <span className="font-medium text-foreground">{qrCode.scanCount}</span>
               </div>
               {qrCode.lastScanned && (
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-600">Last Scanned:</span>
-                  <span className="font-medium text-gray-900">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Last Scanned:</span>
+                  <span className="font-medium text-foreground">
                     {new Date(qrCode.lastScanned).toLocaleDateString()}
                   </span>
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-600">Status:</span>
+                <Info className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Status:</span>
                 <Badge className={getStatusColor(qrCode.status)}>
                   {qrCode.status.charAt(0).toUpperCase() + qrCode.status.slice(1)}
                 </Badge>
@@ -424,13 +424,13 @@ export default function QRCodeDetailPage() {
         </div>
 
         {/* Detailed Information Tabs */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-medium">Detailed Information</CardTitle>
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="metadata">Metadata</TabsTrigger>
                 <TabsTrigger value="scans">Scan History</TabsTrigger>
@@ -440,50 +440,50 @@ export default function QRCodeDetailPage() {
               <TabsContent value="overview" className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
-                    <h3 className="font-medium text-gray-900">Product Details</h3>
+                    <h3 className="font-medium text-foreground">Product Details</h3>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Crop Type:</span>
+                        <span className="text-muted-foreground">Crop Type:</span>
                         <span className="font-medium">{qrCode.cropType}</span>
                       </div>
                       {qrCode.variety && (
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Variety:</span>
+                          <span className="text-muted-foreground">Variety:</span>
                           <span className="font-medium">{qrCode.variety}</span>
                         </div>
                       )}
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Quantity:</span>
+                        <span className="text-muted-foreground">Quantity:</span>
                         <span className="font-medium">{qrCode.quantity} {qrCode.unit}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Location:</span>
+                        <span className="text-muted-foreground">Location:</span>
                         <span className="font-medium">{typeof qrCode.location === 'string' ? qrCode.location : `${(qrCode.location as any)?.city || 'Unknown'}, ${(qrCode.location as any)?.state || 'Unknown State'}`}</span>
                       </div>
                     </div>
                   </div>
                   
                   <div className="space-y-4">
-                    <h3 className="font-medium text-gray-900">QR Code Information</h3>
+                    <h3 className="font-medium text-foreground">QR Code Information</h3>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Batch ID:</span>
+                        <span className="text-muted-foreground">Batch ID:</span>
                         <span className="font-medium font-mono">{qrCode.batchId}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Generated:</span>
+                        <span className="text-muted-foreground">Generated:</span>
                         <span className="font-medium">
                           {new Date(qrCode.generatedAt).toLocaleString()}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Status:</span>
+                        <span className="text-muted-foreground">Status:</span>
                         <Badge className={getStatusColor(qrCode.status)}>
                           {qrCode.status.charAt(0).toUpperCase() + qrCode.status.slice(1)}
                         </Badge>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Total Scans:</span>
+                        <span className="text-muted-foreground">Total Scans:</span>
                         <span className="font-medium">{qrCode.scanCount}</span>
                       </div>
                     </div>
@@ -496,10 +496,10 @@ export default function QRCodeDetailPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {Object.entries(qrCode.metadata).map(([key, value]) => (
                       <div key={key} className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700 capitalize">
+                        <Label className="text-sm font-medium text-foreground capitalize">
                           {key.replace(/([A-Z])/g, ' $1').trim()}
                         </Label>
-                        <p className="text-sm text-gray-900">
+                        <p className="text-sm text-foreground">
                           {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
                         </p>
                       </div>
@@ -507,9 +507,9 @@ export default function QRCodeDetailPage() {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <Info className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Metadata Available</h3>
-                    <p className="text-gray-600">
+                    <Info className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">No Metadata Available</h3>
+                    <p className="text-muted-foreground">
                       This QR code doesn't have additional metadata attached.
                     </p>
                   </div>
@@ -520,15 +520,15 @@ export default function QRCodeDetailPage() {
                 {qrCode.scanHistory && qrCode.scanHistory.length > 0 ? (
                   <div className="space-y-3">
                     {qrCode.scanHistory.map((scan) => (
-                      <div key={scan.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div key={scan.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full ${scan.isValid ? 'bg-green-500' : 'bg-red-500'}`} />
+                          <div className={`w-2 h-2 rounded-full ${scan.isValid ? 'bg-success' : 'bg-destructive'}`} />
                           <div>
-                            <p className="font-medium text-sm text-gray-900">
+                            <p className="font-medium text-sm text-foreground">
                               {new Date(scan.timestamp).toLocaleString()}
                             </p>
                             {scan.location && (
-                              <p className="text-xs text-gray-600">{typeof scan.location === 'string' ? scan.location : `${(scan.location as any)?.city || 'Unknown'}, ${(scan.location as any)?.state || 'Unknown State'}`}</p>
+                              <p className="text-xs text-muted-foreground">{typeof scan.location === 'string' ? scan.location : `${(scan.location as any)?.city || 'Unknown'}, ${(scan.location as any)?.state || 'Unknown State'}`}</p>
                             )}
                           </div>
                         </div>
@@ -537,7 +537,7 @@ export default function QRCodeDetailPage() {
                             {scan.isValid ? "Valid" : "Invalid"}
                           </Badge>
                           {scan.device && (
-                            <p className="text-xs text-gray-500 mt-1">{scan.device}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{scan.device}</p>
                           )}
                         </div>
                       </div>
@@ -545,9 +545,9 @@ export default function QRCodeDetailPage() {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <History className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Scan History</h3>
-                    <p className="text-gray-600">
+                    <History className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">No Scan History</h3>
+                    <p className="text-muted-foreground">
                       This QR code hasn't been scanned yet.
                     </p>
                   </div>
@@ -557,7 +557,7 @@ export default function QRCodeDetailPage() {
               <TabsContent value="actions" className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-3">
-                    <h3 className="font-medium text-gray-900">Download Options</h3>
+                    <h3 className="font-medium text-foreground">Download Options</h3>
                     <div className="space-y-2">
                       <Button 
                         variant="outline" 
@@ -587,7 +587,7 @@ export default function QRCodeDetailPage() {
                   </div>
 
                   <div className="space-y-3">
-                    <h3 className="font-medium text-gray-900">Management Actions</h3>
+                    <h3 className="font-medium text-foreground">Management Actions</h3>
                     <div className="space-y-2">
                       <Button 
                         variant="outline" 
@@ -610,7 +610,7 @@ export default function QRCodeDetailPage() {
                       {qrCode.status === 'active' && (
                         <Button 
                           variant="outline" 
-                          className="w-full justify-start text-amber-600"
+                          className="w-full justify-start text-warning"
                           onClick={handleRevoke}
                         >
                           <AlertCircle className="h-4 w-4 mr-2" />
@@ -619,7 +619,7 @@ export default function QRCodeDetailPage() {
                       )}
                       <Button 
                         variant="outline" 
-                        className="w-full justify-start text-red-600"
+                        className="w-full justify-start text-destructive"
                         onClick={() => setShowDeleteDialog(true)}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
@@ -635,7 +635,7 @@ export default function QRCodeDetailPage() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-medium">Quick Actions</CardTitle>
               <CardDescription>Common tasks and shortcuts</CardDescription>
@@ -658,7 +658,7 @@ export default function QRCodeDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-medium">Need Help?</CardTitle>
               <CardDescription>Get support and access resources</CardDescription>

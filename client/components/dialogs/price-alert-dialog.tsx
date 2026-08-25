@@ -207,7 +207,7 @@ export function PriceAlertDialog({
               <h4 className="font-medium text-sm sm:text-base truncate">{product.cropName}</h4>
               <p className="text-xs sm:text-sm text-muted-foreground truncate">{product.category}</p>
               <p className="text-xs sm:text-sm font-medium">
-                Current Price: <span className="text-green-600">{formatPrice(currentPrice)}</span>
+                Current Price: <span className="text-success">{formatPrice(currentPrice)}</span>
               </p>
             </div>
           </div>
@@ -377,7 +377,7 @@ export function PriceAlertDialog({
                 >
                   {isSubmitting ? (
                     <>
-                      <div className="h-3 w-3 sm:h-4 sm:w-4 animate-spin rounded-full border-2 border-gray-300 border-t-white mr-2" />
+                      <div className="h-3 w-3 sm:h-4 sm:w-4 animate-spin rounded-full border-2 border-border border-t-white mr-2" />
                       <span className="hidden sm:inline">{existingAlert ? 'Updating...' : 'Creating...'}</span>
                       <span className="sm:hidden">{existingAlert ? 'Updating...' : 'Creating...'}</span>
                     </>

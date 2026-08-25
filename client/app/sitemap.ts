@@ -7,8 +7,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '',
     '/marketplace',
     '/partners',
-    '/finance',
-    '/harvests',
     '/login',
     '/register',
     '/dashboard',

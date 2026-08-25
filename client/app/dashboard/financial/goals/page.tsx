@@ -95,30 +95,30 @@ const getGoalTypeLabel = (type: string) => {
 
 const getPriorityColor = (priority: string) => {
   switch (priority) {
-    case 'critical': return 'bg-red-50 text-red-700 border-red-200'
-    case 'high': return 'bg-orange-50 text-orange-700 border-orange-200'
-    case 'medium': return 'bg-blue-50 text-blue-700 border-blue-200'
-    case 'low': return 'bg-gray-50 text-gray-700 border-gray-200'
-    default: return 'bg-gray-50 text-gray-700 border-gray-200'
+    case 'critical': return 'bg-destructive/10 text-destructive border-destructive/10'
+    case 'high': return 'bg-warning/10 text-warning border-warning/10'
+    case 'medium': return 'bg-primary/10 text-primary border-primary/10'
+    case 'low': return 'bg-muted text-foreground border-border'
+    default: return 'bg-muted text-foreground border-border'
   }
 }
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'active': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    case 'paused': return 'bg-amber-50 text-amber-700 border-amber-200'
-    case 'completed': return 'bg-blue-50 text-blue-700 border-blue-200'
-    case 'cancelled': return 'bg-red-50 text-red-700 border-red-200'
-    default: return 'bg-gray-50 text-gray-700 border-gray-200'
+    case 'active': return 'bg-success/10 text-success border-success/10'
+    case 'paused': return 'bg-warning/10 text-warning border-warning/10'
+    case 'completed': return 'bg-primary/10 text-primary border-primary/10'
+    case 'cancelled': return 'bg-destructive/10 text-destructive border-destructive/10'
+    default: return 'bg-muted text-foreground border-border'
   }
 }
 
 const getCategoryColor = (category: string) => {
   switch (category) {
-    case 'short_term': return 'bg-blue-50 text-blue-700 border-blue-200'
-    case 'medium_term': return 'bg-purple-50 text-purple-700 border-purple-200'
-    case 'long_term': return 'bg-indigo-50 text-indigo-700 border-indigo-200'
-    default: return 'bg-gray-50 text-gray-700 border-gray-200'
+    case 'short_term': return 'bg-primary/10 text-primary border-primary/10'
+    case 'medium_term': return 'bg-accent/10 text-accent border-accent/10'
+    case 'long_term': return 'bg-primary/10 text-primary border-primary/10'
+    default: return 'bg-muted text-foreground border-border'
   }
 }
 
@@ -381,11 +381,11 @@ export default function FinancialGoalsPage() {
   }
 
   const getProgressColor = (progress: number) => {
-    if (progress >= 80) return 'bg-emerald-500'
-    if (progress >= 60) return 'bg-blue-500'
-    if (progress >= 40) return 'bg-amber-500'
-    if (progress >= 20) return 'bg-orange-500'
-    return 'bg-red-500'
+    if (progress >= 80) return 'bg-success'
+    if (progress >= 60) return 'bg-primary'
+    if (progress >= 40) return 'bg-warning'
+    if (progress >= 20) return 'bg-warning'
+    return 'bg-destructive'
   }
 
   if (loading) {
@@ -394,14 +394,14 @@ export default function FinancialGoalsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
+              <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-3">
-                  <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-5 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-4 bg-gray-200 rounded mb-3"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-4 bg-muted rounded mb-3"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
@@ -418,15 +418,15 @@ export default function FinancialGoalsPage() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" asChild className="text-gray-600 hover:text-gray-900">
+              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
                 <Link href="/dashboard/financial" className="flex items-center gap-2">
                   <ArrowLeft className="h-4 w-4" />
                   Back to Financial Services
                 </Link>
               </Button>
             </div>
-            <h1 className="text-2xl font-semibold text-gray-900">Financial Goals</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-semibold text-foreground">Financial Goals</h1>
+            <p className="text-muted-foreground">
               Set, track, and achieve your financial objectives
             </p>
           </div>
@@ -439,61 +439,61 @@ export default function FinancialGoalsPage() {
 
         {/* Goals Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Target className="h-4 w-4 text-blue-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Target className="h-4 w-4 text-primary" />
                 Total Goals
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{goals.length}</div>
-              <p className="text-xs text-gray-500">Active objectives</p>
+              <div className="text-2xl font-bold text-foreground">{goals.length}</div>
+              <p className="text-xs text-muted-foreground">Active objectives</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-emerald-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-success" />
                 Total Target
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-2xl font-bold text-foreground">
                 ₦{(goals.reduce((sum, goal) => sum + goal.targetAmount, 0) / 1000000).toFixed(1)}M
               </div>
-              <p className="text-xs text-gray-500">Combined target</p>
+              <p className="text-xs text-muted-foreground">Combined target</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Banknote className="h-4 w-4 text-green-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Banknote className="h-4 w-4 text-success" />
                 Total Saved
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-2xl font-bold text-foreground">
                 ₦{(goals.reduce((sum, goal) => sum + goal.currentAmount, 0) / 1000000).toFixed(1)}M
               </div>
-              <p className="text-xs text-gray-500">Current progress</p>
+              <p className="text-xs text-muted-foreground">Current progress</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-purple-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-accent" />
                 Completion Rate
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-2xl font-bold text-foreground">
                 {goals.length > 0 ? Math.round(goals.reduce((sum, goal) => sum + goal.progress, 0) / goals.length) : 0}%
               </div>
-              <p className="text-xs text-gray-500">Average progress</p>
+              <p className="text-xs text-muted-foreground">Average progress</p>
             </CardContent>
           </Card>
         </div>
@@ -502,7 +502,7 @@ export default function FinancialGoalsPage() {
         {goals.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {goals.map((goal) => (
-              <Card key={goal._id} className="border border-gray-200 hover:shadow-lg transition-shadow">
+              <Card key={goal._id} className="border border-border hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
@@ -531,20 +531,20 @@ export default function FinancialGoalsPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-sm text-gray-600 line-clamp-2">{goal.description}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{goal.description}</p>
 
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Progress:</span>
+                      <span className="text-muted-foreground">Progress:</span>
                       <span className="font-medium">{goal.progress}%</span>
                     </div>
                     <Progress value={goal.progress} className="h-2" />
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Current:</span>
+                      <span className="text-muted-foreground">Current:</span>
                       <span className="font-medium">₦{goal.currentAmount.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Target:</span>
+                      <span className="text-muted-foreground">Target:</span>
                       <span className="font-medium">₦{goal.targetAmount.toLocaleString()}</span>
                     </div>
                   </div>
@@ -563,7 +563,7 @@ export default function FinancialGoalsPage() {
                     </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       <span>Due: {new Date(goal.targetDate).toLocaleDateString()}</span>
@@ -578,12 +578,12 @@ export default function FinancialGoalsPage() {
             ))}
           </div>
         ) : (
-          <Card className="text-center py-12 border border-gray-200">
-            <div className="text-gray-400 mb-4">
+          <Card className="text-center py-12 border border-border">
+            <div className="text-muted-foreground mb-4">
               <Target className="h-16 w-16 mx-auto" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Financial Goals Set</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-lg font-medium text-foreground mb-2">No Financial Goals Set</h3>
+            <p className="text-muted-foreground mb-4">
               Start planning your financial future by setting clear, achievable goals.
             </p>
             <Button onClick={() => setShowCreateDialog(true)}>

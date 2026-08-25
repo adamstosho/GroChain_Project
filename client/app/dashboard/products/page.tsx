@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useBuyerStore } from "@/hooks/use-buyer-store"
@@ -417,10 +418,10 @@ export default function ProductsPage() {
 
   const getQualityColor = (quality: string) => {
     switch (quality) {
-      case 'premium': return 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white'
-      case 'standard': return 'bg-blue-500 text-white'
-      case 'basic': return 'bg-gray-500 text-white'
-      default: return 'bg-gray-500 text-white'
+      case 'premium': return 'bg-gradient-to-r from-warning to-warning/70 text-white'
+      case 'standard': return 'bg-primary text-white'
+      case 'basic': return 'bg-secondary text-white'
+      default: return 'bg-secondary text-white'
     }
   }
 
@@ -440,34 +441,31 @@ export default function ProductsPage() {
   return (
     <DashboardLayout pageTitle="Browse Products">
       <div className="space-y-6">
-        {/* Header Section */}
-        <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              Browse Products
+        <DashboardPageHeader
+          badge="Marketplace Live"
+          title="Browse"
+          titleHighlight="Products"
+          description="Discover fresh agricultural products from verified farmers across Nigeria."
+          actions={
+            <>
               {isRefreshing && <RefreshCw className="h-5 w-5 animate-spin text-primary" aria-label="Updating products" />}
-            </h1>
-            <p className="text-muted-foreground">
-              Discover fresh agricultural products from verified farmers across Nigeria
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'outline'}
+                size="lg"
+                onClick={() => setViewMode('grid')}
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'outline'}
+                size="lg"
+                onClick={() => setViewMode('list')}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </>
+          }
+        />
 
         {/* Search and Filters */}
         <Card>
@@ -587,7 +585,7 @@ export default function ProductsPage() {
                 id="organic"
                 checked={filters.organic}
                 onChange={(e) => setFilters({ ...filters, organic: e.target.checked })}
-                className="rounded border-gray-300"
+                className="rounded border-border"
               />
               <label htmlFor="organic" className="text-sm font-medium">
                 Organic products only
@@ -743,7 +741,7 @@ function ProductCard({
                 className="rounded-lg object-cover"
               />
               {product.organic && (
-                <Badge className="absolute top-2 left-2 bg-green-600 text-white text-xs">
+                <Badge className="absolute top-2 left-2 bg-success text-white text-xs">
                   Organic
                 </Badge>
               )}
@@ -773,14 +771,14 @@ function ProductCard({
                     title={isWishlisted ? "Remove from favorites" : "Add to favorites"}
                   >
                     {isProcessing ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-red-500" />
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-destructive" />
                     ) : (
                       <Heart
                         className={cn(
                           "h-4 w-4 transition-all duration-200",
                           isWishlisted
-                            ? "fill-red-500 text-red-500 scale-110"
-                            : "text-gray-600 hover:text-red-500 hover:scale-105"
+                            ? "fill-destructive text-destructive scale-110"
+                            : "text-muted-foreground hover:text-destructive hover:scale-105"
                         )}
                       />
                     )}
@@ -806,7 +804,7 @@ function ProductCard({
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-1">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <Star className="h-4 w-4 fill-warning text-warning" />
                     <span className="font-medium">{product.rating}</span>
                     <span className="text-muted-foreground">({product.reviews})</span>
                   </div>
@@ -834,7 +832,7 @@ function ProductCard({
               <div className="flex items-center space-x-3 mt-4">
                 {product.availableQuantity <= 0 ? (
                   <Button
-                    className="flex-1 bg-gray-500"
+                    className="flex-1 bg-secondary"
                     size="sm"
                     disabled
                   >
@@ -880,7 +878,7 @@ function ProductCard({
             />
           </div>
           {product.organic && (
-            <Badge className="absolute top-1.5 left-1.5 bg-green-600 text-white text-[10px] px-1.5 py-0.5">
+            <Badge className="absolute top-1.5 left-1.5 bg-success text-white text-[10px] px-1.5 py-0.5">
               Organic
             </Badge>
           )}
@@ -909,7 +907,7 @@ function ProductCard({
               </span>
             </div>
             <div className="flex items-center space-x-1">
-              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+              <Star className="h-3 w-3 fill-warning text-warning" />
               <span className="font-medium text-xs">{product.rating}</span>
               <span className="text-muted-foreground text-xs">({product.reviews})</span>
             </div>
@@ -939,7 +937,7 @@ function ProductCard({
           <div className="flex items-center space-x-2">
             {product.availableQuantity <= 0 ? (
               <Button
-                className="flex-1 h-8 text-xs bg-gray-500"
+                className="flex-1 h-8 text-xs bg-secondary"
                 size="sm"
                 disabled
               >
@@ -965,14 +963,14 @@ function ProductCard({
               title={isWishlisted ? "Remove from favorites" : "Add to favorites"}
             >
               {isProcessing ? (
-                <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-red-500" />
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-border border-t-destructive" />
               ) : (
                 <Heart
                   className={cn(
                     "h-3 w-3 transition-all duration-200",
                     isWishlisted
-                      ? "fill-red-500 text-red-500 scale-110"
-                      : "text-gray-600 hover:text-red-500 hover:scale-105"
+                      ? "fill-destructive text-destructive scale-110"
+                      : "text-muted-foreground hover:text-destructive hover:scale-105"
                   )}
                 />
               )}

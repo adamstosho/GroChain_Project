@@ -13,5 +13,3 @@ export type { QRScanResult } from './qr-scanner'
 export { MarketplaceCard } from './marketplace-card'
 export type { MarketplaceProduct } from './marketplace-card'
 
-export { AnalyticsDashboard } from './analytics-dashboard'
-

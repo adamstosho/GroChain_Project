@@ -33,16 +33,11 @@ function GoogleCallbackContent() {
   useEffect(() => {
     const handleGoogleCallback = async () => {
       try {
-        console.log('Environment check:')
-        console.log('NEXT_PUBLIC_API_BASE_URL:', process.env.NEXT_PUBLIC_API_BASE_URL)
-        console.log('NEXT_PUBLIC_GOOGLE_REDIRECT_URI:', process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI)
-        console.log('NEXT_PUBLIC_JWT_STORAGE_KEY:', process.env.NEXT_PUBLIC_JWT_STORAGE_KEY)
         
         const code = searchParams.get('code')
         const state = searchParams.get('state')
         const error = searchParams.get('error')
 
-        console.log('URL params:', { code, state, error })
 
         if (error) {
           setStatus('error')
@@ -57,10 +52,7 @@ function GoogleCallbackContent() {
         }
 
         // Exchange code for tokens
-        console.log('Sending request to backend with code:', code)
-        console.log('API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL)
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
-        console.log('Full URL:', `${apiBaseUrl}/api/auth/google/callback`)
         const response = await fetch(`${apiBaseUrl}/api/auth/google/callback`, {
           method: 'POST',
           headers: {
@@ -73,8 +65,6 @@ function GoogleCallbackContent() {
           })
         })
         
-        console.log('Backend response status:', response.status)
-        console.log('Backend response headers:', response.headers)
         
         if (!response.ok) {
           console.error('Backend response not ok:', response.status, response.statusText)
@@ -102,7 +92,6 @@ function GoogleCallbackContent() {
         let data
         try {
           data = await response.json()
-          console.log('Google callback response:', data)
         } catch (parseError) {
           console.error('Failed to parse JSON response:', parseError)
           const responseText = await response.text()
@@ -113,14 +102,12 @@ function GoogleCallbackContent() {
         if (data.status === 'success') {
           // Store tokens and user data
           if (data.token) {
-            console.log('Setting token:', data.token)
             setToken(data.token)
             apiService.setToken(data.token)
             localStorage.setItem(process.env.NEXT_PUBLIC_JWT_STORAGE_KEY || 'grochain_auth_token', data.token)
           }
 
           if (data.user) {
-            console.log('Setting user:', data.user)
             setUser(data.user)
           }
 
@@ -147,7 +134,7 @@ function GoogleCallbackContent() {
   }, [searchParams, router, setUser, setToken])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-muted">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle>Google Authentication</CardTitle>
@@ -158,27 +145,27 @@ function GoogleCallbackContent() {
         <CardContent className="text-center space-y-4">
           {status === 'loading' && (
             <>
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
-              <p className="text-sm text-gray-600">Please wait while we verify your account...</p>
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+              <p className="text-sm text-muted-foreground">Please wait while we verify your account...</p>
             </>
           )}
 
           {status === 'success' && (
             <>
-              <CheckCircle className="h-8 w-8 mx-auto text-green-600" />
-              <p className="text-sm text-green-600">{message}</p>
-              <p className="text-xs text-gray-500">Redirecting to dashboard...</p>
+              <CheckCircle className="h-8 w-8 mx-auto text-success" />
+              <p className="text-sm text-success">{message}</p>
+              <p className="text-xs text-muted-foreground">Redirecting to dashboard...</p>
             </>
           )}
 
           {status === 'error' && (
             <>
-              <XCircle className="h-8 w-8 mx-auto text-red-600" />
-              <p className="text-sm text-red-600">{message}</p>
+              <XCircle className="h-8 w-8 mx-auto text-destructive" />
+              <p className="text-sm text-destructive">{message}</p>
               <div className="flex gap-2">
                 <Button 
                   onClick={handleRetry}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 bg-primary hover:bg-primary"
                 >
                   Try Again
                 </Button>

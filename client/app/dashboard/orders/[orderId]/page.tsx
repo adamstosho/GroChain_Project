@@ -165,23 +165,23 @@ export default function OrderDetailsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'confirmed': return 'bg-blue-100 text-blue-800'
-      case 'paid': return 'bg-green-100 text-green-800'
-      case 'shipped': return 'bg-purple-100 text-purple-800'
-      case 'delivered': return 'bg-green-100 text-green-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'pending': return 'bg-warning/10 text-warning'
+      case 'confirmed': return 'bg-primary/10 text-primary'
+      case 'paid': return 'bg-success/10 text-success'
+      case 'shipped': return 'bg-accent/10 text-accent'
+      case 'delivered': return 'bg-success/10 text-success'
+      case 'cancelled': return 'bg-destructive/10 text-destructive'
+      default: return 'bg-muted text-foreground'
     }
   }
 
   const getPaymentStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'paid': return 'bg-green-100 text-green-800'
-      case 'failed': return 'bg-red-100 text-red-800'
-      case 'refunded': return 'bg-orange-100 text-orange-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'pending': return 'bg-warning/10 text-warning'
+      case 'paid': return 'bg-success/10 text-success'
+      case 'failed': return 'bg-destructive/10 text-destructive'
+      case 'refunded': return 'bg-warning/10 text-warning'
+      default: return 'bg-muted text-foreground'
     }
   }
 
@@ -254,16 +254,16 @@ export default function OrderDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50">
+      <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10">
         <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
           <div className="animate-pulse space-y-4 sm:space-y-6">
-            <div className="h-6 sm:h-8 bg-gray-200 rounded w-32 sm:w-64"></div>
+            <div className="h-6 sm:h-8 bg-muted rounded w-32 sm:w-64"></div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
               <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-                <div className="h-48 sm:h-64 bg-gray-200 rounded"></div>
-                <div className="h-32 sm:h-48 bg-gray-200 rounded"></div>
+                <div className="h-48 sm:h-64 bg-muted rounded"></div>
+                <div className="h-32 sm:h-48 bg-muted rounded"></div>
               </div>
-              <div className="h-64 sm:h-96 bg-gray-200 rounded"></div>
+              <div className="h-64 sm:h-96 bg-muted rounded"></div>
             </div>
           </div>
         </div>
@@ -273,13 +273,13 @@ export default function OrderDetailsPage() {
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50 flex items-center justify-center p-3 sm:p-4">
+      <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10 flex items-center justify-center p-3 sm:p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center p-4 sm:p-6">
-            <CardTitle className="text-red-600 text-base sm:text-lg">Order Not Found</CardTitle>
+            <CardTitle className="text-destructive text-base sm:text-lg">Order Not Found</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
-            <p className="text-gray-600 text-sm sm:text-base">
+            <p className="text-muted-foreground text-sm sm:text-base">
               {error || "We couldn't find the order you're looking for."}
             </p>
             <Button onClick={() => router.push('/dashboard/orders')} className="w-full h-9 sm:h-10 text-xs sm:text-sm">
@@ -292,7 +292,7 @@ export default function OrderDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50">
+    <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10">
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-full overflow-hidden">
         <Button variant="ghost" asChild className="mb-4 sm:mb-6 h-8 sm:h-9 text-xs sm:text-sm">
           <Link href="/dashboard/orders" className="flex items-center gap-1 sm:gap-2">
@@ -324,7 +324,7 @@ export default function OrderDetailsPage() {
                     </Badge>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 mt-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground mt-3">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="truncate">{formatDate(order.createdAt)}</span>
@@ -355,8 +355,8 @@ export default function OrderDetailsPage() {
                     </div>
                     <div className="flex-1 min-w-0 w-full sm:w-auto">
                       <h4 className="font-medium text-sm sm:text-base truncate">{item.listing.cropName}</h4>
-                      <p className="text-xs sm:text-sm text-gray-600 truncate">by {item.listing.farmer.name}</p>
-                      <p className="text-xs sm:text-sm text-gray-500 truncate">
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">by {item.listing.farmer.name}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
                         Qty: {item.quantity} {item.unit} × ₦{item.price.toLocaleString()}
                       </p>
                     </div>
@@ -370,9 +370,9 @@ export default function OrderDetailsPage() {
 
             {/* Bank Transfer Instructions (if applicable) */}
             {paymentMethod === 'bank_transfer' && order.paymentStatus === 'pending' && (
-              <Card className="border-orange-200 bg-orange-50">
+              <Card className="border-warning/10 bg-warning/10">
                 <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="text-orange-800 flex items-center gap-1 sm:gap-2 text-sm sm:text-base">
+                  <CardTitle className="text-warning flex items-center gap-1 sm:gap-2 text-sm sm:text-base">
                     <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
                     Bank Transfer Instructions
                   </CardTitle>
@@ -399,8 +399,8 @@ export default function OrderDetailsPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
-                    <p className="text-xs sm:text-sm text-blue-800">
+                  <div className="bg-primary/10 p-3 sm:p-4 rounded-lg">
+                    <p className="text-xs sm:text-sm text-primary">
                       <strong>Important:</strong> Please include your order number #{order._id.slice(-8)} in the transfer description.
                       Your order will be processed once payment is confirmed (usually within 1-2 business days).
                     </p>
@@ -447,19 +447,19 @@ export default function OrderDetailsPage() {
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-0 space-y-2 sm:space-y-3">
                 <div className="flex items-center gap-2">
-                  <User className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
+                  <User className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                   <span className="text-sm sm:text-base truncate">{order.buyer.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Mail className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
+                  <Mail className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                   <span className="text-sm sm:text-base truncate">{order.buyer.email}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Phone className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
+                  <Phone className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                   <span className="text-sm sm:text-base truncate">{order.shippingAddress.phone}</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0 mt-0.5" />
+                  <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                   <div className="text-sm sm:text-base">
                     <p className="break-words">{order.shippingAddress.street}</p>
                     <p className="break-words">{order.shippingAddress.city}, {order.shippingAddress.state}</p>
@@ -467,9 +467,9 @@ export default function OrderDetailsPage() {
                   </div>
                 </div>
                 {order.deliveryInstructions && (
-                  <div className="mt-3 sm:mt-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="mt-3 sm:mt-4 p-3 bg-muted rounded-lg">
                     <p className="text-xs sm:text-sm font-medium mb-1">Delivery Instructions:</p>
-                    <p className="text-xs sm:text-sm text-gray-600 break-words">{order.deliveryInstructions}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground break-words">{order.deliveryInstructions}</p>
                   </div>
                 )}
               </CardContent>

@@ -44,7 +44,7 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
       case "in_progress":
         return <Badge variant="default"><TrendingUp className="w-3 h-3 mr-1" />In Progress</Badge>
       case "completed":
-        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Completed</Badge>
+        return <Badge variant="default" className="bg-success/10 text-success"><CheckCircle className="w-3 h-3 mr-1" />Completed</Badge>
       case "rejected":
         return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>
       case "on_hold":
@@ -59,9 +59,9 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
       <Card className={className}>
         <CardContent className="flex items-center justify-center p-8">
           <div className="text-center space-y-4">
-            <XCircle className="h-12 w-12 text-red-500 mx-auto" />
-            <h3 className="text-lg font-medium text-red-900">Error Loading Onboarding Data</h3>
-            <p className="text-red-700">{error}</p>
+            <XCircle className="h-12 w-12 text-destructive mx-auto" />
+            <h3 className="text-lg font-medium text-destructive">Error Loading Onboarding Data</h3>
+            <p className="text-destructive">{error}</p>
             <div className="flex gap-2 justify-center">
               <Button onClick={refreshData} variant="outline">
                 Try Again
@@ -183,7 +183,7 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+{stats.thisMonth}</span> this month
+              <span className="text-success">+{stats.thisMonth}</span> this month
             </p>
           </CardContent>
         </Card>
@@ -191,7 +191,7 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-600" />
+            <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.inProgress}</div>
@@ -204,7 +204,7 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CheckCircle className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.successRate}%</div>
@@ -217,7 +217,7 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
+            <Clock className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pending}</div>

@@ -50,7 +50,7 @@ export default function TestGoogleAuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-muted flex items-center justify-center p-4">
       <div className="w-full max-w-2xl space-y-6">
         <Card>
           <CardHeader>
@@ -106,7 +106,7 @@ export default function TestGoogleAuthPage() {
             </div>
 
             {result && (
-              <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+              <div className="mt-4 p-4 bg-muted rounded-lg">
                 <h3 className="font-semibold mb-2">Result:</h3>
                 <pre className="text-sm overflow-auto">
                   {JSON.stringify(result, null, 2)}

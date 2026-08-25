@@ -310,14 +310,14 @@ export default function EditListingPage() {
       <DashboardLayout pageTitle="Edit Listing">
         <div className="space-y-6">
           <div className="flex items-center gap-4">
-            <div className="h-6 bg-gray-200 rounded w-32 animate-pulse"></div>
-            <div className="h-6 bg-gray-200 rounded w-48 animate-pulse"></div>
+            <div className="h-6 bg-muted rounded w-32 animate-pulse"></div>
+            <div className="h-6 bg-muted rounded w-48 animate-pulse"></div>
           </div>
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
-                <span className="text-gray-600">Loading listing data...</span>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
+                <span className="text-muted-foreground">Loading listing data...</span>
               </div>
             </CardContent>
           </Card>
@@ -333,17 +333,17 @@ export default function EditListingPage() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" asChild className="text-gray-600 hover:text-gray-900">
+              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
                 <Link href="/dashboard/marketplace/listings" className="flex items-center gap-2">
                   <ArrowLeft className="h-4 w-4" />
                   Back to Listings
                 </Link>
               </Button>
             </div>
-            <h1 className="text-2xl font-semibold text-gray-900">
+            <h1 className="text-2xl font-semibold text-foreground">
               Edit Listing
             </h1>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Update your product listing information
             </p>
           </div>
@@ -352,10 +352,10 @@ export default function EditListingPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
           <div className="lg:col-span-2">
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base font-medium">
-                  <Package className="h-4 w-4 text-blue-500" />
+                  <Package className="h-4 w-4 text-primary" />
                   Product Information
                 </CardTitle>
                 <CardDescription>
@@ -366,7 +366,7 @@ export default function EditListingPage() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Basic Information */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-900">Basic Information</h3>
+                    <h3 className="text-lg font-medium text-foreground">Basic Information</h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -376,10 +376,10 @@ export default function EditListingPage() {
                           value={formData.cropName}
                           onChange={(e) => setFormData(prev => ({ ...prev, cropName: e.target.value }))}
                           placeholder="e.g., Fresh Maize, Cassava Tubers"
-                          className={errors.cropName ? 'border-red-500' : ''}
+                          className={errors.cropName ? 'border-destructive' : ''}
                         />
                         {errors.cropName && (
-                          <p className="text-sm text-red-600 flex items-center gap-1">
+                          <p className="text-sm text-destructive flex items-center gap-1">
                             <AlertCircle className="h-3 w-3" />
                             {errors.cropName}
                           </p>
@@ -392,7 +392,7 @@ export default function EditListingPage() {
                           value={formData.category}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
                         >
-                          <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
+                          <SelectTrigger className={errors.category ? 'border-destructive' : ''}>
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
@@ -407,7 +407,7 @@ export default function EditListingPage() {
                           </SelectContent>
                         </Select>
                         {errors.category && (
-                          <p className="text-sm text-red-600 flex items-center gap-1">
+                          <p className="text-sm text-destructive flex items-center gap-1">
                             <AlertCircle className="h-3 w-3" />
                             {errors.category}
                           </p>
@@ -423,10 +423,10 @@ export default function EditListingPage() {
                         onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                         placeholder="Describe your product, its quality, benefits, and any special features..."
                         rows={4}
-                        className={errors.description ? 'border-red-500' : ''}
+                        className={errors.description ? 'border-destructive' : ''}
                       />
                       {errors.description && (
-                        <p className="text-sm text-red-600 flex items-center gap-1">
+                        <p className="text-sm text-destructive flex items-center gap-1">
                           <AlertCircle className="h-3 w-3" />
                           {errors.description}
                         </p>
@@ -436,13 +436,13 @@ export default function EditListingPage() {
 
                   {/* Pricing and Quantity */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-900">Pricing & Quantity</h3>
+                    <h3 className="text-lg font-medium text-foreground">Pricing & Quantity</h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="basePrice">Base Price (NGN) *</Label>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₦</span>
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">₦</span>
                           <Input
                             id="basePrice"
                             type="number"
@@ -451,11 +451,11 @@ export default function EditListingPage() {
                             placeholder="0"
                             min="0"
                             step="10"
-                            className={`pl-8 ${errors.basePrice ? 'border-red-500' : ''}`}
+                            className={`pl-8 ${errors.basePrice ? 'border-destructive' : ''}`}
                           />
                         </div>
                         {errors.basePrice && (
-                          <p className="text-sm text-red-600 flex items-center gap-1">
+                          <p className="text-sm text-destructive flex items-center gap-1">
                             <AlertCircle className="h-3 w-3" />
                             {errors.basePrice}
                           </p>
@@ -491,10 +491,10 @@ export default function EditListingPage() {
                           placeholder="0"
                           min="0"
                           step="1"
-                          className={errors.quantity ? 'border-red-500' : ''}
+                          className={errors.quantity ? 'border-destructive' : ''}
                         />
                         {errors.quantity && (
-                          <p className="text-sm text-red-600 flex items-center gap-1">
+                          <p className="text-sm text-destructive flex items-center gap-1">
                             <AlertCircle className="h-3 w-3" />
                             {errors.quantity}
                           </p>
@@ -513,13 +513,13 @@ export default function EditListingPage() {
                         min="0"
                         max={formData.quantity}
                         step="1"
-                        className={errors.availableQuantity ? 'border-red-500' : ''}
+                        className={errors.availableQuantity ? 'border-destructive' : ''}
                       />
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         This should be less than or equal to total quantity
                       </p>
                       {errors.availableQuantity && (
-                        <p className="text-sm text-red-600 flex items-center gap-1">
+                        <p className="text-sm text-destructive flex items-center gap-1">
                           <AlertCircle className="h-3 w-3" />
                           {errors.availableQuantity}
                         </p>
@@ -529,7 +529,7 @@ export default function EditListingPage() {
 
                   {/* Location */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-900">Location</h3>
+                    <h3 className="text-lg font-medium text-foreground">Location</h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -542,10 +542,10 @@ export default function EditListingPage() {
                             location: e.target.value
                           }))}
                           placeholder="e.g., Ibadan, Oyo State, Nigeria"
-                          className={errors.location ? 'border-red-500' : ''}
+                          className={errors.location ? 'border-destructive' : ''}
                         />
                         {errors.location && (
-                          <p className="text-sm text-red-600 flex items-center gap-1">
+                          <p className="text-sm text-destructive flex items-center gap-1">
                             <AlertCircle className="h-3 w-3" />
                             {errors.location}
                           </p>
@@ -556,13 +556,13 @@ export default function EditListingPage() {
 
                   {/* Images */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-900">Product Images</h3>
+                    <h3 className="text-lg font-medium text-foreground">Product Images</h3>
 
                     <div className="space-y-4">
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                        <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                        <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                         <Label htmlFor="images" className="cursor-pointer">
-                          <span className="text-sm text-gray-600">
+                          <span className="text-sm text-muted-foreground">
                             Click to upload images or drag and drop
                           </span>
                           <Input
@@ -574,7 +574,7 @@ export default function EditListingPage() {
                             className="hidden"
                           />
                         </Label>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           PNG, JPG up to 5MB each
                         </p>
                       </div>
@@ -606,7 +606,7 @@ export default function EditListingPage() {
 
                   {/* Tags */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-900">Tags</h3>
+                    <h3 className="text-lg font-medium text-foreground">Tags</h3>
 
                     <div className="space-y-3">
                       <div className="flex gap-2">
@@ -629,7 +629,7 @@ export default function EditListingPage() {
                               <button
                                 type="button"
                                 onClick={() => removeTag(tag)}
-                                className="ml-1 hover:text-red-600"
+                                className="ml-1 hover:text-destructive"
                               >
                                 ×
                               </button>
@@ -639,14 +639,14 @@ export default function EditListingPage() {
                       )}
 
                       <div className="space-y-2">
-                        <p className="text-sm text-gray-600">Popular tags:</p>
+                        <p className="text-sm text-muted-foreground">Popular tags:</p>
                         <div className="flex flex-wrap gap-2">
                           {popularTags.map((tag) => (
                             <Badge
                               key={tag}
                               variant="outline"
                               className={`cursor-pointer ${
-                                formData.tags.includes(tag) ? 'bg-blue-50 text-blue-700 border-blue-200' : ''
+                                formData.tags.includes(tag) ? 'bg-primary/10 text-primary border-primary/10' : ''
                               }`}
                               onClick={() => {
                                 if (formData.tags.includes(tag)) {
@@ -691,7 +691,7 @@ export default function EditListingPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Listing Preview */}
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-medium">Listing Preview</CardTitle>
                 <CardDescription>How your listing will appear</CardDescription>
@@ -702,33 +702,33 @@ export default function EditListingPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{getCategoryIcon(formData.category)}</span>
                       <div>
-                        <h4 className="font-medium text-gray-900">{formData.cropName}</h4>
-                        <p className="text-sm text-gray-500">{formData.category}</p>
+                        <h4 className="font-medium text-foreground">{formData.cropName}</h4>
+                        <p className="text-sm text-muted-foreground">{formData.category}</p>
                       </div>
                     </div>
 
                     {formData.description && (
-                      <p className="text-sm text-gray-600 line-clamp-3">
+                      <p className="text-sm text-muted-foreground line-clamp-3">
                         {formData.description}
                       </p>
                     )}
 
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Price:</span>
+                        <span className="text-muted-foreground">Price:</span>
                         <span className="font-medium">
                           ₦{formData.basePrice > 0 ? formData.basePrice.toLocaleString() : '0'}/{formData.unit}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Available:</span>
+                        <span className="text-muted-foreground">Available:</span>
                         <span className="font-medium">
                           {formData.availableQuantity > 0 ? formData.availableQuantity : '0'} {formData.unit}
                         </span>
                       </div>
                       {formData.location && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Location:</span>
+                          <span className="text-muted-foreground">Location:</span>
                           <span className="font-medium">
                             {formData.location}
                           </span>
@@ -747,7 +747,7 @@ export default function EditListingPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-muted-foreground">
                     <Package className="h-12 w-12 mx-auto mb-2" />
                     <p className="text-sm">Fill in the form to see a preview</p>
                   </div>
@@ -756,25 +756,25 @@ export default function EditListingPage() {
             </Card>
 
             {/* Tips */}
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-medium">Editing Tips</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-start gap-2 text-sm">
-                  <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                   <span>Update product information to attract more buyers</span>
                 </div>
                 <div className="flex items-start gap-2 text-sm">
-                  <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                   <span>Add fresh images to showcase your products</span>
                 </div>
                 <div className="flex items-start gap-2 text-sm">
-                  <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                   <span>Adjust prices based on market conditions</span>
                 </div>
                 <div className="flex items-start gap-2 text-sm">
-                  <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                   <span>Update quantities as you sell products</span>
                 </div>
               </CardContent>

@@ -72,40 +72,40 @@ export default function BuyersDirectoryPage() {
   }
 
   const getActivityColor = (activity: string) => {
-    if (activity.includes('today')) return 'bg-green-100 text-green-800 border-green-200'
-    if (activity.includes('yesterday')) return 'bg-blue-100 text-blue-800 border-blue-200'
-    if (activity.includes('week')) return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-    return 'bg-gray-100 text-gray-800 border-gray-200'
+    if (activity.includes('today')) return 'bg-success/10 text-success border-success/10'
+    if (activity.includes('yesterday')) return 'bg-primary/10 text-primary border-primary/10'
+    if (activity.includes('week')) return 'bg-warning/10 text-warning border-warning/10'
+    return 'bg-muted text-foreground border-border'
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading buyer directory...</p>
+          <p className="text-muted-foreground">Loading buyer directory...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-muted">
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-4 mb-4">
-            <Link href="/dashboard" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="h-4 w-4" />
               <span className="text-sm">Back to Dashboard</span>
             </Link>
-            <Link href="/dashboard" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
               <Home className="h-4 w-4" />
               <span className="text-sm">Home</span>
             </Link>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Active Buyers Directory</h1>
-          <p className="text-gray-600 text-sm">Discover verified buyers actively purchasing from our marketplace</p>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Active Buyers Directory</h1>
+          <p className="text-muted-foreground text-sm">Discover verified buyers actively purchasing from our marketplace</p>
         </div>
 
         {/* Stats Overview */}
@@ -113,9 +113,9 @@ export default function BuyersDirectoryPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{buyerActivity.activeBuyers || buyers.length}</div>
-                <div className="text-sm text-gray-600">Active Buyers</div>
-                <div className="text-xs text-gray-500">Last 30 days</div>
+                <div className="text-2xl font-bold text-success">{buyerActivity.activeBuyers || buyers.length}</div>
+                <div className="text-sm text-muted-foreground">Active Buyers</div>
+                <div className="text-xs text-muted-foreground">Last 30 days</div>
               </div>
             </CardContent>
           </Card>
@@ -123,9 +123,9 @@ export default function BuyersDirectoryPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{buyerActivity.todaysTransactions}</div>
-                <div className="text-sm text-gray-600">Transactions Today</div>
-                <div className="text-xs text-gray-500">Successful purchases</div>
+                <div className="text-2xl font-bold text-primary">{buyerActivity.todaysTransactions}</div>
+                <div className="text-sm text-muted-foreground">Transactions Today</div>
+                <div className="text-xs text-muted-foreground">Successful purchases</div>
               </div>
             </CardContent>
           </Card>
@@ -133,11 +133,11 @@ export default function BuyersDirectoryPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">
+                <div className="text-2xl font-bold text-accent">
                   {buyerActivity.averageRating ? `${buyerActivity.averageRating}★` : '—'}
                 </div>
-                <div className="text-sm text-gray-600">Average Rating</div>
-                <div className="text-xs text-gray-500">From verified buyers</div>
+                <div className="text-sm text-muted-foreground">Average Rating</div>
+                <div className="text-xs text-muted-foreground">From verified buyers</div>
               </div>
             </CardContent>
           </Card>
@@ -147,9 +147,9 @@ export default function BuyersDirectoryPage() {
         {buyers.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>
-              <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Buyers Yet</h3>
-              <p className="text-gray-600">
+              <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No Active Buyers Yet</h3>
+              <p className="text-muted-foreground">
                 Once buyers start purchasing from the marketplace, they'll appear here.
               </p>
             </CardContent>
@@ -177,14 +177,14 @@ export default function BuyersDirectoryPage() {
 
               <CardContent className="space-y-3">
                 {/* Location */}
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4 flex-shrink-0" />
                   <span className="truncate">{buyer.location}</span>
                 </div>
 
                 {/* Orders */}
                 <div className="flex items-center justify-end">
-                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <ShoppingCart className="h-4 w-4" />
                     <span>{buyer.totalOrders} orders</span>
                   </div>
@@ -213,12 +213,12 @@ export default function BuyersDirectoryPage() {
 
         {/* Call to Action */}
         <div className="mt-8 text-center">
-          <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+          <Card className="bg-gradient-to-r from-success/10 to-primary/10 border-success/10">
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
                 Join Our Growing Marketplace
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-muted-foreground mb-4">
                 List your products and connect with these active buyers today.
                 {buyers.length} verified buyers are waiting to purchase from farmers like you.
               </p>

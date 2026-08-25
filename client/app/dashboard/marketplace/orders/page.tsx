@@ -356,25 +356,25 @@ export default function MarketplaceOrdersPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-amber-50 text-amber-700 border-amber-200'
-      case 'confirmed': return 'bg-blue-50 text-blue-700 border-blue-200'
-      case 'paid': return 'bg-green-50 text-green-700 border-green-200'
-      case 'processing': return 'bg-purple-50 text-purple-700 border-purple-200'
-      case 'shipped': return 'bg-indigo-50 text-indigo-700 border-indigo-200'
-      case 'delivered': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-      case 'cancelled': return 'bg-red-50 text-red-700 border-red-200'
-      case 'refunded': return 'bg-gray-50 text-gray-700 border-gray-200'
-      default: return 'bg-gray-50 text-gray-700 border-gray-200'
+      case 'pending': return 'bg-warning/10 text-warning border-warning/10'
+      case 'confirmed': return 'bg-primary/10 text-primary border-primary/10'
+      case 'paid': return 'bg-success/10 text-success border-success/10'
+      case 'processing': return 'bg-accent/10 text-accent border-accent/10'
+      case 'shipped': return 'bg-primary/10 text-primary border-primary/10'
+      case 'delivered': return 'bg-success/10 text-success border-success/10'
+      case 'cancelled': return 'bg-destructive/10 text-destructive border-destructive/10'
+      case 'refunded': return 'bg-muted text-foreground border-border'
+      default: return 'bg-muted text-foreground border-border'
     }
   }
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
-      case 'paid': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-      case 'pending': return 'bg-amber-50 text-amber-700 border-amber-200'
-      case 'failed': return 'bg-red-50 text-red-700 border-red-200'
-      case 'refunded': return 'bg-gray-50 text-gray-700 border-gray-200'
-      default: return 'bg-gray-50 text-gray-700 border-gray-200'
+      case 'paid': return 'bg-success/10 text-success border-success/10'
+      case 'pending': return 'bg-warning/10 text-warning border-warning/10'
+      case 'failed': return 'bg-destructive/10 text-destructive border-destructive/10'
+      case 'refunded': return 'bg-muted text-foreground border-border'
+      default: return 'bg-muted text-foreground border-border'
     }
   }
 
@@ -402,23 +402,23 @@ export default function MarketplaceOrdersPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
+              <Card key={i} className="animate-pulse border border-border">
                 <CardContent className="p-6">
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-                  <div className="h-8 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-4 bg-muted rounded w-1/2 mb-2"></div>
+                  <div className="h-8 bg-muted rounded mb-2"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
           </div>
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
+              <Card key={i} className="animate-pulse border border-border">
                 <CardContent className="p-6">
-                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                  <div className="h-4 bg-muted rounded w-1/4 mb-4"></div>
                   <div className="space-y-3">
-                    <div className="h-3 bg-gray-200 rounded"></div>
-                    <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-muted rounded"></div>
+                    <div className="h-3 bg-muted rounded w-3/4"></div>
                   </div>
                 </CardContent>
               </Card>
@@ -442,8 +442,8 @@ export default function MarketplaceOrdersPage() {
               </Link>
             </Button>
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Orders Management</h1>
-              <p className="text-gray-600">
+              <h1 className="text-2xl font-semibold text-foreground">Orders Management</h1>
+              <p className="text-muted-foreground">
                 Track and manage all customer orders for your products
               </p>
             </div>
@@ -467,66 +467,66 @@ export default function MarketplaceOrdersPage() {
 
         {/* Order Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <ShoppingCart className="h-4 w-4 text-blue-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <ShoppingCart className="h-4 w-4 text-primary" />
                 Total Orders
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.totalOrders}</div>
-              <p className="text-xs text-gray-500">{stats.pendingOrders} pending</p>
+              <div className="text-2xl font-bold text-foreground">{stats.totalOrders}</div>
+              <p className="text-xs text-muted-foreground">{stats.pendingOrders} pending</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Clock className="h-4 w-4 text-amber-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Clock className="h-4 w-4 text-warning" />
                 Pending Orders
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.pendingOrders}</div>
-              <p className="text-xs text-gray-500">Awaiting confirmation</p>
+              <div className="text-2xl font-bold text-foreground">{stats.pendingOrders}</div>
+              <p className="text-xs text-muted-foreground">Awaiting confirmation</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Package className="h-4 w-4 text-purple-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Package className="h-4 w-4 text-accent" />
                 Processing
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.confirmedOrders}</div>
-              <p className="text-xs text-gray-500">Confirmed orders</p>
+              <div className="text-2xl font-bold text-foreground">{stats.confirmedOrders}</div>
+              <p className="text-xs text-muted-foreground">Confirmed orders</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Banknote className="h-4 w-4 text-emerald-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Banknote className="h-4 w-4 text-success" />
                 Total Revenue
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalRevenue)}</div>
-              <p className="text-xs text-gray-500">{formatCurrency(stats.monthlyRevenue)} this month</p>
+              <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalRevenue)}</div>
+              <p className="text-xs text-muted-foreground">{formatCurrency(stats.monthlyRevenue)} this month</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="text"
                     placeholder="Search orders by number, customer, or product..."
@@ -573,14 +573,14 @@ export default function MarketplaceOrdersPage() {
         {/* Orders List */}
         <div className="space-y-4">
           {filteredOrders.length === 0 ? (
-            <Card className="text-center py-12 border border-gray-200">
-              <div className="text-gray-400 mb-4">
+            <Card className="text-center py-12 border border-border">
+              <div className="text-muted-foreground mb-4">
                 <ShoppingCart className="h-16 w-16 mx-auto" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <h3 className="text-lg font-medium text-foreground mb-2">
                 {orders.length === 0 ? 'No Orders Yet' : 'No Orders Match Your Filters'}
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-muted-foreground mb-4">
                 {orders.length === 0
                   ? "When customers place orders for your products, they will appear here."
                   : "Try adjusting your search or filter criteria."
@@ -597,12 +597,12 @@ export default function MarketplaceOrdersPage() {
             </Card>
           ) : (
             filteredOrders.map((order) => (
-              <Card key={order._id} className="border border-gray-200 hover:shadow-md transition-shadow">
+              <Card key={order._id} className="border border-border hover:shadow-md transition-shadow">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
                     <div className="space-y-2 flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                        <h3 className="text-lg font-semibold text-gray-900">
+                        <h3 className="text-lg font-semibold text-foreground">
                           {order.orderNumber}
                         </h3>
                         <div className="flex flex-wrap gap-2">
@@ -614,7 +614,7 @@ export default function MarketplaceOrdersPage() {
                           </Badge>
                         </div>
                       </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
                           <span>{formatDate(order.orderDate)}</span>
@@ -626,24 +626,24 @@ export default function MarketplaceOrdersPage() {
                       </div>
                     </div>
                     <div className="text-left sm:text-right">
-                      <div className="text-xl font-bold text-gray-900">
+                      <div className="text-xl font-bold text-foreground">
                         {formatCurrency(order.total)}
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-muted-foreground">
                         {order.items.length} item{order.items.length !== 1 ? 's' : ''}
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-3 mb-4">
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       <strong>Customer:</strong> {order.buyer.name}
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       <strong>Items:</strong> {order.items.map(item => item.listing.cropName).join(', ')}
                     </div>
                     {order.trackingNumber && (
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-muted-foreground">
                         <strong>Tracking:</strong> {order.trackingNumber}
                       </div>
                     )}
@@ -730,9 +730,9 @@ export default function MarketplaceOrdersPage() {
         {showOrderDetails && selectedOrder && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
             <div className="bg-white rounded-lg max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-              <div className="p-4 sm:p-6 border-b border-gray-200">
+              <div className="p-4 sm:p-6 border-b border-border">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                  <h2 className="text-lg sm:text-xl font-semibold text-foreground">
                     Order Details - {selectedOrder.orderNumber}
                   </h2>
                   <Button
@@ -754,7 +754,7 @@ export default function MarketplaceOrdersPage() {
                   <Badge className={getPaymentStatusColor(selectedOrder.paymentStatus)}>
                     {selectedOrder.paymentStatus}
                   </Badge>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-muted-foreground">
                     {formatDate(selectedOrder.orderDate)}
                   </span>
                 </div>
@@ -770,11 +770,11 @@ export default function MarketplaceOrdersPage() {
                       <span>{selectedOrder.buyer.name}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-gray-400" />
+                      <Mail className="h-4 w-4 text-muted-foreground" />
                       <span>{selectedOrder.buyer.email}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-gray-400" />
+                      <Phone className="h-4 w-4 text-muted-foreground" />
                       <span>{selectedOrder.buyer.phone}</span>
                     </div>
                   </CardContent>
@@ -788,12 +788,12 @@ export default function MarketplaceOrdersPage() {
                   <CardContent>
                     <div className="space-y-3">
                       {selectedOrder.items.map((item, index) => (
-                        <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 border border-gray-100 rounded-lg gap-3">
+                        <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 border border-border rounded-lg gap-3">
                           <div className="flex items-center gap-3">
                             <div className="text-2xl">🌾</div>
                             <div>
                               <div className="font-medium">{item.listing.cropName}</div>
-                              <div className="text-sm text-gray-600">
+                              <div className="text-sm text-muted-foreground">
                                 {item.quantity} {item.unit} × {formatCurrency(item.price)}
                               </div>
                             </div>
@@ -852,7 +852,7 @@ export default function MarketplaceOrdersPage() {
                       </div>
                     )}
                     {selectedOrder.discount > 0 && (
-                      <div className="flex justify-between text-green-600">
+                      <div className="flex justify-between text-success">
                         <span>Discount:</span>
                         <span>-{formatCurrency(selectedOrder.discount)}</span>
                       </div>

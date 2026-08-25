@@ -91,8 +91,8 @@ Jane Smith,jane@example.com,+2348087654321,"Kano, Nigeria",Female,28,Tertiary`
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Bulk Farmer Onboarding</h1>
-          <p className="text-gray-600">Upload a CSV file to onboard multiple farmers at once</p>
+          <h1 className="text-3xl font-bold text-foreground">Bulk Farmer Onboarding</h1>
+          <p className="text-muted-foreground">Upload a CSV file to onboard multiple farmers at once</p>
         </div>
       </div>
 
@@ -151,7 +151,7 @@ Jane Smith,jane@example.com,+2348087654321,"Kano, Nigeria",Female,28,Tertiary`
           <CardContent className="space-y-4">
             <div>
               <h4 className="font-semibold mb-2">CSV Format Requirements:</h4>
-              <ul className="text-sm space-y-1 text-gray-600">
+              <ul className="text-sm space-y-1 text-muted-foreground">
                 <li>• File must be in CSV format (.csv)</li>
                 <li>• First row should contain column headers</li>
                 <li>• Required columns: name, email, phone, location</li>
@@ -163,7 +163,7 @@ Jane Smith,jane@example.com,+2348087654321,"Kano, Nigeria",Female,28,Tertiary`
 
             <div>
               <h4 className="font-semibold mb-2">Data Validation:</h4>
-              <ul className="text-sm space-y-1 text-gray-600">
+              <ul className="text-sm space-y-1 text-muted-foreground">
                 <li>• Email addresses must be valid and unique</li>
                 <li>• Phone numbers must be in Nigerian format</li>
                 <li>• Names must be at least 2 characters long</li>
@@ -185,35 +185,35 @@ Jane Smith,jane@example.com,+2348087654321,"Kano, Nigeria",Female,28,Tertiary`
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               {result.success ? (
-                <CheckCircle className="h-5 w-5 text-green-600" />
+                <CheckCircle className="h-5 w-5 text-success" />
               ) : (
-                <AlertCircle className="h-5 w-5 text-red-600" />
+                <AlertCircle className="h-5 w-5 text-destructive" />
               )}
               Upload Results
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{result.totalRows}</div>
-                <div className="text-sm text-blue-600">Total Rows</div>
+              <div className="text-center p-4 bg-primary/10 rounded-lg">
+                <div className="text-2xl font-bold text-primary">{result.totalRows}</div>
+                <div className="text-sm text-primary">Total Rows</div>
               </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{result.successfulRows}</div>
-                <div className="text-sm text-green-600">Successful</div>
+              <div className="text-center p-4 bg-success/10 rounded-lg">
+                <div className="text-2xl font-bold text-success">{result.successfulRows}</div>
+                <div className="text-sm text-success">Successful</div>
               </div>
-              <div className="text-center p-4 bg-red-50 rounded-lg">
-                <div className="text-2xl font-bold text-red-600">{result.failedRows}</div>
-                <div className="text-sm text-red-600">Failed</div>
+              <div className="text-center p-4 bg-destructive/10 rounded-lg">
+                <div className="text-2xl font-bold text-destructive">{result.failedRows}</div>
+                <div className="text-sm text-destructive">Failed</div>
               </div>
             </div>
 
             {result.errors.length > 0 && (
               <div>
-                <h4 className="font-semibold mb-2 text-red-600">Errors:</h4>
+                <h4 className="font-semibold mb-2 text-destructive">Errors:</h4>
                 <div className="max-h-40 overflow-y-auto space-y-1">
                   {result.errors.map((error, index) => (
-                    <div key={index} className="text-sm p-2 bg-red-50 rounded">
+                    <div key={index} className="text-sm p-2 bg-destructive/10 rounded">
                       Row {error.row}: {error.error}
                     </div>
                   ))}

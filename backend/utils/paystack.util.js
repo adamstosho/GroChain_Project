@@ -128,6 +128,34 @@ class PaystackUtil {
     }
   }
   
+  // Refund a transaction (full or partial)
+  async refundTransaction(reference, amount) {
+    try {
+      const payload = { transaction: reference }
+      if (amount != null) payload.amount = Math.round(amount * 100) // naira -> kobo
+
+      const response = await this.axiosInstance.post('/refund', payload)
+
+      if (response.data.status) {
+        return {
+          success: true,
+          data: response.data.data,
+          message: response.data.message || 'Refund initiated successfully'
+        }
+      }
+      return {
+        success: false,
+        message: response.data.message || 'Failed to initiate refund'
+      }
+    } catch (error) {
+      console.error('Paystack refund error:', error.response?.data || error.message)
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to initiate refund'
+      }
+    }
+  }
+
   // Create customer
   async createCustomer(data) {
     try {

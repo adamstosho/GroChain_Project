@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { Bell, CheckCircle, AlertCircle, AlertTriangle, Info, Check, X, Filter, Search, MoreVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -91,13 +92,13 @@ export function NotificationList() {
   const getIcon = (type: string) => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-600" />
+        return <CheckCircle className="h-4 w-4 text-success" />
       case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-yellow-600" />
+        return <AlertTriangle className="h-4 w-4 text-warning" />
       case 'error':
-        return <AlertCircle className="h-4 w-4 text-red-600" />
+        return <AlertCircle className="h-4 w-4 text-destructive" />
       default:
-        return <Info className="h-4 w-4 text-blue-600" />
+        return <Info className="h-4 w-4 text-primary" />
     }
   }
 
@@ -257,15 +258,16 @@ export function NotificationList() {
       <div className="space-y-3">
         {filteredNotifications.length === 0 ? (
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Bell className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No notifications found</h3>
-              <p className="text-muted-foreground text-center">
-                {notifications.length === 0
-                  ? "You don't have any notifications yet."
-                  : "Try adjusting your filters to see more notifications."
+            <CardContent>
+              <EmptyState
+                icon={Bell}
+                title="No notifications found"
+                description={
+                  notifications.length === 0
+                    ? "You don't have any notifications yet."
+                    : "Try adjusting your filters to see more notifications."
                 }
-              </p>
+              />
             </CardContent>
           </Card>
         ) : (
@@ -273,7 +275,7 @@ export function NotificationList() {
             <Card
               key={notification.id}
               className={`transition-all hover:shadow-md ${
-                !notification.isRead ? 'border-l-4 border-l-blue-500 bg-blue-50/30' : ''
+                !notification.isRead ? 'border-l-4 border-l-primary bg-primary/30' : ''
               } ${selectedNotifications.has(notification.id) ? 'ring-2 ring-primary' : ''}`}
             >
               <CardContent className="p-4">

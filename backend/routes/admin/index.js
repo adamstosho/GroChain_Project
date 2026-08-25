@@ -196,98 +196,54 @@ router.get('/profile', async (req, res) => {
       })
     }
 
-    console.log('Fetching admin profile for user ID:', req.user.id)
-    console.log('Available user fields:', Object.keys(req.user))
-    console.log('User _id:', req.user._id)
-    console.log('User id:', req.user.id)
-
     // Try both _id and id fields
     const userId = req.user._id || req.user.id
-    console.log('Using user ID for query:', userId)
 
     const user = await User.findById(userId).select('-password')
-    console.log('User found:', !!user)
-    console.log('User data:', user ? { name: user.name, email: user.email, phone: user.phone, location: user.location } : 'null')
 
     if (!user) {
-      // Let's also check what users exist in the database
-      const allUsers = await User.find({}, 'name email role').limit(5)
-      console.log('All users in database:', allUsers.map(u => ({ id: u._id, name: u.name, email: u.email, role: u.role })))
-
       return res.status(404).json({
         status: 'error',
-        message: 'Admin profile not found',
-        searchedId: userId,
-        availableUsers: allUsers.length
+        message: 'Admin profile not found'
       })
     }
+
+    const adminMeta = user.adminProfile || {}
 
     // Add admin-specific profile data
     const adminProfile = {
       ...user.toObject(),
       // Ensure avatar is properly set from profile subdocument
       avatar: user.profile?.avatar || user.avatar,
-      employeeId: user.employeeId || `ADM-${user._id.toString().slice(-6)}`,
-      department: user.department || 'IT',
-      position: user.position || 'System Administrator',
-      accessLevel: user.accessLevel || 'admin',
-      permissions: user.permissions || [
+      employeeId: adminMeta.employeeId || `ADM-${user._id.toString().slice(-6)}`,
+      department: adminMeta.department || '',
+      position: adminMeta.position || '',
+      accessLevel: 'admin',
+      permissions: [
         'user_management',
         'system_configuration',
         'data_management',
         'security_settings'
       ],
-      officeLocation: user.officeLocation || {
-        address: 'Remote',
-        city: 'Lagos',
-        state: 'Lagos State',
-        coordinates: {
-          latitude: 6.5244,
-          longitude: 3.3792
-        }
+      officeLocation: {
+        address: adminMeta.officeAddress || '',
+        city: adminMeta.officeCity || '',
+        state: adminMeta.officeState || ''
       },
-      contactInfo: user.contactInfo || {
-        workPhone: user.phone || '',
-        extension: '',
-        emergencyContact: '',
-        emergencyPhone: ''
+      contactInfo: {
+        workPhone: adminMeta.workPhone || '',
+        extension: adminMeta.extension || '',
+        emergencyContact: adminMeta.emergencyContact || '',
+        emergencyPhone: adminMeta.emergencyPhone || ''
       },
-      preferences: user.preferences || {
-        preferredCommunicationMethod: 'email',
-        preferredReportFormat: 'pdf',
-        dashboardLayout: 'detailed',
-        notificationPreferences: ['email']
-      },
-      settings: user.settings || {
-        emailNotifications: true,
-        smsNotifications: false,
-        pushNotifications: false,
-        twoFactorAuth: true,
-        sessionTimeout: 30,
-        privacyLevel: 'staff'
-      },
-      verificationStatus: user.verificationStatus || 'verified',
-      verificationDocuments: user.verificationDocuments || [],
       performanceMetrics: {
-        totalUsersManaged: 0, // TODO: Implement actual user count
-        totalReportsGenerated: 0,
-        averageResponseTime: 150, // Default response time in ms
-        systemUptime: 99.9,
-        userSatisfaction: 4.5
+        totalUsersManaged: await User.countDocuments()
       },
       isActive: user.status !== 'inactive' && user.status !== 'suspended',
       lastActivity: user.lastLogin || new Date(),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     }
-
-
-    console.log('Sending admin profile response:', {
-      name: adminProfile.name,
-      email: adminProfile.email,
-      phone: adminProfile.phone,
-      location: adminProfile.location
-    })
 
     res.json({
       status: 'success',
@@ -321,8 +277,27 @@ router.get('/profile', async (req, res) => {
 // Update Admin Profile
 router.put('/profile', async (req, res) => {
   try {
-    const updateData = req.body
-    
+    const body = req.body || {}
+    const updateData = {}
+
+    if (body.name !== undefined) updateData.name = body.name
+    if (body.phone !== undefined) updateData.phone = body.phone
+    if (body.location !== undefined) updateData.location = body.location
+    if (body.profile && typeof body.profile === 'object') {
+      if (body.profile.avatar !== undefined) updateData['profile.avatar'] = body.profile.avatar
+      if (body.profile.bio !== undefined) updateData['profile.bio'] = body.profile.bio
+    }
+    if (body.adminProfile && typeof body.adminProfile === 'object') {
+      const allowedAdminFields = [
+        'employeeId', 'department', 'position',
+        'officeAddress', 'officeCity', 'officeState',
+        'workPhone', 'extension', 'emergencyContact', 'emergencyPhone'
+      ]
+      for (const field of allowedAdminFields) {
+        if (body.adminProfile[field] !== undefined) updateData[`adminProfile.${field}`] = body.adminProfile[field]
+      }
+    }
+
     const user = await User.findByIdAndUpdate(
       req.user.id,
       updateData,
@@ -405,21 +380,8 @@ router.get('/profile/activity', async (req, res) => {
       })
     }
 
-    // Add some recent system activities
-    const recentActivities = [
-      {
-        id: 'system_check_' + Date.now(),
-        action: 'System Health Check',
-        description: 'Automated system health verification completed',
-        timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-        ipAddress: 'System',
-        userAgent: 'Automated',
-        status: 'success'
-      }
-    ]
-
-    // Combine and sort by timestamp (most recent first)
-    const allLogs = [...logs, ...recentActivities]
+    // Sort by timestamp (most recent first)
+    const allLogs = logs
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       .slice(0, 10) // Limit to 10 most recent activities
 
@@ -442,7 +404,7 @@ router.get('/profile/security', async (req, res) => {
     const userId = req.user.id
 
     // Get real user security data from the database
-    const user = await User.findById(userId).select('lastLogin createdAt updatedAt settings twoFactorEnabled')
+    const user = await User.findById(userId).select('lastLogin createdAt updatedAt')
 
     if (!user) {
       return res.status(404).json({
@@ -451,21 +413,11 @@ router.get('/profile/security', async (req, res) => {
       })
     }
 
-    // Get real security settings based on user data
+    // Only real, verifiable security data — no fake 2FA/device tracking
+    // (this platform has no TOTP or session/device tracking infrastructure yet)
     const securitySettings = {
-      twoFactorEnabled: user.twoFactorEnabled || false,
       lastPasswordChange: user.updatedAt || user.createdAt,
-      passwordExpiry: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90), // 90 days from now
-      loginAttempts: 0, // This would come from a login attempts collection in production
-      lastLogin: user.lastLogin || user.createdAt,
-      trustedDevices: [
-        {
-          id: 'device_' + userId,
-          name: 'Current Device',
-          lastUsed: user.lastLogin || new Date(),
-          location: 'Current Location'
-        }
-      ]
+      lastLogin: user.lastLogin || user.createdAt
     }
 
     res.json({

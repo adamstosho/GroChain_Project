@@ -209,25 +209,25 @@ export default function GenerateQRCodePage() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" asChild className="text-gray-600 hover:text-gray-900">
+              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
                 <Link href="/dashboard/qr-codes" className="flex items-center gap-2">
                   <ArrowLeft className="h-4 w-4" />
                   Back to QR Codes
                 </Link>
               </Button>
             </div>
-            <h1 className="text-2xl font-semibold text-gray-900">Generate QR Code</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-semibold text-foreground">Generate QR Code</h1>
+            <p className="text-muted-foreground">
               Create unique QR codes for your agricultural products to enable traceability
             </p>
           </div>
         </div>
 
         {/* Harvest Selection */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base font-medium">
-              <Package className="h-4 w-4 text-gray-500" />
+              <Package className="h-4 w-4 text-muted-foreground" />
               Select Harvest
             </CardTitle>
             <CardDescription>
@@ -237,9 +237,9 @@ export default function GenerateQRCodePage() {
           <CardContent>
             {harvests.length === 0 ? (
               <div className="text-center py-8">
-                <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Approved Harvests</h3>
-                <p className="text-gray-600 mb-4">
+                <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">No Approved Harvests</h3>
+                <p className="text-muted-foreground mb-4">
                   You need approved or listed harvests to generate QR codes. Please log a harvest first.
                 </p>
                 <Button asChild>
@@ -257,28 +257,28 @@ export default function GenerateQRCodePage() {
                     className={`cursor-pointer transition-all duration-200 border-2 ${
                       selectedHarvest?._id === harvest._id 
                         ? 'border-primary bg-primary/5' 
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-border hover:border-border'
                     }`}
                     onClick={() => handleHarvestSelect(harvest)}
                   >
                     <CardContent className="p-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <h3 className="font-medium text-gray-900">{harvest.cropType}</h3>
+                          <h3 className="font-medium text-foreground">{harvest.cropType}</h3>
                           {selectedHarvest?._id === harvest._id && (
                             <CheckCircle className="h-5 w-5 text-primary" />
                           )}
                         </div>
                         {harvest.variety && (
-                          <p className="text-sm text-gray-600">{harvest.variety}</p>
+                          <p className="text-sm text-muted-foreground">{harvest.variety}</p>
                         )}
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-muted-foreground">
                           {harvest.quantity} {harvest.unit}
                         </div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-muted-foreground">
                           {new Date(harvest.harvestDate).toLocaleDateString()}
                         </div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-muted-foreground">
                           {typeof harvest.location === 'string' ? harvest.location : `${(harvest.location as any)?.city || 'Unknown'}, ${(harvest.location as any)?.state || 'Unknown State'}`}
                         </div>
                       </div>
@@ -292,10 +292,10 @@ export default function GenerateQRCodePage() {
 
         {/* QR Code Configuration Form */}
         {selectedHarvest && (
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base font-medium">
-                <QrCode className="h-4 w-4 text-gray-500" />
+                <QrCode className="h-4 w-4 text-muted-foreground" />
                 QR Code Configuration
               </CardTitle>
               <CardDescription>
@@ -343,7 +343,7 @@ export default function GenerateQRCodePage() {
                     value={formData.expiryDate}
                     onChange={(e) => setFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
                   />
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Leave empty for no expiration
                   </p>
                 </div>
@@ -362,8 +362,8 @@ export default function GenerateQRCodePage() {
                 </div>
 
                 {formData.includeMetadata && (
-                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-medium text-gray-900">Additional Metadata</h4>
+                  <div className="space-y-4 p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium text-foreground">Additional Metadata</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="organic">Organic Certification</Label>
@@ -470,10 +470,10 @@ export default function GenerateQRCodePage() {
 
         {/* Generated QR Code Display */}
         {generatedQR && (
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base font-medium">
-                <CheckCircle className="h-4 w-4 text-emerald-500" />
+                <CheckCircle className="h-4 w-4 text-success" />
                 QR Code Generated Successfully!
               </CardTitle>
               <CardDescription>
@@ -494,22 +494,22 @@ export default function GenerateQRCodePage() {
                         />
                       </div>
                     ) : (
-                      <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center mx-auto">
-                        <QrCode className="h-24 w-24 text-gray-400" />
+                      <div className="w-48 h-48 bg-muted rounded-lg flex items-center justify-center mx-auto">
+                        <QrCode className="h-24 w-24 text-muted-foreground" />
                       </div>
                     )}
                   </div>
                   
                   <div className="text-center space-y-2">
-                    <p className="font-medium text-gray-900">Batch ID: {generatedQR.batchId}</p>
-                    <p className="text-sm text-gray-600">Scan to verify authenticity</p>
+                    <p className="font-medium text-foreground">Batch ID: {generatedQR.batchId}</p>
+                    <p className="text-sm text-muted-foreground">Scan to verify authenticity</p>
                   </div>
                 </div>
 
                 {/* Download & Share Options */}
                 <div className="space-y-4">
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-3">Download Options</h4>
+                    <h4 className="font-medium text-foreground mb-3">Download Options</h4>
                     <div className="space-y-2">
                       <Button 
                         variant="outline" 
@@ -539,7 +539,7 @@ export default function GenerateQRCodePage() {
                   </div>
 
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-3">Share Options</h4>
+                    <h4 className="font-medium text-foreground mb-3">Share Options</h4>
                     <div className="space-y-2">
                       <Button 
                         variant="outline" 
@@ -568,7 +568,7 @@ export default function GenerateQRCodePage() {
         )}
 
         {/* Help Section */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader className="pb-3">
             <CardTitle className="text-center text-base font-medium">QR Code Benefits</CardTitle>
             <CardDescription className="text-center">
@@ -578,27 +578,27 @@ export default function GenerateQRCodePage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center space-y-2">
-                <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center mx-auto">
-                  <Smartphone className="h-5 w-5 text-blue-600" />
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                  <Smartphone className="h-5 w-5 text-primary" />
                 </div>
-                <h3 className="font-medium text-sm text-gray-900">Easy Verification</h3>
-                <p className="text-xs text-gray-600">Anyone can scan to verify product authenticity</p>
+                <h3 className="font-medium text-sm text-foreground">Easy Verification</h3>
+                <p className="text-xs text-muted-foreground">Anyone can scan to verify product authenticity</p>
               </div>
               
               <div className="text-center space-y-2">
-                <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center mx-auto">
-                  <Package className="h-5 w-5 text-emerald-600" />
+                <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center mx-auto">
+                  <Package className="h-5 w-5 text-success" />
                 </div>
-                <h3 className="font-medium text-sm text-gray-900">Product Traceability</h3>
-                <p className="text-xs text-gray-600">Track your products from farm to market</p>
+                <h3 className="font-medium text-sm text-foreground">Product Traceability</h3>
+                <p className="text-xs text-muted-foreground">Track your products from farm to market</p>
               </div>
               
               <div className="text-center space-y-2">
-                <div className="h-10 w-10 rounded-full bg-purple-50 flex items-center justify-center mx-auto">
-                  <Printer className="h-5 w-5 text-purple-600" />
+                <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center mx-auto">
+                  <Printer className="h-5 w-5 text-accent" />
                 </div>
-                <h3 className="font-medium text-sm text-gray-900">Multiple Formats</h3>
-                <p className="text-xs text-gray-600">Download as PNG, SVG, or PDF for various uses</p>
+                <h3 className="font-medium text-sm text-foreground">Multiple Formats</h3>
+                <p className="text-xs text-muted-foreground">Download as PNG, SVG, or PDF for various uses</p>
               </div>
             </div>
           </CardContent>

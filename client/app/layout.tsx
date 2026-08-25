@@ -89,7 +89,7 @@ export default function RootLayout({
       <body className={`font-sans ${dmSans.variable} ${nunito.variable} antialiased`}>
         <ErrorBoundary>
           <DatadogSuppressor />
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
             <TokenRefreshProvider>
               <NotificationProvider>
                 <NotificationContainer>

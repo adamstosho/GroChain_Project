@@ -123,7 +123,7 @@ export function ReviewForm({
     <Card className={cn("w-full max-w-2xl mx-auto", className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Star className="h-5 w-5 text-yellow-500" />
+          <Star className="h-5 w-5 text-warning" />
           Write a Review
         </CardTitle>
         <div className="text-sm text-muted-foreground">
@@ -151,14 +151,14 @@ export function ReviewForm({
                   onClick={() => setRating(star)}
                   onMouseEnter={() => setHoverRating(star)}
                   onMouseLeave={() => setHoverRating(0)}
-                  className="focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 rounded"
+                  className="focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2 rounded"
                 >
                   <Star
                     className={cn(
                       "h-8 w-8 transition-colors",
                       star <= (hoverRating || rating)
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "text-gray-300 hover:text-yellow-300"
+                        ? "fill-warning text-warning"
+                        : "text-muted-foreground hover:text-warning"
                     )}
                   />
                 </button>
@@ -170,7 +170,7 @@ export function ReviewForm({
               )}
             </div>
             {rating === 0 && (
-              <p className="text-sm text-red-500 flex items-center gap-1">
+              <p className="text-sm text-destructive flex items-center gap-1">
                 <AlertCircle className="h-4 w-4" />
                 Please select a rating
               </p>
@@ -213,8 +213,8 @@ export function ReviewForm({
                 <div className={cn(
                   "flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg transition-colors",
                   images.length >= 5 
-                    ? "border-gray-200 bg-gray-50 cursor-not-allowed" 
-                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 cursor-pointer"
+                    ? "border-border bg-muted cursor-not-allowed" 
+                    : "border-border hover:border-border hover:bg-muted cursor-pointer"
                 )}>
                   <Camera className="h-5 w-5 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
@@ -236,7 +236,7 @@ export function ReviewForm({
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

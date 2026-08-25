@@ -68,7 +68,7 @@ export class WebSocketErrorBoundary extends Component<Props, State> {
         <Card className="w-full max-w-md mx-auto mt-4">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm">
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              <AlertTriangle className="h-4 w-4 text-warning" />
               Connection Issue
             </CardTitle>
           </CardHeader>

@@ -235,8 +235,8 @@ export function PartnerAnalytics() {
                 name === 'revenue' ? 'Revenue' : name === 'harvests' ? 'Harvests' : 'Farmers'
               ]}
               contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
+                backgroundColor: 'var(--background)',
+                border: '1px solid var(--border)',
                 borderRadius: '6px',
                 fontSize: '12px'
               }}
@@ -315,8 +315,8 @@ export function PartnerAnalytics() {
             <Tooltip
               formatter={(value: any) => [`${value}%`, 'Distribution']}
               contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
+                backgroundColor: 'var(--background)',
+                border: '1px solid var(--border)',
                 borderRadius: '6px',
                 fontSize: '12px'
               }}
@@ -372,8 +372,8 @@ export function PartnerAnalytics() {
             <Tooltip
               formatter={(value: any) => [formatNumber(value), 'Farmers']}
               contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
+                backgroundColor: 'var(--background)',
+                border: '1px solid var(--border)',
                 borderRadius: '6px',
                 fontSize: '12px'
               }}
@@ -426,8 +426,8 @@ export function PartnerAnalytics() {
             <Tooltip
               formatter={(value: any) => [formatNumber(value), 'Harvests']}
               contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
+                backgroundColor: 'var(--background)',
+                border: '1px solid var(--border)',
                 borderRadius: '6px',
                 fontSize: '12px'
               }}
@@ -487,8 +487,8 @@ export function PartnerAnalytics() {
             <Tooltip
               formatter={(value: any) => [`${value}%`, 'Market Share']}
               contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
+                backgroundColor: 'var(--background)',
+                border: '1px solid var(--border)',
                 borderRadius: '6px',
                 fontSize: '12px'
               }}
@@ -646,42 +646,42 @@ export function PartnerAnalytics() {
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Farmers</CardTitle>
-            <div className="p-1.5 sm:p-2 bg-blue-50 rounded-full flex-shrink-0">
-              <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+            <div className="p-1.5 sm:p-2 bg-primary/10 rounded-full flex-shrink-0">
+              <Users className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
             <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{formatNumber(analyticsData?.totalFarmers || 0)}</div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
-              <TrendingUp className="h-3 w-3 mr-1 text-green-600 flex-shrink-0" />
+              <TrendingUp className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">{formatNumber(analyticsData?.activeFarmers || 0)} active</span>
             </div>
           </CardContent>
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-blue-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-bl-full opacity-20" />
         </Card>
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Active Farmers</CardTitle>
-            <div className="p-1.5 sm:p-2 bg-green-50 rounded-full flex-shrink-0">
-              <Target className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+            <div className="p-1.5 sm:p-2 bg-success/10 rounded-full flex-shrink-0">
+              <Target className="h-3 w-3 sm:h-4 sm:w-4 text-success" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
             <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{formatNumber(analyticsData?.activeFarmers || 0)}</div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
-              <TrendingUp className="h-3 w-3 mr-1 text-green-600 flex-shrink-0" />
+              <TrendingUp className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">{formatNumber(analyticsData?.pendingFarmers || 0)} pending</span>
             </div>
           </CardContent>
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-green-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-success/10 rounded-bl-full opacity-20" />
         </Card>
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Commissions</CardTitle>
-            <div className="p-1.5 sm:p-2 bg-purple-50 rounded-full flex-shrink-0">
-              <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
+            <div className="p-1.5 sm:p-2 bg-accent/10 rounded-full flex-shrink-0">
+              <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
@@ -689,18 +689,18 @@ export function PartnerAnalytics() {
               {formatCurrency(analyticsData?.totalCommissions || 0)}
             </div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
-              <Award className="h-3 w-3 mr-1 text-blue-600 flex-shrink-0" />
+              <Award className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
               <span className="truncate">{((analyticsData?.commissionRate || 0) * 100).toFixed(1)}% rate</span>
             </div>
           </CardContent>
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-purple-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-accent/10 rounded-bl-full opacity-20" />
         </Card>
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium truncate">Approval Rate</CardTitle>
-            <div className="p-1.5 sm:p-2 bg-orange-50 rounded-full flex-shrink-0">
-              <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
+            <div className="p-1.5 sm:p-2 bg-warning/10 rounded-full flex-shrink-0">
+              <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-warning" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
@@ -708,11 +708,11 @@ export function PartnerAnalytics() {
               {analyticsData?.approvalRate?.toFixed(1) || 0}%
             </div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
-              <Building className="h-3 w-3 mr-1 text-blue-600 flex-shrink-0" />
+              <Building className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
               <span className="truncate">Network efficiency</span>
             </div>
           </CardContent>
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-orange-50 rounded-bl-full opacity-20" />
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-warning/10 rounded-bl-full opacity-20" />
         </Card>
       </div>
 
@@ -773,7 +773,7 @@ export function PartnerAnalytics() {
                 <CardTitle className="text-sm font-medium">Monthly Commissions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-success">
                   {formatCurrency(analyticsData?.monthlyCommissions || 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -787,7 +787,7 @@ export function PartnerAnalytics() {
                 <CardTitle className="text-sm font-medium">Approval Rate</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-primary">
                   {analyticsData?.approvalRate?.toFixed(1) || 0}%
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -801,7 +801,7 @@ export function PartnerAnalytics() {
                 <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-purple-600">
+                <div className="text-2xl font-bold text-accent">
                   {analyticsData?.conversionRate?.toFixed(1) || 0}%
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -879,7 +879,7 @@ export function PartnerAnalytics() {
                           <td className="p-2">{farmer.harvests}</td>
                           <td className="p-2">{formatCurrency(farmer.revenue)}</td>
                           <td className="p-2 flex items-center gap-1">
-                            <span className="text-yellow-500">★</span>
+                            <span className="text-warning">★</span>
                             {farmer.rating.toFixed(1)}
                           </td>
                           <td className="p-2">
@@ -1009,7 +1009,7 @@ export function PartnerAnalytics() {
                     </div>
                     <div className="w-full bg-muted rounded-full h-2">
                       <div
-                        className="h-2 bg-blue-500 rounded-full transition-all duration-300"
+                        className="h-2 bg-primary rounded-full transition-all duration-300"
                         style={{ width: `${analyticsData?.approvalRate || 0}%` }}
                       />
                     </div>
@@ -1024,7 +1024,7 @@ export function PartnerAnalytics() {
                     </div>
                     <div className="w-full bg-muted rounded-full h-2">
                       <div
-                        className="h-2 bg-green-500 rounded-full transition-all duration-300"
+                        className="h-2 bg-success rounded-full transition-all duration-300"
                         style={{ width: `${analyticsData?.conversionRate || 0}%` }}
                       />
                     </div>
@@ -1039,7 +1039,7 @@ export function PartnerAnalytics() {
                     </div>
                     <div className="w-full bg-muted rounded-full h-2">
                       <div
-                        className="h-2 bg-purple-500 rounded-full transition-all duration-300"
+                        className="h-2 bg-accent rounded-full transition-all duration-300"
                         style={{ width: `${(analyticsData?.commissionRate || 0) * 100}%` }}
                       />
                     </div>
@@ -1061,14 +1061,14 @@ export function PartnerAnalytics() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 bg-green-50 rounded-lg">
-                      <div className="text-lg font-bold text-green-600">
+                    <div className="text-center p-3 bg-success/10 rounded-lg">
+                      <div className="text-lg font-bold text-success">
                         {formatCurrency(analyticsData?.monthlyCommissions || 0)}
                       </div>
                       <div className="text-xs text-muted-foreground">This Month</div>
                     </div>
-                    <div className="text-center p-3 bg-blue-50 rounded-lg">
-                      <div className="text-lg font-bold text-blue-600">
+                    <div className="text-center p-3 bg-primary/10 rounded-lg">
+                      <div className="text-lg font-bold text-primary">
                         {formatCurrency(analyticsData?.totalCommissions || 0)}
                       </div>
                       <div className="text-xs text-muted-foreground">Total Earned</div>

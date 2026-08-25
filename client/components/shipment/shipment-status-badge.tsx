@@ -24,7 +24,7 @@ export function ShipmentStatusBadge({ status, className }: ShipmentStatusBadgePr
           icon: Clock,
           label: 'Pending',
           variant: 'secondary' as const,
-          className: 'bg-yellow-100 text-yellow-800 border-yellow-200'
+          className: 'bg-warning/10 text-warning border-warning/10'
         }
       case 'confirmed':
         return {
@@ -59,21 +59,21 @@ export function ShipmentStatusBadge({ status, className }: ShipmentStatusBadgePr
           icon: XCircle,
           label: 'Failed',
           variant: 'destructive' as const,
-          className: 'bg-red-100 text-red-800 border-red-200'
+          className: 'bg-destructive/10 text-destructive border-destructive/10'
         }
       case 'returned':
         return {
           icon: RotateCcw,
           label: 'Returned',
           variant: 'secondary' as const,
-          className: 'bg-gray-100 text-gray-800 border-gray-200'
+          className: 'bg-muted text-foreground border-border'
         }
       default:
         return {
           icon: AlertTriangle,
           label: 'Unknown',
           variant: 'secondary' as const,
-          className: 'bg-gray-100 text-gray-800 border-gray-200'
+          className: 'bg-muted text-foreground border-border'
         }
     }
   }

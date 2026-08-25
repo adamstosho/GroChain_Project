@@ -141,7 +141,7 @@ export default function FarmerDetailsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Active</Badge>
+        return <Badge variant="default" className="bg-success/10 text-success"><CheckCircle className="w-3 h-3 mr-1" />Active</Badge>
       case "inactive":
         return <Badge variant="secondary"><AlertCircle className="w-3 h-3 mr-1" />Inactive</Badge>
       case "suspended":
@@ -154,9 +154,9 @@ export default function FarmerDetailsPage() {
   const getPerformanceBadge = (rating: string) => {
     switch (rating) {
       case "excellent":
-        return <Badge variant="default" className="bg-green-100 text-green-800">Excellent</Badge>
+        return <Badge variant="default" className="bg-success/10 text-success">Excellent</Badge>
       case "good":
-        return <Badge variant="default" className="bg-blue-100 text-blue-800">Good</Badge>
+        return <Badge variant="default" className="bg-primary/10 text-primary">Good</Badge>
       case "average":
         return <Badge variant="secondary">Average</Badge>
       case "needs_improvement":
@@ -171,20 +171,20 @@ export default function FarmerDetailsPage() {
       <DashboardLayout pageTitle="Farmer Details">
         <div className="space-y-6 px-4 sm:px-6">
           <div className="flex items-center justify-between">
-            <div className="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
-            <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-8 w-32 bg-muted rounded animate-pulse"></div>
+            <div className="h-8 w-24 bg-muted rounded animate-pulse"></div>
           </div>
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
               <Card className="animate-pulse">
                 <CardHeader>
-                  <div className="h-6 w-48 bg-gray-200 rounded"></div>
-                  <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                  <div className="h-6 w-48 bg-muted rounded"></div>
+                  <div className="h-4 w-32 bg-muted rounded"></div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="h-4 w-full bg-gray-200 rounded"></div>
-                    <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
+                    <div className="h-4 w-full bg-muted rounded"></div>
+                    <div className="h-4 w-3/4 bg-muted rounded"></div>
                   </div>
                 </CardContent>
               </Card>
@@ -192,12 +192,12 @@ export default function FarmerDetailsPage() {
             <div className="space-y-6">
               <Card className="animate-pulse">
                 <CardHeader>
-                  <div className="h-6 w-32 bg-gray-200 rounded"></div>
+                  <div className="h-6 w-32 bg-muted rounded"></div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="h-4 w-full bg-gray-200 rounded"></div>
-                    <div className="h-4 w-2/3 bg-gray-200 rounded"></div>
+                    <div className="h-4 w-full bg-muted rounded"></div>
+                    <div className="h-4 w-2/3 bg-muted rounded"></div>
                   </div>
                 </CardContent>
               </Card>
@@ -222,7 +222,7 @@ export default function FarmerDetailsPage() {
           </div>
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+              <AlertCircle className="h-12 w-12 text-destructive mb-4" />
               <h3 className="text-lg font-semibold mb-2">Farmer Not Found</h3>
               <p className="text-muted-foreground text-center mb-4">
                 {"The farmer you're looking for doesn't exist or has been removed."}
@@ -267,7 +267,7 @@ export default function FarmerDetailsPage() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="harvests">Harvests</TabsTrigger>
                 <TabsTrigger value="performance">Performance</TabsTrigger>

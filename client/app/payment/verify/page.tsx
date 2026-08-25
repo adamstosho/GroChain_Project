@@ -39,14 +39,11 @@ function PaymentVerificationContent() {
       }
 
       try {
-        console.log('🔍 Verifying payment with reference:', trxref)
 
         // Try manual verification first
-        console.log('🔄 Attempting manual payment verification...')
         const response = await apiService.verifyPayment(trxref, { testMode })
 
         if (response && response.status === 'success') {
-          console.log('✅ Payment verification successful:', response.data)
 
           // Check if we have order information
           const transaction = (response.data as any)?.transaction
@@ -59,7 +56,6 @@ function PaymentVerificationContent() {
             orderData.status === 'paid'
 
           if (paymentConfirmed) {
-            console.log('✅ Order status already updated to paid')
 
             setVerificationResult({
               status: 'success',
@@ -84,15 +80,12 @@ function PaymentVerificationContent() {
             }, 3000)
           } else {
             // Order status not properly updated, try to sync it
-            console.log('⚠️ Order status not updated, attempting to sync...')
 
             if (orderId) {
               try {
-                console.log('🔄 Syncing order status for orderId:', orderId)
                 const syncResponse = await apiService.syncOrderStatus(orderId)
 
                 if (syncResponse && syncResponse.status === 'success') {
-                  console.log('✅ Order status synced successfully')
 
                   setVerificationResult({
                     status: 'success',
@@ -112,7 +105,6 @@ function PaymentVerificationContent() {
                   }, 2000)
                 } else {
                   // Sync failed, but transaction was successful
-                  console.log('⚠️ Order sync failed, but payment was successful')
 
                   setVerificationResult({
                     status: 'success',
@@ -158,7 +150,6 @@ function PaymentVerificationContent() {
               }
             } else {
               // No order ID available
-              console.log('⚠️ No order ID found in transaction')
 
               setVerificationResult({
                 status: 'success',
@@ -181,7 +172,6 @@ function PaymentVerificationContent() {
 
         } else {
           // If manual verification fails, try to check if webhook already processed it
-          console.log('⚠️ Manual verification failed, checking if webhook processed it...')
 
           setVerificationResult({
             status: 'pending',
@@ -199,7 +189,6 @@ function PaymentVerificationContent() {
 
           const retryVerification = async () => {
             retryCount++
-            console.log(`🔄 Retry attempt ${retryCount}/${maxRetries}`)
 
             try {
               const retryResponse = await apiService.verifyPayment(trxref, { testMode })
@@ -208,7 +197,6 @@ function PaymentVerificationContent() {
                 const orderData = (retryResponse.data as any)?.order
                 const orderId = transaction?.orderId || transaction?.metadata?.order_id
 
-                console.log('✅ Retry verification successful')
 
                 setVerificationResult({
                   status: 'success',
@@ -235,7 +223,6 @@ function PaymentVerificationContent() {
                 setTimeout(retryVerification, 3000)
               } else {
                 // Max retries reached
-                console.log('❌ Max retries reached, showing pending status')
                 setVerificationResult({
                   status: 'pending',
                   reference: trxref
@@ -290,16 +277,16 @@ function PaymentVerificationContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10 flex items-center justify-center">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="text-center py-8">
             <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
             <h2 className="text-xl font-semibold mb-2">Verifying Payment</h2>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Please wait while we verify your payment...
             </p>
             {reference && (
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-muted-foreground mt-2">
                 Reference: {reference}
               </p>
             )}
@@ -311,21 +298,21 @@ function PaymentVerificationContent() {
 
   if (verificationResult?.status === 'pending') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10 flex items-center justify-center">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="text-center py-8">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-yellow-500" />
-            <h2 className="text-xl font-semibold mb-2 text-yellow-600">Payment Processing</h2>
-            <p className="text-gray-600 mb-4">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-warning" />
+            <h2 className="text-xl font-semibold mb-2 text-warning">Payment Processing</h2>
+            <p className="text-muted-foreground mb-4">
               Your payment is being processed by our payment provider.
               This may take a few moments...
             </p>
             {reference && (
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Reference: {reference}
               </p>
             )}
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Please wait while we confirm your payment.
             </p>
           </CardContent>
@@ -336,16 +323,16 @@ function PaymentVerificationContent() {
 
   if (error || verificationResult?.status === 'failed') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10 flex items-center justify-center">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="text-center py-8">
-            <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2 text-red-600">Payment Failed</h2>
-            <p className="text-gray-600 mb-4">
+            <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2 text-destructive">Payment Failed</h2>
+            <p className="text-muted-foreground mb-4">
               {error || "Your payment could not be processed."}
             </p>
             {reference && (
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Reference: {reference}
               </p>
             )}
@@ -367,18 +354,18 @@ function PaymentVerificationContent() {
 
   if (verificationResult?.status === 'success') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10 flex items-center justify-center">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="text-center py-8">
-            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2 text-green-600">Payment Successful!</h2>
-            <p className="text-gray-600 mb-4">
+            <CheckCircle className="h-12 w-12 text-success mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2 text-success">Payment Successful!</h2>
+            <p className="text-muted-foreground mb-4">
               Your payment has been processed successfully.
             </p>
             {verificationResult.transaction && (
-              <div className="bg-green-50 p-4 rounded-lg mb-4 text-left">
+              <div className="bg-success/10 p-4 rounded-lg mb-4 text-left">
                 <div className="flex items-center gap-2 mb-2">
-                  <CreditCard className="h-4 w-4 text-green-600" />
+                  <CreditCard className="h-4 w-4 text-success" />
                   <span className="text-sm font-medium">Payment Details</span>
                 </div>
                 <div className="text-sm space-y-1">
@@ -392,23 +379,23 @@ function PaymentVerificationContent() {
                   </div>
                   <div className="flex justify-between">
                     <span>Status:</span>
-                    <span className="text-green-600 font-medium">Paid</span>
+                    <span className="text-success font-medium">Paid</span>
                   </div>
                 </div>
               </div>
             )}
             {verificationResult.orderId && (
-              <div className="bg-blue-50 p-4 rounded-lg mb-4">
+              <div className="bg-primary/10 p-4 rounded-lg mb-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Package className="h-4 w-4 text-blue-600" />
+                  <Package className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium">Order Information</span>
                 </div>
-                <p className="text-sm text-blue-800">
+                <p className="text-sm text-primary">
                   Your order is being processed. You will receive a confirmation email shortly.
                 </p>
               </div>
             )}
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-muted-foreground mb-4">
               Redirecting to order details in a few seconds...
             </p>
             <div className="space-y-2">
@@ -432,12 +419,12 @@ function PaymentVerificationContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10 flex items-center justify-center">
       <Card className="w-full max-w-md mx-4">
         <CardContent className="text-center py-8">
-          <XCircle className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+          <XCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Verification Error</h2>
-          <p className="text-gray-600 mb-4">
+          <p className="text-muted-foreground mb-4">
             Unable to verify payment status.
           </p>
           <Button onClick={() => router.push('/dashboard/orders')} className="w-full">

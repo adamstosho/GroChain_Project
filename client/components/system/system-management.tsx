@@ -270,16 +270,16 @@ export function SystemManagement() {
       case 'healthy':
       case 'active':
       case 'completed':
-        return 'text-green-600 bg-green-100'
+        return 'text-success bg-success/10'
       case 'warning':
       case 'degraded':
-        return 'text-yellow-600 bg-yellow-100'
+        return 'text-warning bg-warning/10'
       case 'error':
       case 'unhealthy':
       case 'failed':
-        return 'text-red-600 bg-red-100'
+        return 'text-destructive bg-destructive/10'
       default:
-        return 'text-gray-600 bg-gray-100'
+        return 'text-muted-foreground bg-muted'
     }
   }
 
@@ -304,15 +304,15 @@ export function SystemManagement() {
   const getLevelColor = (level: string) => {
     switch (level.toLowerCase()) {
       case 'info':
-        return 'text-blue-600 bg-blue-100'
+        return 'text-primary bg-primary/10'
       case 'warn':
-        return 'text-yellow-600 bg-yellow-100'
+        return 'text-warning bg-warning/10'
       case 'error':
-        return 'text-red-600 bg-red-100'
+        return 'text-destructive bg-destructive/10'
       case 'debug':
-        return 'text-purple-600 bg-purple-100'
+        return 'text-accent bg-accent/10'
       default:
-        return 'text-gray-600 bg-gray-100'
+        return 'text-muted-foreground bg-muted'
     }
   }
 
@@ -343,8 +343,8 @@ export function SystemManagement() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="space-y-1 min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 truncate">System Management</h1>
-          <p className="text-sm sm:text-base text-gray-600">Monitor system health, manage configuration, and perform maintenance</p>
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground truncate">System Management</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Monitor system health, manage configuration, and perform maintenance</p>
         </div>
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0">
           <Button variant="outline" onClick={fetchSystemData} className="w-full sm:w-auto">
@@ -400,7 +400,7 @@ export function SystemManagement() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
                 <Activity className="h-4 w-4 mr-2" />
                 Overall Status
               </CardTitle>
@@ -412,7 +412,7 @@ export function SystemManagement() {
                   <span className="ml-1 capitalize">{systemStatus.overall}</span>
                 </Badge>
               </div>
-              <div className="text-sm text-gray-600 mt-2">
+              <div className="text-sm text-muted-foreground mt-2">
                 System Uptime: {formatUptime(systemStatus.uptime)}
               </div>
             </CardContent>
@@ -420,7 +420,7 @@ export function SystemManagement() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
                 <Database className="h-4 w-4 mr-2" />
                 Database
               </CardTitle>
@@ -432,7 +432,7 @@ export function SystemManagement() {
                   <span className="ml-1 capitalize">{systemStatus.database.status}</span>
                 </Badge>
               </div>
-              <div className="text-sm text-gray-600 mt-2">
+              <div className="text-sm text-muted-foreground mt-2">
                 Response: {systemStatus.database.responseTime}ms
               </div>
             </CardContent>
@@ -440,7 +440,7 @@ export function SystemManagement() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
                 <Globe className="h-4 w-4 mr-2" />
                 API Status
               </CardTitle>
@@ -452,7 +452,7 @@ export function SystemManagement() {
                   <span className="ml-1 capitalize">{systemStatus.api.status}</span>
                 </Badge>
               </div>
-              <div className="text-sm text-gray-600 mt-2">
+              <div className="text-sm text-muted-foreground mt-2">
                 Response: {systemStatus.api.responseTime}ms
               </div>
             </CardContent>
@@ -460,16 +460,16 @@ export function SystemManagement() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
                 <Server className="h-4 w-4 mr-2" />
                 Services
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-lg font-bold text-gray-900">
+              <div className="text-lg font-bold text-foreground">
                 {systemStatus.services.filter(s => s.status === 'healthy').length} / {systemStatus.services.length}
               </div>
-              <div className="text-sm text-gray-600">Services Running</div>
+              <div className="text-sm text-muted-foreground">Services Running</div>
             </CardContent>
           </Card>
         </div>
@@ -511,7 +511,7 @@ export function SystemManagement() {
                         <Badge className={cn("px-2 py-1", getStatusColor(service.status))}>
                           {service.status}
                         </Badge>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-muted-foreground mt-1">
                           Uptime: {formatUptime(service.uptime)}
                         </div>
                       </div>
@@ -534,27 +534,27 @@ export function SystemManagement() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
-                  <Archive className="h-8 w-8 text-blue-600" />
+                  <Archive className="h-8 w-8 text-primary" />
                   <span className="text-sm font-medium">Create Backup</span>
-                  <span className="text-xs text-gray-500">Full system backup</span>
+                  <span className="text-xs text-muted-foreground">Full system backup</span>
                 </Button>
                 
                 <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
-                  <Activity className="h-8 w-8 text-green-600" />
+                  <Activity className="h-8 w-8 text-success" />
                   <span className="text-sm font-medium">Health Check</span>
-                  <span className="text-xs text-gray-500">Run diagnostics</span>
+                  <span className="text-xs text-muted-foreground">Run diagnostics</span>
                 </Button>
                 
                 <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
-                  <Settings className="h-8 w-8 text-purple-600" />
+                  <Settings className="h-8 w-8 text-accent" />
                   <span className="text-sm font-medium">System Config</span>
-                  <span className="text-xs text-gray-500">Manage settings</span>
+                  <span className="text-xs text-muted-foreground">Manage settings</span>
                 </Button>
                 
                 <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
-                  <FileText className="h-8 w-8 text-orange-600" />
+                  <FileText className="h-8 w-8 text-warning" />
                   <span className="text-sm font-medium">View Logs</span>
-                  <span className="text-xs text-gray-500">System activity</span>
+                  <span className="text-xs text-muted-foreground">System activity</span>
                 </Button>
               </div>
             </CardContent>
@@ -576,7 +576,7 @@ export function SystemManagement() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-xs sm:text-sm font-medium">CPU Usage</span>
-                    <span className="text-xs sm:text-sm text-gray-600">{systemStatus ? Math.min(100, (systemStatus.api?.responseTime || 0) * 2) : 0}%</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">{systemStatus ? Math.min(100, (systemStatus.api?.responseTime || 0) * 2) : 0}%</span>
                   </div>
                   <Progress value={systemStatus ? Math.min(100, (systemStatus.api?.responseTime || 0) * 2) : 0} className="h-2" />
                 </div>
@@ -584,7 +584,7 @@ export function SystemManagement() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-xs sm:text-sm font-medium">Memory Usage</span>
-                    <span className="text-xs sm:text-sm text-gray-600">{systemStatus ? (100 - Math.min(100, (systemStatus.api?.responseTime || 0) * 2)) : 0}%</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">{systemStatus ? (100 - Math.min(100, (systemStatus.api?.responseTime || 0) * 2)) : 0}%</span>
                   </div>
                   <Progress value={systemStatus ? (100 - Math.min(100, (systemStatus.api?.responseTime || 0) * 2)) : 0} className="h-2" />
                 </div>
@@ -592,7 +592,7 @@ export function SystemManagement() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-xs sm:text-sm font-medium">Database Status</span>
-                    <span className="text-xs sm:text-sm text-gray-600">{systemStatus?.database?.responseTime || 0}ms</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">{systemStatus?.database?.responseTime || 0}ms</span>
                   </div>
                   <Progress value={systemStatus ? Math.min(100, (systemStatus.database?.responseTime || 0) * 10) : 0} className="h-2" />
                 </div>
@@ -600,7 +600,7 @@ export function SystemManagement() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-xs sm:text-sm font-medium">API Response</span>
-                    <span className="text-xs sm:text-sm text-gray-600">{systemStatus?.api?.responseTime || 0}ms</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">{systemStatus?.api?.responseTime || 0}ms</span>
                   </div>
                   <Progress value={systemStatus ? Math.min(100, (systemStatus.api?.responseTime || 0) * 10) : 0} className="h-2" />
                 </div>
@@ -618,20 +618,20 @@ export function SystemManagement() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-3 border rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">99.9%</div>
-                    <div className="text-sm text-gray-600">Uptime</div>
+                    <div className="text-2xl font-bold text-success">99.9%</div>
+                    <div className="text-sm text-muted-foreground">Uptime</div>
                   </div>
                   <div className="text-center p-3 border rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">120ms</div>
-                    <div className="text-sm text-gray-600">Avg Response</div>
+                    <div className="text-2xl font-bold text-primary">120ms</div>
+                    <div className="text-sm text-muted-foreground">Avg Response</div>
                   </div>
                   <div className="text-center p-3 border rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600">1,250</div>
-                    <div className="text-sm text-gray-600">Active Users</div>
+                    <div className="text-2xl font-bold text-accent">1,250</div>
+                    <div className="text-sm text-muted-foreground">Active Users</div>
                   </div>
                   <div className="text-center p-3 border rounded-lg">
-                    <div className="text-2xl font-bold text-orange-600">0.1%</div>
-                    <div className="text-sm text-gray-600">Error Rate</div>
+                    <div className="text-2xl font-bold text-warning">0.1%</div>
+                    <div className="text-sm text-muted-foreground">Error Rate</div>
                   </div>
                 </div>
               </CardContent>
@@ -653,7 +653,7 @@ export function SystemManagement() {
               {/* Log Filters */}
               <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6">
                 <div className="flex items-center space-x-2 flex-1 min-w-0">
-                  <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                  <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <Input
                     placeholder="Search logs..."
                     value={logFilters.search}
@@ -685,25 +685,25 @@ export function SystemManagement() {
               {/* Logs List */}
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {systemLogs.map((log) => (
-                  <div key={log.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50">
+                  <div key={log.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted">
                     <Badge className={cn("px-2 py-1 text-xs", getLevelColor(log.level))}>
                       {log.level.toUpperCase()}
                     </Badge>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-900">{log.message}</span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-sm font-medium text-foreground">{log.message}</span>
+                        <span className="text-xs text-muted-foreground">
                           {new Date(log.timestamp).toLocaleString()}
                         </span>
                       </div>
                       <div className="flex items-center space-x-4 mt-1">
-                        <span className="text-xs text-gray-600">Module: {log.module}</span>
+                        <span className="text-xs text-muted-foreground">Module: {log.module}</span>
                         {log.userId && (
-                          <span className="text-xs text-gray-600">User: {log.userId}</span>
+                          <span className="text-xs text-muted-foreground">User: {log.userId}</span>
                         )}
                       </div>
                       {log.metadata && (
-                        <div className="text-xs text-gray-500 mt-1 font-mono">
+                        <div className="text-xs text-muted-foreground mt-1 font-mono">
                           {JSON.stringify(log.metadata, null, 2)}
                         </div>
                       )}
@@ -737,7 +737,7 @@ export function SystemManagement() {
                         <div className="space-y-2">
                           {Object.entries(config as any).slice(0, 3).map(([key, value]) => (
                             <div key={key} className="flex justify-between">
-                              <span className="text-xs text-gray-600 capitalize">{key}:</span>
+                              <span className="text-xs text-muted-foreground capitalize">{key}:</span>
                               <span className="text-xs font-mono">
                                 {typeof value === 'object' ? JSON.stringify(value).slice(0, 20) + '...' : String(value)}
                               </span>
@@ -801,12 +801,12 @@ export function SystemManagement() {
                           {backup.status}
                         </Badge>
                       </div>
-                      <div className="flex items-center space-x-4 text-sm text-gray-600">
+                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                         <span>Size: {backup.size}</span>
                         <span>Created: {new Date(backup.createdAt).toLocaleDateString()}</span>
                         <span>By: {backup.createdBy}</span>
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-muted-foreground">
                         Collections: {backup.collections.join(', ')}
                       </div>
                     </div>

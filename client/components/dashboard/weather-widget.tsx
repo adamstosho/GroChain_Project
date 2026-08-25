@@ -450,12 +450,12 @@ export function WeatherWidget() {
           <div className="min-w-0 flex-1">
             <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
               Weather
-              {geoLoading && <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-gray-900"></div>}
+              {geoLoading && <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-2 border-primary border-t-transparent"></div>}
             </CardTitle>
             <CardDescription className="flex items-center gap-2 text-xs sm:text-sm min-w-0">
               {geoLocation ? (
                 <>
-                  <Navigation className="h-3 w-3 text-green-500 flex-shrink-0" />
+                  <Navigation className="h-3 w-3 text-success flex-shrink-0" />
                   <span className="truncate min-w-0 flex-1">{weather?.location} (Live)</span>
                 </>
               ) : (
@@ -573,7 +573,7 @@ export function WeatherWidget() {
               >
                 {isForecastLoading ? (
                   <>
-                    <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-gray-900 mr-2"></div>
+                    <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-2 border-primary border-t-transparent mr-2"></div>
                     <span className="hidden sm:inline">Loading...</span>
                     <span className="sm:hidden">Loading...</span>
                   </>
@@ -625,26 +625,26 @@ export function WeatherWidget() {
                       <CardContent className="pt-0 px-3 sm:px-4 pb-3 sm:pb-4">
                         <div className="space-y-1.5 sm:space-y-2">
                           <div className="flex justify-between items-center text-xs sm:text-sm">
-                            <Thermometer className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 flex-shrink-0" />
+                            <Thermometer className="h-3 w-3 sm:h-4 sm:w-4 text-destructive flex-shrink-0" />
                             <span className="font-medium text-xs sm:text-sm">
-                              {Math.round(day.temperature?.max || day.highTemp || 25)}°
+                              {Math.round(day.highTemp ?? day.temperature?.max ?? 0)}°
                             </span>
                           </div>
                           <div className="flex justify-between items-center text-xs sm:text-sm">
-                            <Thermometer className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
+                            <Thermometer className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                             <span className="text-muted-foreground text-xs sm:text-sm">
-                              {Math.round(day.temperature?.min || day.lowTemp || 20)}°
+                              {Math.round(day.lowTemp ?? day.temperature?.min ?? 0)}°
                             </span>
                           </div>
                           <div className="flex justify-between items-center text-xs sm:text-sm">
-                            <HumidityIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-400 flex-shrink-0" />
+                            <HumidityIcon className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                             <span className="text-muted-foreground text-xs sm:text-sm">
-                              {day.humidity || 65}%
+                              {day.humidity ?? 0}%
                             </span>
                           </div>
                           {day.precipitation > 0 && (
                             <div className="flex justify-between items-center text-xs sm:text-sm">
-                              <CloudRain className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />
+                              <CloudRain className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                               <span className="text-muted-foreground text-xs sm:text-sm">
                                 {Math.round(day.precipitation)}mm
                               </span>

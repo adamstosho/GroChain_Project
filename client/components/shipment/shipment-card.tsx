@@ -58,9 +58,9 @@ export function ShipmentCard({
     const diffDays = Math.ceil((estimated.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
     
     if (diffDays < 0) {
-      return { text: 'Overdue', color: 'text-red-600' }
+      return { text: 'Overdue', color: 'text-destructive' }
     } else if (diffDays === 0) {
-      return { text: 'Today', color: 'text-orange-600' }
+      return { text: 'Today', color: 'text-warning' }
     } else if (diffDays === 1) {
       return { text: 'Tomorrow', color: 'text-primary' }
     } else {
@@ -75,7 +75,7 @@ export function ShipmentCard({
       <CardHeader className="pb-4 px-4 sm:px-5 pt-4 sm:pt-5">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 flex items-center justify-between gap-2">
+            <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold text-foreground flex items-center justify-between gap-2">
               <span className="block break-words" title={shipment.shipmentNumber}>
                 {shipment.shipmentNumber}
               </span>
@@ -120,16 +120,16 @@ export function ShipmentCard({
         {/* Route Information */}
         <div className="space-y-2 sm:space-y-3">
           <div className="flex items-center gap-2 text-xs sm:text-sm min-w-0">
-            <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
-            <span className="text-gray-600 flex-shrink-0">From:</span>
-            <span className="font-medium text-gray-900 text-xs sm:text-sm break-words min-w-0 flex-1" title={`${shipment.origin.city}, ${shipment.origin.state}`}>
+            <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-muted-foreground flex-shrink-0">From:</span>
+            <span className="font-medium text-foreground text-xs sm:text-sm break-words min-w-0 flex-1" title={`${shipment.origin.city}, ${shipment.origin.state}`}>
               {shipment.origin.city}, {shipment.origin.state}
             </span>
           </div>
           <div className="flex items-center gap-2 text-xs sm:text-sm min-w-0">
-            <Truck className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
-            <span className="text-gray-600 flex-shrink-0">To:</span>
-            <span className="font-medium text-gray-900 text-xs sm:text-sm break-words min-w-0 flex-1" title={`${shipment.destination.city}, ${shipment.destination.state}`}>
+            <Truck className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-muted-foreground flex-shrink-0">To:</span>
+            <span className="font-medium text-foreground text-xs sm:text-sm break-words min-w-0 flex-1" title={`${shipment.destination.city}, ${shipment.destination.state}`}>
               {shipment.destination.city}, {shipment.destination.state}
             </span>
           </div>
@@ -138,48 +138,48 @@ export function ShipmentCard({
         {/* Shipment Details */}
         <div className="space-y-2 sm:space-y-3">
           <div className="flex items-center gap-2 min-w-0">
-            <Package className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
-            <span className="text-xs sm:text-sm text-gray-600 flex-shrink-0">Items:</span>
-            <span className="font-medium text-gray-900 text-xs sm:text-sm">
+            <Package className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-xs sm:text-sm text-muted-foreground flex-shrink-0">Items:</span>
+            <span className="font-medium text-foreground text-xs sm:text-sm">
               {shipment.items.length} item{shipment.items.length !== 1 ? 's' : ''}
             </span>
           </div>
           <div className="flex items-center gap-2 min-w-0">
-            <Truck className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
-            <span className="text-xs sm:text-sm text-gray-600 flex-shrink-0">Carrier:</span>
-            <span className="font-medium text-gray-900 text-xs sm:text-sm break-words min-w-0 flex-1" title={shipment.carrier}>
+            <Truck className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-xs sm:text-sm text-muted-foreground flex-shrink-0">Carrier:</span>
+            <span className="font-medium text-foreground text-xs sm:text-sm break-words min-w-0 flex-1" title={shipment.carrier}>
               {shipment.carrier}
             </span>
           </div>
           <div className="flex items-center gap-2 min-w-0">
-            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
-            <span className="text-xs sm:text-sm text-gray-600 flex-shrink-0">Est. Delivery:</span>
+            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-xs sm:text-sm text-muted-foreground flex-shrink-0">Est. Delivery:</span>
             <span className={`font-medium text-xs sm:text-sm ${deliveryStatus.color}`}>
               {deliveryStatus.text}
             </span>
           </div>
           <div className="flex items-center gap-2 min-w-0">
-            <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
-            <span className="text-xs sm:text-sm text-gray-600 flex-shrink-0">Cost:</span>
-            <span className="font-medium text-gray-900 text-xs sm:text-sm">
+            <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-xs sm:text-sm text-muted-foreground flex-shrink-0">Cost:</span>
+            <span className="font-medium text-foreground text-xs sm:text-sm">
               {formatPrice(shipment.totalCost)}
             </span>
           </div>
         </div>
 
         {/* Delivery Timeline */}
-        <div className="pt-2 border-t border-gray-100 mt-auto space-y-2">
+        <div className="pt-2 border-t border-border mt-auto space-y-2">
           <div className="flex items-center gap-2 text-xs sm:text-sm">
-            <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
-            <span className="text-gray-600 flex-shrink-0">Created:</span>
-            <span className="text-gray-900">
+            <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-muted-foreground flex-shrink-0">Created:</span>
+            <span className="text-foreground">
               {formatDistanceToNow(new Date(shipment.createdAt), { addSuffix: true })}
             </span>
           </div>
           {shipment.trackingNumber && (
             <div className="flex items-center gap-2 text-xs sm:text-sm">
-              <span className="text-gray-600 flex-shrink-0">Track:</span>
-              <span className="font-medium text-gray-900 break-all" title={shipment.trackingNumber}>
+              <span className="text-muted-foreground flex-shrink-0">Track:</span>
+              <span className="font-medium text-foreground break-all" title={shipment.trackingNumber}>
                 {shipment.trackingNumber}
               </span>
             </div>
@@ -188,8 +188,8 @@ export function ShipmentCard({
 
         {/* Issues Alert */}
         {shipment.issues && shipment.issues.length > 0 && (
-          <div className="pt-2 border-t border-gray-100">
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-orange-600">
+          <div className="pt-2 border-t border-border">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-warning">
               <Package className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
               <span className="font-medium truncate">
                 {shipment.issues.length} issue{shipment.issues.length !== 1 ? 's' : ''} reported

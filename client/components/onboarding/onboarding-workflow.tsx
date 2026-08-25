@@ -71,8 +71,8 @@ export function OnboardingWorkflow() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium text-blue-600">{index + 1}</span>
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium text-primary">{index + 1}</span>
                   </div>
                   <div>
                     <CardTitle className="text-base capitalize">{stage.name}</CardTitle>
@@ -95,7 +95,7 @@ export function OnboardingWorkflow() {
                   <div className="grid gap-2 md:grid-cols-2">
                     {stage.actions.map((action) => (
                       <div key={action} className="flex items-center space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <CheckCircle className="w-4 h-4 text-success" />
                         <span className="text-sm">{action}</span>
                       </div>
                     ))}
@@ -124,9 +124,9 @@ export function OnboardingWorkflow() {
                       {stage.count} of {onboardings.length} farmers
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-muted rounded-full h-2">
                     <div 
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      className="bg-primary h-2 rounded-full transition-all duration-300"
                       style={{ width: `${stage.percentage}%` }}
                     />
                   </div>
@@ -137,8 +137,8 @@ export function OnboardingWorkflow() {
             {/* Arrow to next stage */}
             {index < stageStats.length - 1 && (
               <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2">
-                <div className="w-6 h-6 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center">
-                  <ArrowRight className="w-3 h-3 text-gray-400" />
+                <div className="w-6 h-6 bg-white border-2 border-border rounded-full flex items-center justify-center">
+                  <ArrowRight className="w-3 h-3 text-muted-foreground" />
                 </div>
               </div>
             )}
@@ -155,17 +155,17 @@ export function OnboardingWorkflow() {
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{workflow.stages.length}</div>
+              <div className="text-2xl font-bold text-primary">{workflow.stages.length}</div>
               <p className="text-sm text-muted-foreground">Total Stages</p>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-success">
                 {workflow.stages.filter(s => s.required).length}
               </div>
               <p className="text-sm text-muted-foreground">Required Stages</p>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
+              <div className="text-2xl font-bold text-accent">
                 {workflow.stages.reduce((sum, stage) => sum + stage.estimatedDuration, 0)}
               </div>
               <p className="text-sm text-muted-foreground">Total Duration (days)</p>

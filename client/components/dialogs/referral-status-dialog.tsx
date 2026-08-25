@@ -112,19 +112,19 @@ export function ReferralStatusDialog({
 
         <div className="space-y-4">
           {/* Referral Info */}
-          <div className="p-4 bg-gray-50 rounded-lg">
+          <div className="p-4 bg-muted rounded-lg">
             <div className="flex items-center space-x-3">
               <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
                 <User className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 truncate">
+                <p className="font-medium text-foreground truncate">
                   {referral.farmer?.name || 'Unknown Farmer'}
                 </p>
-                <p className="text-sm text-gray-500 truncate">
+                <p className="text-sm text-muted-foreground truncate">
                   {referral.farmer?.email || 'No email'}
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   Referred on {new Date(referral.createdAt).toLocaleDateString()}
                 </p>
               </div>
@@ -141,32 +141,32 @@ export function ReferralStatusDialog({
               <SelectContent>
                 <SelectItem value="pending">
                   <div className="flex items-center space-x-2">
-                    <span className="text-yellow-600">⏳</span>
+                    <span className="text-warning">⏳</span>
                     <span>Pending</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="active">
                   <div className="flex items-center space-x-2">
-                    <span className="text-blue-600">✅</span>
+                    <span className="text-primary">✅</span>
                     <span>Active</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="completed">
                   <div className="flex items-center space-x-2">
-                    <span className="text-green-600">💰</span>
+                    <span className="text-success">💰</span>
                     <span>Completed</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="cancelled">
                   <div className="flex items-center space-x-2">
-                    <span className="text-red-600">❌</span>
+                    <span className="text-destructive">❌</span>
                     <span>Cancelled</span>
                   </div>
                 </SelectItem>
               </SelectContent>
             </Select>
             {errors.status && (
-              <p className="text-sm text-red-600">{errors.status}</p>
+              <p className="text-sm text-destructive">{errors.status}</p>
             )}
           </div>
 
@@ -184,7 +184,7 @@ export function ReferralStatusDialog({
               placeholder="Enter commission rate"
             />
             {errors.commissionRate && (
-              <p className="text-sm text-red-600">{errors.commissionRate}</p>
+              <p className="text-sm text-destructive">{errors.commissionRate}</p>
             )}
           </div>
 
@@ -202,9 +202,9 @@ export function ReferralStatusDialog({
 
           {/* Warning for status changes */}
           {status !== referral.status && (
-            <div className="flex items-start space-x-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-yellow-800">
+            <div className="flex items-start space-x-2 p-3 bg-warning/10 border border-warning/10 rounded-lg">
+              <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-warning">
                 <p className="font-medium">Status Change</p>
                 <p>Changing status from {referral.status} to {status} will affect commission calculations.</p>
               </div>

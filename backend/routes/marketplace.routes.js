@@ -398,6 +398,9 @@ router.post('/listings', authenticate, authorize('farmer','partner','admin'), as
 })
 
 router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin'), async (req, res) => {
+  const session = await mongoose.startSession()
+  session.startTransaction()
+
   try {
     const {
       buyer,
@@ -412,16 +415,41 @@ router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin
 
     // Validate required fields
     if (!items || !Array.isArray(items) || items.length === 0) {
+      await session.abortTransaction()
+      session.endSession()
       return res.status(400).json({ status: 'error', message: 'Items are required' })
     }
 
     if (!shippingAddress || !shippingAddress.street || !shippingAddress.city || !shippingAddress.state) {
+      await session.abortTransaction()
+      session.endSession()
       return res.status(400).json({ status: 'error', message: 'Complete shipping address is required' })
     }
 
-    // Calculate totals
-    const subtotal = items.reduce((s, it) => s + (Number(it.quantity) * Number(it.price || 0)), 0)
-    
+    // Validate inventory and source prices from the listing itself — never
+    // trust a client-submitted price or skip stock validation.
+    const listingPriceById = new Map()
+    for (const item of items) {
+      const listing = await Listing.findById(item.listing).session(session)
+      if (!listing) {
+        await session.abortTransaction()
+        session.endSession()
+        return res.status(404).json({ status: 'error', message: `Listing ${item.listing} not found` })
+      }
+      if (listing.availableQuantity < Number(item.quantity)) {
+        await session.abortTransaction()
+        session.endSession()
+        return res.status(400).json({
+          status: 'error',
+          message: `Insufficient inventory for ${listing.cropName}. Requested: ${item.quantity}, Available: ${listing.availableQuantity}`
+        })
+      }
+      listingPriceById.set(item.listing.toString(), listing.basePrice)
+    }
+
+    // Calculate totals from the authoritative listing price, not the client-submitted one
+    const subtotal = items.reduce((s, it) => s + (Number(it.quantity) * listingPriceById.get(it.listing.toString())), 0)
+
     // Use provided shipping cost or calculate it
     let shippingCost = shipping || 0
     if (shippingCost === 0 && shippingMethod && shippingAddress) {
@@ -475,12 +503,14 @@ router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin
 
     // Get seller from the first listing
     const seller = items[0]?.listing ? await getSellerFromListing(items[0].listing) : null
-    
+
     // Validate that we have a seller
     if (!seller) {
-      return res.status(400).json({ 
-        status: 'error', 
-        message: 'Unable to determine seller from listing. Please ensure the listing exists and has a valid farmer.' 
+      await session.abortTransaction()
+      session.endSession()
+      return res.status(400).json({
+        status: 'error',
+        message: 'Unable to determine seller from listing. Please ensure the listing exists and has a valid farmer.'
       })
     }
 
@@ -488,13 +518,16 @@ router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin
     const orderData = {
       buyer: req.user.id,
       seller: seller,
-      items: items.map(item => ({
-        listing: item.listing,
-        quantity: Number(item.quantity),
-        price: Number(item.price),
-        unit: item.unit,
-        total: Number(item.quantity) * Number(item.price)
-      })),
+      items: items.map(item => {
+        const price = listingPriceById.get(item.listing.toString())
+        return {
+          listing: item.listing,
+          quantity: Number(item.quantity),
+          price,
+          unit: item.unit,
+          total: Number(item.quantity) * price
+        }
+      }),
       subtotal,
       shipping: shippingCost,
       shippingMethod: shippingMethod || 'road_standard',
@@ -516,9 +549,12 @@ router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin
     }
 
     // Create the order
-    const order = await Order.create(orderData)
+    const [order] = await Order.create([orderData], { session })
 
-    // Populate the created order for response
+    await session.commitTransaction()
+    session.endSession()
+
+    // Populate the created order for response (outside the transaction, read-only)
     const populatedOrder = await Order.findById(order._id)
       .populate({
         path: 'buyer',
@@ -542,6 +578,10 @@ router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin
     })
   } catch (error) {
     console.error('❌ Order creation error:', error)
+    if (session.inTransaction()) {
+      await session.abortTransaction()
+    }
+    session.endSession()
     return res.status(500).json({
       status: 'error',
       message: error.message || 'Failed to create order'

@@ -223,9 +223,9 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
     const diffDays = Math.ceil((estimated.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
     
     if (diffDays < 0) {
-      return { text: 'Overdue', color: 'text-red-600' }
+      return { text: 'Overdue', color: 'text-destructive' }
     } else if (diffDays === 0) {
-      return { text: 'Today', color: 'text-orange-600' }
+      return { text: 'Today', color: 'text-warning' }
     } else if (diffDays === 1) {
       return { text: 'Tomorrow', color: 'text-primary' }
     } else {
@@ -238,9 +238,9 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
       <Card className={className}>
         <CardContent className="p-3 sm:p-4 md:p-6">
           <div className="animate-pulse space-y-2 sm:space-y-3 md:space-y-4">
-            <div className="h-2.5 sm:h-3 md:h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-2 sm:h-2.5 md:h-3 bg-gray-200 rounded w-1/2"></div>
-            <div className="h-2 sm:h-2.5 md:h-3 bg-gray-200 rounded w-2/3"></div>
+            <div className="h-2.5 sm:h-3 md:h-4 bg-muted rounded w-3/4"></div>
+            <div className="h-2 sm:h-2.5 md:h-3 bg-muted rounded w-1/2"></div>
+            <div className="h-2 sm:h-2.5 md:h-3 bg-muted rounded w-2/3"></div>
           </div>
         </CardContent>
       </Card>
@@ -251,9 +251,9 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
     return (
       <Card className={className}>
         <CardContent className="p-3 sm:p-4 md:p-6 text-center">
-          <Package className="h-6 w-6 sm:h-8 sm:w-8 md:h-12 md:w-12 text-gray-400 mx-auto mb-2 sm:mb-3 md:mb-4" />
-          <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">Shipment Error</h3>
-          <p className="text-xs sm:text-sm text-gray-600 mb-2.5 sm:mb-3 md:mb-4">{error}</p>
+          <Package className="h-6 w-6 sm:h-8 sm:w-8 md:h-12 md:w-12 text-muted-foreground mx-auto mb-2 sm:mb-3 md:mb-4" />
+          <h3 className="text-sm sm:text-base md:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Shipment Error</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground mb-2.5 sm:mb-3 md:mb-4">{error}</p>
           <Button onClick={() => fetchShipmentForOrder()} variant="outline" size="sm" className="h-7 sm:h-8 text-xs">
             <RefreshCw className="h-3 w-3 mr-1" />
             Try Again
@@ -267,9 +267,9 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
     return (
       <Card className={className}>
         <CardContent className="p-3 sm:p-4 md:p-6 text-center">
-          <Package className="h-6 w-6 sm:h-8 sm:w-8 md:h-12 md:w-12 text-gray-400 mx-auto mb-2 sm:mb-3 md:mb-4" />
-          <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">No Shipment Yet</h3>
-          <p className="text-xs sm:text-sm text-gray-600 mb-2.5 sm:mb-3 md:mb-4">
+          <Package className="h-6 w-6 sm:h-8 sm:w-8 md:h-12 md:w-12 text-muted-foreground mx-auto mb-2 sm:mb-3 md:mb-4" />
+          <h3 className="text-sm sm:text-base md:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">No Shipment Yet</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground mb-2.5 sm:mb-3 md:mb-4">
             This order hasn't been shipped yet. The seller will create a shipment once the order is confirmed.
           </p>
         </CardContent>
@@ -284,7 +284,7 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
       <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
         <div className="flex flex-col space-y-2 sm:space-y-3 md:flex-row md:items-center md:justify-between md:space-y-0">
           <CardTitle className="flex items-center gap-1 sm:gap-2 text-sm sm:text-base md:text-lg">
-            <Package className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-green-600 flex-shrink-0" />
+            <Package className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-success flex-shrink-0" />
             <span className="truncate">Shipment Tracking</span>
           </CardTitle>
           <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:gap-2">
@@ -323,19 +323,19 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
           <div className="space-y-1.5 sm:space-y-2">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
               <div className="flex items-center gap-1 sm:gap-2">
-                <Package className="h-3 w-3 text-gray-500 flex-shrink-0" />
-                <span className="text-gray-600 text-xs">Shipment:</span>
+                <Package className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                <span className="text-muted-foreground text-xs">Shipment:</span>
               </div>
-              <span className="font-medium text-gray-900 text-xs break-all ml-4 sm:ml-0">
+              <span className="font-medium text-foreground text-xs break-all ml-4 sm:ml-0">
                 {shipment.shipmentNumber}
               </span>
             </div>
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
               <div className="flex items-center gap-1 sm:gap-2">
-                <Truck className="h-3 w-3 text-gray-500 flex-shrink-0" />
-                <span className="text-gray-600 text-xs">Carrier:</span>
+                <Truck className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                <span className="text-muted-foreground text-xs">Carrier:</span>
               </div>
-              <span className="font-medium text-gray-900 text-xs ml-4 sm:ml-0">
+              <span className="font-medium text-foreground text-xs ml-4 sm:ml-0">
                 {shipment.carrier}
               </span>
             </div>
@@ -343,8 +343,8 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
           <div className="space-y-1.5 sm:space-y-2">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
               <div className="flex items-center gap-1 sm:gap-2">
-                <Calendar className="h-3 w-3 text-gray-500 flex-shrink-0" />
-                <span className="text-gray-600 text-xs">Est. Delivery:</span>
+                <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                <span className="text-muted-foreground text-xs">Est. Delivery:</span>
               </div>
               <span className={`font-medium text-xs ml-4 sm:ml-0 ${deliveryStatus.color}`}>
                 {deliveryStatus.text}
@@ -352,10 +352,10 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
             </div>
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
               <div className="flex items-center gap-1 sm:gap-2">
-                <Clock className="h-3 w-3 text-gray-500 flex-shrink-0" />
-                <span className="text-gray-600 text-xs">Created:</span>
+                <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                <span className="text-muted-foreground text-xs">Created:</span>
               </div>
-              <span className="font-medium text-gray-900 text-xs ml-4 sm:ml-0">
+              <span className="font-medium text-foreground text-xs ml-4 sm:ml-0">
                 {formatDistanceToNow(new Date(shipment.createdAt), { addSuffix: true })}
               </span>
             </div>
@@ -363,19 +363,19 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
         </div>
 
         {/* Route */}
-        <div className="pt-2 border-t border-gray-100">
+        <div className="pt-2 border-t border-border">
           <div className="space-y-1.5 sm:space-y-2 md:space-y-0 md:flex md:items-center md:gap-4 text-xs sm:text-sm">
             <div className="flex items-center gap-1 sm:gap-2">
-              <MapPin className="h-3 w-3 text-gray-500 flex-shrink-0" />
-              <span className="text-gray-600">From:</span>
-              <span className="font-medium text-gray-900 break-words">
+              <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              <span className="text-muted-foreground">From:</span>
+              <span className="font-medium text-foreground break-words">
                 {shipment.origin.city}, {shipment.origin.state}
               </span>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
-              <Truck className="h-3 w-3 text-gray-500 flex-shrink-0" />
-              <span className="text-gray-600">To:</span>
-              <span className="font-medium text-gray-900 break-words">
+              <Truck className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              <span className="text-muted-foreground">To:</span>
+              <span className="font-medium text-foreground break-words">
                 {shipment.destination.city}, {shipment.destination.state}
               </span>
             </div>
@@ -384,18 +384,18 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
 
         {/* Latest Tracking Event */}
         {shipment.trackingEvents && shipment.trackingEvents.length > 0 && (
-          <div className="pt-2 border-t border-gray-100">
-            <h4 className="font-medium text-gray-900 mb-1.5 sm:mb-2 text-xs sm:text-sm md:text-base">Latest Update</h4>
-            <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-100">
+          <div className="pt-2 border-t border-border">
+            <h4 className="font-medium text-foreground mb-1.5 sm:mb-2 text-xs sm:text-sm md:text-base">Latest Update</h4>
+            <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-muted rounded-lg border border-border">
               <div className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <Package className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <h5 className="font-medium text-gray-900 text-xs sm:text-sm">{shipment.trackingEvents[0].location}</h5>
-                <p className="text-xs sm:text-sm text-gray-600 break-words mt-0.5">{shipment.trackingEvents[0].description}</p>
+                <h5 className="font-medium text-foreground text-xs sm:text-sm">{shipment.trackingEvents[0].location}</h5>
+                <p className="text-xs sm:text-sm text-muted-foreground break-words mt-0.5">{shipment.trackingEvents[0].description}</p>
                 <div className="flex items-center gap-1 sm:gap-2 mt-1">
-                  <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-400 flex-shrink-0" />
-                  <span className="text-xs text-gray-500">
+                  <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(shipment.trackingEvents[0].timestamp), { addSuffix: true })}
                   </span>
                 </div>
@@ -406,8 +406,8 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
 
         {/* Issues Alert */}
         {shipment.issues && shipment.issues.length > 0 && (
-          <div className="pt-2 border-t border-gray-100">
-            <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-orange-600">
+          <div className="pt-2 border-t border-border">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-warning">
               <Package className="h-3 w-3 flex-shrink-0" />
               <span className="font-medium">
                 {shipment.issues.length} issue{shipment.issues.length !== 1 ? 's' : ''} reported

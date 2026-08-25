@@ -45,14 +45,17 @@ const fintechController = {
         user.role === 'farmer' ? require('../models/order.model').find({ seller: userId }).select('_id') : Promise.resolve([])
       ])
 
-      // Get total earnings from transactions
-      let earningsQuery = {}
+      // Get total earnings
+      let totalEarnings = 0
 
       if (user.role === 'farmer') {
         const Order = require('../models/order.model')
         const listingIds = farmerListings.map(listing => listing._id)
+        const hasPartner = !!user.partner
+        const platformFeeRate = 0.03
+        const partnerCommissionRate = hasPartner ? 0.02 : 0
 
-        // Calculate total earnings from completed orders
+        // Calculate total earnings from completed orders, net of platform fee and partner commission
         const earningsResult = await Order.aggregate([
           {
             $match: {
@@ -60,9 +63,7 @@ const fintechController = {
               paymentStatus: 'paid'
             }
           },
-          {
-            $unwind: '$items'
-          },
+          { $unwind: '$items' },
           {
             $match: {
               'items.listing': { $in: listingIds }
@@ -75,15 +76,16 @@ const fintechController = {
             }
           }
         ])
-        void earningsResult
-      } else {
-        earningsQuery = { userId: userId, type: { $in: ['payment', 'commission'] }, status: 'completed' }
-      }
 
-      const earnings = await Transaction.aggregate([
-        { $match: earningsQuery },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ])
+        const grossEarnings = earningsResult[0]?.total || 0
+        totalEarnings = grossEarnings - (grossEarnings * platformFeeRate) - (grossEarnings * partnerCommissionRate)
+      } else {
+        const earnings = await Transaction.aggregate([
+          { $match: { userId: userId, type: { $in: ['payment', 'commission'] }, status: 'completed' } },
+          { $group: { _id: null, total: { $sum: '$amount' } } }
+        ])
+        totalEarnings = earnings[0]?.total || 0
+      }
 
       // Get pending payments (upcoming loan repayments)
       const pendingPayments = []
@@ -131,7 +133,7 @@ const fintechController = {
       const dashboardData = {
         overview: {
           creditScore: creditScore?.score || 0,
-          totalEarnings: earnings[0]?.total || 0,
+          totalEarnings,
           pendingPayments: totalPendingPayments,
           activeLoans: activeLoans.length,
           insurancePolicies: activeInsurance.length,

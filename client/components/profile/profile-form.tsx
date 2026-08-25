@@ -1,30 +1,29 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { AvatarUpload } from "@/components/ui/avatar-upload"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import { useAuthStore } from "@/lib/auth"
+import { ProfileHero } from "@/components/profile/profile-hero"
+import { ProfileSectionCard } from "@/components/profile/profile-section-card"
+import { ProfileField, ProfileTagField } from "@/components/profile/profile-field"
+import { ProfileStat, ProfileStatGrid } from "@/components/profile/profile-stat"
 import {
   User,
   MapPin,
-  Building,
-  Save,
-  Edit,
-  Camera,
+  Building2,
   AlertCircle,
   Banknote,
   ShoppingCart,
-  Activity
+  Activity,
+  Sprout,
+  Contact,
+  Wrench,
+  Package,
+  Mail,
 } from "lucide-react"
 
 interface PartnerProfile {
@@ -55,8 +54,8 @@ interface PartnerProfile {
   services: string[]
   coverageAreas: string[]
   certifications: string[]
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
+  updatedAt: string
 }
 
 interface FarmerProfile {
@@ -86,17 +85,96 @@ interface FarmerProfile {
     totalListings: number
     totalOrders: number
     totalRevenue: number
-    lastActive: Date
+    lastActive: string
   }
   recentHarvests: any[]
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
+  updatedAt: string
 }
 
+const ORGANIZATION_TYPE_OPTIONS = [
+  { value: "cooperative", label: "Cooperative" },
+  { value: "ngo", label: "NGO" },
+  { value: "extension_agency", label: "Extension Agency" },
+  { value: "market_association", label: "Market Association" },
+  { value: "other", label: "Other" },
+]
+
+const GENDER_OPTIONS = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+  { value: "other", label: "Other" },
+]
+
+const SERVICE_OPTIONS = ["Training", "Extension", "Marketing", "Finance", "Technology"]
+
 export function ProfileForm() {
+  const { user } = useAuthStore()
+
+  if (user?.role === "farmer") {
+    return <FarmerProfileView />
+  }
+
+  return <PartnerProfileView />
+}
+
+function ProfileSkeleton() {
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="h-24 sm:h-32 animate-pulse bg-muted" />
+        <div className="px-4 pb-6 sm:px-8">
+          <div className="-mt-12 flex flex-col items-center gap-3 sm:-mt-14 sm:flex-row sm:items-end sm:gap-5">
+            <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-background bg-muted animate-pulse" />
+            <div className="space-y-2 pb-1 text-center sm:text-left">
+              <div className="h-6 w-40 sm:w-56 animate-pulse rounded bg-muted" />
+              <div className="h-4 w-28 sm:w-36 animate-pulse rounded bg-muted" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-16 sm:h-20 animate-pulse rounded-xl border border-border/60 bg-muted/40" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {[...Array(2)].map((_, i) => (
+          <Card key={i}>
+            <CardContent className="space-y-4 p-4 sm:p-6">
+              <div className="h-5 w-40 animate-pulse rounded bg-muted" />
+              {[...Array(3)].map((_, j) => (
+                <div key={j} className="space-y-2">
+                  <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+                  <div className="h-9 animate-pulse rounded bg-muted" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ProfileErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-16 text-center">
+      <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+      <h3 className="text-lg font-semibold mb-1">Profile not found</h3>
+      <p className="text-muted-foreground mb-4 max-w-sm text-sm">
+        We couldn't load your profile information. Check your connection and try again.
+      </p>
+      <Button variant="outline" onClick={onRetry}>Try Again</Button>
+    </div>
+  )
+}
+
+// Partner Profile View
+function PartnerProfileView() {
   const { user, updateUser } = useAuthStore()
   const { toast } = useToast()
-  const [profile, setProfile] = useState<PartnerProfile | FarmerProfile | null>(null)
+  const [profile, setProfile] = useState<PartnerProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -108,89 +186,42 @@ export function ProfileForm() {
   const fetchProfile = async () => {
     try {
       setIsLoading(true)
-
-      // Fetch real profile data from API
       const response = await apiService.getMyProfile()
 
       if (response.status === 'success' && response.data) {
         const profileData = response.data as any
-
-        // Handle different user roles
-        if (user?.role === 'farmer') {
-          // For farmers, create a farmer-specific profile structure
-          const farmerProfile = {
-            _id: profileData._id,
-            name: profileData.name,
-            email: profileData.email,
-            phone: profileData.phone,
-            role: profileData.role,
-            status: profileData.status,
-            // Farmer-specific fields
-            location: profileData.location || '',
-            gender: profileData.gender || '',
-            age: profileData.age || '',
-            education: profileData.education || '',
-            farmSize: profileData.profile?.farmSize || '',
-            primaryCrops: profileData.preferences?.cropTypes || [],
-            experience: profileData.profile?.experience || '',
-            certifications: profileData.profile?.certifications || [],
-            bio: profileData.profile?.bio || '',
-            address: profileData.profile?.address || '',
+        const partnerProfile: PartnerProfile = {
+          _id: profileData._id,
+          name: profileData.name,
+          email: profileData.email,
+          phone: profileData.phone,
+          role: profileData.role,
+          status: profileData.status,
+          organization: profileData.partner?.organization || '',
+          organizationType: profileData.partner?.type || 'cooperative',
+          address: {
+            street: profileData.profile?.address || '',
             city: profileData.profile?.city || '',
             state: profileData.profile?.state || '',
-            country: profileData.profile?.country || 'Nigeria',
             postalCode: profileData.profile?.postalCode || '',
-            avatar: profileData.profile?.avatar || '',
-            stats: profileData.stats || {
-              totalHarvests: 0,
-              totalListings: 0,
-              totalOrders: 0,
-              totalRevenue: 0,
-              lastActive: new Date()
-            },
-            recentHarvests: profileData.recentHarvests || [],
-            createdAt: profileData.createdAt,
-            updatedAt: profileData.updatedAt
-          }
-          setProfile(farmerProfile as any)
-        } else if (user?.role === 'partner') {
-          // For partners, use the existing partner structure
-          const partnerProfile: PartnerProfile = {
-            _id: profileData._id,
-            name: profileData.name,
-            email: profileData.email,
-            phone: profileData.phone,
-            role: profileData.role,
-            status: profileData.status,
-            organization: profileData.organization || profileData.partner?.name || '',
-            organizationType: profileData.organizationType || profileData.partner?.type || 'cooperative',
-            address: {
-              street: profileData.profile?.address || '',
-              city: profileData.profile?.city || '',
-              state: profileData.profile?.state || '',
-              postalCode: profileData.profile?.postalCode || '',
-              country: profileData.profile?.country || 'Nigeria'
-            },
-            website: profileData.partner?.website || '',
-            description: profileData.partner?.description || '',
-            logo: profileData.partner?.logo || '',
-            contactPerson: {
-              name: profileData.name,
-              position: profileData.partner?.contactPerson?.position || '',
-              phone: profileData.phone,
-              email: profileData.email
-            },
-            services: profileData.partner?.services || [],
-            coverageAreas: profileData.partner?.coverageAreas || [],
-            certifications: profileData.partner?.certifications || [],
-            createdAt: profileData.createdAt,
-            updatedAt: profileData.updatedAt
-          }
-          setProfile(partnerProfile)
-        } else {
-          // For other user types, use a generic structure
-          setProfile(profileData as any)
+            country: profileData.profile?.country || 'Nigeria'
+          },
+          website: profileData.partner?.website || '',
+          description: profileData.partner?.description || '',
+          logo: profileData.partner?.logo || profileData.profile?.avatar || '',
+          contactPerson: {
+            name: profileData.partner?.contactPerson?.name || profileData.name || '',
+            position: profileData.partner?.contactPerson?.position || '',
+            phone: profileData.partner?.contactPerson?.phone || profileData.phone || '',
+            email: profileData.partner?.contactPerson?.email || profileData.email || ''
+          },
+          services: profileData.partner?.services || [],
+          coverageAreas: profileData.partner?.coverageAreas || [],
+          certifications: profileData.partner?.certifications || [],
+          createdAt: profileData.createdAt,
+          updatedAt: profileData.updatedAt
         }
+        setProfile(partnerProfile)
       } else {
         throw new Error('Failed to fetch profile data')
       }
@@ -209,139 +240,96 @@ export function ProfileForm() {
   const handleSave = async () => {
     if (!profile) return
 
+    if (!profile.name?.trim()) {
+      toast({ title: "Validation Error", description: "Full name is required", variant: "destructive" })
+      return
+    }
+    if (!profile.phone?.trim()) {
+      toast({ title: "Validation Error", description: "Phone number is required", variant: "destructive" })
+      return
+    }
+
     try {
       setIsSaving(true)
 
-      // Validate required fields
-      if (!profile.name?.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "Full name is required",
-          variant: "destructive"
-        })
-        return
-      }
-
-      if (!profile.phone?.trim()) {
-        toast({
-          title: "Validation Error", 
-          description: "Phone number is required",
-          variant: "destructive"
-        })
-        return
-      }
-
-      // Prepare update data based on user role
-      let updateData: any = {}
-
-      if (user?.role === 'farmer' && 'location' in profile) {
-        const farmerProfile = profile as FarmerProfile
-        updateData = {
-          name: farmerProfile.name,
-          phone: farmerProfile.phone,
-          location: farmerProfile.location,
-          gender: farmerProfile.gender,
-          age: parseInt(farmerProfile.age) || undefined,
-          education: farmerProfile.education,
-          profile: {
-            bio: farmerProfile.bio,
-            address: farmerProfile.address,
-            city: farmerProfile.city,
-            state: farmerProfile.state,
-            country: farmerProfile.country,
-            postalCode: farmerProfile.postalCode,
-            avatar: farmerProfile.avatar,
-            farmSize: farmerProfile.farmSize,
-            experience: farmerProfile.experience,
-            certifications: farmerProfile.certifications
-          },
-          preferences: {
-            cropTypes: farmerProfile.primaryCrops
-          }
-        }
-      } else if (user?.role === 'partner' && 'organization' in profile) {
-        const partnerProfile = profile as PartnerProfile
-        updateData = {
-          name: partnerProfile.name,
-          phone: partnerProfile.phone,
-          company: partnerProfile.organization, // Partner organization as company
-          businessType: partnerProfile.organizationType,
-          website: partnerProfile.website,
-          profile: {
-            bio: partnerProfile.description,
-            address: partnerProfile.address?.street,
-            city: partnerProfile.address?.city,
-            state: partnerProfile.address?.state,
-            country: partnerProfile.address?.country,
-            postalCode: partnerProfile.address?.postalCode,
-            avatar: partnerProfile.logo // Partner logo as avatar
-          }
+      const updateData = {
+        name: profile.name,
+        phone: profile.phone,
+        profile: {
+          avatar: profile.logo,
+          address: profile.address?.street,
+          city: profile.address?.city,
+          state: profile.address?.state,
+          country: profile.address?.country,
+          postalCode: profile.address?.postalCode
+        },
+        partner: {
+          organization: profile.organization,
+          organizationType: profile.organizationType,
+          website: profile.website,
+          description: profile.description,
+          logo: profile.logo,
+          contactPerson: profile.contactPerson,
+          services: profile.services,
+          coverageAreas: profile.coverageAreas,
+          certifications: profile.certifications
         }
       }
 
-      // Update profile via API
       const response = await apiService.updateMyProfile(updateData)
 
       if (response.status === 'success' && response.data) {
-        // For partners, preserve the logo/avatar mapping
-        const updatedProfile = response.data as any
-        if (user?.role === 'partner' && (profile as any).logo) {
-          updatedProfile.profile = {
-            ...updatedProfile.profile,
-            avatar: (profile as any).logo // Ensure logo is preserved as avatar
-          }
+        const updatedData = response.data as any
+        const updatedProfile: PartnerProfile = {
+          _id: updatedData._id,
+          name: updatedData.name,
+          email: updatedData.email,
+          phone: updatedData.phone,
+          role: updatedData.role,
+          status: updatedData.status,
+          organization: updatedData.partner?.organization || '',
+          organizationType: updatedData.partner?.type || 'cooperative',
+          address: {
+            street: updatedData.profile?.address || '',
+            city: updatedData.profile?.city || '',
+            state: updatedData.profile?.state || '',
+            postalCode: updatedData.profile?.postalCode || '',
+            country: updatedData.profile?.country || 'Nigeria'
+          },
+          website: updatedData.partner?.website || '',
+          description: updatedData.partner?.description || '',
+          logo: updatedData.partner?.logo || updatedData.profile?.avatar || '',
+          contactPerson: {
+            name: updatedData.partner?.contactPerson?.name || updatedData.name || '',
+            position: updatedData.partner?.contactPerson?.position || '',
+            phone: updatedData.partner?.contactPerson?.phone || updatedData.phone || '',
+            email: updatedData.partner?.contactPerson?.email || updatedData.email || ''
+          },
+          services: updatedData.partner?.services || [],
+          coverageAreas: updatedData.partner?.coverageAreas || [],
+          certifications: updatedData.partner?.certifications || [],
+          createdAt: updatedData.createdAt,
+          updatedAt: updatedData.updatedAt
         }
 
-        // Update local state with the response
         setProfile(updatedProfile)
-
-        // Update auth store if needed
         updateUser({
           name: updatedProfile.name,
           email: updatedProfile.email,
           phone: updatedProfile.phone,
-          profile: updatedProfile.profile
+          profile: updatedData.profile
         })
 
-        // Also update localStorage to ensure persistence
-        const currentUser = JSON.parse(localStorage.getItem('zustand-auth-store') || '{}')
-        if (currentUser.state?.user) {
-          currentUser.state.user = {
-            ...currentUser.state.user,
-            name: updatedProfile.name,
-            email: updatedProfile.email,
-            phone: updatedProfile.phone,
-            profile: updatedProfile.profile
-          }
-          localStorage.setItem('zustand-auth-store', JSON.stringify(currentUser))
-        }
-
-        toast({
-          title: "Profile updated",
-          description: "Your profile has been updated successfully",
-          variant: "default"
-        })
+        toast({ title: "Profile updated", description: "Your profile has been updated successfully" })
         setIsEditing(false)
       } else {
         throw new Error('Failed to update profile')
       }
     } catch (error: any) {
       console.error('Error updating profile:', error)
-      
-      // Handle different types of errors
-      let errorMessage = "Failed to save profile. Please try again."
-      
-      if (error.message?.includes('network') || error.message?.includes('fetch')) {
-        errorMessage = "Network error. Please check your connection and try again."
-      } else if (error.message?.includes('validation')) {
-        errorMessage = error.message
-      } else if (error.message?.includes('unauthorized')) {
-        errorMessage = "Session expired. Please log in again."
-      }
-      
       toast({
         title: "Error saving profile",
-        description: errorMessage,
+        description: error.message || "Failed to save profile. Please try again.",
         variant: "destructive"
       })
     } finally {
@@ -350,416 +338,148 @@ export function ProfileForm() {
   }
 
   const handleAvatarUpdate = (newAvatarUrl: string) => {
-    if (profile) {
-      // Update local profile state - handle both farmer and partner profiles
-      if (user?.role === 'partner') {
-        setProfile({ ...profile, logo: newAvatarUrl } as any)
-      } else {
-        setProfile({ ...profile, avatar: newAvatarUrl } as any)
-      }
-
-      // Update auth store to sync avatar across the app
-      updateUser({
-        profile: {
-          ...user?.profile,
-          avatar: newAvatarUrl
-        }
-      })
-
-      // Also update localStorage to ensure persistence across page refreshes
-      const currentUser = JSON.parse(localStorage.getItem('zustand-auth-store') || '{}')
-      if (currentUser.state?.user) {
-        currentUser.state.user.profile = {
-          ...currentUser.state.user.profile,
-          avatar: newAvatarUrl
-        }
-        localStorage.setItem('zustand-auth-store', JSON.stringify(currentUser))
-      }
-    }
+    if (!profile) return
+    setProfile({ ...profile, logo: newAvatarUrl })
+    updateUser({ profile: { ...user?.profile, avatar: newAvatarUrl } })
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center space-y-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
-          <p className="text-lg font-medium">Loading profile...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!profile) {
-    return (
-      <div className="text-center py-8">
-        <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium mb-2">Profile not found</h3>
-        <p className="text-muted-foreground">Unable to load your profile information.</p>
-      </div>
-    )
-  }
-
-  // Render different layouts for different user roles
-  if (user?.role === 'farmer') {
-    return <FarmerProfileView />
-  }
-
-  // Type guard to ensure we're working with a PartnerProfile
-  if (profile.role !== 'partner') {
-    return (
-      <div className="text-center py-8">
-        <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium mb-2">Invalid profile type</h3>
-        <p className="text-muted-foreground">This profile is not configured for partners.</p>
-      </div>
-    )
-  }
-
-  // Now TypeScript knows profile is PartnerProfile
-  const partnerProfile = profile as PartnerProfile
+  if (isLoading) return <ProfileSkeleton />
+  if (!profile) return <ProfileErrorState onRetry={fetchProfile} />
 
   return (
-    <div className="profile-container space-y-4 sm:space-y-6">
-      {/* Profile Header - Fully Responsive */}
-      <Card>
-        <CardHeader className="pb-4">
-          <div className="profile-header">
-            <div className="profile-avatar-section">
-              <AvatarUpload
-                currentAvatar={partnerProfile.logo}
-                userName={partnerProfile.name}
-                onAvatarUpdate={handleAvatarUpdate}
-                disabled={!isEditing}
-                size="lg"
-              />
-              <div className="profile-info">
-                <CardTitle className="profile-title">{partnerProfile.name}</CardTitle>
-                <CardDescription className="profile-subtitle">
-                  {partnerProfile.organization || 'No organization'} {partnerProfile.organizationType && `• ${partnerProfile.organizationType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`}
-                </CardDescription>
-                <div className="profile-badges">
-                  <Badge variant={partnerProfile.status === 'active' ? 'default' : 'secondary'} className="text-xs">
-                    {partnerProfile.status || 'unknown'}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    Partner since {partnerProfile.createdAt ? new Date(partnerProfile.createdAt).getFullYear() : 'N/A'}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-            <div className="profile-actions">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(!isEditing)}
-                className="flex-1 sm:flex-none h-9 sm:h-10"
-              >
-                <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="text-xs sm:text-sm">{isEditing ? 'Cancel' : 'Edit'}</span>
-              </Button>
-              {isEditing && (
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="flex-1 sm:flex-none h-9 sm:h-10"
-                >
-                  <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="text-xs sm:text-sm">{isSaving ? 'Saving...' : 'Save'}</span>
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+    <div className="space-y-4 sm:space-y-6">
+      <ProfileHero
+        name={profile.name}
+        subtitle={
+          <>
+            {profile.organization || 'No organization'}
+            {profile.organizationType && ` • ${profile.organizationType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`}
+          </>
+        }
+        avatar={profile.logo}
+        isEditing={isEditing}
+        isSaving={isSaving}
+        onToggleEdit={() => setIsEditing(!isEditing)}
+        onSave={handleSave}
+        onAvatarUpdate={handleAvatarUpdate}
+        badges={
+          <>
+            <Badge variant={profile.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+              {profile.status || 'unknown'}
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              Partner since {profile.createdAt ? new Date(profile.createdAt).getFullYear() : 'N/A'}
+            </Badge>
+          </>
+        }
+      />
 
-      {/* Personal Information - Responsive Grid */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-base sm:text-lg">
-            <User className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-            Personal Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="profile-grid">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="profile-label">Full Name</Label>
-              <Input
-                id="name"
-                value={partnerProfile.name}
-                onChange={(e) => setProfile({ ...partnerProfile, name: e.target.value })}
-                disabled={!isEditing}
-                className="profile-input"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email" className="profile-label">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                value={partnerProfile.email}
-                onChange={(e) => setProfile({ ...partnerProfile, email: e.target.value })}
-                disabled={!isEditing}
-                className="profile-input"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="profile-label">Phone Number</Label>
-              <Input
-                id="phone"
-                value={partnerProfile.phone}
-                onChange={(e) => setProfile({ ...partnerProfile, phone: e.target.value })}
-                disabled={!isEditing}
-                className="profile-input"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="website" className="profile-label">Website</Label>
-              <Input
-                id="website"
-                value={partnerProfile.website || ''}
-                onChange={(e) => setProfile({ ...partnerProfile, website: e.target.value })}
-                disabled={!isEditing}
-                placeholder="https://example.com"
-                className="profile-input"
-              />
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <ProfileSectionCard icon={User} title="Personal Information" description="Your name and contact details">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+            <ProfileField label="Full Name" value={profile.name} isEditing={isEditing} required
+              onChange={(v) => setProfile({ ...profile, name: v })} />
+            <ProfileField label="Email Address" value={profile.email} isEditing={isEditing} locked icon={Mail} />
+            <ProfileField label="Phone Number" value={profile.phone} isEditing={isEditing} required
+              onChange={(v) => setProfile({ ...profile, phone: v })} />
+            <ProfileField label="Website" value={profile.website || ''} isEditing={isEditing} placeholder="https://example.com"
+              onChange={(v) => setProfile({ ...profile, website: v })} />
           </div>
+          <ProfileField label="Description" value={profile.description || ''} isEditing={isEditing} type="textarea"
+            placeholder="Tell us about your organization..." emptyText="No description added yet"
+            onChange={(v) => setProfile({ ...profile, description: v })} />
+        </ProfileSectionCard>
+
+        <ProfileSectionCard icon={MapPin} title="Address" description="Where your organization is based" iconClassName="bg-secondary/15 text-secondary-foreground">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+            <ProfileField label="Street Address" value={profile.address?.street || ''} isEditing={isEditing} className="sm:col-span-2"
+              onChange={(v) => setProfile({ ...profile, address: { ...profile.address, street: v } })} />
+            <ProfileField label="City" value={profile.address?.city || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, address: { ...profile.address, city: v } })} />
+            <ProfileField label="State" value={profile.address?.state || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, address: { ...profile.address, state: v } })} />
+            <ProfileField label="Postal Code" value={profile.address?.postalCode || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, address: { ...profile.address, postalCode: v } })} />
+            <ProfileField label="Country" value={profile.address?.country || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, address: { ...profile.address, country: v } })} />
+          </div>
+        </ProfileSectionCard>
+
+        <ProfileSectionCard icon={Building2} title="Organization Details" description="How you're registered on GroChain" iconClassName="bg-accent/15 text-accent">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+            <ProfileField label="Organization Name" value={profile.organization || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, organization: v })} />
+            <ProfileField label="Organization Type" value={profile.organizationType || ''} isEditing={isEditing}
+              type="select" options={ORGANIZATION_TYPE_OPTIONS}
+              onChange={(v) => setProfile({ ...profile, organizationType: v as PartnerProfile['organizationType'] })} />
+          </div>
+        </ProfileSectionCard>
+
+        <ProfileSectionCard icon={Contact} title="Contact Person" description="Primary point of contact" iconClassName="bg-success/15 text-success">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+            <ProfileField label="Name" value={profile.contactPerson?.name || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, contactPerson: { ...profile.contactPerson, name: v } })} />
+            <ProfileField label="Position" value={profile.contactPerson?.position || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, contactPerson: { ...profile.contactPerson, position: v } })} />
+            <ProfileField label="Phone" value={profile.contactPerson?.phone || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, contactPerson: { ...profile.contactPerson, phone: v } })} />
+            <ProfileField label="Email" value={profile.contactPerson?.email || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, contactPerson: { ...profile.contactPerson, email: v } })} />
+          </div>
+        </ProfileSectionCard>
+      </div>
+
+      <ProfileSectionCard icon={Wrench} title="Services & Coverage" description="What you offer and where you operate" className="lg:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <div className="space-y-2">
-            <Label htmlFor="description" className="profile-label">Description</Label>
-            <Textarea
-              id="description"
-              value={partnerProfile.description || ''}
-              onChange={(e) => setProfile({ ...partnerProfile, description: e.target.value })}
-              disabled={!isEditing}
-              placeholder="Tell us about your organization..."
-              rows={3}
-              className="resize-none"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Address Information - Responsive Grid */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-base sm:text-lg">
-            <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-            Address Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="street" className="text-sm font-medium">Street Address</Label>
-              <Input
-                id="street"
-                value={partnerProfile.address?.street || ''}
-                onChange={(e) => setProfile({
-                  ...partnerProfile,
-                  address: { ...partnerProfile.address, street: e.target.value }
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Services Offered</p>
+            {isEditing ? (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {SERVICE_OPTIONS.map((service) => {
+                  const key = service.toLowerCase()
+                  const active = (profile.services || []).includes(key)
+                  return (
+                    <Badge
+                      key={service}
+                      variant={active ? "default" : "outline"}
+                      className="cursor-pointer select-none px-3 py-1.5 text-xs font-medium"
+                      onClick={() => {
+                        const newServices = active
+                          ? (profile.services || []).filter((s) => s !== key)
+                          : [...(profile.services || []), key]
+                        setProfile({ ...profile, services: newServices })
+                      }}
+                    >
+                      {service}
+                    </Badge>
+                  )
                 })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="city" className="text-sm font-medium">City</Label>
-              <Input
-                id="city"
-                value={partnerProfile.address?.city || ''}
-                onChange={(e) => setProfile({
-                  ...partnerProfile,
-                  address: { ...partnerProfile.address, city: e.target.value }
-                })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="state" className="text-sm font-medium">State</Label>
-              <Input
-                id="state"
-                value={partnerProfile.address?.state || ''}
-                onChange={(e) => setProfile({
-                  ...partnerProfile,
-                  address: { ...partnerProfile.address, state: e.target.value }
-                })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="postalCode" className="text-sm font-medium">Postal Code</Label>
-              <Input
-                id="postalCode"
-                value={partnerProfile.address?.postalCode || ''}
-                onChange={(e) => setProfile({
-                  ...partnerProfile,
-                  address: { ...partnerProfile.address, postalCode: e.target.value }
-                })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Organization Details - Responsive Layout */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-base sm:text-lg">
-            <Building className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-            Organization Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="organization" className="text-sm font-medium">Organization Name</Label>
-              <Input
-                id="organization"
-                value={partnerProfile.organization || ''}
-                onChange={(e) => setProfile({ ...partnerProfile, organization: e.target.value })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="organizationType" className="text-sm font-medium">Organization Type</Label>
-              <Select
-                value={partnerProfile.organizationType || ''}
-                onValueChange={(value: any) => setProfile({ ...partnerProfile, organizationType: value })}
-                disabled={!isEditing}
-              >
-                <SelectTrigger className="h-9 sm:h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cooperative">Cooperative</SelectItem>
-                  <SelectItem value="ngo">NGO</SelectItem>
-                  <SelectItem value="extension_agency">Extension Agency</SelectItem>
-                  <SelectItem value="market_association">Market Association</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              </div>
+            ) : (profile.services || []).length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {profile.services.map((s) => (
+                  <Badge key={s} variant="secondary" className="font-normal capitalize">{s}</Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm italic text-muted-foreground">No services specified</p>
+            )}
           </div>
 
-          <Separator />
+          <ProfileTagField label="Coverage Areas" values={profile.coverageAreas || []} isEditing={isEditing}
+            placeholder="Enter coverage areas separated by commas"
+            onChange={(v) => setProfile({ ...profile, coverageAreas: v })} />
+        </div>
 
-          <div className="space-y-4">
-            <Label className="text-sm font-medium">Contact Person</Label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="contactName" className="text-sm font-medium">Name</Label>
-                <Input
-                  id="contactName"
-                  value={partnerProfile.contactPerson?.name || ''}
-                  onChange={(e) => setProfile({
-                    ...partnerProfile,
-                    contactPerson: { ...partnerProfile.contactPerson, name: e.target.value }
-                  })}
-                  disabled={!isEditing}
-                  className="h-9 sm:h-10"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contactPosition" className="text-sm font-medium">Position</Label>
-                <Input
-                  id="contactPosition"
-                  value={partnerProfile.contactPerson?.position || ''}
-                  onChange={(e) => setProfile({
-                    ...partnerProfile,
-                    contactPerson: { ...partnerProfile.contactPerson, position: e.target.value }
-                  })}
-                  disabled={!isEditing}
-                  className="h-9 sm:h-10"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contactPhone" className="text-sm font-medium">Phone</Label>
-                <Input
-                  id="contactPhone"
-                  value={partnerProfile.contactPerson?.phone || ''}
-                  onChange={(e) => setProfile({
-                    ...partnerProfile,
-                    contactPerson: { ...partnerProfile.contactPerson, phone: e.target.value }
-                  })}
-                  disabled={!isEditing}
-                  className="h-9 sm:h-10"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contactEmail" className="text-sm font-medium">Email</Label>
-                <Input
-                  id="contactEmail"
-                  type="email"
-                  value={partnerProfile.contactPerson?.email || ''}
-                  onChange={(e) => setProfile({
-                    ...partnerProfile,
-                    contactPerson: { ...partnerProfile.contactPerson, email: e.target.value }
-                  })}
-                  disabled={!isEditing}
-                  className="h-9 sm:h-10"
-                />
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <Label className="text-sm font-medium">Services & Coverage</Label>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Services Offered</Label>
-                <div className="space-y-2">
-                  {['Training', 'Extension', 'Marketing', 'Finance', 'Technology'].map((service) => (
-                    <div key={service} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={service}
-                        checked={(partnerProfile.services || []).includes(service.toLowerCase())}
-                        onChange={(e) => {
-                          const newServices = e.target.checked
-                            ? [...(partnerProfile.services || []), service.toLowerCase()]
-                            : (partnerProfile.services || []).filter(s => s !== service.toLowerCase())
-                          setProfile({ ...partnerProfile, services: newServices })
-                        }}
-                        disabled={!isEditing}
-                        className="h-4 w-4"
-                      />
-                      <Label htmlFor={service} className="text-sm">{service}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Coverage Areas</Label>
-                <Textarea
-                  value={(partnerProfile.coverageAreas || []).join(', ')}
-                  onChange={(e) => setProfile({
-                    ...partnerProfile,
-                    coverageAreas: e.target.value.split(',').map(area => area.trim()).filter(Boolean)
-                  })}
-                  disabled={!isEditing}
-                  placeholder="Enter coverage areas separated by commas"
-                  rows={4}
-                  className="resize-none"
-                />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        <ProfileTagField label="Certifications" values={profile.certifications || []} isEditing={isEditing}
+          placeholder="e.g. ISO 9001, Fair Trade"
+          onChange={(v) => setProfile({ ...profile, certifications: v })} />
+      </ProfileSectionCard>
     </div>
   )
 }
 
-// Farmer Profile View Component
+// Farmer Profile View
 function FarmerProfileView() {
   const { user, updateUser } = useAuthStore()
   const { toast } = useToast()
@@ -772,54 +492,47 @@ function FarmerProfileView() {
     fetchFarmerProfile()
   }, [])
 
+  const mapFarmerProfile = (profileData: any): FarmerProfile => ({
+    _id: profileData._id,
+    name: profileData.name,
+    email: profileData.email,
+    phone: profileData.phone,
+    role: profileData.role,
+    status: profileData.status,
+    location: profileData.location || '',
+    gender: profileData.gender || '',
+    age: profileData.age?.toString() || '',
+    education: profileData.education || '',
+    farmSize: profileData.profile?.farmSize || '',
+    primaryCrops: profileData.preferences?.cropTypes || [],
+    experience: profileData.profile?.experience || '',
+    certifications: profileData.profile?.certifications || [],
+    bio: profileData.profile?.bio || '',
+    address: profileData.profile?.address || '',
+    city: profileData.profile?.city || '',
+    state: profileData.profile?.state || '',
+    country: profileData.profile?.country || 'Nigeria',
+    postalCode: profileData.profile?.postalCode || '',
+    avatar: profileData.profile?.avatar || '',
+    stats: {
+      totalHarvests: profileData.stats?.totalHarvests || 0,
+      totalListings: profileData.stats?.totalListings || 0,
+      totalOrders: profileData.stats?.totalOrders || 0,
+      totalRevenue: profileData.stats?.totalRevenue || 0,
+      lastActive: profileData.stats?.lastActive || new Date().toISOString()
+    },
+    recentHarvests: profileData.recentHarvests || [],
+    createdAt: profileData.createdAt,
+    updatedAt: profileData.updatedAt
+  })
+
   const fetchFarmerProfile = async () => {
     try {
       setIsLoading(true)
-      
-      // Fetch both profile and analytics data in parallel
-      const [profileResponse, analyticsResponse] = await Promise.all([
-        apiService.getMyProfile(),
-        apiService.getFarmerAnalytics().catch(() => ({ data: {} }))
-      ])
+      const response = await apiService.getMyProfile()
 
-      if (profileResponse.status === 'success' && profileResponse.data) {
-        const profileData = profileResponse.data as any
-        const analyticsData = analyticsResponse.data || {}
-        
-        const farmerProfile: FarmerProfile = {
-          _id: profileData._id,
-          name: profileData.name,
-          email: profileData.email,
-          phone: profileData.phone,
-          role: profileData.role,
-          status: profileData.status,
-          location: profileData.location || '',
-          gender: profileData.gender || '',
-          age: profileData.age?.toString() || '',
-          education: profileData.education || '',
-          farmSize: profileData.profile?.farmSize || '',
-          primaryCrops: profileData.preferences?.cropTypes || [],
-          experience: profileData.profile?.experience || '',
-          certifications: profileData.profile?.certifications || [],
-          bio: profileData.profile?.bio || '',
-          address: profileData.profile?.address || '',
-          city: profileData.profile?.city || '',
-          state: profileData.profile?.state || '',
-          country: profileData.profile?.country || 'Nigeria',
-          postalCode: profileData.profile?.postalCode || '',
-          avatar: profileData.profile?.avatar || '',
-          stats: {
-            totalHarvests: (analyticsData as any).totalHarvests || profileData.stats?.totalHarvests || 0,
-            totalListings: (analyticsData as any).totalListings || profileData.stats?.totalListings || 0,
-            totalOrders: (analyticsData as any).totalOrders || profileData.stats?.totalOrders || 0,
-            totalRevenue: (analyticsData as any).totalRevenue || profileData.stats?.totalRevenue || 0,
-            lastActive: profileData.stats?.lastActive || new Date()
-          },
-          recentHarvests: profileData.recentHarvests || [],
-          createdAt: profileData.createdAt,
-          updatedAt: profileData.updatedAt
-        }
-        setProfile(farmerProfile)
+      if (response.status === 'success' && response.data) {
+        setProfile(mapFarmerProfile(response.data))
       } else {
         throw new Error('Failed to fetch farmer profile')
       }
@@ -837,6 +550,15 @@ function FarmerProfileView() {
 
   const handleSave = async () => {
     if (!profile) return
+
+    if (!profile.name?.trim()) {
+      toast({ title: "Validation Error", description: "Full name is required", variant: "destructive" })
+      return
+    }
+    if (!profile.phone?.trim()) {
+      toast({ title: "Validation Error", description: "Phone number is required", variant: "destructive" })
+      return
+    }
 
     try {
       setIsSaving(true)
@@ -867,39 +589,24 @@ function FarmerProfileView() {
       const response = await apiService.updateMyProfile(updateData)
 
       if (response.status === 'success' && response.data) {
-        setProfile(response.data as any)
+        setProfile(mapFarmerProfile(response.data))
         updateUser({
           name: (response.data as any).name,
           email: (response.data as any).email,
-          phone: (response.data as any).phone
+          phone: (response.data as any).phone,
+          profile: (response.data as any).profile
         })
 
-        toast({
-          title: "Profile updated",
-          description: "Your farmer profile has been updated successfully",
-          variant: "default"
-        })
+        toast({ title: "Profile updated", description: "Your farmer profile has been updated successfully" })
         setIsEditing(false)
       } else {
         throw new Error('Failed to update profile')
       }
     } catch (error: any) {
       console.error('Error updating farmer profile:', error)
-      
-      // Handle different types of errors
-      let errorMessage = "Failed to save profile. Please try again."
-      
-      if (error.message?.includes('network') || error.message?.includes('fetch')) {
-        errorMessage = "Network error. Please check your connection and try again."
-      } else if (error.message?.includes('validation')) {
-        errorMessage = error.message
-      } else if (error.message?.includes('unauthorized')) {
-        errorMessage = "Session expired. Please log in again."
-      }
-      
       toast({
         title: "Error saving profile",
-        description: errorMessage,
+        description: error.message || "Failed to save profile. Please try again.",
         variant: "destructive"
       })
     } finally {
@@ -908,434 +615,118 @@ function FarmerProfileView() {
   }
 
   const handleAvatarUpdate = (newAvatarUrl: string) => {
-    if (profile) {
-      // Update local profile state
-      setProfile({ ...profile, avatar: newAvatarUrl })
-
-      // Update auth store to sync avatar across the app
-      updateUser({
-        profile: {
-          ...user?.profile,
-          avatar: newAvatarUrl
-        }
-      })
-
-      // Also update localStorage to ensure persistence across page refreshes
-      const currentUser = JSON.parse(localStorage.getItem('zustand-auth-store') || '{}')
-      if (currentUser.state?.user) {
-        currentUser.state.user.profile = {
-          ...currentUser.state.user.profile,
-          avatar: newAvatarUrl
-        }
-        localStorage.setItem('zustand-auth-store', JSON.stringify(currentUser))
-      }
-    }
+    if (!profile) return
+    setProfile({ ...profile, avatar: newAvatarUrl })
+    updateUser({ profile: { ...user?.profile, avatar: newAvatarUrl } })
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center space-y-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
-          <p className="text-lg font-medium">Loading farmer profile...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!profile) {
-    return (
-      <div className="text-center py-8">
-        <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium mb-2">Profile not found</h3>
-        <p className="text-muted-foreground">Unable to load your farmer profile information.</p>
-      </div>
-    )
-  }
+  if (isLoading) return <ProfileSkeleton />
+  if (!profile) return <ProfileErrorState onRetry={fetchFarmerProfile} />
 
   return (
-    <div className="profile-container space-y-4 sm:space-y-6">
-      {/* Farmer Profile Header - Fully Responsive */}
-      <Card>
-        <CardHeader className="pb-4">
-          <div className="profile-header">
-            <div className="profile-avatar-section">
-              <AvatarUpload
-                currentAvatar={profile.avatar}
-                userName={profile.name}
-                onAvatarUpdate={handleAvatarUpdate}
-                disabled={!isEditing}
-                size="lg"
-              />
-              <div className="profile-info">
-                <CardTitle className="profile-title">{profile.name}</CardTitle>
-                <CardDescription className="profile-subtitle">
-                  Farmer • {profile.location || 'Location not set'}
-                </CardDescription>
-                <div className="profile-badges">
-                  <Badge variant={profile.status === 'active' ? 'default' : 'secondary'} className="text-xs">
-                    {profile.status}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    Farmer since {new Date(profile.createdAt).getFullYear()}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-            <div className="profile-actions">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(!isEditing)}
-                className="flex-1 sm:flex-none h-9 sm:h-10"
-              >
-                <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="text-xs sm:text-sm">{isEditing ? 'Cancel' : 'Edit'}</span>
-              </Button>
-              {isEditing && (
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="flex-1 sm:flex-none h-9 sm:h-10"
-                >
-                  <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="text-xs sm:text-sm">{isSaving ? 'Saving...' : 'Save'}</span>
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+    <div className="space-y-4 sm:space-y-6">
+      <ProfileHero
+        name={profile.name}
+        subtitle={`Farmer • ${profile.location || 'Location not set'}`}
+        avatar={profile.avatar}
+        isEditing={isEditing}
+        isSaving={isSaving}
+        onToggleEdit={() => setIsEditing(!isEditing)}
+        onSave={handleSave}
+        onAvatarUpdate={handleAvatarUpdate}
+        badges={
+          <>
+            <Badge variant={profile.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+              {profile.status}
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              Farmer since {profile.createdAt ? new Date(profile.createdAt).getFullYear() : 'N/A'}
+            </Badge>
+          </>
+        }
+        stats={
+          <ProfileStatGrid>
+            <ProfileStat icon={Package} label="Harvests" value={profile.stats?.totalHarvests || 0} colorClassName="bg-success/10 text-success" />
+            <ProfileStat icon={Banknote} label="Revenue" value={`₦${(profile.stats?.totalRevenue || 0).toLocaleString()}`} />
+            <ProfileStat icon={ShoppingCart} label="Listings" value={profile.stats?.totalListings || 0} colorClassName="bg-accent/10 text-accent" />
+            <ProfileStat icon={Activity} label="Orders" value={profile.stats?.totalOrders || 0} colorClassName="bg-warning/10 text-warning" />
+          </ProfileStatGrid>
+        }
+      />
 
-      {/* Farmer Stats - Responsive Grid */}
-      <div className="profile-grid-4">
-        <Card>
-          <CardContent className="profile-card">
-            <div className="flex items-center space-x-2">
-              <Building className="profile-icon text-green-500" />
-              <div className="min-w-0">
-                <p className="profile-text text-muted-foreground truncate">Total Harvests</p>
-                <p className="profile-text-lg font-bold">{profile.stats.totalHarvests}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="profile-card">
-            <div className="flex items-center space-x-2">
-              <Banknote className="profile-icon text-blue-500" />
-              <div className="min-w-0">
-                <p className="profile-text text-muted-foreground truncate">Total Revenue</p>
-                <p className="profile-text-lg font-bold">₦{profile.stats.totalRevenue.toLocaleString()}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="profile-card">
-            <div className="flex items-center space-x-2">
-              <ShoppingCart className="profile-icon text-purple-500" />
-              <div className="min-w-0">
-                <p className="profile-text text-muted-foreground truncate">Active Listings</p>
-                <p className="profile-text-lg font-bold">{profile.stats.totalListings}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="profile-card">
-            <div className="flex items-center space-x-2">
-              <Activity className="profile-icon text-orange-500" />
-              <div className="min-w-0">
-                <p className="profile-text text-muted-foreground truncate">Total Orders</p>
-                <p className="profile-text-lg font-bold">{profile.stats.totalOrders}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Farmer Profile Details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Personal Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Personal Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Full Name</Label>
-                <Input
-                  value={profile.name || ''}
-                  onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                  disabled={!isEditing}
-                  className="h-9 sm:h-10"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Email</Label>
-                <Input
-                  type="email"
-                  value={profile.email || ''}
-                  disabled // Email should not be editable
-                  className="h-9 sm:h-10 bg-muted"
-                />
-              </div>
-            </div>
+        <ProfileSectionCard icon={User} title="Personal Information" description="Your basic details">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+            <ProfileField label="Full Name" value={profile.name || ''} isEditing={isEditing} required
+              onChange={(v) => setProfile({ ...profile, name: v })} />
+            <ProfileField label="Email" value={profile.email || ''} isEditing={isEditing} locked icon={Mail} />
+            <ProfileField label="Phone" value={profile.phone || ''} isEditing={isEditing} required
+              onChange={(v) => setProfile({ ...profile, phone: v })} />
+            <ProfileField label="Age" value={profile.age || ''} isEditing={isEditing} type="number"
+              onChange={(v) => setProfile({ ...profile, age: v })} />
+            <ProfileField label="Gender" value={profile.gender || ''} isEditing={isEditing} type="select"
+              options={GENDER_OPTIONS} placeholder="Select gender"
+              onChange={(v) => setProfile({ ...profile, gender: v })} />
+            <ProfileField label="Education" value={profile.education || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, education: v })} />
+          </div>
+        </ProfileSectionCard>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Phone</Label>
-                <Input
-                  value={profile.phone || ''}
-                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                  disabled={!isEditing}
-                  className="h-9 sm:h-10"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Age</Label>
-                <Input
-                  type="number"
-                  value={profile.age || ''}
-                  onChange={(e) => setProfile({ ...profile, age: e.target.value })}
-                  disabled={!isEditing}
-                  className="h-9 sm:h-10"
-                />
-              </div>
-            </div>
+        <ProfileSectionCard icon={Sprout} title="Farm Information" description="Details about your farming operation" iconClassName="bg-success/15 text-success">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+            <ProfileField label="Farm Size (hectares)" value={profile.farmSize || ''} isEditing={isEditing} placeholder="e.g. 5.5"
+              onChange={(v) => setProfile({ ...profile, farmSize: v })} />
+            <ProfileField label="Farming Experience (years)" value={profile.experience || ''} isEditing={isEditing} placeholder="e.g. 10"
+              onChange={(v) => setProfile({ ...profile, experience: v })} />
+          </div>
+          <ProfileTagField label="Primary Crops" values={profile.primaryCrops || []} isEditing={isEditing}
+            placeholder="e.g. Maize, Cassava, Tomatoes"
+            onChange={(v) => setProfile({ ...profile, primaryCrops: v })} />
+          <ProfileTagField label="Certifications" values={profile.certifications || []} isEditing={isEditing}
+            placeholder="e.g. Organic, Fair Trade"
+            onChange={(v) => setProfile({ ...profile, certifications: v })} />
+        </ProfileSectionCard>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Gender</Label>
-                <Select
-                  value={profile.gender || ''}
-                  onValueChange={(value) => setProfile({ ...profile, gender: value })}
-                  disabled={!isEditing}
-                >
-                  <SelectTrigger className="h-9 sm:h-10">
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Education</Label>
-                <Input
-                  value={profile.education || ''}
-                  onChange={(e) => setProfile({ ...profile, education: e.target.value })}
-                  disabled={!isEditing}
-                  className="h-9 sm:h-10"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ProfileSectionCard icon={MapPin} title="Address" description="Where your farm is located" iconClassName="bg-secondary/15 text-secondary-foreground">
+          <ProfileField label="Street Address" value={profile.address || ''} isEditing={isEditing} placeholder="Enter your full address"
+            onChange={(v) => setProfile({ ...profile, address: v })} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+            <ProfileField label="City" value={profile.city || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, city: v })} />
+            <ProfileField label="State" value={profile.state || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, state: v })} />
+            <ProfileField label="Country" value={profile.country || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, country: v })} />
+            <ProfileField label="Postal Code" value={profile.postalCode || ''} isEditing={isEditing}
+              onChange={(v) => setProfile({ ...profile, postalCode: v })} />
+          </div>
+        </ProfileSectionCard>
 
-        {/* Farm Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building className="h-5 w-5" />
-              Farm Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Farm Size (hectares)</Label>
-              <Input
-                value={profile.farmSize || ''}
-                onChange={(e) => setProfile({ ...profile, farmSize: e.target.value })}
-                disabled={!isEditing}
-                placeholder="e.g. 5.5"
-                className="h-9 sm:h-10"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Primary Crops</Label>
-              <Input
-                value={(profile.primaryCrops || []).join(', ')}
-                onChange={(e) => setProfile({
-                  ...profile,
-                  primaryCrops: e.target.value.split(',').map(crop => crop.trim()).filter(crop => crop)
-                })}
-                disabled={!isEditing}
-                placeholder="e.g. Maize, Cassava, Tomatoes"
-                className="h-9 sm:h-10"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Farming Experience (years)</Label>
-                <Input
-                  value={profile.experience || ''}
-                  onChange={(e) => setProfile({ ...profile, experience: e.target.value })}
-                  disabled={!isEditing}
-                  placeholder="e.g. 10"
-                  className="h-9 sm:h-10"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Location</Label>
-                <Input
-                  value={profile.location || ''}
-                  onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                  disabled={!isEditing}
-                  placeholder="e.g. Ibadan, Oyo State"
-                  className="h-9 sm:h-10"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Certifications</Label>
-              <Input
-                value={(profile.certifications || []).join(', ')}
-                onChange={(e) => setProfile({
-                  ...profile,
-                  certifications: e.target.value.split(',').map(cert => cert.trim()).filter(cert => cert)
-                })}
-                disabled={!isEditing}
-                placeholder="e.g. Organic, Fair Trade"
-                className="h-9 sm:h-10"
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <ProfileSectionCard icon={User} title="Bio" description="Tell us about yourself and your farming journey" iconClassName="bg-accent/15 text-accent">
+          <ProfileField label="About" value={profile.bio || ''} isEditing={isEditing} type="textarea" rows={5}
+            placeholder="Tell us about yourself and your farming experience..." emptyText="No bio added yet"
+            onChange={(v) => setProfile({ ...profile, bio: v })} />
+        </ProfileSectionCard>
       </div>
 
-      {/* Address Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Address Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Address</Label>
-            <Input
-              value={profile.address || ''}
-              onChange={(e) => setProfile({ ...profile, address: e.target.value })}
-              disabled={!isEditing}
-              className="h-9 sm:h-10"
-              placeholder="Enter your full address"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">City</Label>
-              <Input
-                value={profile.city || ''}
-                onChange={(e) => setProfile({ ...profile, city: e.target.value })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10"
-                placeholder="City"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">State</Label>
-              <Input
-                value={profile.state || ''}
-                onChange={(e) => setProfile({ ...profile, state: e.target.value })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10"
-                placeholder="State"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Country</Label>
-              <Input
-                value={profile.country || ''}
-                onChange={(e) => setProfile({ ...profile, country: e.target.value })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10"
-                placeholder="Country"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Postal Code</Label>
-              <Input
-                value={profile.postalCode || ''}
-                onChange={(e) => setProfile({ ...profile, postalCode: e.target.value })}
-                disabled={!isEditing}
-                className="h-9 sm:h-10"
-                placeholder="Postal Code"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Bio */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <User className="h-4 w-4 sm:h-5 sm:w-5" />
-            Bio
-          </CardTitle>
-          <CardDescription className="text-xs sm:text-sm">
-            Tell us about yourself and your farming experience
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={profile.bio || ''}
-            onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-            disabled={!isEditing}
-            placeholder="Tell us about yourself and your farming experience..."
-            rows={4}
-            className="min-h-[100px] resize-none"
-          />
-        </CardContent>
-      </Card>
-
-      {/* Recent Harvests */}
       {profile.recentHarvests && profile.recentHarvests.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Recent Harvests
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {profile.recentHarvests.slice(0, 3).map((harvest: any, index: number) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{harvest.cropType}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {harvest.quantity}kg • {harvest.qualityGrade} • {new Date(harvest.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <Badge variant={harvest.status === 'approved' ? 'default' : 'secondary'}>
-                    {harvest.status}
-                  </Badge>
+        <ProfileSectionCard icon={Activity} title="Recent Harvests" description="Your latest harvest activity">
+          <div className="space-y-2.5">
+            {profile.recentHarvests.slice(0, 3).map((harvest: any, index: number) => (
+              <div key={index} className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 p-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{harvest.cropType}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {harvest.quantity}kg • {harvest.qualityGrade} • {new Date(harvest.createdAt).toLocaleDateString()}
+                  </p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <Badge variant={harvest.status === 'approved' ? 'default' : 'secondary'} className="shrink-0 ml-2">
+                  {harvest.status}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </ProfileSectionCard>
       )}
     </div>
   )

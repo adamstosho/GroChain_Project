@@ -36,9 +36,9 @@ export function ShipmentRiskAlert({ shipmentId, className = "" }: ShipmentRiskAl
   const getRiskUI = (level: string) => {
     switch (level) {
       case 'Critical':
-        return { color: 'text-red-600 bg-red-50 border-red-100', icon: AlertCircle, label: 'High Spoilage Risk' }
+        return { color: 'text-destructive bg-destructive/10 border-destructive/10', icon: AlertCircle, label: 'High Spoilage Risk' }
       case 'Moderate':
-        return { color: 'text-orange-600 bg-orange-50 border-orange-100', icon: AlertCircle, label: 'Moderate Risk' }
+        return { color: 'text-warning bg-warning/10 border-warning/10', icon: AlertCircle, label: 'Moderate Risk' }
       default:
         return { color: 'text-success bg-success/5 border-success/10', icon: ShieldCheck, label: 'AI Secure Route' }
     }

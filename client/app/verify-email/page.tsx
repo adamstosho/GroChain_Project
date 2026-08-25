@@ -99,8 +99,8 @@ function VerifyEmailForm() {
       <div className="mx-auto max-w-md p-6">
         <Card>
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-              <div className="h-8 w-8 bg-blue-600 rounded-full animate-pulse" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <div className="h-8 w-8 bg-primary rounded-full animate-pulse" />
             </div>
             <CardTitle>Loading verification...</CardTitle>
             <CardDescription>
@@ -117,10 +117,10 @@ function VerifyEmailForm() {
       <div className="mx-auto max-w-md p-6">
         <Card>
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle className="h-8 w-8 text-green-600" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+              <CheckCircle className="h-8 w-8 text-success" />
             </div>
-            <CardTitle className="text-green-600">Email Verified!</CardTitle>
+            <CardTitle className="text-success">Email Verified!</CardTitle>
             <CardDescription>
               Your email has been successfully verified. You will be redirected to the login page shortly.
             </CardDescription>
@@ -139,8 +139,8 @@ function VerifyEmailForm() {
     <div className="mx-auto max-w-md p-6">
       <Card>
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-            <Mail className="h-8 w-8 text-blue-600" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <Mail className="h-8 w-8 text-primary" />
           </div>
           <CardTitle>Verify your email</CardTitle>
           <CardDescription>
@@ -152,9 +152,9 @@ function VerifyEmailForm() {
         </CardHeader>
         <CardContent className="space-y-6">
           {successMessage && (
-            <div className="flex items-center space-x-2 p-3 bg-green-50 border border-green-200 rounded-md">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <p className="text-sm text-green-700">{successMessage}</p>
+            <div className="flex items-center space-x-2 p-3 bg-success/10 border border-success/10 rounded-md">
+              <CheckCircle className="h-4 w-4 text-success" />
+              <p className="text-sm text-success">{successMessage}</p>
             </div>
           )}
           
@@ -176,7 +176,7 @@ function VerifyEmailForm() {
             </div>
             
             {verificationError && (
-              <div className="flex items-center space-x-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+              <div className="flex items-center space-x-2 rounded-md border border-destructive/10 bg-destructive/10 p-3 text-sm text-destructive">
                 <AlertCircle className="h-4 w-4" />
                 <span>{verificationError}</span>
               </div>
@@ -221,7 +221,7 @@ function VerifyEmailForm() {
               <li>3. Copy the verification token from the email</li>
               <li>4. Paste it in the field above and click "Verify Email"</li>
             </ol>
-            <p className="text-blue-600">
+            <p className="text-primary">
               💡 <strong>Tip:</strong> Verification links expire in 1 hour. If you don't see the email, try resending it above.
             </p>
           </div>

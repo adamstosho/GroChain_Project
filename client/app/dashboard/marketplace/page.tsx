@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import { useAuthStore } from "@/lib/auth"
 import { useStableDataFetch } from "@/hooks/use-stable-data-fetch"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -89,6 +91,10 @@ interface Order {
 }
 
 export default function MarketplacePage() {
+  const router = useRouter()
+  const { user, hasHydrated } = useAuthStore()
+  // This page manages a farmer's own listings/orders - not applicable to other roles
+  const isNonFarmer = !!user && user.role !== 'farmer'
   const [stats, setStats] = useState<MarketplaceStats>({
     totalListings: 0,
     activeListings: 0,
@@ -246,7 +252,7 @@ export default function MarketplacePage() {
         variant: "destructive"
       })
 
-      // Set fallback data
+      // Set honest empty state on failure - no fabricated numbers
       setStats({
         totalListings: 0,
         activeListings: 0,
@@ -256,8 +262,8 @@ export default function MarketplacePage() {
         monthlyRevenue: 0,
         totalCustomers: 0,
         averageRating: 0,
-        activeBuyers: Math.floor(Math.random() * 15) + 3,
-        recentBuyerActivity: Math.floor(Math.random() * 8) + 1
+        activeBuyers: 0,
+        recentBuyerActivity: 0
       })
       setListings((prev) => (prev.length > 0 ? prev : []))
       setOrders((prev) => (prev.length > 0 ? prev : []))
@@ -267,8 +273,17 @@ export default function MarketplacePage() {
   }, [toast, begin, finish])
 
   useEffect(() => {
+    if (!hasHydrated) return
+    if (isNonFarmer) {
+      router.replace('/dashboard')
+      return
+    }
     fetchMarketplaceData()
-  }, [fetchMarketplaceData])
+  }, [fetchMarketplaceData, isNonFarmer, hasHydrated, router])
+
+  if (!hasHydrated || isNonFarmer) {
+    return null
+  }
 
   const handleRefresh = async () => {
     try {
@@ -287,31 +302,31 @@ export default function MarketplacePage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-      case 'draft': return 'bg-gray-50 text-gray-700 border-gray-200'
-      case 'inactive': return 'bg-amber-50 text-amber-700 border-amber-200'
-      case 'sold_out': return 'bg-red-50 text-red-700 border-red-200'
-      default: return 'bg-gray-50 text-gray-700 border-gray-200'
+      case 'active': return 'bg-success/10 text-success border-success/10'
+      case 'draft': return 'bg-muted text-foreground border-border'
+      case 'inactive': return 'bg-warning/10 text-warning border-warning/10'
+      case 'sold_out': return 'bg-destructive/10 text-destructive border-destructive/10'
+      default: return 'bg-muted text-foreground border-border'
     }
   }
 
   const getOrderStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-amber-50 text-amber-700 border-amber-200'
-      case 'confirmed': return 'bg-blue-50 text-blue-700 border-blue-200'
-      case 'shipped': return 'bg-purple-50 text-purple-700 border-purple-200'
-      case 'delivered': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-      case 'cancelled': return 'bg-red-50 text-red-700 border-red-200'
-      default: return 'bg-gray-50 text-gray-700 border-gray-200'
+      case 'pending': return 'bg-warning/10 text-warning border-warning/10'
+      case 'confirmed': return 'bg-primary/10 text-primary border-primary/10'
+      case 'shipped': return 'bg-accent/10 text-accent border-accent/10'
+      case 'delivered': return 'bg-success/10 text-success border-success/10'
+      case 'cancelled': return 'bg-destructive/10 text-destructive border-destructive/10'
+      default: return 'bg-muted text-foreground border-border'
     }
   }
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
-      case 'paid': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-      case 'pending': return 'bg-amber-50 text-amber-700 border-amber-200'
-      case 'failed': return 'bg-red-50 text-red-700 border-red-200'
-      default: return 'bg-gray-50 text-gray-700 border-gray-200'
+      case 'paid': return 'bg-success/10 text-success border-success/10'
+      case 'pending': return 'bg-warning/10 text-warning border-warning/10'
+      case 'failed': return 'bg-destructive/10 text-destructive border-destructive/10'
+      default: return 'bg-muted text-foreground border-border'
     }
   }
 
@@ -398,13 +413,13 @@ export default function MarketplacePage() {
         <div className="space-y-4 sm:space-y-6">
           <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200 h-full">
+              <Card key={i} className="animate-pulse border border-border h-full">
                 <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-                  <div className="h-3 sm:h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-3 sm:h-4 bg-muted rounded w-1/2"></div>
                 </CardHeader>
                 <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-                  <div className="h-6 sm:h-8 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-2 sm:h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-6 sm:h-8 bg-muted rounded mb-2"></div>
+                  <div className="h-2 sm:h-3 bg-muted rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
@@ -453,68 +468,68 @@ export default function MarketplacePage() {
 
         {/* Listings Stats */}
         <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          <Card className="border border-gray-200 h-full">
+          <Card className="border border-border h-full">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Store className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                 <span className="truncate pr-2 min-w-0 flex-1">Total Listings</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{stats.totalListings}</div>
-              <p className="text-xs text-gray-500">{stats.activeListings} active</p>
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{stats.totalListings}</div>
+              <p className="text-xs text-muted-foreground">{stats.activeListings} active</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200 h-full">
+          <Card className="border border-border h-full">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2">
-                <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 text-success flex-shrink-0" />
                 <span className="truncate pr-2 min-w-0 flex-1">Total Orders</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{stats.totalOrders}</div>
-              <p className="text-xs text-gray-500">{stats.pendingOrders} pending</p>
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{stats.totalOrders}</div>
+              <p className="text-xs text-muted-foreground">{stats.pendingOrders} pending</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200 h-full">
+          <Card className="border border-border h-full">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-success flex-shrink-0" />
                 <span className="truncate pr-2 min-w-0 flex-1">Total Revenue</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">₦{(stats.totalRevenue / 1000000).toFixed(1)}M</div>
-              <p className="text-xs text-gray-500">₦{(stats.monthlyRevenue / 1000).toFixed(0)}K this month</p>
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">₦{(stats.totalRevenue / 1000000).toFixed(1)}M</div>
+              <p className="text-xs text-muted-foreground">₦{(stats.monthlyRevenue / 1000).toFixed(0)}K this month</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200 h-full">
+          <Card className="border border-border h-full">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Users className="h-3 w-3 sm:h-4 sm:w-4 text-purple-500 flex-shrink-0" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Users className="h-3 w-3 sm:h-4 sm:w-4 text-accent flex-shrink-0" />
                 <span className="truncate pr-2 min-w-0 flex-1">Customers</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{stats.totalCustomers}</div>
-              <p className="text-xs text-gray-500">⭐ {stats.averageRating} avg rating</p>
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{stats.totalCustomers}</div>
+              <p className="text-xs text-muted-foreground">⭐ {stats.averageRating} avg rating</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200 h-full">
+          <Card className="border border-border h-full">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2">
-                <UserCheck className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-500 flex-shrink-0" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <UserCheck className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                 <span className="truncate pr-2 min-w-0 flex-1">Active Buyers</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{stats.activeBuyers}</div>
-              <p className="text-xs text-gray-500 flex items-center gap-1">
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{stats.activeBuyers}</div>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Activity className="h-3 w-3" />
                 {stats.recentBuyerActivity} active today
               </p>
@@ -534,10 +549,10 @@ export default function MarketplacePage() {
           <TabsContent value="overview" className="space-y-4 sm:space-y-6">
             <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
               {/* Recent Listings */}
-              <Card className="border border-gray-200 h-full">
+              <Card className="border border-border h-full">
                 <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                   <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
-                    <Package className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
+                    <Package className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                     Recent Listings
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
@@ -547,18 +562,18 @@ export default function MarketplacePage() {
                 <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
                   <div className="space-y-2 sm:space-y-3">
                     {listings.slice(0, 3).map((listing) => (
-                      <div key={listing._id} className="flex items-center justify-between p-2 sm:p-3 border border-gray-100 rounded-lg">
+                      <div key={listing._id} className="flex items-center justify-between p-2 sm:p-3 border border-border rounded-lg">
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                           <div className="text-lg sm:text-xl lg:text-2xl flex-shrink-0">{getCategoryIcon(listing.category)}</div>
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium text-gray-900 text-xs sm:text-sm truncate">{listing.cropName}</div>
-                            <div className="text-xs text-gray-500 truncate">
+                            <div className="font-medium text-foreground text-xs sm:text-sm truncate">{listing.cropName}</div>
+                            <div className="text-xs text-muted-foreground truncate">
                               {listing.availableQuantity} {listing.unit} available
                             </div>
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <div className="font-medium text-gray-900 text-xs sm:text-sm">₦{listing.basePrice.toLocaleString()}</div>
+                          <div className="font-medium text-foreground text-xs sm:text-sm">₦{listing.basePrice.toLocaleString()}</div>
                           <Badge className={`${getStatusColor(listing.status)} text-xs`}>
                             {listing.status.replace('_', ' ')}
                           </Badge>
@@ -577,10 +592,10 @@ export default function MarketplacePage() {
               </Card>
 
               {/* Recent Orders */}
-              <Card className="border border-gray-200 h-full">
+              <Card className="border border-border h-full">
                 <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                   <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
-                    <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
+                    <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 text-success flex-shrink-0" />
                     Recent Orders
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
@@ -590,21 +605,21 @@ export default function MarketplacePage() {
                 <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
                   <div className="space-y-2 sm:space-y-3">
                     {orders.slice(0, 3).map((order) => (
-                      <div key={order._id} className="p-2 sm:p-3 border border-gray-100 rounded-lg">
+                      <div key={order._id} className="p-2 sm:p-3 border border-border rounded-lg">
                         <div className="flex items-center justify-between mb-1 sm:mb-2">
-                          <div className="font-medium text-gray-900 text-xs sm:text-sm truncate">{order.orderNumber}</div>
+                          <div className="font-medium text-foreground text-xs sm:text-sm truncate">{order.orderNumber}</div>
                           <Badge className={`${getOrderStatusColor(order.status)} text-xs`}>
                             {order.status}
                           </Badge>
                         </div>
-                        <div className="text-xs text-gray-600 mb-1 sm:mb-2 truncate">
+                        <div className="text-xs text-muted-foreground mb-1 sm:mb-2 truncate">
                           {order.customer.name} • {order.products.length} item(s)
                         </div>
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-gray-500">
+                          <span className="text-muted-foreground">
                             {new Date(order.orderDate).toLocaleDateString()}
                           </span>
-                          <span className="font-medium text-gray-900">
+                          <span className="font-medium text-foreground">
                             ₦{order.totalAmount.toLocaleString()}
                           </span>
                         </div>
@@ -622,10 +637,10 @@ export default function MarketplacePage() {
               </Card>
 
               {/* Buyer Activity */}
-              <Card className="border border-gray-200 h-full">
+              <Card className="border border-border h-full">
                 <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                   <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
-                    <UserCheck className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-500 flex-shrink-0" />
+                    <UserCheck className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                     Buyer Activity
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
@@ -634,31 +649,31 @@ export default function MarketplacePage() {
                 </CardHeader>
                 <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                    <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg border border-success/10">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                        <div className="w-8 h-8 bg-success rounded-full flex items-center justify-center">
                           <Activity className="h-4 w-4 text-white" />
                         </div>
                         <div>
-                          <p className="font-medium text-sm text-green-800">Active Buyers Today</p>
-                          <p className="text-xs text-green-600">{stats.recentBuyerActivity} buyers browsing marketplace</p>
+                          <p className="font-medium text-sm text-success">Active Buyers Today</p>
+                          <p className="text-xs text-success">{stats.recentBuyerActivity} buyers browsing marketplace</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-green-600">{stats.activeBuyers}</div>
-                        <div className="text-xs text-green-600">total active</div>
+                        <div className="text-lg font-bold text-success">{stats.activeBuyers}</div>
+                        <div className="text-xs text-success">total active</div>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <p className="text-xs font-medium text-gray-700">Recent Buyer Testimonials</p>
+                      <p className="text-xs font-medium text-foreground">Recent Buyer Testimonials</p>
                       <div className="space-y-2">
                         {buyerActivityData?.data?.testimonials?.slice(0, 2).map((testimonial: any, index: number) => (
-                          <div key={testimonial.id || index} className={`p-2 rounded border ${index === 0 ? 'bg-blue-50 border-blue-100' : 'bg-purple-50 border-purple-100'}`}>
-                            <p className={`text-xs italic ${index === 0 ? 'text-blue-800' : 'text-purple-800'}`}>
+                          <div key={testimonial.id || index} className={`p-2 rounded border ${index === 0 ? 'bg-primary/10 border-primary/10' : 'bg-accent/10 border-accent/10'}`}>
+                            <p className={`text-xs italic ${index === 0 ? 'text-primary' : 'text-accent'}`}>
                               &quot;{testimonial.testimonial}&quot;
                             </p>
-                            <p className={`text-xs mt-1 ${index === 0 ? 'text-blue-600' : 'text-purple-600'}`}>
+                            <p className={`text-xs mt-1 ${index === 0 ? 'text-primary' : 'text-accent'}`}>
                               - {testimonial.location} {testimonial.buyerType}
                             </p>
                           </div>
@@ -667,13 +682,13 @@ export default function MarketplacePage() {
                         {/* Fallback testimonials if API data is not available */}
                         {(!buyerActivityData?.data?.testimonials || buyerActivityData.data.testimonials.length === 0) && (
                           <>
-                            <div className="p-2 bg-blue-50 rounded border border-blue-100">
-                              <p className="text-xs text-blue-800 italic">&quot;Found excellent quality maize from local farmers. Great platform!&quot;</p>
-                              <p className="text-xs text-blue-600 mt-1">- Lagos Restaurant Owner</p>
+                            <div className="p-2 bg-primary/10 rounded border border-primary/10">
+                              <p className="text-xs text-primary italic">&quot;Found excellent quality maize from local farmers. Great platform!&quot;</p>
+                              <p className="text-xs text-primary mt-1">- Lagos Restaurant Owner</p>
                             </div>
-                            <div className="p-2 bg-purple-50 rounded border border-purple-100">
-                              <p className="text-xs text-purple-800 italic">&quot;Fresh vegetables directly from farms. Much better than markets.&quot;</p>
-                              <p className="text-xs text-purple-600 mt-1">- Abuja Supermarket</p>
+                            <div className="p-2 bg-accent/10 rounded border border-accent/10">
+                              <p className="text-xs text-accent italic">&quot;Fresh vegetables directly from farms. Much better than markets.&quot;</p>
+                              <p className="text-xs text-accent mt-1">- Abuja Supermarket</p>
                             </div>
                           </>
                         )}
@@ -693,7 +708,7 @@ export default function MarketplacePage() {
             </div>
 
             {/* Quick Actions */}
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                 <CardTitle className="text-sm sm:text-base font-medium">Quick Actions</CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
@@ -702,9 +717,9 @@ export default function MarketplacePage() {
               </CardHeader>
               <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
                 <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3">
-                  <Button variant="outline" className="h-16 sm:h-20 flex-col gap-1 sm:gap-2 text-xs sm:text-sm border-blue-200 hover:bg-blue-50" asChild>
+                  <Button variant="outline" className="h-16 sm:h-20 flex-col gap-1 sm:gap-2 text-xs sm:text-sm border-primary/10 hover:bg-primary/10" asChild>
                     <Link href="/marketplace">
-                      <Store className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
+                      <Store className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
                       <span className="text-center">Browse Marketplace</span>
                     </Link>
                   </Button>
@@ -728,18 +743,18 @@ export default function MarketplacePage() {
           {/* Listings Tab */}
           <TabsContent value="listings" className="space-y-3 sm:space-y-4">
             {/* Filters and Search */}
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 sm:pb-4">
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                   <div className="flex-1">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <input
                         type="text"
                         placeholder="Search listings..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm h-8 sm:h-9"
+                        className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-xs sm:text-sm h-8 sm:h-9"
                       />
                     </div>
                   </div>
@@ -747,7 +762,7 @@ export default function MarketplacePage() {
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm h-8 sm:h-9"
+                      className="px-2 sm:px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-xs sm:text-sm h-8 sm:h-9"
                     >
                       <option value="all">All Status</option>
                       <option value="active">Active</option>
@@ -758,7 +773,7 @@ export default function MarketplacePage() {
                     <select
                       value={categoryFilter}
                       onChange={(e) => setCategoryFilter(e.target.value)}
-                      className="px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm h-8 sm:h-9"
+                      className="px-2 sm:px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-xs sm:text-sm h-8 sm:h-9"
                     >
                       <option value="all">All Categories</option>
                       <option value="grains">Grains</option>
@@ -776,7 +791,7 @@ export default function MarketplacePage() {
             {/* Listings Grid */}
             <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {filteredListings.map((listing) => (
-                <Card key={listing._id} className="border border-gray-200 hover:shadow-lg transition-shadow h-full">
+                <Card key={listing._id} className="border border-border hover:shadow-lg transition-shadow h-full">
                   <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                     <div className="flex items-start justify-between">
                       <div className="space-y-2 min-w-0 flex-1">
@@ -797,20 +812,20 @@ export default function MarketplacePage() {
                   <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-4 pb-3 sm:pb-4">
                     <div className="space-y-1.5 sm:space-y-2">
                       <div className="flex justify-between text-xs sm:text-sm">
-                        <span className="text-gray-600">Price:</span>
+                        <span className="text-muted-foreground">Price:</span>
                         <span className="font-medium">₦{listing.basePrice.toLocaleString()}/{listing.unit}</span>
                       </div>
                       <div className="flex justify-between text-xs sm:text-sm">
-                        <span className="text-gray-600">Available:</span>
+                        <span className="text-muted-foreground">Available:</span>
                         <span className="font-medium">{listing.availableQuantity} {listing.unit}</span>
                       </div>
                       <div className="flex justify-between text-xs sm:text-sm">
-                        <span className="text-gray-600">Location:</span>
+                        <span className="text-muted-foreground">Location:</span>
                         <span className="font-medium truncate ml-2">{typeof listing.location === 'string' ? listing.location : `${listing.location?.city || 'Unknown'}, ${listing.location?.state || 'Unknown State'}`}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs text-gray-500">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Eye className="h-3 w-3 flex-shrink-0" />
                         <span>{listing.views} views</span>
@@ -851,12 +866,12 @@ export default function MarketplacePage() {
             </div>
 
             {filteredListings.length === 0 && (
-              <Card className="text-center py-8 sm:py-12 border border-gray-200">
-                <div className="text-gray-400 mb-3 sm:mb-4">
+              <Card className="text-center py-8 sm:py-12 border border-border">
+                <div className="text-muted-foreground mb-3 sm:mb-4">
                   <Package className="h-12 w-12 sm:h-16 sm:w-16 mx-auto" />
                 </div>
-                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Listings Found</h3>
-                <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+                <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">No Listings Found</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                   {searchQuery || statusFilter !== 'all' || categoryFilter !== 'all'
                     ? "Try adjusting your filters to find listings."
                     : "You haven't created any product listings yet."
@@ -868,10 +883,10 @@ export default function MarketplacePage() {
 
           {/* Orders Tab */}
           <TabsContent value="orders" className="space-y-3 sm:space-y-4">
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader className="pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
-                  <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
+                  <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 text-success flex-shrink-0" />
                   Customer Orders
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
@@ -881,14 +896,14 @@ export default function MarketplacePage() {
               <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
                 <div className="space-y-3 sm:space-y-4">
                   {orders.map((order) => (
-                    <div key={order._id} className="p-3 sm:p-4 border border-gray-200 rounded-lg">
+                    <div key={order._id} className="p-3 sm:p-4 border border-border rounded-lg">
                       <div className="flex items-start justify-between mb-2 sm:mb-3">
                         <div className="min-w-0 flex-1">
-                          <h4 className="font-medium text-gray-900 text-xs sm:text-sm truncate">{order.orderNumber}</h4>
-                          <p className="text-xs text-gray-600 truncate">{order.customer.name}</p>
+                          <h4 className="font-medium text-foreground text-xs sm:text-sm truncate">{order.orderNumber}</h4>
+                          <p className="text-xs text-muted-foreground truncate">{order.customer.name}</p>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <div className="font-medium text-gray-900 text-xs sm:text-sm">₦{order.totalAmount.toLocaleString()}</div>
+                          <div className="font-medium text-foreground text-xs sm:text-sm">₦{order.totalAmount.toLocaleString()}</div>
                           <div className="flex gap-1 sm:gap-2 mt-1">
                             <Badge className={`${getOrderStatusColor(order.status)} text-xs`}>
                               {order.status}
@@ -903,7 +918,7 @@ export default function MarketplacePage() {
                       <div className="space-y-1.5 sm:space-y-2 mb-2 sm:mb-3">
                         {order.products.map((product, index) => (
                           <div key={index} className="flex justify-between text-xs sm:text-sm">
-                            <span className="text-gray-600 truncate mr-2">
+                            <span className="text-muted-foreground truncate mr-2">
                               {product.cropName} ({product.quantity} {product.unit})
                             </span>
                             <span className="font-medium flex-shrink-0">₦{product.price.toLocaleString()}</span>
@@ -911,7 +926,7 @@ export default function MarketplacePage() {
                         ))}
                       </div>
 
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500 mb-2 sm:mb-3 gap-1 sm:gap-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-muted-foreground mb-2 sm:mb-3 gap-1 sm:gap-0">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3 flex-shrink-0" />
                           <span>Ordered: {new Date(order.orderDate).toLocaleDateString()}</span>
@@ -970,9 +985,9 @@ export default function MarketplacePage() {
 
                 {orders.length === 0 && (
                   <div className="text-center py-6 sm:py-8">
-                    <ShoppingCart className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Orders Yet</h3>
-                    <p className="text-xs sm:text-sm text-gray-600">
+                    <ShoppingCart className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                    <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">No Orders Yet</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       When customers place orders, they will appear here for you to manage.
                     </p>
                   </div>

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -87,17 +88,17 @@ const qrStatuses = [
 ]
 
 const statusColors = {
-  active: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  expired: 'bg-amber-100 text-amber-800 border-amber-200',
-  revoked: 'bg-red-100 text-red-800 border-red-200',
-  verified: 'bg-blue-100 text-blue-800 border-blue-200'
+  active: 'bg-success/10 text-success border-success/10',
+  expired: 'bg-warning/10 text-warning border-warning/10',
+  revoked: 'bg-destructive/10 text-destructive border-destructive/10',
+  verified: 'bg-primary/10 text-primary border-primary/10'
 }
 
 const statusIcons = {
-  active: <CheckCircle className="h-4 w-4 text-emerald-500" />,
-  expired: <Clock className="h-4 w-4 text-amber-500" />,
-  revoked: <XCircle className="h-4 w-4 text-red-500" />,
-  verified: <CheckCircle className="h-4 w-4 text-blue-500" />
+  active: <CheckCircle className="h-4 w-4 text-success" />,
+  expired: <Clock className="h-4 w-4 text-warning" />,
+  revoked: <XCircle className="h-4 w-4 text-destructive" />,
+  verified: <CheckCircle className="h-4 w-4 text-primary" />
 }
 
 export default function QRCodesPage() {
@@ -427,14 +428,14 @@ export default function QRCodesPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
+              <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-3">
-                  <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-5 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-8 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-8 bg-muted rounded mb-2"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
@@ -447,102 +448,99 @@ export default function QRCodesPage() {
   return (
     <DashboardLayout pageTitle="QR Codes">
       <div className="space-y-4 sm:space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div className="space-y-2 flex-1">
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">QR Codes</h1>
-            <p className="text-sm sm:text-base text-gray-600 max-w-md">
-              Manage and track your harvest QR codes for provenance verification
-            </p>
-          </div>
-
-          <Button onClick={handleGenerateQR} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Generate QR Code</span>
-            <span className="sm:hidden">Generate</span>
-          </Button>
-        </div>
+        <DashboardPageHeader
+          badge="Provenance Tracking Active"
+          title="QR"
+          titleHighlight="Codes"
+          description="Manage and track your harvest QR codes for provenance verification."
+          actions={
+            <Button onClick={handleGenerateQR} size="lg">
+              <Plus className="mr-2 h-4 w-4" />
+              Generate QR Code
+            </Button>
+          }
+        />
 
         {/* QR Code Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Total QR Codes</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total QR Codes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-primary">
                 {stats.totalCodes}
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <TrendingUp className="h-4 w-4 text-blue-500" />
-                <span className="text-sm text-blue-600">+1 from last month</span>
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <span className="text-sm text-primary">+1 from last month</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Active Codes</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Active Codes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-emerald-600">
+              <div className="text-2xl font-bold text-success">
                 {stats.activeCodes}
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <CheckCircle className="h-4 w-4 text-emerald-500" />
-                <span className="text-sm text-emerald-600">Ready for scanning</span>
+                <CheckCircle className="h-4 w-4 text-success" />
+                <span className="text-sm text-success">Ready for scanning</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Verified Codes</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Verified Codes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-primary">
                 {stats.verifiedCodes}
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <CheckCircle className="h-4 w-4 text-blue-500" />
-                <span className="text-sm text-blue-600">Successfully verified</span>
+                <CheckCircle className="h-4 w-4 text-primary" />
+                <span className="text-sm text-primary">Successfully verified</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Downloads</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Downloads</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
+              <div className="text-2xl font-bold text-accent">
                 {stats.totalDownloads || 0}
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <Download className="h-4 w-4 text-purple-500" />
-                <span className="text-sm text-purple-600">QR codes downloaded</span>
+                <Download className="h-4 w-4 text-accent" />
+                <span className="text-sm text-accent">QR codes downloaded</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Scans</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Scans</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
+              <div className="text-2xl font-bold text-warning">
                 {stats.totalScans}
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <Eye className="h-4 w-4 text-orange-500" />
-                <span className="text-sm text-orange-600">Across all codes</span>
+                <Eye className="h-4 w-4 text-warning" />
+                <span className="text-sm text-warning">Across all codes</span>
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader className="pb-3 sm:pb-6">
             <CardTitle className="text-base font-medium">Filters</CardTitle>
           </CardHeader>
@@ -551,7 +549,7 @@ export default function QRCodesPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Search QR Codes</label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by code, crop, or location..."
                   value={filters.search}
@@ -596,7 +594,7 @@ export default function QRCodesPage() {
         </Card>
 
         {/* QR Codes List */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
@@ -619,9 +617,9 @@ export default function QRCodesPage() {
           <CardContent>
             {sortedQRCodes.length === 0 ? (
               <div className="text-center py-8">
-                <QrCode className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No QR Codes Found</h3>
-                <p className="text-gray-600 mb-4 max-w-sm mx-auto">
+                <QrCode className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">No QR Codes Found</h3>
+                <p className="text-muted-foreground mb-4 max-w-sm mx-auto">
                   {filters.status !== 'all' || filters.cropType !== 'all' || filters.search
                     ? "Try adjusting your filters to see more QR codes."
                     : "You don&apos;t have any QR codes yet."}
@@ -638,14 +636,14 @@ export default function QRCodesPage() {
                 {/* Mobile Card Layout */}
                 <div className="block md:hidden space-y-4">
                   {sortedQRCodes.map((qrCode) => (
-                    <Card key={qrCode.id} className="border border-gray-100">
+                    <Card key={qrCode.id} className="border border-border">
                       <CardContent className="p-4">
                         <div className="space-y-3">
                           {/* Header */}
                           <div className="flex items-start justify-between">
                             <div className="space-y-1 flex-1">
                               <div className="flex items-center gap-2">
-                                <QrCode className="h-4 w-4 text-blue-500" />
+                                <QrCode className="h-4 w-4 text-primary" />
                                 <span className="font-mono text-sm font-medium truncate">{qrCode.code}</span>
                               </div>
                               <Badge className={`${statusColors[qrCode.status]} text-xs`} variant="outline">
@@ -666,30 +664,30 @@ export default function QRCodesPage() {
                           {/* Details */}
                           <div className="grid grid-cols-2 gap-3 text-sm">
                             <div className="space-y-1">
-                              <div className="flex items-center gap-1 text-gray-600">
+                              <div className="flex items-center gap-1 text-muted-foreground">
                                 <Leaf className="h-3 w-3" />
                                 <span className="font-medium">{qrCode.cropType}</span>
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-muted-foreground">
                                 {qrCode.quantity}kg • {qrCode.quality}
                               </div>
                             </div>
                             <div className="space-y-1">
-                              <div className="flex items-center gap-1 text-gray-600">
+                              <div className="flex items-center gap-1 text-muted-foreground">
                                 <MapPin className="h-3 w-3" />
                                 <span className="text-xs">
                                   {qrCode.metadata?.location?.city || qrCode.location || 'Unknown'}
                                 </span>
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-muted-foreground">
                                 {qrCode.metadata?.location?.state || 'Unknown State'}
                               </div>
                             </div>
                           </div>
 
                           {/* Stats */}
-                          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <div className="flex items-center justify-between pt-2 border-t border-border">
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Eye className="h-3 w-3" />
                                 <span>{qrCode.scanCount} scans</span>
@@ -703,7 +701,7 @@ export default function QRCodesPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleRevokeQR(qrCode)}
-                                className="text-red-600 hover:text-red-700 h-8 px-2"
+                                className="text-destructive hover:text-destructive h-8 px-2"
                               >
                                 <Trash2 className="h-3 w-3" />
                               </Button>
@@ -719,11 +717,11 @@ export default function QRCodesPage() {
                 <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-medium text-sm text-gray-600">
+                      <tr className="border-b border-border">
+                        <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
                           <button
                             onClick={() => handleSort('createdAt')}
-                            className="flex items-center gap-2 hover:text-gray-900"
+                            className="flex items-center gap-2 hover:text-foreground"
                           >
                             Generated
                             {sortBy === 'createdAt' && (
@@ -731,41 +729,41 @@ export default function QRCodesPage() {
                             )}
                           </button>
                         </th>
-                        <th className="text-left py-3 px-4 font-medium text-sm text-gray-600">QR Code</th>
-                        <th className="text-left py-3 px-4 font-medium text-sm text-gray-600">Harvest Details</th>
-                        <th className="text-left py-3 px-4 font-medium text-sm text-gray-600">Location</th>
-                        <th className="text-left py-3 px-4 font-medium text-sm text-gray-600">Status</th>
-                        <th className="text-left py-3 px-4 font-medium text-sm text-gray-600">Scans</th>
-                        <th className="text-left py-3 px-4 font-medium text-sm text-gray-600">Actions</th>
+                        <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">QR Code</th>
+                        <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Harvest Details</th>
+                        <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Location</th>
+                        <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Status</th>
+                        <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Scans</th>
+                        <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {sortedQRCodes.map((qrCode) => (
-                        <tr key={qrCode.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <tr key={qrCode.id} className="border-b border-border hover:bg-muted">
                           <td className="py-3 px-4">
-                            <div className="text-sm text-gray-900">
+                            <div className="text-sm text-foreground">
                               {new Date(qrCode.createdAt).toLocaleDateString()}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-muted-foreground">
                               {new Date(qrCode.createdAt).toLocaleTimeString()}
                             </div>
                           </td>
                           <td className="py-3 px-4">
                             <div className="space-y-1">
                               <div className="font-mono text-sm font-medium">{qrCode.code}</div>
-                              <div className="text-xs text-gray-500">Batch: {qrCode.metadata.batchNumber}</div>
+                              <div className="text-xs text-muted-foreground">Batch: {qrCode.metadata.batchNumber}</div>
                             </div>
                           </td>
                           <td className="py-3 px-4">
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                <Leaf className="h-4 w-4 text-green-500" />
+                                <Leaf className="h-4 w-4 text-success" />
                                 <span className="text-sm font-medium">{qrCode.cropType}</span>
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-muted-foreground">
                                 {qrCode.quantity}kg • Quality: {qrCode.quality}
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-muted-foreground">
                                 Harvest: {qrCode.harvestDate ? new Date(qrCode.harvestDate).toLocaleDateString() : 'Unknown Date'}
                               </div>
                             </div>
@@ -773,12 +771,12 @@ export default function QRCodesPage() {
                           <td className="py-3 px-4">
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-blue-500" />
+                                <MapPin className="h-4 w-4 text-primary" />
                                 <span className="text-sm font-medium">
                                   {qrCode.metadata?.location?.city || qrCode.location || 'Unknown'}
                                 </span>
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-muted-foreground">
                                 {qrCode.metadata?.location?.state || 'Unknown State'}
                               </div>
                             </div>
@@ -793,7 +791,7 @@ export default function QRCodesPage() {
                             <div className="space-y-1">
                               <div className="text-sm font-medium">{qrCode.scanCount}</div>
                               {qrCode.lastScanned && (
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-muted-foreground">
                                   Last: {new Date(qrCode.lastScanned).toLocaleDateString()}
                                 </div>
                               )}
@@ -816,7 +814,7 @@ export default function QRCodesPage() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleRevokeQR(qrCode)}
-                                  className="text-red-600 hover:text-red-700"
+                                  className="text-destructive hover:text-destructive"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -839,9 +837,9 @@ export default function QRCodesPage() {
         {showQRDetails && selectedQRCode && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
             <div className="bg-white rounded-lg max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-              <div className="p-4 sm:p-6 border-b border-gray-200">
+              <div className="p-4 sm:p-6 border-b border-border">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 truncate mr-4">
+                  <h2 className="text-lg sm:text-xl font-semibold text-foreground truncate mr-4">
                     <span className="hidden sm:inline">QR Code Details - </span>
                     <span className="font-mono text-sm">{selectedQRCode.code}</span>
                   </h2>
@@ -863,7 +861,7 @@ export default function QRCodesPage() {
                       {statusIcons[selectedQRCode.status]}
                       <span className="ml-1 capitalize">{selectedQRCode.status}</span>
                     </Badge>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-muted-foreground">
                       Created: {new Date(selectedQRCode.createdAt).toLocaleDateString()}
                     </span>
                   </div>
@@ -896,7 +894,7 @@ export default function QRCodesPage() {
                       <CardTitle className="text-base">QR Code Image</CardTitle>
                     </CardHeader>
                     <CardContent className="flex justify-center">
-                      <div className="p-2 sm:p-4 bg-white border border-gray-200 rounded-lg">
+                      <div className="p-2 sm:p-4 bg-white border border-border rounded-lg">
                         <img
                           src={(selectedQRCode as any).qrImage}
                           alt={`QR Code ${selectedQRCode.code}`}
@@ -983,24 +981,24 @@ export default function QRCodesPage() {
                     <CardContent>
                       <div className="space-y-3 max-h-60 overflow-y-auto">
                         {(selectedQRCode as any).scans.slice(0, 10).map((scan: any, index: number) => (
-                          <div key={index} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+                          <div key={index} className="flex items-center justify-between p-3 border border-border rounded-lg">
                             <div className="space-y-1">
                               <div className="text-sm font-medium">
                                 {scan.scannedBy.name || 'Anonymous User'}
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-muted-foreground">
                                 {new Date(scan.scannedAt).toLocaleString()}
                               </div>
                               {scan.deviceInfo && (
-                                <div className="text-xs text-gray-400">
+                                <div className="text-xs text-muted-foreground">
                                   {scan.deviceInfo.userAgent?.substring(0, 50)}...
                                 </div>
                               )}
                             </div>
                             <Badge className={
-                              scan.verificationResult === 'success' ? 'bg-emerald-100 text-emerald-800' :
-                                scan.verificationResult === 'failed' ? 'bg-red-100 text-red-800' :
-                                  'bg-amber-100 text-amber-800'
+                              scan.verificationResult === 'success' ? 'bg-success/10 text-success' :
+                                scan.verificationResult === 'failed' ? 'bg-destructive/10 text-destructive' :
+                                  'bg-warning/10 text-warning'
                             }>
                               {scan.verificationResult}
                             </Badge>
@@ -1017,7 +1015,7 @@ export default function QRCodesPage() {
                     <CardTitle className="text-base">Embedded QR Data</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <pre className="text-xs bg-gray-50 p-3 rounded border overflow-x-auto">
+                    <pre className="text-xs bg-muted p-3 rounded border overflow-x-auto">
                       {JSON.stringify((selectedQRCode as any).qrData, null, 2)}
                     </pre>
                   </CardContent>

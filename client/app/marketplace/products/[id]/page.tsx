@@ -173,16 +173,16 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50">
+      <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10">
         <div className="container mx-auto px-4 py-8">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-32 mb-8"></div>
+            <div className="h-8 bg-muted rounded w-32 mb-8"></div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="h-96 bg-gray-200 rounded-lg"></div>
+              <div className="h-96 bg-muted rounded-lg"></div>
               <div className="space-y-4">
-                <div className="h-8 bg-gray-200 rounded"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-8 bg-muted rounded"></div>
+                <div className="h-4 bg-muted rounded w-3/4"></div>
+                <div className="h-6 bg-muted rounded w-1/2"></div>
               </div>
             </div>
           </div>
@@ -193,10 +193,10 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Product not found</h2>
-          <p className="text-gray-600 mb-4">The product you're looking for doesn't exist.</p>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Product not found</h2>
+          <p className="text-muted-foreground mb-4">The product you're looking for doesn't exist.</p>
           <Button asChild>
             <Link href="/marketplace">Back to Marketplace</Link>
           </Button>
@@ -206,7 +206,7 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-yellow-50">
+    <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10">
       <div className="container mx-auto px-4 py-8">
         {/* Back Button */}
         <Button variant="ghost" asChild className="mb-6">
@@ -228,7 +228,7 @@ export default function ProductDetailPage() {
                 className="object-cover"
               />
               {(product as any).isVerified && (
-                <Badge className="absolute top-4 left-4 bg-green-600">
+                <Badge className="absolute top-4 left-4 bg-success">
                   <Shield className="h-3 w-3 mr-1" />
                   Verified Product
                 </Badge>
@@ -255,7 +255,7 @@ export default function ProductDetailPage() {
           <div className="space-y-6">
             <div>
               <div className="flex items-start justify-between mb-2">
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h1 className="text-3xl font-bold text-foreground">
                   {typeof (product as any).name === 'string' ? (product as any).name : 'Unnamed Product'}
                 </h1>
                 <div className="flex gap-2">
@@ -270,23 +270,23 @@ export default function ProductDetailPage() {
 
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <Star className="h-4 w-4 fill-warning text-warning" />
                   <span className="font-medium">{(product as any).rating || 4.5}</span>
-                  <span className="text-gray-500">({reviews.length} reviews)</span>
+                  <span className="text-muted-foreground">({reviews.length} reviews)</span>
                 </div>
                 <Badge variant="outline">
                   {typeof product.category === 'string' ? product.category : 'Uncategorized'}
                 </Badge>
               </div>
 
-              <p className="text-gray-600 text-lg">
+              <p className="text-muted-foreground text-lg">
                 {typeof product.description === 'string' ? product.description : 'No description available.'}
               </p>
             </div>
 
             <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-gray-400" />
-              <span className="text-gray-600">
+              <MapPin className="h-5 w-5 text-muted-foreground" />
+              <span className="text-muted-foreground">
                 {typeof (product as any).location === 'string'
                   ? (product as any).location
                   : typeof (product as any).location === 'object' && (product as any).location
@@ -297,8 +297,8 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-gray-400" />
-              <span className="text-gray-600">
+              <Calendar className="h-5 w-5 text-muted-foreground" />
+              <span className="text-muted-foreground">
                 Harvested: {new Date((product as any).harvestDate || Date.now()).toLocaleDateString()}
               </span>
             </div>
@@ -306,11 +306,11 @@ export default function ProductDetailPage() {
             <div className="border-t border-b py-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <span className="text-3xl font-bold text-green-600">₦{product.price}</span>
-                  <span className="text-gray-500 ml-2">per {product.unit}</span>
+                  <span className="text-3xl font-bold text-success">₦{product.price}</span>
+                  <span className="text-muted-foreground ml-2">per {product.unit}</span>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-500">Available</p>
+                  <p className="text-sm text-muted-foreground">Available</p>
                   <p className="font-semibold">
                     {product.quantity} {product.unit}s
                   </p>
@@ -370,7 +370,7 @@ export default function ProductDetailPage() {
                     <h4 className="font-semibold">
                       {typeof product.farmer?.name === 'string' ? product.farmer.name : 'Unknown Farmer'}
                     </h4>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       {product.farmer?.location
                         ? typeof product.farmer.location === 'string'
                           ? product.farmer.location
@@ -381,7 +381,7 @@ export default function ProductDetailPage() {
                       }
                     </p>
                     <div className="flex items-center gap-1 mt-1">
-                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                      <Star className="h-3 w-3 fill-warning text-warning" />
                       <span className="text-sm">{product.farmer?.rating || 4.8} rating</span>
                     </div>
                   </div>
@@ -393,7 +393,7 @@ export default function ProductDetailPage() {
 
         {/* Additional Info Tabs */}
         <Tabs defaultValue="reviews" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
             <TabsTrigger value="details">Product Details</TabsTrigger>
             <TabsTrigger value="traceability">Traceability</TabsTrigger>
@@ -442,15 +442,15 @@ export default function ProductDetailPage() {
                     <h4 className="font-semibold mb-2">Basic Information</h4>
                     <dl className="space-y-2">
                       <div className="flex justify-between">
-                        <dt className="text-gray-600">Category:</dt>
+                        <dt className="text-muted-foreground">Category:</dt>
                         <dd>{typeof product.category === 'string' ? product.category : 'Uncategorized'}</dd>
                       </div>
                       <div className="flex justify-between">
-                        <dt className="text-gray-600">Unit:</dt>
+                        <dt className="text-muted-foreground">Unit:</dt>
                         <dd>{typeof product.unit === 'string' ? product.unit : 'unit'}</dd>
                       </div>
                       <div className="flex justify-between">
-                        <dt className="text-gray-600">Origin:</dt>
+                        <dt className="text-muted-foreground">Origin:</dt>
                         <dd>
                           {typeof product.location === 'string'
                             ? product.location
@@ -466,19 +466,19 @@ export default function ProductDetailPage() {
                     <h4 className="font-semibold mb-2">Quality Assurance</h4>
                     <dl className="space-y-2">
                       <div className="flex justify-between">
-                        <dt className="text-gray-600">Verified:</dt>
+                        <dt className="text-muted-foreground">Verified:</dt>
                         <dd>{product.isVerified ? "Yes" : "No"}</dd>
                       </div>
                       <div className="flex justify-between">
-                        <dt className="text-gray-600">Organic:</dt>
+                        <dt className="text-muted-foreground">Organic:</dt>
                         <dd>{product.isOrganic ? "Yes" : "No"}</dd>
                       </div>
                       <div className="flex justify-between">
-                        <dt className="text-gray-600">Quality Grade:</dt>
+                        <dt className="text-muted-foreground">Quality Grade:</dt>
                         <dd className="capitalize">{product.qualityGrade}</dd>
                       </div>
                       <div className="flex justify-between">
-                        <dt className="text-gray-600">Available Stock:</dt>
+                        <dt className="text-muted-foreground">Available Stock:</dt>
                         <dd>{product.availableQuantity} {product.unit}s</dd>
                       </div>
                     </dl>
@@ -495,68 +495,68 @@ export default function ProductDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg">
-                    <div className="h-8 w-8 bg-green-600 rounded-full flex items-center justify-center text-white font-bold">
+                  <div className="flex items-center gap-4 p-4 bg-success/10 rounded-lg">
+                    <div className="h-8 w-8 bg-success rounded-full flex items-center justify-center text-white font-bold">
                       1
                     </div>
                     <div>
                       <h4 className="font-semibold">Farm Registration</h4>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         Farm verified and registered in the system
                         {product.farmer?.emailVerified && (
-                          <span className="ml-2 text-green-600">✓ Verified</span>
+                          <span className="ml-2 text-success">✓ Verified</span>
                         )}
                       </p>
                     </div>
                   </div>
                   
                   {product.harvest && (
-                    <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg">
-                      <div className="h-8 w-8 bg-green-600 rounded-full flex items-center justify-center text-white font-bold">
+                    <div className="flex items-center gap-4 p-4 bg-success/10 rounded-lg">
+                      <div className="h-8 w-8 bg-success rounded-full flex items-center justify-center text-white font-bold">
                         2
                       </div>
                       <div>
                         <h4 className="font-semibold">Harvest Logged</h4>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted-foreground">
                           Harvest details recorded with batch ID: {product.harvest.batchId}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           Harvest Date: {new Date(product.harvest.harvestDate || product.harvestDate).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
                   )}
                   
-                  <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg">
-                    <div className="h-8 w-8 bg-green-600 rounded-full flex items-center justify-center text-white font-bold">
+                  <div className="flex items-center gap-4 p-4 bg-success/10 rounded-lg">
+                    <div className="h-8 w-8 bg-success rounded-full flex items-center justify-center text-white font-bold">
                       3
                     </div>
                     <div>
                       <h4 className="font-semibold">Quality Verification</h4>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         Product quality grade: {product.qualityGrade}
-                        {product.organic && <span className="ml-2 text-green-600">✓ Organic Certified</span>}
+                        {product.organic && <span className="ml-2 text-success">✓ Organic Certified</span>}
                       </p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-4 p-4 bg-yellow-50 rounded-lg">
-                    <div className="h-8 w-8 bg-yellow-600 rounded-full flex items-center justify-center text-white font-bold">
+                  <div className="flex items-center gap-4 p-4 bg-warning/10 rounded-lg">
+                    <div className="h-8 w-8 bg-warning rounded-full flex items-center justify-center text-white font-bold">
                       4
                     </div>
                     <div>
                       <h4 className="font-semibold">Marketplace Listing</h4>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         Product listed on marketplace for buyers
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Listed: {new Date(product.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
                   
                   {product.certifications && product.certifications.length > 0 && (
-                    <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                    <div className="mt-4 p-4 bg-primary/10 rounded-lg">
                       <h4 className="font-semibold mb-2">Certifications</h4>
                       <div className="flex flex-wrap gap-2">
                         {product.certifications.map((cert: any, index: number) => (

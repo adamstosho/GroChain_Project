@@ -80,7 +80,7 @@ export function OnboardingAnalytics() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+{stats.thisMonth}</span> this month
+              <span className="text-success">+{stats.thisMonth}</span> this month
             </p>
           </CardContent>
         </Card>
@@ -88,7 +88,7 @@ export function OnboardingAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CheckCircle className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.successRate}%</div>
@@ -101,7 +101,7 @@ export function OnboardingAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Completion</CardTitle>
-            <Clock className="h-4 w-4 text-blue-600" />
+            <Clock className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.averageCompletionTime} days</div>
@@ -114,12 +114,12 @@ export function OnboardingAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Weekly Growth</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.thisWeek}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+{weeklyGrowth}%</span> from total
+              <span className="text-success">+{weeklyGrowth}%</span> from total
             </p>
           </CardContent>
         </Card>
@@ -140,7 +140,7 @@ export function OnboardingAnalytics() {
               {regionalPerformance.map(({ state, count, percentage }) => (
                 <div key={state} className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full" />
+                    <div className="w-3 h-3 bg-primary rounded-full" />
                     <span className="text-sm font-medium">{state}</span>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -168,7 +168,7 @@ export function OnboardingAnalytics() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">This Week</span>
                 <div className="flex items-center space-x-2">
-                  <span className="text-lg font-bold text-blue-600">{stats.thisWeek}</span>
+                  <span className="text-lg font-bold text-primary">{stats.thisWeek}</span>
                   <Badge variant="outline" className="text-xs">
                     +{weeklyGrowth}%
                   </Badge>
@@ -177,7 +177,7 @@ export function OnboardingAnalytics() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">This Month</span>
                 <div className="flex items-center space-x-2">
-                  <span className="text-lg font-bold text-green-600">{stats.thisMonth}</span>
+                  <span className="text-lg font-bold text-success">{stats.thisMonth}</span>
                   <Badge variant="outline" className="text-xs">
                     +{monthlyGrowth}%
                   </Badge>
@@ -209,9 +209,9 @@ export function OnboardingAnalytics() {
                   <span className="font-medium">{crop}</span>
                   <Badge variant="secondary">{count}</Badge>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-muted rounded-full h-2">
                   <div 
-                    className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-success h-2 rounded-full transition-all duration-300"
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
@@ -233,17 +233,17 @@ export function OnboardingAnalytics() {
         <CardContent>
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="p-4 bg-green-50 rounded-lg">
-                <h4 className="font-medium text-green-800 mb-2">Strengths</h4>
-                <ul className="text-sm text-green-700 space-y-1">
+              <div className="p-4 bg-success/10 rounded-lg">
+                <h4 className="font-medium text-success mb-2">Strengths</h4>
+                <ul className="text-sm text-success space-y-1">
                   <li>• Good regional coverage across {Object.keys(stats.regionalDistribution).length} states</li>
                   <li>• Diverse crop portfolio with {Object.keys(stats.cropDistribution).length} crop types</li>
                   <li>• Consistent weekly onboarding activity</li>
                 </ul>
               </div>
-              <div className="p-4 bg-yellow-50 rounded-lg">
-                <h4 className="font-medium text-yellow-800 mb-2">Areas for Improvement</h4>
-                <ul className="text-sm text-yellow-700 space-y-1">
+              <div className="p-4 bg-warning/10 rounded-lg">
+                <h4 className="font-medium text-warning mb-2">Areas for Improvement</h4>
+                <ul className="text-sm text-warning space-y-1">
                   <li>• {stats.pending} farmers pending review</li>
                   <li>• {stats.onHold} onboardings currently on hold</li>
                   <li>• Average completion time: {stats.averageCompletionTime} days</li>
@@ -251,9 +251,9 @@ export function OnboardingAnalytics() {
               </div>
             </div>
             
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <h4 className="font-medium text-blue-800 mb-2">Recommendations</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
+            <div className="p-4 bg-primary/10 rounded-lg">
+              <h4 className="font-medium text-primary mb-2">Recommendations</h4>
+              <ul className="text-sm text-primary space-y-1">
                 <li>• Focus on reducing pending reviews to improve success rate</li>
                 <li>• Implement automated reminders for farmers in training stage</li>
                 <li>• Consider expanding to new regions for growth</li>

@@ -370,12 +370,12 @@ export default function MarketplaceListingsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-      case 'draft': return 'bg-amber-50 text-amber-700 border-amber-200'
-      case 'inactive': return 'bg-gray-50 text-gray-700 border-gray-200'
-      case 'sold': return 'bg-blue-50 text-blue-700 border-blue-200'
-      case 'paused': return 'bg-orange-50 text-orange-700 border-orange-200'
-      default: return 'bg-gray-50 text-gray-700 border-gray-200'
+      case 'active': return 'bg-success/10 text-success border-success/10'
+      case 'draft': return 'bg-warning/10 text-warning border-warning/10'
+      case 'inactive': return 'bg-muted text-foreground border-border'
+      case 'sold': return 'bg-primary/10 text-primary border-primary/10'
+      case 'paused': return 'bg-warning/10 text-warning border-warning/10'
+      default: return 'bg-muted text-foreground border-border'
     }
   }
 
@@ -406,23 +406,23 @@ export default function MarketplaceListingsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
+              <Card key={i} className="animate-pulse border border-border">
                 <CardContent className="p-6">
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-                  <div className="h-8 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-4 bg-muted rounded w-1/2 mb-2"></div>
+                  <div className="h-8 bg-muted rounded mb-2"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
           </div>
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
+              <Card key={i} className="animate-pulse border border-border">
                 <CardContent className="p-6">
-                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                  <div className="h-4 bg-muted rounded w-1/4 mb-4"></div>
                   <div className="space-y-3">
-                    <div className="h-3 bg-gray-200 rounded"></div>
-                    <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-muted rounded"></div>
+                    <div className="h-3 bg-muted rounded w-3/4"></div>
                   </div>
                 </CardContent>
               </Card>
@@ -446,8 +446,8 @@ export default function MarketplaceListingsPage() {
               </Link>
             </Button>
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Listings Management</h1>
-              <p className="text-gray-600">
+              <h1 className="text-2xl font-semibold text-foreground">Listings Management</h1>
+              <p className="text-muted-foreground">
                 Manage your product listings and track their performance
               </p>
             </div>
@@ -473,97 +473,97 @@ export default function MarketplaceListingsPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Package className="h-4 w-4 text-blue-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Package className="h-4 w-4 text-primary" />
                 Total Listings
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.totalListings}</div>
-              <p className="text-xs text-gray-500">{stats.activeListings} active</p>
+              <div className="text-2xl font-bold text-foreground">{stats.totalListings}</div>
+              <p className="text-xs text-muted-foreground">{stats.activeListings} active</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Eye className="h-4 w-4 text-indigo-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Eye className="h-4 w-4 text-primary" />
                 Total Views
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.totalViews.toLocaleString()}</div>
-              <p className="text-xs text-gray-500">Across all listings</p>
+              <div className="text-2xl font-bold text-foreground">{stats.totalViews.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">Across all listings</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <ShoppingCart className="h-4 w-4 text-emerald-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <ShoppingCart className="h-4 w-4 text-success" />
                 Total Orders
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.totalOrders}</div>
-              <p className="text-xs text-gray-500">{stats.conversionRate.toFixed(1)}% conversion rate</p>
+              <div className="text-2xl font-bold text-foreground">{stats.totalOrders}</div>
+              <p className="text-xs text-muted-foreground">{stats.conversionRate.toFixed(1)}% conversion rate</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Banknote className="h-4 w-4 text-green-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Banknote className="h-4 w-4 text-success" />
                 Revenue
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalRevenue)}</div>
-              <p className="text-xs text-gray-500">Avg: {formatCurrency(stats.averagePrice)}/unit</p>
+              <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalRevenue)}</div>
+              <p className="text-xs text-muted-foreground">Avg: {formatCurrency(stats.averagePrice)}/unit</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Performance Insights */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Top Category</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Top Category</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-lg font-semibold text-gray-900">{stats.topCategory || 'N/A'}</div>
-              <p className="text-xs text-gray-500">Most listed category</p>
+              <div className="text-lg font-semibold text-foreground">{stats.topCategory || 'N/A'}</div>
+              <p className="text-xs text-muted-foreground">Most listed category</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Most Viewed</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Most Viewed</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-lg font-semibold text-gray-900">{stats.mostViewedCrop || 'N/A'}</div>
-              <p className="text-xs text-gray-500">Highest engagement</p>
+              <div className="text-lg font-semibold text-foreground">{stats.mostViewedCrop || 'N/A'}</div>
+              <p className="text-xs text-muted-foreground">Highest engagement</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Status Distribution</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Status Distribution</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Active:</span>
+                  <span className="text-muted-foreground">Active:</span>
                   <span className="font-medium">{stats.activeListings}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Draft:</span>
+                  <span className="text-muted-foreground">Draft:</span>
                   <span className="font-medium">{stats.draftListings}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Inactive:</span>
+                  <span className="text-muted-foreground">Inactive:</span>
                   <span className="font-medium">{stats.inactiveListings}</span>
                 </div>
               </div>
@@ -572,12 +572,12 @@ export default function MarketplaceListingsPage() {
         </div>
 
         {/* Filters */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="text"
                     placeholder="Search listings by crop, category, or description..."
@@ -634,14 +634,14 @@ export default function MarketplaceListingsPage() {
         {/* Listings List */}
         <div className="space-y-4">
           {filteredListings.length === 0 ? (
-            <Card className="text-center py-12 border border-gray-200">
-              <div className="text-gray-400 mb-4">
+            <Card className="text-center py-12 border border-border">
+              <div className="text-muted-foreground mb-4">
                 <Package className="h-16 w-16 mx-auto" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <h3 className="text-lg font-medium text-foreground mb-2">
                 {listings.length === 0 ? 'No Listings Yet' : 'No Listings Match Your Filters'}
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-muted-foreground mb-4">
                 {listings.length === 0
                   ? "Create your first listing to start selling your agricultural products."
                   : "Try adjusting your search or filter criteria."
@@ -658,12 +658,12 @@ export default function MarketplaceListingsPage() {
             </Card>
           ) : (
             filteredListings.map((listing) => (
-              <Card key={listing._id} className="border border-gray-200 hover:shadow-md transition-shadow">
+              <Card key={listing._id} className="border border-border hover:shadow-md transition-shadow">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                     {/* Product Image */}
                     <div className="flex-shrink-0">
-                      <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden">
+                      <div className="w-20 h-20 bg-muted rounded-lg overflow-hidden">
                         {listing.images && listing.images.length > 0 ? (
                           <Image
                             src={listing.images[0]}
@@ -673,7 +673,7 @@ export default function MarketplaceListingsPage() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                             <Package className="h-8 w-8" />
                           </div>
                         )}
@@ -685,7 +685,7 @@ export default function MarketplaceListingsPage() {
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                         <div className="space-y-1 flex-1">
                           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                            <h3 className="text-lg font-semibold text-gray-900">
+                            <h3 className="text-lg font-semibold text-foreground">
                               {listing.cropName}
                             </h3>
                             <div className="flex flex-wrap gap-2">
@@ -693,13 +693,13 @@ export default function MarketplaceListingsPage() {
                                 {listing.status}
                               </Badge>
                               {listing.organic && (
-                                <Badge className="bg-green-50 text-green-700 border-green-200">
+                                <Badge className="bg-success/10 text-success border-success/10">
                                   Organic
                                 </Badge>
                               )}
                             </div>
                           </div>
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                             <span>{listing.category}</span>
                             <span className="hidden sm:inline">•</span>
                             <span>{listing.qualityGrade}</span>
@@ -711,34 +711,34 @@ export default function MarketplaceListingsPage() {
                           </div>
                         </div>
                         <div className="text-left sm:text-right">
-                          <div className="text-xl font-bold text-gray-900">
+                          <div className="text-xl font-bold text-foreground">
                             {formatCurrency(listing.basePrice)}
                           </div>
-                          <div className="text-sm text-gray-600">
+                          <div className="text-sm text-muted-foreground">
                             per {listing.unit}
                           </div>
                         </div>
                       </div>
 
-                      <p className="text-sm text-gray-600 line-clamp-2">
+                      <p className="text-sm text-muted-foreground line-clamp-2">
                         {listing.description || 'No description provided'}
                       </p>
 
                       {/* Stats */}
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm">
-                        <div className="flex items-center gap-1 text-gray-600">
+                        <div className="flex items-center gap-1 text-muted-foreground">
                           <Eye className="h-3 w-3" />
                           <span>{listing.views || 0} views</span>
                         </div>
-                        <div className="flex items-center gap-1 text-gray-600">
+                        <div className="flex items-center gap-1 text-muted-foreground">
                           <Star className="h-3 w-3" />
                           <span>{listing.rating || 0} ({listing.reviews || 0} reviews)</span>
                         </div>
-                        <div className="flex items-center gap-1 text-gray-600">
+                        <div className="flex items-center gap-1 text-muted-foreground">
                           <ShoppingCart className="h-3 w-3" />
                           <span>{listing.orders || 0} orders</span>
                         </div>
-                        <div className="text-gray-600">
+                        <div className="text-muted-foreground">
                           {listing.availableQuantity}/{listing.quantity} {listing.unit} available
                         </div>
                       </div>
@@ -828,9 +828,9 @@ export default function MarketplaceListingsPage() {
         {showListingDetails && selectedListing && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
             <div className="bg-white rounded-lg max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-              <div className="p-4 sm:p-6 border-b border-gray-200">
+              <div className="p-4 sm:p-6 border-b border-border">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                  <h2 className="text-lg sm:text-xl font-semibold text-foreground">
                     {selectedListing.cropName} Details
                   </h2>
                   <Button
@@ -851,11 +851,11 @@ export default function MarketplaceListingsPage() {
                       {selectedListing.status}
                     </Badge>
                     {selectedListing.organic && (
-                      <Badge className="bg-green-50 text-green-700 border-green-200">
+                      <Badge className="bg-success/10 text-success border-success/10">
                         Organic
                       </Badge>
                     )}
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-muted-foreground">
                       {formatDate(selectedListing.createdAt)}
                     </span>
                   </div>
@@ -882,7 +882,7 @@ export default function MarketplaceListingsPage() {
                     <CardContent>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {selectedListing.images.map((image, index) => (
-                          <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                          <div key={index} className="aspect-square bg-muted rounded-lg overflow-hidden">
                             <Image
                               src={image}
                               alt={`${selectedListing.cropName} ${index + 1}`}
@@ -974,7 +974,7 @@ export default function MarketplaceListingsPage() {
                     <CardTitle className="text-base">Description</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-700">
+                    <p className="text-foreground">
                       {selectedListing.description || 'No description provided'}
                     </p>
                   </CardContent>

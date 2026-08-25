@@ -96,7 +96,7 @@ export default function NewHarvestPage() {
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">Log New Harvest</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Log New Harvest</h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
               Record details of your crop yield on the blockchain ledger for transparency and verification
             </p>
@@ -104,7 +104,7 @@ export default function NewHarvestPage() {
         </div>
 
         {/* Harvest Form */}
-        <Card className="border border-slate-100 shadow-sm bg-white overflow-hidden rounded-2xl">
+        <Card className="border border-border shadow-sm bg-white overflow-hidden rounded-2xl">
           <CardContent className="p-4 sm:p-6 lg:p-8">
             <HarvestForm
               onSubmit={handleSubmit}
@@ -116,22 +116,22 @@ export default function NewHarvestPage() {
         </Card>
 
         {/* Help Section */}
-        <Card className="border border-slate-100 bg-slate-50/50 shadow-none rounded-2xl">
+        <Card className="border border-border bg-muted/50 shadow-none rounded-2xl">
           <CardContent className="p-4 sm:p-6 text-center space-y-4">
             <div className="max-w-xl mx-auto space-y-2">
-              <h3 className="text-sm sm:text-base font-semibold text-slate-900">Need Assistance Logging?</h3>
-              <p className="text-xs sm:text-sm text-slate-500 leading-normal">
+              <h3 className="text-sm sm:text-base font-semibold text-foreground">Need Assistance Logging?</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground leading-normal">
                 If you have questions about quality standards, grading criteria, or moisture readings, 
                 our cooperative agronomy experts are available to guide you.
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <Button variant="outline" asChild size="sm" className="h-9 text-xs font-semibold bg-white border-slate-200">
+              <Button variant="outline" asChild size="sm" className="h-9 text-xs font-semibold bg-white border-border">
                 <Link href="/dashboard/analytics">
                   View Analytics Hub
                 </Link>
               </Button>
-              <Button variant="outline" asChild size="sm" className="h-9 text-xs font-semibold bg-white border-slate-200">
+              <Button variant="outline" asChild size="sm" className="h-9 text-xs font-semibold bg-white border-border">
                 <Link href="/dashboard/qr-codes">
                   Manage Active QRs
                 </Link>

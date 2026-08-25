@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -218,13 +219,13 @@ export default function PaymentsPage() {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "card":
-        return <CreditCardIcon className="h-8 w-8 text-blue-600" />
+        return <CreditCardIcon className="h-8 w-8 text-primary" />
       case "bank_account":
-        return <Building2 className="h-8 w-8 text-green-600" />
+        return <Building2 className="h-8 w-8 text-success" />
       case "mobile_money":
-        return <Phone className="h-8 w-8 text-orange-600" />
+        return <Phone className="h-8 w-8 text-warning" />
       default:
-        return <Banknote className="h-8 w-8 text-gray-600" />
+        return <Banknote className="h-8 w-8 text-muted-foreground" />
     }
   }
 
@@ -233,15 +234,15 @@ export default function PaymentsPage() {
       case "successful":
       case "paid":
       case "approved":
-        return "bg-green-100 text-green-800 border-green-200"
+        return "bg-success/10 text-success border-success/10"
       case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200"
+        return "bg-warning/10 text-warning border-warning/10"
       case "failed":
-        return "bg-red-100 text-red-800 border-red-200"
+        return "bg-destructive/10 text-destructive border-destructive/10"
       case "refunded":
-        return "bg-blue-100 text-blue-800 border-blue-200"
+        return "bg-primary/10 text-primary border-primary/10"
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200"
+        return "bg-muted text-foreground border-border"
     }
   }
 
@@ -250,15 +251,15 @@ export default function PaymentsPage() {
       case "successful":
       case "paid":
       case "approved":
-        return <CheckCircle className="h-4 w-4 text-green-600" />
+        return <CheckCircle className="h-4 w-4 text-success" />
       case "pending":
-        return <Clock className="h-4 w-4 text-yellow-600" />
+        return <Clock className="h-4 w-4 text-warning" />
       case "failed":
-        return <XCircle className="h-4 w-4 text-red-600" />
+        return <XCircle className="h-4 w-4 text-destructive" />
       case "refunded":
-        return <ArrowDownRight className="h-4 w-4 text-blue-600" />
+        return <ArrowDownRight className="h-4 w-4 text-primary" />
       default:
-        return <AlertCircle className="h-4 w-4 text-gray-600" />
+        return <AlertCircle className="h-4 w-4 text-muted-foreground" />
     }
   }
 
@@ -337,30 +338,33 @@ export default function PaymentsPage() {
   return (
     <DashboardLayout pageTitle="Payment Management">
       <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
-        {/* Header */}
-        <div className="flex flex-col space-y-3 sm:space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
-          <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Payment Management</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Manage your payment methods, view transactions, and handle billing
-            </p>
-            {error && (
-              <div className="mt-2 text-xs sm:text-sm text-red-600 bg-red-50 p-2 rounded">
-                ⚠️ {error}
-              </div>
-            )}
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-            <Button variant="outline" onClick={refreshData} disabled={loading} className="h-8 sm:h-9 text-xs sm:text-sm">
-              <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-            <Button className="h-8 sm:h-9 text-xs sm:text-sm">
-              <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              Add Payment Method
-            </Button>
-          </div>
-        </div>
+        <DashboardPageHeader
+          badge="Payments Active"
+          title="Payment"
+          titleHighlight="Management"
+          description={
+            <>
+              Manage your payment methods, view transactions, and handle billing.
+              {error && (
+                <span className="mt-2 block text-xs sm:text-sm text-destructive bg-destructive/10 p-2 rounded">
+                  ⚠️ {error}
+                </span>
+              )}
+            </>
+          }
+          actions={
+            <>
+              <Button variant="outline" size="lg" onClick={refreshData} disabled={loading} className="group">
+                <RefreshCw className={`mr-2 h-4 w-4 transition-transform duration-500 group-hover:rotate-180 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button size="lg">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Payment Method
+              </Button>
+            </>
+          }
+        />
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
@@ -431,7 +435,7 @@ export default function PaymentsPage() {
                       </div>
                       <div className="flex items-center space-x-1 sm:space-x-2 w-full sm:w-auto">
                         {method.isDefault && <Badge variant="secondary" className="text-xs">Default</Badge>}
-                          {method.isVerified && <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">Verified</Badge>}
+                          {method.isVerified && <Badge className="bg-success/10 text-success border-success/10 text-xs">Verified</Badge>}
                         <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0"><Edit className="h-3 w-3 sm:h-4 sm:w-4" /></Button>
                         <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive h-7 w-7 sm:h-8 sm:w-8 p-0"><Trash2 className="h-3 w-3 sm:h-4 sm:w-4" /></Button>
                       </div>
@@ -466,39 +470,39 @@ export default function PaymentsPage() {
               <Card>
                 <CardContent className="p-2 sm:p-4">
                   <div className="flex items-center space-x-1 sm:space-x-2">
-                    <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
+                    <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-success flex-shrink-0" />
                     <span className="text-xs sm:text-sm font-medium truncate">Successful</span>
                   </div>
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold text-green-600 mt-1 sm:mt-2">{stats.successful}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-success mt-1 sm:mt-2">{stats.successful}</p>
                   )}
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-2 sm:p-4">
                   <div className="flex items-center space-x-1 sm:space-x-2">
-                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-600 flex-shrink-0" />
+                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-warning flex-shrink-0" />
                     <span className="text-xs sm:text-sm font-medium truncate">Pending</span>
                   </div>
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold text-yellow-600 mt-1 sm:mt-2">{stats.pending}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-warning mt-1 sm:mt-2">{stats.pending}</p>
                   )}
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-2 sm:p-4">
                   <div className="flex items-center space-x-1 sm:space-x-2">
-                    <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-red-600 flex-shrink-0" />
+                    <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-destructive flex-shrink-0" />
                     <span className="text-xs sm:text-sm font-medium truncate">Failed</span>
                   </div>
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold text-red-600 mt-1 sm:mt-2">{stats.failed}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-destructive mt-1 sm:mt-2">{stats.failed}</p>
                   )}
                 </CardContent>
               </Card>
@@ -621,13 +625,13 @@ export default function PaymentsPage() {
               <Card>
                 <CardContent className="p-2 sm:p-4">
                   <div className="flex items-center space-x-1 sm:space-x-2">
-                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
+                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-success flex-shrink-0" />
                     <span className="text-xs sm:text-sm font-medium truncate">Paid</span>
                   </div>
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold text-green-600 mt-1 sm:mt-2">
+                  <p className="text-lg sm:text-2xl font-bold text-success mt-1 sm:mt-2">
                     {billingHistory.filter(b => b.status === 'paid').length}
                   </p>
                   )}
@@ -636,13 +640,13 @@ export default function PaymentsPage() {
               <Card>
                 <CardContent className="p-2 sm:p-4">
                   <div className="flex items-center space-x-1 sm:space-x-2">
-                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-600 flex-shrink-0" />
+                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-warning flex-shrink-0" />
                     <span className="text-xs sm:text-sm font-medium truncate">Pending</span>
                   </div>
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold text-yellow-600 mt-1 sm:mt-2">
+                  <p className="text-lg sm:text-2xl font-bold text-warning mt-1 sm:mt-2">
                     {billingHistory.filter(b => b.status === 'pending').length}
                   </p>
                   )}
@@ -770,13 +774,13 @@ export default function PaymentsPage() {
               <Card>
                 <CardContent className="p-2 sm:p-4">
                   <div className="flex items-center space-x-1 sm:space-x-2">
-                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
+                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-success flex-shrink-0" />
                     <span className="text-xs sm:text-sm font-medium truncate">Approved</span>
                   </div>
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold text-green-600 mt-1 sm:mt-2">
+                  <p className="text-lg sm:text-2xl font-bold text-success mt-1 sm:mt-2">
                     {refunds.filter(r => r.status === 'approved').length}
                   </p>
                   )}
@@ -785,13 +789,13 @@ export default function PaymentsPage() {
               <Card>
                 <CardContent className="p-2 sm:p-4">
                   <div className="flex items-center space-x-1 sm:space-x-2">
-                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-600 flex-shrink-0" />
+                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-warning flex-shrink-0" />
                     <span className="text-xs sm:text-sm font-medium truncate">Pending</span>
                   </div>
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold text-yellow-600 mt-1 sm:mt-2">
+                  <p className="text-lg sm:text-2xl font-bold text-warning mt-1 sm:mt-2">
                     {refunds.filter(r => r.status === 'pending').length}
                   </p>
                   )}

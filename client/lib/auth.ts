@@ -1,12 +1,31 @@
 import { create } from "zustand"
-import { persist } from "zustand/middleware"
+import { persist, createJSONStorage } from "zustand/middleware"
 import { apiService } from "./api"
+import {
+  authPersistStorage,
+  clearAuthTokens,
+  getAuthDataFromStorage,
+  isRememberMeEnabled,
+  setRefreshTokenInStorage,
+  setRememberMePreference,
+  setTokensInStorage,
+  setTokenInStorage,
+} from "./auth-storage"
 import type { User } from "./types"
 
-// Minimal cookie helper (middleware reads auth_token cookie)
-const setCookie = (name: string, value: string, maxAgeSeconds: number = 60 * 60 * 24 * 7) => {
+const ACCESS_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
+const REFRESH_COOKIE_MAX_AGE = 60 * 60 * 24 * 30
+
+// Middleware reads auth_token cookie; session cookies omit Max-Age when remember me is off
+const setCookie = (name: string, value: string, rememberMe?: boolean, maxAgeSeconds?: number) => {
   if (typeof document === "undefined") return
-  document.cookie = `${name}=${value}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`
+  const persist = rememberMe ?? isRememberMeEnabled()
+  if (persist) {
+    const maxAge = maxAgeSeconds ?? ACCESS_COOKIE_MAX_AGE
+    document.cookie = `${name}=${value}; Path=/; Max-Age=${maxAge}; SameSite=Lax`
+  } else {
+    document.cookie = `${name}=${value}; Path=/; SameSite=Lax`
+  }
 }
 const clearCookie = (name: string) => {
   if (typeof document === "undefined") return
@@ -22,7 +41,7 @@ interface AuthState {
   normalizeUser: (backendUser: any) => User
   hasHydrated: boolean
   setHasHydrated: (hydrated: boolean) => void
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>
   register: (userData: any) => Promise<void>
   logout: () => void
   refreshAuth: () => Promise<void>
@@ -80,9 +99,11 @@ export const useAuthStore = create<AuthState>()(
         }
       },
       
-      login: async (email: string, password: string) => {
+      login: async (email: string, password: string, rememberMe = false) => {
         set({ isLoading: true })
         try {
+          setRememberMePreference(rememberMe)
+
           const response = await apiService.login(email, password)
           // Support both { data: { accessToken, refreshToken, user } } and top-level fields
           const envelope: any = (response as any) || {}
@@ -95,18 +116,11 @@ export const useAuthStore = create<AuthState>()(
             throw new Error('Authentication response is missing required fields.')
           }
 
-          // Store token in API service and localStorage
           apiService.setToken(accessToken)
+          setTokensInStorage(accessToken, refreshToken, rememberMe)
 
-          // Store tokens in localStorage for persistence
-          if (typeof window !== "undefined") {
-            localStorage.setItem("grochain_auth_token", accessToken)
-            localStorage.setItem("grochain_refresh_token", refreshToken)
-          }
-
-          // Also set HTTP-only cookies for middleware compatibility
-          setCookie("auth_token", accessToken)
-          setCookie("refresh_token", refreshToken, 60 * 60 * 24 * 30)
+          setCookie("auth_token", accessToken, rememberMe)
+          setCookie("refresh_token", refreshToken, rememberMe, REFRESH_COOKIE_MAX_AGE)
           const normalizedUser = (get() as any).normalizeUser(rawUser)
 
           set({
@@ -142,27 +156,17 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        // Clear all local storage and cookies
-        try { 
-          // Clear API service token
+        try {
           apiService.clearToken()
-          
-          // Clear cookies
           clearCookie("auth_token")
           clearCookie("refresh_token")
-          
-          // Clear localStorage if it exists
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('grochain-auth')
-            sessionStorage.clear()
-          }
+          clearAuthTokens()
           
           // Call backend logout (best effort)
           apiService.logout().catch(() => {
             // Ignore backend errors during logout
           })
         } catch (error) {
-          // Ensure cleanup happens even if there are errors
           console.warn('Error during logout cleanup:', error)
         }
         
@@ -192,8 +196,10 @@ export const useAuthStore = create<AuthState>()(
           }
 
           apiService.setToken(newAccessToken)
+          setTokenInStorage(newAccessToken)
+          setRefreshTokenInStorage(newRefreshToken)
           setCookie("auth_token", newAccessToken)
-          setCookie("refresh_token", newRefreshToken, 60 * 60 * 24 * 30)
+          setCookie("refresh_token", newRefreshToken, undefined, REFRESH_COOKIE_MAX_AGE)
           set({
             token: newAccessToken,
             refreshToken: newRefreshToken,
@@ -229,6 +235,7 @@ export const useAuthStore = create<AuthState>()(
       setToken: (token: string) => {
         set({ token, isAuthenticated: true })
         apiService.setToken(token)
+        setTokenInStorage(token)
         setCookie('auth_token', token)
       },
       
@@ -238,6 +245,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "grochain-auth",
+      storage: createJSONStorage(() => authPersistStorage),
       partialize: (state) => ({
         user: state.user,
         token: state.token,
@@ -296,13 +304,13 @@ export const useAuthGuard = (requiredRole?: string) => {
 export const isAuthenticated = () => {
   if (typeof window === 'undefined') return false
   
-  // Check localStorage
-  const authData = localStorage.getItem('grochain-auth')
+  const authData = getAuthDataFromStorage()
   if (!authData) return false
   
   try {
     const parsed = JSON.parse(authData)
-    return !!(parsed.user && parsed.token && parsed.isAuthenticated)
+    const state = parsed.state ?? parsed
+    return !!(state.user && state.token && state.isAuthenticated)
   } catch {
     return false
   }
@@ -313,11 +321,12 @@ export const getCurrentUser = () => {
   if (typeof window === 'undefined') return null
   
   try {
-    const authData = localStorage.getItem('grochain-auth')
+    const authData = getAuthDataFromStorage()
     if (!authData) return null
     
     const parsed = JSON.parse(authData)
-    return parsed.user || null
+    const state = parsed.state ?? parsed
+    return state.user || null
   } catch {
     return null
   }

@@ -60,7 +60,22 @@ const weatherController = {
       const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${finalLat}&lon=${finalLng}&appid=${apiKey}&units=metric`
       const forecastResponse = await fetch(forecastUrl)
       const forecastData = await forecastResponse.json()
-      
+
+      // Fetch real UV index (separate endpoint on the free tier)
+      let uvIndex = 0
+      try {
+        const uviUrl = `https://api.openweathermap.org/data/2.5/uvi?lat=${finalLat}&lon=${finalLng}&appid=${apiKey}`
+        const uviResponse = await fetch(uviUrl)
+        if (uviResponse.ok) {
+          const uviData = await uviResponse.json()
+          uvIndex = typeof uviData.value === 'number' ? uviData.value : 0
+        }
+      } catch (uviError) {
+        console.error('Error fetching UV index (non-fatal):', uviError.message)
+      }
+
+      const currentTemp = currentData.main?.temp || 0
+
       // Process current weather data
       const weatherInfo = {
         location: {
@@ -71,21 +86,21 @@ const weatherController = {
           country: finalCountry
         },
         current: {
-          temperature: currentData.main?.temp || 0,
+          temperature: currentTemp,
           humidity: currentData.main?.humidity || 0,
           windSpeed: currentData.wind?.speed || 0,
           windDirection: this.getWindDirection(currentData.wind?.deg || 0),
           pressure: currentData.main?.pressure || 0,
           visibility: currentData.visibility || 0,
-          uvIndex: 0, // OpenWeather doesn't provide UV index in free tier
+          uvIndex,
           weatherCondition: currentData.weather?.[0]?.main || 'Clear',
           weatherIcon: currentData.weather?.[0]?.icon || '01d',
           feelsLike: currentData.main?.feels_like || 0,
-          dewPoint: this.calculateDewPoint(currentData.main?.temp || 0, currentData.main?.humidity || 0),
+          dewPoint: this.calculateDewPoint(currentTemp, currentData.main?.humidity || 0),
           cloudCover: currentData.clouds?.all || 0
         },
-        forecast: this.processForecastData(forecastData),
-        alerts: [],
+        forecast: this.processForecastData(forecastData, currentTemp),
+        alerts: this.generateWeatherAlerts(currentData, forecastData, uvIndex, finalCity),
         agricultural: this.generateAgriculturalInsights(currentData, forecastData),
         metadata: {
           source: 'OpenWeather',
@@ -122,64 +137,45 @@ const weatherController = {
   // Get weather forecast
   async getWeatherForecast(req, res) {
     try {
-      const { location } = req.params
       const { lat, lng, days = 5 } = req.query
-      
-      // For development/testing, if no coordinates provided, use default coordinates
+
+      // Require real coordinates - no fallback to a default city, so forecasts
+      // never silently show the wrong location's weather.
       if (!lat || !lng) {
-        const defaultCoords = {
-          'Lagos': { lat: 6.5244, lng: 3.3792 },
-          'Abuja': { lat: 9.0820, lng: 7.3986 },
-          'Kano': { lat: 11.9914, lng: 8.5311 },
-          'Port Harcourt': { lat: 4.8156, lng: 7.0498 }
-        }
-        
-        const cityData = defaultCoords[location] || defaultCoords['Lagos']
-        req.query.lat = cityData.lat
-        req.query.lng = cityData.lng
-      }
-      
-      // Now check if we have the required parameters
-      const finalLat = req.query.lat || lat
-      const finalLng = req.query.lng || lng
-      
-      if (!finalLat || !finalLng) {
         return res.status(400).json({
           status: 'error',
-          message: 'lat and lng are required'
+          message: 'Latitude and longitude coordinates are required for forecast data. Please enable location permissions.'
         })
       }
-      
+
       const apiKey = process.env.OPENWEATHER_API_KEY
-      
-      // For development/testing, return mock data if no API key
+
       if (!apiKey) {
-        console.log('❌ Weather API key not configured')
         return res.status(500).json({
           status: 'error',
           message: 'Weather API key not configured. Please set OPENWEATHER_API_KEY in your environment.'
         })
       }
-      
+
       // Fetch forecast data from OpenWeather API
-      const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${finalLat}&lon=${finalLng}&appid=${apiKey}&units=metric&cnt=${days * 8}`
+      const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&appid=${apiKey}&units=metric&cnt=${days * 8}`
       const response = await fetch(forecastUrl)
       const data = await response.json()
-      
+
       if (data.cod !== '200') {
         return res.status(400).json({
           status: 'error',
           message: 'Failed to fetch forecast data'
         })
       }
-      
+
       const forecast = this.processForecastData(data)
 
       res.json({
         status: 'success',
         data: {
           forecast,
-          location: { lat: Number(finalLat), lng: Number(finalLng) },
+          location: { lat: Number(lat), lng: Number(lng) },
           metadata: {
             source: 'OpenWeather',
             lastUpdated: new Date(),
@@ -511,15 +507,15 @@ const weatherController = {
     return (b * alpha) / (a - alpha)
   },
 
-  processForecastData(forecastData) {
+  processForecastData(forecastData, currentTemp) {
     if (!forecastData.list) return []
-    
+
     const dailyData = {}
-    
+
     forecastData.list.forEach(item => {
       const date = new Date(item.dt * 1000)
       const dayKey = date.toISOString().split('T')[0]
-      
+
       if (!dailyData[dayKey]) {
         dailyData[dayKey] = {
           date,
@@ -533,22 +529,118 @@ const weatherController = {
           uvIndex: 0
         }
       }
-      
+
       dailyData[dayKey].highTemp = Math.max(dailyData[dayKey].highTemp, item.main?.temp || 0)
       dailyData[dayKey].lowTemp = Math.min(dailyData[dayKey].lowTemp, item.main?.temp || 0)
       dailyData[dayKey].humidity.push(item.main?.humidity || 0)
       dailyData[dayKey].windSpeed.push(item.wind?.speed || 0)
-      
+
       if (item.rain && item.rain['3h']) {
         dailyData[dayKey].precipitation += item.rain['3h']
       }
     })
-    
+
+    // The forecast API only covers upcoming 3-hour slots, so "today"'s bucket
+    // would otherwise miss the hours that have already elapsed. Fold in the
+    // real current reading so today's high/low reflects the full day so far.
+    if (typeof currentTemp === 'number') {
+      const todayKey = new Date().toISOString().split('T')[0]
+      if (dailyData[todayKey]) {
+        dailyData[todayKey].highTemp = Math.max(dailyData[todayKey].highTemp, currentTemp)
+        dailyData[todayKey].lowTemp = Math.min(dailyData[todayKey].lowTemp, currentTemp)
+      }
+    }
+
     return Object.values(dailyData).map(day => ({
       ...day,
       humidity: Math.round(day.humidity.reduce((a, b) => a + b, 0) / day.humidity.length),
       windSpeed: Math.round(day.windSpeed.reduce((a, b) => a + b, 0) / day.windSpeed.length)
     }))
+  },
+
+  // Derive real severe-weather alerts from actual fetched data.
+  // (OpenWeather's native alerts require a One Call 3.0 subscription this app doesn't have.)
+  generateWeatherAlerts(currentData, forecastData, uvIndex, locationName) {
+    const alerts = []
+    const now = new Date()
+    const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+    const affectedAreas = locationName ? [locationName] : []
+
+    const temp = currentData.main?.temp
+    const windSpeedKmh = (currentData.wind?.speed || 0) * 3.6
+
+    if (typeof temp === 'number' && temp <= 2) {
+      alerts.push({
+        id: 'frost-risk',
+        type: 'warning',
+        title: 'Frost Risk',
+        description: `Current temperature is ${Math.round(temp)}°C. Frost-sensitive crops may be damaged overnight.`,
+        severity: 'high',
+        startTime: now,
+        endTime: in24h,
+        affectedAreas
+      })
+    }
+
+    if (typeof temp === 'number' && temp >= 38) {
+      alerts.push({
+        id: 'extreme-heat',
+        type: 'warning',
+        title: 'Extreme Heat',
+        description: `Current temperature is ${Math.round(temp)}°C. Increase irrigation and provide shade for livestock and sensitive crops.`,
+        severity: 'high',
+        startTime: now,
+        endTime: in24h,
+        affectedAreas
+      })
+    }
+
+    if (windSpeedKmh >= 50) {
+      alerts.push({
+        id: 'high-wind',
+        type: 'advisory',
+        title: 'High Wind',
+        description: `Wind speed is ${Math.round(windSpeedKmh)} km/h. Secure young plants and greenhouse structures.`,
+        severity: windSpeedKmh >= 75 ? 'high' : 'medium',
+        startTime: now,
+        endTime: in24h,
+        affectedAreas
+      })
+    }
+
+    if (uvIndex >= 8) {
+      alerts.push({
+        id: 'high-uv',
+        type: 'advisory',
+        title: 'High UV Index',
+        description: `UV index is ${Math.round(uvIndex)}. Limit prolonged outdoor field work during midday hours.`,
+        severity: uvIndex >= 11 ? 'high' : 'medium',
+        startTime: now,
+        endTime: in24h,
+        affectedAreas
+      })
+    }
+
+    // Heavy rain expected in the next 24h (from forecast 3-hour slots)
+    const upcoming = (forecastData.list || []).filter(item => {
+      const t = new Date(item.dt * 1000)
+      return t >= now && t <= in24h
+    })
+    const totalRain24h = upcoming.reduce((sum, item) => sum + (item.rain?.['3h'] || 0), 0)
+    if (totalRain24h >= 30) {
+      alerts.push({
+        id: 'heavy-rain',
+        type: 'watch',
+        title: 'Heavy Rain Expected',
+        description: `Approximately ${Math.round(totalRain24h)}mm of rain expected in the next 24 hours. Check drainage and delay harvesting if possible.`,
+        severity: totalRain24h >= 60 ? 'high' : 'medium',
+        startTime: now,
+        endTime: in24h,
+        affectedAreas
+      })
+    }
+
+    return alerts
   },
 
   generateAgriculturalInsights(current, forecast, cropType) {

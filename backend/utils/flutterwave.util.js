@@ -121,6 +121,35 @@ class FlutterwaveUtil {
     }
   }
   
+  // Refund a transaction (full or partial) — requires Flutterwave's own numeric
+  // transaction id, not our tx_ref.
+  async refundTransaction(providerTransactionId, amount) {
+    try {
+      const payload = {}
+      if (amount != null) payload.amount = amount
+
+      const response = await this.axiosInstance.post(`/transactions/${providerTransactionId}/refund`, payload)
+
+      if (response.data.status === 'success') {
+        return {
+          success: true,
+          data: response.data.data,
+          message: response.data.message || 'Refund initiated successfully'
+        }
+      }
+      return {
+        success: false,
+        message: response.data.message || 'Failed to initiate refund'
+      }
+    } catch (error) {
+      console.error('Flutterwave refund error:', error.response?.data || error.message)
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to initiate refund'
+      }
+    }
+  }
+
   // Create customer
   async createCustomer(data) {
     try {
@@ -274,14 +303,18 @@ class FlutterwaveUtil {
   }
   
   // Verify webhook signature
-  verifyWebhookSignature(payload, signature) {
+  // Flutterwave webhooks are NOT HMAC-signed — Flutterwave sends back the exact
+  // static secret hash you configured in your dashboard, in the `verif-hash` header.
+  // Verification is a direct (constant-time) string comparison against that secret.
+  verifyWebhookSignature(verifHashHeader) {
     try {
-      const hash = require('crypto')
-        .createHmac('sha256', this.secretKey)
-        .update(JSON.stringify(payload))
-        .digest('hex')
-      
-      return hash === signature
+      const secret = process.env.FLUTTERWAVE_WEBHOOK_SECRET
+      if (!secret || !verifHashHeader) return false
+
+      const crypto = require('crypto')
+      const secretBuf = Buffer.from(secret)
+      const headerBuf = Buffer.from(String(verifHashHeader))
+      return secretBuf.length === headerBuf.length && crypto.timingSafeEqual(secretBuf, headerBuf)
     } catch (error) {
       console.error('Webhook signature verification error:', error)
       return false

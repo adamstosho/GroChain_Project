@@ -2,28 +2,35 @@
 
 import { useOffline } from './use-offline';
 import { offlineApiService } from '@/lib/offline-api';
-import { toast } from 'sonner';
+import { useToast } from './use-toast';
 
 export function useOfflineApi() {
   const offlineHook = useOffline();
+  const { toast } = useToast();
 
   const showOfflineMessage = (type: string, action: string) => {
-    toast.success(`${type} ${action} queued`, {
+    toast({
+      title: `${type} ${action} queued`,
       description: 'Will sync when connection is restored',
+      variant: 'success',
       duration: 3000,
     });
   };
 
   const showOnlineMessage = (type: string, action: string) => {
-    toast.success(`${type} ${action} completed`, {
+    toast({
+      title: `${type} ${action} completed`,
       description: 'Successfully saved to server',
+      variant: 'success',
       duration: 3000,
     });
   };
 
   const showErrorMessage = (type: string, action: string, error: string) => {
-    toast.error(`${type} ${action} failed`, {
+    toast({
+      title: `${type} ${action} failed`,
       description: error,
+      variant: 'destructive',
       duration: 5000,
     });
   };

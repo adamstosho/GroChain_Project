@@ -12,7 +12,10 @@ interface AvatarUploadProps {
   userName?: string
   onAvatarUpdate: (newAvatarUrl: string) => void
   disabled?: boolean
-  size?: "sm" | "md" | "lg"
+  size?: "sm" | "md" | "lg" | "xl"
+  isAdmin?: boolean
+  /** Hide the "Change Photo" button + helper caption; rely on the hover overlay only. Use inside compact hero layouts. */
+  compact?: boolean
 }
 
 export function AvatarUpload({
@@ -20,7 +23,9 @@ export function AvatarUpload({
   userName,
   onAvatarUpdate,
   disabled = false,
-  size = "lg"
+  size = "lg",
+  isAdmin = false,
+  compact = false
 }: AvatarUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -30,7 +35,8 @@ export function AvatarUpload({
   const sizeClasses = {
     sm: "h-12 w-12",
     md: "h-16 w-16",
-    lg: "h-20 w-20"
+    lg: "h-20 w-20",
+    xl: "h-24 w-24 sm:h-28 sm:w-28"
   }
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,7 +86,7 @@ export function AvatarUpload({
       const formData = new FormData()
       formData.append('avatar', file)
 
-      const result = await apiService.uploadAvatar(formData)
+      const result = await apiService.uploadAvatar(formData, isAdmin)
 
       if (result.status === 'success') {
         onAvatarUpdate(result.data.avatar)
@@ -119,36 +125,43 @@ export function AvatarUpload({
   }
 
   return (
-    <div className="flex flex-col items-center space-y-4">
+    <div className={compact ? "" : "flex flex-col items-center space-y-4"}>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+
       {/* Avatar Display */}
-      <div className="relative">
-        <Avatar className={`${sizeClasses[size]} border-4 border-background shadow-lg`}>
+      <div className="relative shrink-0">
+        <Avatar className={`${sizeClasses[size]} border-4 border-background shadow-lg ring-1 ring-border`}>
           <AvatarImage
             src={previewUrl || currentAvatar || undefined}
             alt={userName || "Profile"}
           />
-          <AvatarFallback className="text-lg font-semibold">
+          <AvatarFallback className="text-lg font-semibold bg-primary/10 text-primary">
             {getInitials(userName)}
           </AvatarFallback>
         </Avatar>
 
-        {/* Upload Overlay */}
-        {!disabled && (
-          <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-white hover:bg-white/20"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                <Camera className="h-4 w-4" />
-              )}
-            </Button>
+        {isUploading && (
+          <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
           </div>
+        )}
+
+        {/* Upload Overlay */}
+        {!disabled && !isUploading && (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 opacity-0 transition-all duration-200 hover:bg-black/50 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none"
+            aria-label="Change profile photo"
+          >
+            <Camera className="h-5 w-5 text-white" />
+          </button>
         )}
 
         {/* Remove Preview Button */}
@@ -156,7 +169,7 @@ export function AvatarUpload({
           <Button
             variant="destructive"
             size="sm"
-            className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full"
+            className="absolute -top-1 -right-1 h-6 w-6 p-0 rounded-full"
             onClick={handleRemove}
           >
             <X className="h-3 w-3" />
@@ -165,21 +178,13 @@ export function AvatarUpload({
       </div>
 
       {/* Upload Button */}
-      {!disabled && (
+      {!disabled && !compact && (
         <div className="flex flex-col items-center space-y-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-
           <Button
             variant="outline"
             size="sm"
             onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading || disabled}
+            disabled={isUploading}
             className="flex items-center space-x-2"
           >
             <Upload className="h-4 w-4" />

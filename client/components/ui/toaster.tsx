@@ -18,22 +18,22 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
   const getIcon = () => {
     switch (toast.variant) {
       case "success":
-        return <CheckCircle className="h-4 w-4 text-green-600" />
+        return <CheckCircle className="h-4 w-4 text-success" />
       case "destructive":
-        return <AlertCircle className="h-4 w-4 text-red-600" />
+        return <AlertCircle className="h-4 w-4 text-destructive" />
       default:
-        return <Info className="h-4 w-4 text-blue-600" />
+        return <Info className="h-4 w-4 text-primary" />
     }
   }
 
   const getBorderColor = () => {
     switch (toast.variant) {
       case "success":
-        return "border-l-green-500"
+        return "border-l-success"
       case "destructive":
-        return "border-l-red-500"
+        return "border-l-destructive"
       default:
-        return "border-l-blue-500"
+        return "border-l-primary"
     }
   }
 

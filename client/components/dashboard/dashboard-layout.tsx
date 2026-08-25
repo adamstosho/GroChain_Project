@@ -408,7 +408,7 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
         <Button
           variant="ghost"
           onClick={handleLogout}
-          className="group w-full justify-start text-muted-foreground hover:bg-gradient-to-r hover:from-red-50 hover:to-red-100 hover:text-red-600 hover:shadow-md hover:shadow-red-100/50 transition-all duration-200 hover:scale-[1.02]"
+          className="group w-full justify-start text-muted-foreground hover:bg-gradient-to-r hover:from-destructive/10 hover:to-destructive/10 hover:text-destructive hover:shadow-md hover:shadow-red-100/50 transition-all duration-200 hover:scale-[1.02]"
         >
           <LogOut className="mr-3 h-4 w-4 transition-all duration-200 group-hover:rotate-12 group-hover:scale-110" />
           <span className="transition-all duration-200">Sign Out</span>
@@ -521,7 +521,7 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-50/50 min-h-0">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-muted/50 min-h-0">
           <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:px-6 lg:py-8 max-w-7xl">
             {children}
           </div>

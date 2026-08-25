@@ -205,33 +205,33 @@ export default function InsuranceComparisonPage() {
     const hasHalfStar = rating % 1 !== 0
 
     for (let i = 0; i < fullStars; i++) {
-      stars.push(<Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />)
+      stars.push(<Star key={i} className="h-4 w-4 fill-warning text-warning" />)
     }
 
     if (hasHalfStar) {
-      stars.push(<Star key="half" className="h-4 w-4 fill-yellow-400 text-yellow-400" />)
+      stars.push(<Star key="half" className="h-4 w-4 fill-warning text-warning" />)
     }
 
     const emptyStars = 5 - Math.ceil(rating)
     for (let i = 0; i < emptyStars; i++) {
-      stars.push(<Star key={`empty-${i}`} className="h-4 w-4 text-gray-300" />)
+      stars.push(<Star key={`empty-${i}`} className="h-4 w-4 text-muted-foreground" />)
     }
 
     return stars
   }
 
   const getFeatureIcon = (feature: string) => {
-    if (feature.includes('coverage') || feature.includes('protection')) return <Shield className="h-4 w-4 text-emerald-500" />
-    if (feature.includes('support') || feature.includes('consultation')) return <Users className="h-4 w-4 text-blue-500" />
-    if (feature.includes('discount') || feature.includes('free')) return <TrendingUp className="h-4 w-4 text-green-500" />
-    if (feature.includes('process') || feature.includes('online')) return <FileText className="h-4 w-4 text-purple-500" />
-    return <CheckCircle className="h-4 w-4 text-emerald-500" />
+    if (feature.includes('coverage') || feature.includes('protection')) return <Shield className="h-4 w-4 text-success" />
+    if (feature.includes('support') || feature.includes('consultation')) return <Users className="h-4 w-4 text-primary" />
+    if (feature.includes('discount') || feature.includes('free')) return <TrendingUp className="h-4 w-4 text-success" />
+    if (feature.includes('process') || feature.includes('online')) return <FileText className="h-4 w-4 text-accent" />
+    return <CheckCircle className="h-4 w-4 text-success" />
   }
 
   const getExclusionIcon = (exclusion: string) => {
-    if (exclusion.includes('pre-existing') || exclusion.includes('poor')) return <AlertTriangle className="h-4 w-4 text-amber-500" />
-    if (exclusion.includes('intentional') || exclusion.includes('war')) return <XCircle className="h-4 w-4 text-red-500" />
-    return <XCircle className="h-4 w-4 text-gray-500" />
+    if (exclusion.includes('pre-existing') || exclusion.includes('poor')) return <AlertTriangle className="h-4 w-4 text-warning" />
+    if (exclusion.includes('intentional') || exclusion.includes('war')) return <XCircle className="h-4 w-4 text-destructive" />
+    return <XCircle className="h-4 w-4 text-muted-foreground" />
   }
 
   if (loading) {
@@ -240,14 +240,14 @@ export default function InsuranceComparisonPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
+              <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-3">
-                  <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-5 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-4 bg-gray-200 rounded mb-3"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-4 bg-muted rounded mb-3"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
@@ -264,15 +264,15 @@ export default function InsuranceComparisonPage() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" asChild className="text-gray-600 hover:text-gray-900">
+              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
                 <Link href="/dashboard/financial" className="flex items-center gap-2">
                   <ArrowLeft className="h-4 w-4" />
                   Back to Financial Services
                 </Link>
               </Button>
             </div>
-            <h1 className="text-2xl font-semibold text-gray-900">Insurance Comparison</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-semibold text-foreground">Insurance Comparison</h1>
+            <p className="text-muted-foreground">
               Compare insurance policies to find the best coverage for your farm
             </p>
           </div>
@@ -296,7 +296,7 @@ export default function InsuranceComparisonPage() {
         </div>
 
         {/* Filters */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-medium">Filter Options</CardTitle>
             <CardDescription>
@@ -306,7 +306,7 @@ export default function InsuranceComparisonPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Crop Type</label>
+                <label className="text-sm font-medium text-foreground">Crop Type</label>
                 <Select value={filters.cropType} onValueChange={(value) => setFilters(prev => ({ ...prev, cropType: value }))}>
                   <SelectTrigger>
                     <SelectValue />
@@ -320,7 +320,7 @@ export default function InsuranceComparisonPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Farm Size</label>
+                <label className="text-sm font-medium text-foreground">Farm Size</label>
                 <Select value={filters.farmSize} onValueChange={(value) => setFilters(prev => ({ ...prev, farmSize: value }))}>
                   <SelectTrigger>
                     <SelectValue />
@@ -334,7 +334,7 @@ export default function InsuranceComparisonPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Location</label>
+                <label className="text-sm font-medium text-foreground">Location</label>
                 <Select value={filters.location} onValueChange={(value) => setFilters(prev => ({ ...prev, location: value }))}>
                   <SelectTrigger>
                     <SelectValue />
@@ -348,7 +348,7 @@ export default function InsuranceComparisonPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Budget</label>
+                <label className="text-sm font-medium text-foreground">Budget</label>
                 <Select value={filters.budget} onValueChange={(value) => setFilters(prev => ({ ...prev, budget: value }))}>
                   <SelectTrigger>
                     <SelectValue />
@@ -362,7 +362,7 @@ export default function InsuranceComparisonPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Coverage Type</label>
+                <label className="text-sm font-medium text-foreground">Coverage Type</label>
                 <Select value={filters.coverageType} onValueChange={(value) => setFilters(prev => ({ ...prev, coverageType: value }))}>
                   <SelectTrigger>
                     <SelectValue />
@@ -380,7 +380,7 @@ export default function InsuranceComparisonPage() {
 
         {/* Results Summary */}
         <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             Showing {filteredPolicies.length} policies
           </div>
           {selectedPolicies.length > 0 && (
@@ -394,8 +394,8 @@ export default function InsuranceComparisonPage() {
         {viewMode === "grid" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPolicies.map((policy) => (
-              <Card key={policy._id} className={`border border-gray-200 hover:shadow-lg transition-shadow ${
-                selectedPolicies.includes(policy._id) ? 'ring-2 ring-blue-500' : ''
+              <Card key={policy._id} className={`border border-border hover:shadow-lg transition-shadow ${
+                selectedPolicies.includes(policy._id) ? 'ring-2 ring-primary' : ''
               }`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
@@ -406,7 +406,7 @@ export default function InsuranceComparisonPage() {
                           onCheckedChange={() => handlePolicySelection(policy._id)}
                         />
                         {policy.isRecommended && (
-                          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                          <Badge className="bg-success/10 text-success border-success/10">
                             Recommended
                           </Badge>
                         )}
@@ -415,10 +415,10 @@ export default function InsuranceComparisonPage() {
                       <CardDescription className="text-sm">{policy.provider}</CardDescription>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-blue-600">
+                      <div className="text-2xl font-bold text-primary">
                         ₦{policy.premium.toLocaleString()}
                       </div>
-                      <div className="text-xs text-gray-500">per year</div>
+                      <div className="text-xs text-muted-foreground">per year</div>
                     </div>
                   </div>
                 </CardHeader>
@@ -426,23 +426,23 @@ export default function InsuranceComparisonPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-blue-500" />
+                      <Shield className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">{policy.type}</span>
                     </div>
-                    <p className="text-sm text-gray-600">{policy.coverage}</p>
+                    <p className="text-sm text-muted-foreground">{policy.coverage}</p>
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Max Coverage:</span>
+                      <span className="text-muted-foreground">Max Coverage:</span>
                       <span className="font-medium">₦{policy.maxCoverage.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Deductible:</span>
+                      <span className="text-muted-foreground">Deductible:</span>
                       <span className="font-medium">₦{policy.deductible.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Waiting Period:</span>
+                      <span className="text-muted-foreground">Waiting Period:</span>
                       <span className="font-medium">{policy.waitingPeriod} days</span>
                     </div>
                   </div>
@@ -450,22 +450,22 @@ export default function InsuranceComparisonPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <div className="flex">{getRatingStars(policy.rating)}</div>
-                      <span className="text-sm text-gray-600">({policy.rating})</span>
-                      <span className="text-sm text-gray-500">• {policy.reviews} reviews</span>
+                      <span className="text-sm text-muted-foreground">({policy.rating})</span>
+                      <span className="text-sm text-muted-foreground">• {policy.reviews} reviews</span>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-gray-900">Key Features:</h4>
+                    <h4 className="text-sm font-medium text-foreground">Key Features:</h4>
                     <div className="space-y-1">
                       {policy.features.slice(0, 3).map((feature, index) => (
-                        <div key={index} className="flex items-center gap-2 text-sm text-gray-600">
+                        <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
                           {getFeatureIcon(feature)}
                           <span>{feature}</span>
                         </div>
                       ))}
                       {policy.features.length > 3 && (
-                        <div className="text-xs text-blue-600 cursor-pointer">
+                        <div className="text-xs text-primary cursor-pointer">
                           +{policy.features.length - 3} more features
                         </div>
                       )}
@@ -474,10 +474,10 @@ export default function InsuranceComparisonPage() {
 
                   {policy.specialOffers.length > 0 && (
                     <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-green-700">Special Offers:</h4>
+                      <h4 className="text-sm font-medium text-success">Special Offers:</h4>
                       <div className="space-y-1">
                         {policy.specialOffers.slice(0, 2).map((offer, index) => (
-                          <div key={index} className="flex items-center gap-2 text-sm text-green-600">
+                          <div key={index} className="flex items-center gap-2 text-sm text-success">
                             <TrendingUp className="h-3 w-3" />
                             <span>{offer}</span>
                           </div>
@@ -502,24 +502,24 @@ export default function InsuranceComparisonPage() {
           </div>
         ) : (
           /* Table View */
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
+                  <thead className="bg-muted border-b">
                     <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Policy</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Provider</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Type</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Premium</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Coverage</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Rating</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Actions</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Policy</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Provider</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Type</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Premium</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Coverage</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Rating</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-border">
                     {filteredPolicies.map((policy) => (
-                      <tr key={policy._id} className="hover:bg-gray-50">
+                      <tr key={policy._id} className="hover:bg-muted">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <Checkbox
@@ -527,33 +527,33 @@ export default function InsuranceComparisonPage() {
                               onCheckedChange={() => handlePolicySelection(policy._id)}
                             />
                             <div>
-                              <div className="font-medium text-gray-900">{policy.name}</div>
+                              <div className="font-medium text-foreground">{policy.name}</div>
                               {policy.isRecommended && (
-                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
+                                <Badge className="bg-success/10 text-success border-success/10 text-xs">
                                   Recommended
                                 </Badge>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{policy.provider}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{policy.type}</td>
+                        <td className="px-4 py-3 text-sm text-foreground">{policy.provider}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{policy.type}</td>
                         <td className="px-4 py-3">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-foreground">
                             ₦{policy.premium.toLocaleString()}
                           </div>
-                          <div className="text-xs text-gray-500">per year</div>
+                          <div className="text-xs text-muted-foreground">per year</div>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-sm text-gray-900">
+                          <div className="text-sm text-foreground">
                             ₦{policy.maxCoverage.toLocaleString()}
                           </div>
-                          <div className="text-xs text-gray-500">max coverage</div>
+                          <div className="text-xs text-muted-foreground">max coverage</div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
                             {getRatingStars(policy.rating)}
-                            <span className="text-sm text-gray-600">({policy.rating})</span>
+                            <span className="text-sm text-muted-foreground">({policy.rating})</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">
@@ -577,12 +577,12 @@ export default function InsuranceComparisonPage() {
 
         {/* No Results */}
         {filteredPolicies.length === 0 && (
-          <Card className="text-center py-12 border border-gray-200">
-            <div className="text-gray-400 mb-4">
+          <Card className="text-center py-12 border border-border">
+            <div className="text-muted-foreground mb-4">
               <Shield className="h-16 w-16 mx-auto" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Policies Found</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-lg font-medium text-foreground mb-2">No Policies Found</h3>
+            <p className="text-muted-foreground mb-4">
               Try adjusting your filters to find insurance policies that match your criteria.
             </p>
             <Button onClick={() => {
@@ -601,10 +601,10 @@ export default function InsuranceComparisonPage() {
         )}
 
         {/* Help Section */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base font-medium">
-              <Info className="h-4 w-4 text-blue-500" />
+              <Info className="h-4 w-4 text-primary" />
               Need Help Choosing?
             </CardTitle>
             <CardDescription>
@@ -613,20 +613,20 @@ export default function InsuranceComparisonPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 border border-gray-200 rounded-lg">
-                <Calculator className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-                <h4 className="font-medium text-gray-900 mb-1">Premium Calculator</h4>
-                <p className="text-sm text-gray-600">Calculate your insurance costs</p>
+              <div className="text-center p-4 border border-border rounded-lg">
+                <Calculator className="h-8 w-8 text-primary mx-auto mb-2" />
+                <h4 className="font-medium text-foreground mb-1">Premium Calculator</h4>
+                <p className="text-sm text-muted-foreground">Calculate your insurance costs</p>
               </div>
-              <div className="text-center p-4 border border-gray-200 rounded-lg">
-                <FileText className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                <h4 className="font-medium text-gray-900 mb-1">Policy Guide</h4>
-                <p className="text-sm text-gray-600">Understand different coverage types</p>
+              <div className="text-center p-4 border border-border rounded-lg">
+                <FileText className="h-8 w-8 text-success mx-auto mb-2" />
+                <h4 className="font-medium text-foreground mb-1">Policy Guide</h4>
+                <p className="text-sm text-muted-foreground">Understand different coverage types</p>
               </div>
-              <div className="text-center p-4 border border-gray-200 rounded-lg">
-                <Users className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-                <h4 className="font-medium text-gray-900 mb-1">Expert Consultation</h4>
-                <p className="text-sm text-gray-600">Talk to insurance specialists</p>
+              <div className="text-center p-4 border border-border rounded-lg">
+                <Users className="h-8 w-8 text-accent mx-auto mb-2" />
+                <h4 className="font-medium text-foreground mb-1">Expert Consultation</h4>
+                <p className="text-sm text-muted-foreground">Talk to insurance specialists</p>
               </div>
             </div>
             <div className="flex justify-center">

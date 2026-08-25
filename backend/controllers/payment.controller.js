@@ -1,4 +1,5 @@
 const crypto = require('crypto')
+const mongoose = require('mongoose')
 const Order = require('../models/order.model')
 const Transaction = require('../models/transaction.model')
 const Commission = require('../models/commission.model')
@@ -515,67 +516,65 @@ exports.verifyPayment = async (req, res) => {
         paid_at: new Date().toISOString(),
         channel: providerVerification.channel || 'card',
         ip_address: req.ip,
-        fees: provider === 'paystack' ? 
+        fees: provider === 'paystack' ?
           Math.round((providerVerification.amount / 100) * 0.015) : // 1.5% Paystack fee
           Math.round(providerVerification.amount * 0.014), // 1.4% Flutterwave fee
         customer: providerVerification.customer || {
           email: 'customer@example.com',
           customer_code: 'CUS_1234567890'
-        }
+        },
+        // Needed to issue a real refund later — Flutterwave's refund API requires its
+        // own numeric transaction id, not our reference.
+        providerTransactionId: providerVerification.providerTransactionId
       }
     }
 
     console.log('✅ Updating transaction to completed')
 
-    // Update transaction status
-    transaction.status = 'completed'
-    transaction.paymentProviderReference = reference
-    transaction.processedAt = new Date()
-    transaction.metadata.verification = verificationData
-    await transaction.save()
+    // Transaction + order status + inventory decrement must all succeed or all roll
+    // back together — otherwise an order can end up marked "paid" while stock was
+    // never actually decremented (or vice versa).
+    const session = await mongoose.startSession()
+    session.startTransaction()
 
-    // Update order status - with enhanced error handling
-    let updatedOrder = null
-    if (transaction.orderId) {
-      const order = await Order.findById(transaction.orderId)
-        .populate('items.listing', 'cropName availableQuantity quantity status')
-      
-      if (order) {
-        console.log('📦 Updating order status to paid:', transaction.orderId)
+    let hadPaidPayment = false
+    let order = null
 
-        // Canonical paid flag is paymentStatus; status may be pending/confirmed/paid depending on flow
-        const hadPaidPayment = order.paymentStatus === 'paid'
+    try {
+      // Update transaction status
+      transaction.status = 'completed'
+      transaction.paymentProviderReference = reference
+      transaction.processedAt = new Date()
+      transaction.metadata.verification = verificationData
+      await transaction.save({ session })
 
-        if (!hadPaidPayment) {
-          order.status = 'confirmed'
-          order.paymentStatus = 'paid'
-          order.paymentReference = reference
-          await order.save()
-          updatedOrder = order
-          console.log('✅ Order status updated successfully')
-        } else {
-          if (!order.paymentReference) {
+      if (transaction.orderId) {
+        order = await Order.findById(transaction.orderId).session(session)
+
+        if (order) {
+          console.log('📦 Updating order status to paid:', transaction.orderId)
+
+          // Canonical paid flag is paymentStatus; status may be pending/confirmed/paid depending on flow
+          hadPaidPayment = order.paymentStatus === 'paid'
+
+          if (!hadPaidPayment) {
+            order.status = 'confirmed'
+            order.paymentStatus = 'paid'
             order.paymentReference = reference
-            await order.save()
-          }
-          updatedOrder = order
-          console.log('ℹ️ Order already paid; skipping inventory, commissions, and payment notifications')
-        }
+            await order.save({ session })
+            console.log('✅ Order status updated successfully')
 
-        if (!hadPaidPayment) {
-        // Update inventory for each item in the order (always update on successful payment verification)
-        try {
-          console.log('📦 Updating inventory for paid order...')
-          const Listing = require('../models/listing.model')
-          
-          // Populate the order items with listing details
-          const populatedOrder = await Order.findById(order._id)
-            .populate('items.listing', 'cropName availableQuantity quantity status updatedAt createdAt')
-          
-          for (const item of populatedOrder.items) {
-            if (item.listing) {
+            // Update inventory for each item in the order
+            console.log('📦 Updating inventory for paid order...')
+            const Listing = require('../models/listing.model')
+            const populatedOrder = await Order.findById(order._id)
+              .populate('items.listing', 'cropName availableQuantity quantity status updatedAt createdAt')
+              .session(session)
+
+            for (const item of populatedOrder.items) {
+              if (!item.listing) continue
               const listing = item.listing
-              
+
               // Validate that we have enough stock before updating
               if (listing.availableQuantity < item.quantity) {
                 console.error('❌ Insufficient stock for item:', {
@@ -584,165 +583,143 @@ exports.verifyPayment = async (req, res) => {
                   availableQuantity: listing.availableQuantity,
                   orderedQuantity: item.quantity
                 })
-                continue // Skip this item but continue with others
+                continue // Payment already captured by the provider — don't block the order over a stock discrepancy
               }
-              
-              const newAvailableQuantity = listing.availableQuantity - item.quantity
-              
-              console.log('🛒 Updating inventory for item:', {
-                listingId: listing._id,
-                cropName: listing.cropName,
-                orderedQuantity: item.quantity,
-                oldAvailableQuantity: listing.availableQuantity,
-                newAvailableQuantity: newAvailableQuantity
-              })
 
-              // Use atomic update to prevent race conditions
+              const newAvailableQuantity = listing.availableQuantity - item.quantity
+
               const updatedListing = await Listing.findByIdAndUpdate(
-                listing._id, 
+                listing._id,
                 {
-                  $inc: { 
-                    availableQuantity: -item.quantity
-                  },
+                  $inc: { availableQuantity: -item.quantity },
                   $set: {
                     status: newAvailableQuantity <= 0 ? 'sold_out' : listing.status,
                     soldOutAt: newAvailableQuantity <= 0 ? new Date() : null,
                     updatedAt: new Date()
                   }
-                }, 
-                { 
-                  new: true,
-                  runValidators: true
-                }
+                },
+                { new: true, runValidators: true, session }
               )
-
-              if (!updatedListing) {
-                console.error('❌ Failed to update listing:', listing._id)
-                continue
-              }
 
               console.log('✅ Inventory updated:', {
                 listingId: listing._id,
-                cropName: listing.cropName,
-                finalAvailableQuantity: updatedListing.availableQuantity,
-                finalTotalQuantity: updatedListing.quantity,
-                status: updatedListing.status
+                cropName: updatedListing?.cropName,
+                finalAvailableQuantity: updatedListing?.availableQuantity
               })
             }
-          }
-          
-          console.log('✅ All inventory updates completed successfully')
-        } catch (inventoryError) {
-          console.error('❌ Inventory update failed:', inventoryError)
-          // Don't fail the verification because of inventory errors, but log them
-        }
-
-        // Calculate and create commissions with real-time updates
-        try {
-          const Listing = require('../models/listing.model')
-          const User = require('../models/user.model')
-
-          console.log('🔄 Processing commissions with real-time updates for order:', order._id);
-          
-          // Use the real-time commission service
-          const commissionResult = await realTimeCommissionService.processOrderCommissions(order);
-          
-          if (commissionResult.success) {
-            console.log('✅ Real-time commissions processed successfully:', {
-              processedItems: commissionResult.processedItems,
-              totalCommission: commissionResult.totalCommission
-            });
-          } else {
-            console.error('❌ Real-time commission processing failed:', commissionResult.error);
-            
-            // Fallback to original commission creation
-            console.log('🔄 Falling back to original commission creation');
-            await exports.createCommissions(order);
-          }
-          
-          // Verify partner commissions for all involved farmers
-          for (const item of order.items || []) {
-            if (!item.listing) continue;
-            
-            const listing = await Listing.findById(item.listing).populate('farmer');
-            if (!listing || !listing.farmer) continue;
-            
-            const farmer = typeof listing.farmer === 'object' ? listing.farmer : await User.findById(listing.farmer);
-            if (!farmer || !farmer.partner) continue;
-            
-            console.log('🔄 Verifying partner commissions for farmer:', farmer.name);
-            await realTimeCommissionService.verifyPartnerCommissions(farmer.partner);
-          }
-          console.log('✅ Commissions created successfully')
-        } catch (commissionError) {
-          console.error('❌ Commission creation failed:', commissionError)
-          // Don't fail the verification because of commission errors
-        }
-
-        }
-
-        // Create notifications for successful payment (only when this verification transitioned the order to paid)
-        if (!hadPaidPayment) {
-          try {
-          // Notify buyer about successful payment
-          await notificationController.createNotificationForActivity(
-            order.buyer._id,
-            'buyer',
-            'financial',
-            'paymentCompleted',
-            {
-              amount: order.total,
-              orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
-              actionUrl: `/dashboard/orders/${order._id}`
-            }
-          )
-
-          // Notify farmers about payment received
-          const populatedOrder = await Order.findById(order._id)
-            .populate('items.listing', 'farmer cropName')
-            .populate('buyer', 'name')
-
-          for (const item of populatedOrder.items) {
-            if (item.listing && item.listing.farmer) {
-              await notificationController.createNotificationForActivity(
-                item.listing.farmer,
-                'farmer',
-                'financial',
-                'paymentReceived',
-                {
-                  amount: item.price * item.quantity,
-                  orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
-                  productName: item.listing.cropName,
-                  buyerName: populatedOrder.buyer.name,
-                  actionUrl: `/dashboard/orders/${order._id}`
-                }
-              )
-            }
-          }
-
-          // Notify admins about payment completion
-          await notificationController.notifyAdmins(
-            'farmer',
-            'paymentCompleted',
-            {
-              amount: order.total,
-              orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
-              buyerName: populatedOrder.buyer.name,
-              actionUrl: `/admin/orders/${order._id}`
-            }
-          )
-
-            console.log('✅ Payment notifications sent successfully')
-          } catch (notificationError) {
-            console.error('❌ Payment notification failed:', notificationError)
-            // Don't fail the verification because of notification errors
+          } else if (!order.paymentReference) {
+            order.paymentReference = reference
+            await order.save({ session })
           }
         }
-      } else {
-        console.log('❌ Order not found for transaction')
       }
-    } else {
-      console.log('⚠️ No order ID in transaction')
+
+      await session.commitTransaction()
+    } catch (txError) {
+      console.error('❌ Payment verification transaction failed, rolling back:', txError)
+      await session.abortTransaction()
+      session.endSession()
+      return res.status(500).json({ status: 'error', message: 'Failed to finalize payment. Please try verifying again.' })
+    }
+    session.endSession()
+
+    let updatedOrder = order
+    if (!order) {
+      console.log('⚠️ No order found for transaction')
+    } else if (!hadPaidPayment) {
+      // Calculate and create commissions with real-time updates (idempotent —
+      // guarded by an existence check, safe to retry independently of the
+      // order/inventory transaction above)
+      try {
+        const Listing = require('../models/listing.model')
+        const User = require('../models/user.model')
+
+        console.log('🔄 Processing commissions with real-time updates for order:', order._id);
+
+        const commissionResult = await realTimeCommissionService.processOrderCommissions(order);
+
+        if (commissionResult.success) {
+          console.log('✅ Real-time commissions processed successfully:', {
+            processedItems: commissionResult.processedItems,
+            totalCommission: commissionResult.totalCommission
+          });
+        } else {
+          console.error('❌ Real-time commission processing failed:', commissionResult.error);
+          console.log('🔄 Falling back to original commission creation');
+          await exports.createCommissions(order);
+        }
+
+        // Verify partner commissions for all involved farmers
+        for (const item of order.items || []) {
+          if (!item.listing) continue;
+
+          const listing = await Listing.findById(item.listing).populate('farmer');
+          if (!listing || !listing.farmer) continue;
+
+          const farmer = typeof listing.farmer === 'object' ? listing.farmer : await User.findById(listing.farmer);
+          if (!farmer || !farmer.partner) continue;
+
+          console.log('🔄 Verifying partner commissions for farmer:', farmer.name);
+          await realTimeCommissionService.verifyPartnerCommissions(farmer.partner);
+        }
+        console.log('✅ Commissions created successfully')
+      } catch (commissionError) {
+        console.error('❌ Commission creation failed:', commissionError)
+        // Don't fail the verification because of commission errors
+      }
+
+      // Create notifications for successful payment
+      try {
+        await notificationController.createNotificationForActivity(
+          order.buyer._id,
+          'buyer',
+          'financial',
+          'paymentCompleted',
+          {
+            amount: order.total,
+            orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
+            actionUrl: `/dashboard/orders/${order._id}`
+          }
+        )
+
+        const populatedOrder = await Order.findById(order._id)
+          .populate('items.listing', 'farmer cropName')
+          .populate('buyer', 'name')
+
+        for (const item of populatedOrder.items) {
+          if (item.listing && item.listing.farmer) {
+            await notificationController.createNotificationForActivity(
+              item.listing.farmer,
+              'farmer',
+              'financial',
+              'paymentReceived',
+              {
+                amount: item.price * item.quantity,
+                orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
+                productName: item.listing.cropName,
+                buyerName: populatedOrder.buyer.name,
+                actionUrl: `/dashboard/orders/${order._id}`
+              }
+            )
+          }
+        }
+
+        await notificationController.notifyAdmins(
+          'farmer',
+          'paymentCompleted',
+          {
+            amount: order.total,
+            orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
+            buyerName: populatedOrder.buyer.name,
+            actionUrl: `/admin/orders/${order._id}`
+          }
+        )
+
+        console.log('✅ Payment notifications sent successfully')
+      } catch (notificationError) {
+        console.error('❌ Payment notification failed:', notificationError)
+        // Don't fail the verification because of notification errors
+      }
     }
 
     return res.json({
@@ -1007,20 +984,61 @@ exports.processRefund = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Refund amount cannot exceed order total' })
     }
 
-    // Create refund transaction
+    // Find the original completed payment so we know which provider/reference to refund
+    const originalPayment = await Transaction.findOne({
+      orderId,
+      type: 'payment',
+      status: 'completed'
+    }).sort({ createdAt: -1 })
+
+    if (!originalPayment) {
+      return res.status(400).json({ status: 'error', message: 'No completed payment found for this order' })
+    }
+
+    const provider = originalPayment.paymentProvider || 'paystack'
+
+    let providerResult
+    if (provider === 'paystack') {
+      const paystackUtil = new PaystackUtil()
+      providerResult = await paystackUtil.refundTransaction(originalPayment.reference, refundAmount)
+    } else if (provider === 'flutterwave') {
+      const providerTransactionId = originalPayment.metadata?.verification?.providerTransactionId
+      if (!providerTransactionId) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Cannot refund: missing Flutterwave transaction id on the original payment'
+        })
+      }
+      const flutterwaveUtil = new FlutterwaveUtil()
+      providerResult = await flutterwaveUtil.refundTransaction(providerTransactionId, refundAmount)
+    } else {
+      return res.status(400).json({ status: 'error', message: `Unsupported payment provider: ${provider}` })
+    }
+
+    if (!providerResult.success) {
+      return res.status(502).json({
+        status: 'error',
+        message: 'Refund failed at payment provider: ' + providerResult.message
+      })
+    }
+
+    // Only mark refunded once the provider has actually confirmed the refund
     const refundTransaction = new Transaction({
       type: 'refund',
-      status: 'pending',
+      status: 'completed',
       amount: refundAmount,
       currency: 'NGN',
       reference: `REFUND_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`,
       description: `Refund for order ${orderId}: ${reason || 'no reason given'}`,
       userId: order.buyer,
       orderId: orderId,
-      paymentProvider: 'paystack',
+      paymentProvider: provider,
+      processedAt: new Date(),
       metadata: {
         reason: reason,
-        originalOrderId: orderId
+        originalOrderId: orderId,
+        originalTransactionId: originalPayment._id,
+        providerResponse: providerResult.data
       }
     })
 
@@ -1034,7 +1052,7 @@ exports.processRefund = async (req, res) => {
       status: 'success',
       data: {
         refund: refundTransaction,
-        message: 'Refund initiated successfully'
+        message: 'Refund processed successfully'
       }
     })
   } catch (error) {
@@ -1125,7 +1143,11 @@ exports.webhookVerify = async (req, res) => {
 
       const payload = JSON.stringify(req.body)
       const expected = crypto.createHmac('sha512', secret).update(payload).digest('hex')
-      if (expected !== signature) {
+      const expectedBuf = Buffer.from(expected, 'hex')
+      const signatureBuf = Buffer.from(String(signature), 'hex')
+      const signatureValid =
+        expectedBuf.length === signatureBuf.length && crypto.timingSafeEqual(expectedBuf, signatureBuf)
+      if (!signatureValid) {
         return res.status(401).json({ status: 'error', message: 'Invalid signature' })
       }
     }
@@ -1208,66 +1230,79 @@ exports.webhookVerify = async (req, res) => {
         
         if (!paystackVerification.success || !paystackVerification.paid) {
           console.log('❌ Paystack verification failed for webhook, skipping update')
+          // Release the lock immediately rather than leaving it stuck for its full
+          // timeout — a future delivery (or manual verify) should be able to retry right away.
+          await Transaction.findOneAndUpdate(
+            { reference: webhookReference, 'metadata.webhookLock.token': webhookLockToken },
+            {
+              $set: {
+                'metadata.webhookLock.status': 'failed',
+                'metadata.webhookLock.failedAt': new Date(),
+                'metadata.webhookLock.error': 'Provider verification did not confirm payment'
+              }
+            }
+          )
           return res.json({ status: 'success', message: 'Webhook received but payment not verified' })
         }
 
         console.log('✅ Paystack verification confirmed, updating transaction')
 
-        // Update transaction with comprehensive data
-        tx.status = 'completed'
-        tx.paymentProviderReference = data.reference
-        tx.processedAt = new Date()
-        tx.metadata = {
-          ...tx.metadata,
-          webhook: data,
-          webhookProcessedAt: new Date(),
-          webhookEvent: event,
-          paystackVerification: paystackVerification
-        }
-        tx.markModified('metadata')
-        await tx.save()
-        console.log('✅ Transaction updated to completed')
+        // Transaction + order status + inventory decrement must all succeed or all
+        // roll back together — otherwise an order can end up marked "paid" while
+        // stock was never actually decremented (or vice versa).
+        const session = await mongoose.startSession()
+        session.startTransaction()
 
-        // Update order if it exists
-        if (tx.orderId) {
-          const order = await Order.findById(tx.orderId)
-          if (order) {
-            console.log('📦 Webhook: Updating order status', {
-              orderId: tx.orderId,
-              currentStatus: order.status,
-              currentPaymentStatus: order.paymentStatus
-            })
+        let order = null
+        let wasJustPaid = false
 
-            // Track whether the order was pending before we attempted to update it.
-            // This lets us detect the transition (pending -> paid) caused by this webhook
-            // and only run commission creation / notifications once.
-            let wasPendingBeforeUpdate = false
-            if (order.status !== 'confirmed' && order.status !== 'paid') {
-              wasPendingBeforeUpdate = true
-              order.status = 'confirmed'
-              order.paymentStatus = 'paid'
-              order.paymentReference = data.reference
-              await order.save()
-              console.log('✅ Order status updated to confirmed')
-            } else {
-              wasPendingBeforeUpdate = false
-              console.log('ℹ️ Order was already confirmed/paid, skipping update')
-            }
+        try {
+          tx.status = 'completed'
+          tx.paymentProviderReference = data.reference
+          tx.processedAt = new Date()
+          tx.metadata = {
+            ...tx.metadata,
+            webhook: data,
+            webhookProcessedAt: new Date(),
+            webhookEvent: event,
+            paystackVerification: paystackVerification
+          }
+          tx.markModified('metadata')
+          await tx.save({ session })
+          console.log('✅ Transaction updated to completed')
 
-            // Update inventory for each item in the order (always update on successful payment)
-            try {
-              console.log('📦 Webhook: Updating inventory for paid order...')
-              const Listing = require('../models/listing.model')
-              
-              // Populate the order items with listing details
-              const populatedOrder = await Order.findById(order._id)
-                .populate('items.listing', 'cropName availableQuantity quantity status updatedAt createdAt')
-              
-              for (const item of populatedOrder.items) {
-                if (item.listing) {
+          if (tx.orderId) {
+            order = await Order.findById(tx.orderId).session(session)
+            if (order) {
+              console.log('📦 Webhook: Updating order status', {
+                orderId: tx.orderId,
+                currentStatus: order.status,
+                currentPaymentStatus: order.paymentStatus
+              })
+
+              // Track whether the order was pending before we attempted to update it.
+              // This lets us detect the transition (pending -> paid) caused by this webhook
+              // and only run commission creation / notifications once.
+              const wasPendingBeforeUpdate = order.status !== 'confirmed' && order.status !== 'paid'
+
+              if (wasPendingBeforeUpdate) {
+                order.status = 'confirmed'
+                order.paymentStatus = 'paid'
+                order.paymentReference = data.reference
+                await order.save({ session })
+                console.log('✅ Order status updated to confirmed')
+
+                // Update inventory for each item in the order
+                console.log('📦 Webhook: Updating inventory for paid order...')
+                const Listing = require('../models/listing.model')
+                const populatedOrder = await Order.findById(order._id)
+                  .populate('items.listing', 'cropName availableQuantity quantity status updatedAt createdAt')
+                  .session(session)
+
+                for (const item of populatedOrder.items) {
+                  if (!item.listing) continue
                   const listing = item.listing
-                  
-                  // Validate that we have enough stock before updating
+
                   if (listing.availableQuantity < item.quantity) {
                     console.error('❌ Webhook: Insufficient stock for item:', {
                       listingId: listing._id,
@@ -1275,62 +1310,69 @@ exports.webhookVerify = async (req, res) => {
                       availableQuantity: listing.availableQuantity,
                       orderedQuantity: item.quantity
                     })
-                    continue // Skip this item but continue with others
+                    continue // Payment already captured by the provider — don't block the order over a stock discrepancy
                   }
-                  
-                  const newAvailableQuantity = listing.availableQuantity - item.quantity
-                  
-                  console.log('🛒 Webhook: Updating inventory for item:', {
-                    listingId: listing._id,
-                    cropName: listing.cropName,
-                    orderedQuantity: item.quantity,
-                    oldAvailableQuantity: listing.availableQuantity,
-                    newAvailableQuantity: newAvailableQuantity
-                  })
 
-                  // Use atomic update to prevent race conditions
+                  const newAvailableQuantity = listing.availableQuantity - item.quantity
+
                   const updatedListing = await Listing.findByIdAndUpdate(
-                    listing._id, 
+                    listing._id,
                     {
-                      $inc: { 
-                        availableQuantity: -item.quantity
-                      },
+                      $inc: { availableQuantity: -item.quantity },
                       $set: {
                         status: newAvailableQuantity <= 0 ? 'sold_out' : listing.status,
                         soldOutAt: newAvailableQuantity <= 0 ? new Date() : null,
                         updatedAt: new Date()
                       }
-                    }, 
-                    { 
-                      new: true,
-                      runValidators: true
-                    }
+                    },
+                    { new: true, runValidators: true, session }
                   )
-
-                  if (!updatedListing) {
-                    console.error('❌ Webhook: Failed to update listing:', listing._id)
-                    continue
-                  }
 
                   console.log('✅ Webhook: Inventory updated:', {
                     listingId: listing._id,
-                    cropName: listing.cropName,
-                    finalAvailableQuantity: updatedListing.availableQuantity,
-                    finalTotalQuantity: updatedListing.quantity,
-                    status: updatedListing.status
+                    cropName: updatedListing?.cropName,
+                    finalAvailableQuantity: updatedListing?.availableQuantity
                   })
                 }
+              } else {
+                console.log('ℹ️ Order was already confirmed/paid, skipping update')
               }
-              
-              console.log('✅ Webhook: All inventory updates completed successfully')
-            } catch (inventoryError) {
-              console.error('❌ Webhook: Inventory update failed:', inventoryError)
-              // Don't fail the webhook because of inventory errors, but log them
-            }
 
-            // Track if order was just marked as paid for notifications and commissions.
-            // If we transitioned it from pending -> paid in this handler, treat as "just paid".
-            const wasJustPaid = !!wasPendingBeforeUpdate && order.paymentStatus === 'paid'
+              wasJustPaid = wasPendingBeforeUpdate && order.paymentStatus === 'paid'
+            }
+          }
+
+          await session.commitTransaction()
+        } catch (txError) {
+          console.error('❌ Webhook: transaction failed, rolling back:', txError)
+          await session.abortTransaction()
+          session.endSession()
+
+          // Bypass the outer "don't fail the webhook" catch — this is a real failure
+          // that needs the lock released as failed so Paystack retries the delivery.
+          if (webhookReference && webhookLockToken) {
+            try {
+              await Transaction.findOneAndUpdate(
+                { reference: webhookReference, 'metadata.webhookLock.token': webhookLockToken },
+                {
+                  $set: {
+                    'metadata.webhookLock.status': 'failed',
+                    'metadata.webhookLock.failedAt': new Date(),
+                    'metadata.webhookLock.error': txError.message
+                  }
+                }
+              )
+            } catch (lockError) {
+              console.error('❌ Failed to update webhook lock failure state:', lockError)
+            }
+          }
+          return res.status(500).json({ status: 'error', message: 'Webhook processing failed' })
+        }
+        session.endSession()
+
+        if (!order) {
+          console.log('❌ Webhook: Order not found for transaction')
+        } else {
 
             // Create commissions with real-time updates (only if order was just paid)
             if (wasJustPaid) {
@@ -1426,12 +1468,7 @@ exports.webhookVerify = async (req, res) => {
                 // Don't fail the webhook because of notification errors
               }
             }
-          } else {
-            console.log('❌ Webhook: Order not found for transaction')
           }
-        } else {
-          console.log('⚠️ Webhook: No order ID in transaction')
-        }
       } catch (processingError) {
         console.error('❌ Webhook processing error:', processingError)
         // Log the error but don't fail the webhook response
@@ -1480,6 +1517,337 @@ exports.webhookVerify = async (req, res) => {
   }
 }
 
+exports.webhookVerifyFlutterwave = async (req, res) => {
+  let webhookLockToken = null
+  let webhookReference = null
+  try {
+    const allowInsecureWebhook =
+      process.env.ALLOW_INSECURE_WEBHOOK === 'true' && process.env.NODE_ENV !== 'production'
+
+    if (!allowInsecureWebhook) {
+      const verifHash = req.headers['verif-hash']
+      if (!verifHash) {
+        return res.status(401).json({ status: 'error', message: 'Missing signature' })
+      }
+      const flutterwaveUtil = new FlutterwaveUtil()
+      if (!flutterwaveUtil.verifyWebhookSignature(verifHash)) {
+        return res.status(401).json({ status: 'error', message: 'Invalid signature' })
+      }
+    }
+
+    const event = req.body?.event
+    const data = req.body?.data
+    if (!event || !data) {
+      console.log('❌ Flutterwave webhook: Invalid payload received', { event, hasData: !!data })
+      return res.status(400).json({ status: 'error', message: 'Invalid payload' })
+    }
+
+    console.log('🔗 Flutterwave Webhook Received:', {
+      event,
+      reference: data.tx_ref,
+      amount: data.amount,
+      status: data.status,
+      timestamp: new Date().toISOString()
+    })
+
+    // Flutterwave uses "tx_ref" for what we call reference, and reports both
+    // success/failure under the same "charge.completed" event, differentiated by data.status.
+    const reference = data.tx_ref
+    webhookReference = reference
+
+    if (!reference) {
+      return res.status(400).json({ status: 'error', message: 'Missing payment reference' })
+    }
+
+    const now = new Date()
+    webhookLockToken = crypto.randomBytes(16).toString('hex')
+
+    let tx = await Transaction.findOneAndUpdate(
+      {
+        reference,
+        status: { $ne: 'completed' },
+        $or: [
+          { 'metadata.webhookLock.status': { $exists: false } },
+          { 'metadata.webhookLock.status': { $ne: 'processing' } },
+          { 'metadata.webhookLock.expiresAt': { $lt: now } }
+        ]
+      },
+      {
+        $set: {
+          'metadata.webhookLock': {
+            status: 'processing',
+            token: webhookLockToken,
+            event,
+            startedAt: now,
+            expiresAt: new Date(now.getTime() + 5 * 60 * 1000)
+          }
+        }
+      },
+      { new: true }
+    )
+
+    if (!tx) {
+      const existingTx = await Transaction.findOne({ reference })
+      if (!existingTx) {
+        console.log('ℹ️ Flutterwave webhook: Transaction not found for reference, ignoring')
+        return res.json({ status: 'success', message: 'Reference not recognized' })
+      }
+      if (existingTx.status === 'completed') {
+        console.log('✅ Flutterwave webhook: Transaction already processed')
+        return res.json({ status: 'success', message: 'Already processed' })
+      }
+      console.log('ℹ️ Flutterwave webhook: Transaction is already being processed by another worker')
+      return res.json({ status: 'success', message: 'Processing in progress' })
+    }
+
+    if (event === 'charge.completed' && data.status === 'successful') {
+      console.log('💰 Flutterwave webhook: Processing successful charge')
+
+      try {
+        console.log('🔍 Double-checking with Flutterwave API...')
+        const flutterwaveVerification = await verifyWithFlutterwaveAPI(reference)
+
+        if (!flutterwaveVerification.success || !flutterwaveVerification.paid) {
+          console.log('❌ Flutterwave verification failed for webhook, skipping update')
+          await Transaction.findOneAndUpdate(
+            { reference: webhookReference, 'metadata.webhookLock.token': webhookLockToken },
+            {
+              $set: {
+                'metadata.webhookLock.status': 'failed',
+                'metadata.webhookLock.failedAt': new Date(),
+                'metadata.webhookLock.error': 'Provider verification did not confirm payment'
+              }
+            }
+          )
+          return res.json({ status: 'success', message: 'Webhook received but payment not verified' })
+        }
+
+        console.log('✅ Flutterwave verification confirmed, updating transaction')
+
+        const session = await mongoose.startSession()
+        session.startTransaction()
+
+        let order = null
+        let wasJustPaid = false
+
+        try {
+          tx.status = 'completed'
+          tx.paymentProviderReference = reference
+          tx.processedAt = new Date()
+          tx.metadata = {
+            ...tx.metadata,
+            webhook: data,
+            webhookProcessedAt: new Date(),
+            webhookEvent: event,
+            flutterwaveVerification: flutterwaveVerification,
+            providerTransactionId: flutterwaveVerification.providerTransactionId
+          }
+          tx.markModified('metadata')
+          await tx.save({ session })
+          console.log('✅ Transaction updated to completed')
+
+          if (tx.orderId) {
+            order = await Order.findById(tx.orderId).session(session)
+            if (order) {
+              const wasPendingBeforeUpdate = order.status !== 'confirmed' && order.status !== 'paid'
+
+              if (wasPendingBeforeUpdate) {
+                order.status = 'confirmed'
+                order.paymentStatus = 'paid'
+                order.paymentReference = reference
+                await order.save({ session })
+                console.log('✅ Order status updated to confirmed')
+
+                console.log('📦 Flutterwave webhook: Updating inventory for paid order...')
+                const Listing = require('../models/listing.model')
+                const populatedOrder = await Order.findById(order._id)
+                  .populate('items.listing', 'cropName availableQuantity quantity status updatedAt createdAt')
+                  .session(session)
+
+                for (const item of populatedOrder.items) {
+                  if (!item.listing) continue
+                  const listing = item.listing
+
+                  if (listing.availableQuantity < item.quantity) {
+                    console.error('❌ Flutterwave webhook: Insufficient stock for item:', {
+                      listingId: listing._id,
+                      cropName: listing.cropName,
+                      availableQuantity: listing.availableQuantity,
+                      orderedQuantity: item.quantity
+                    })
+                    continue
+                  }
+
+                  const newAvailableQuantity = listing.availableQuantity - item.quantity
+
+                  const updatedListing = await Listing.findByIdAndUpdate(
+                    listing._id,
+                    {
+                      $inc: { availableQuantity: -item.quantity },
+                      $set: {
+                        status: newAvailableQuantity <= 0 ? 'sold_out' : listing.status,
+                        soldOutAt: newAvailableQuantity <= 0 ? new Date() : null,
+                        updatedAt: new Date()
+                      }
+                    },
+                    { new: true, runValidators: true, session }
+                  )
+
+                  console.log('✅ Flutterwave webhook: Inventory updated:', {
+                    listingId: listing._id,
+                    cropName: updatedListing?.cropName,
+                    finalAvailableQuantity: updatedListing?.availableQuantity
+                  })
+                }
+              } else {
+                console.log('ℹ️ Order was already confirmed/paid, skipping update')
+              }
+
+              wasJustPaid = wasPendingBeforeUpdate && order.paymentStatus === 'paid'
+            }
+          }
+
+          await session.commitTransaction()
+        } catch (txError) {
+          console.error('❌ Flutterwave webhook: transaction failed, rolling back:', txError)
+          await session.abortTransaction()
+          session.endSession()
+
+          if (webhookReference && webhookLockToken) {
+            try {
+              await Transaction.findOneAndUpdate(
+                { reference: webhookReference, 'metadata.webhookLock.token': webhookLockToken },
+                {
+                  $set: {
+                    'metadata.webhookLock.status': 'failed',
+                    'metadata.webhookLock.failedAt': new Date(),
+                    'metadata.webhookLock.error': txError.message
+                  }
+                }
+              )
+            } catch (lockError) {
+              console.error('❌ Failed to update webhook lock failure state:', lockError)
+            }
+          }
+          return res.status(500).json({ status: 'error', message: 'Webhook processing failed' })
+        }
+        session.endSession()
+
+        if (order && wasJustPaid) {
+          try {
+            console.log('🔄 Processing real-time commissions for Flutterwave webhook order:', order._id);
+            const populatedOrder = await Order.findById(order._id)
+              .populate('items.listing')
+              .populate('buyer', 'name email');
+
+            if (populatedOrder) {
+              const commissionResult = await realTimeCommissionService.processOrderCommissions(populatedOrder);
+              if (!commissionResult.success) {
+                console.error('❌ Real-time commission processing failed:', commissionResult.error);
+                await exports.createCommissions(populatedOrder);
+              }
+            }
+          } catch (commissionError) {
+            console.error('❌ Commission creation failed:', commissionError)
+          }
+
+          try {
+            await notificationController.createNotificationForActivity(
+              order.buyer._id,
+              'buyer',
+              'financial',
+              'paymentCompleted',
+              {
+                amount: order.total,
+                orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
+                actionUrl: `/dashboard/orders/${order._id}`
+              }
+            )
+
+            const populatedOrder = await Order.findById(order._id)
+              .populate('items.listing', 'farmer cropName')
+              .populate('buyer', 'name')
+
+            for (const item of populatedOrder.items) {
+              if (item.listing && item.listing.farmer) {
+                await notificationController.createNotificationForActivity(
+                  item.listing.farmer,
+                  'farmer',
+                  'financial',
+                  'paymentReceived',
+                  {
+                    amount: item.price * item.quantity,
+                    orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
+                    productName: item.listing.cropName,
+                    buyerName: populatedOrder.buyer.name,
+                    actionUrl: `/dashboard/orders/${order._id}`
+                  }
+                )
+              }
+            }
+
+            await notificationController.notifyAdmins(
+              'farmer',
+              'paymentCompleted',
+              {
+                amount: order.total,
+                orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
+                buyerName: populatedOrder.buyer.name,
+                actionUrl: `/admin/orders/${order._id}`
+              }
+            )
+            console.log('✅ Payment notifications sent successfully')
+          } catch (notificationError) {
+            console.error('❌ Payment notification failed:', notificationError)
+          }
+        } else if (!order) {
+          console.log('❌ Flutterwave webhook: Order not found for transaction')
+        }
+      } catch (processingError) {
+        console.error('❌ Flutterwave webhook processing error:', processingError)
+      }
+    } else {
+      console.log('ℹ️ Flutterwave webhook: Event/status not a successful charge:', event, data.status)
+    }
+
+    console.log('✅ Flutterwave webhook processing completed')
+    if (webhookReference && webhookLockToken) {
+      await Transaction.findOneAndUpdate(
+        { reference: webhookReference, 'metadata.webhookLock.token': webhookLockToken },
+        {
+          $set: {
+            'metadata.webhookLock.status': 'completed',
+            'metadata.webhookLock.completedAt': new Date()
+          }
+        }
+      )
+    }
+
+    return res.json({ status: 'success', message: 'Webhook processed successfully' })
+  } catch (error) {
+    console.error('❌ Flutterwave webhook processing error:', error)
+
+    if (webhookReference && webhookLockToken) {
+      try {
+        await Transaction.findOneAndUpdate(
+          { reference: webhookReference, 'metadata.webhookLock.token': webhookLockToken },
+          {
+            $set: {
+              'metadata.webhookLock.status': 'failed',
+              'metadata.webhookLock.failedAt': new Date(),
+              'metadata.webhookLock.error': error.message
+            }
+          }
+        )
+      } catch (lockError) {
+        console.error('❌ Failed to update webhook lock failure state:', lockError)
+      }
+    }
+
+    return res.status(500).json({ status: 'error', message: 'Webhook processing failed' })
+  }
+}
+
 // Fallback method to sync order status with transaction status
 exports.syncOrderStatus = async (req, res) => {
   try {
@@ -1499,6 +1867,15 @@ exports.syncOrderStatus = async (req, res) => {
     const order = await Order.findById(orderId)
     if (!order) {
       return res.status(404).json({ status: 'error', message: 'Order not found' })
+    }
+
+    const currentUserId = req.user?.id || req.user?._id
+    const currentUserRole = req.user?.role
+    if (
+      currentUserRole !== 'admin' &&
+      order.buyer?.toString?.() !== currentUserId?.toString?.()
+    ) {
+      return res.status(403).json({ status: 'error', message: 'Access denied' })
     }
 
     // Find the transaction for this order
@@ -1568,6 +1945,10 @@ exports.syncOrderStatus = async (req, res) => {
 // Bulk sync method to fix multiple orders
 exports.bulkSyncOrders = async (req, res) => {
   try {
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ status: 'error', message: 'Admin access required' })
+    }
+
     console.log('🔄 Starting bulk order synchronization...')
 
     // Find all orders with pending status
@@ -1785,7 +2166,9 @@ async function verifyWithFlutterwaveAPI(reference) {
     const options = {
       hostname: 'api.flutterwave.com',
       port: 443,
-      path: `/v3/transactions/${reference}/verify`,
+      // Verify by OUR reference (tx_ref), not Flutterwave's internal numeric id —
+      // we never receive/store that id, so /v3/transactions/{id}/verify can't be used here.
+      path: `/v3/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`,
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
@@ -1802,7 +2185,7 @@ async function verifyWithFlutterwaveAPI(reference) {
         try {
           const response = JSON.parse(data)
           console.log('📊 Flutterwave API Response:', response)
-          
+
           if (response.status === 'success' && response.data) {
             resolve({
               success: true,
@@ -1810,6 +2193,7 @@ async function verifyWithFlutterwaveAPI(reference) {
               status: response.data.status,
               amount: response.data.amount,
               reference: response.data.tx_ref,
+              providerTransactionId: response.data.id,
               channel: response.data.payment_type,
               customer: response.data.customer,
               paid_at: response.data.created_at

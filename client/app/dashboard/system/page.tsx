@@ -7,16 +7,16 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { SystemManagement } from "@/components/system/system-management"
 
 export default function SystemPage() {
-  const { user, isLoading } = useAuthStore()
+  const { user, isLoading, hasHydrated } = useAuthStore()
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (hasHydrated && !isLoading && !user) {
       router.push("/login")
     }
-  }, [user, isLoading, router])
+  }, [user, isLoading, hasHydrated, router])
 
-  if (isLoading) {
+  if (!hasHydrated || isLoading) {
     return (
       <DashboardLayout pageTitle="System Management">
         <div className="flex h-screen bg-background">
@@ -41,8 +41,8 @@ export default function SystemPage() {
       <DashboardLayout pageTitle="System Management">
         <div className="flex items-center justify-center p-8">
           <div className="text-center space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">Access Denied</h3>
-            <p className="text-gray-600">You do not have permission to access system management.</p>
+            <h3 className="text-lg font-medium text-foreground">Access Denied</h3>
+            <p className="text-muted-foreground">You do not have permission to access system management.</p>
           </div>
         </div>
       </DashboardLayout>

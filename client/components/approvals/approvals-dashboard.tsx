@@ -96,7 +96,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
       case "pending":
         return <Badge variant="secondary" className="text-xs whitespace-nowrap"><Clock className="w-3 h-3 mr-1" />Pending</Badge>
       case "approved":
-        return <Badge variant="default" className="bg-green-100 text-green-800 text-xs whitespace-nowrap"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>
+        return <Badge variant="default" className="bg-success/10 text-success text-xs whitespace-nowrap"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>
       case "rejected":
         return <Badge variant="destructive" className="text-xs whitespace-nowrap"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>
       case "under_review":
@@ -120,9 +120,9 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
   }
 
   const getQualityScoreColor = (score: number) => {
-    if (score >= 8) return "text-green-600"
-    if (score >= 6) return "text-yellow-600"
-    return "text-red-600"
+    if (score >= 8) return "text-success"
+    if (score >= 6) return "text-warning"
+    return "text-destructive"
   }
 
   const handleApprove = async (approvalId: string) => {
@@ -316,9 +316,9 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
       <Card className={className}>
         <CardContent className="flex items-center justify-center p-8">
           <div className="text-center space-y-4">
-            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto" />
-            <h3 className="text-lg font-medium text-red-900">Error Loading Approvals</h3>
-            <p className="text-red-700">{error}</p>
+            <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
+            <h3 className="text-lg font-medium text-destructive">Error Loading Approvals</h3>
+            <p className="text-destructive">{error}</p>
             <Button onClick={refreshData} variant="outline">
               <RefreshCw className="w-4 h-4 mr-2" />
               Try Again
@@ -431,7 +431,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
+            <Clock className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pending || 0}</div>
@@ -443,7 +443,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Approved</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CheckCircle className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.approved || 0}</div>
@@ -455,7 +455,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Quality Score</CardTitle>
-            <Star className="h-4 w-4 text-blue-600" />
+            <Star className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{(stats.averageQualityScore || 0).toFixed(1)}/10</div>
@@ -581,7 +581,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                             type="checkbox"
                             checked={selectedApprovals.includes(approval._id)}
                             onChange={() => toggleApprovalSelection(approval._id)}
-                            className="mt-2 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary flex-shrink-0"
+                            className="mt-2 h-4 w-4 text-primary border-border rounded focus:ring-primary flex-shrink-0"
                           />
                           
                           {/* Farmer Info */}
@@ -636,7 +636,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                             {/* Quality Score */}
                             {approval.harvest.qualityScore && (
                               <div className="flex items-center space-x-2">
-                                <Star className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                                <Star className="w-4 h-4 text-warning flex-shrink-0" />
                                 <span className={`text-xs sm:text-sm font-medium ${getQualityScoreColor(approval.harvest.qualityScore)}`}>
                                   Quality Score: {approval.harvest.qualityScore}/10
                                 </span>
@@ -645,16 +645,16 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                             
                             {/* Approval Notes or Rejection Reason */}
                             {approval.approvalNotes && (
-                              <div className="bg-green-50 p-3 rounded-lg">
-                                <p className="text-xs sm:text-sm text-green-800 break-words">
+                              <div className="bg-success/10 p-3 rounded-lg">
+                                <p className="text-xs sm:text-sm text-success break-words">
                                   <strong>Approval Notes:</strong> {approval.approvalNotes}
                                 </p>
                               </div>
                             )}
                             
                             {approval.rejectionReason && (
-                              <div className="bg-red-50 p-3 rounded-lg">
-                                <p className="text-xs sm:text-sm text-red-800 break-words">
+                              <div className="bg-destructive/10 p-3 rounded-lg">
+                                <p className="text-xs sm:text-sm text-destructive break-words">
                                   <strong>Rejection Reason:</strong> {approval.rejectionReason}
                                 </p>
                               </div>
@@ -683,7 +683,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                                 variant="default"
                                 size="sm"
                                 onClick={() => handleApprove(approval._id)}
-                                className="bg-green-600 hover:bg-green-700 w-full"
+                                className="bg-success hover:bg-success w-full"
                               >
                                 <ThumbsUp className="w-4 h-4 mr-1 sm:mr-2" />
                                 <span className="text-xs sm:text-sm">Approve</span>
@@ -858,7 +858,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                 </Button>
                 <Button
                   onClick={() => handleApprove(selectedApproval._id)}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-success hover:bg-success"
                   disabled={isProcessing}
                 >
                   <ThumbsUp className="w-4 h-4 mr-2" />
@@ -909,7 +909,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
             
             <div className="space-y-2">
               <Button
-                className="w-full bg-green-600 hover:bg-green-700"
+                className="w-full bg-success hover:bg-success"
                 onClick={() => handleBatchAction('approve')}
                 disabled={isProcessing}
               >

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Star, MessageCircle, ThumbsUp, MoreHorizontal, Edit, Trash2 } from "lucide-react"
@@ -152,7 +153,7 @@ export function ReviewList({ listingId, className }: ReviewListProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Star className="h-5 w-5 text-yellow-500" />
+            <Star className="h-5 w-5 text-warning" />
             Customer Reviews
           </CardTitle>
         </CardHeader>
@@ -169,8 +170,8 @@ export function ReviewList({ listingId, className }: ReviewListProps) {
                       className={cn(
                         "h-5 w-5",
                         star <= Math.round(stats.averageRating)
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-gray-300"
+                          ? "fill-warning text-warning"
+                          : "text-muted-foreground"
                       )}
                     />
                   ))}
@@ -186,10 +187,10 @@ export function ReviewList({ listingId, className }: ReviewListProps) {
               {[5, 4, 3, 2, 1].map((rating) => (
                 <div key={rating} className="flex items-center gap-2">
                   <span className="text-sm w-8">{rating}</span>
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+                  <Star className="h-4 w-4 fill-warning text-warning" />
+                  <div className="flex-1 bg-muted rounded-full h-2">
                     <div
-                      className="bg-yellow-400 h-2 rounded-full transition-all duration-300"
+                      className="bg-warning h-2 rounded-full transition-all duration-300"
                       style={{
                         width: `${stats.totalReviews > 0 ? (stats.ratingDistribution[rating as keyof typeof stats.ratingDistribution] / stats.totalReviews) * 100 : 0}%`
                       }}
@@ -228,8 +229,8 @@ export function ReviewList({ listingId, className }: ReviewListProps) {
                               className={cn(
                                 "h-4 w-4",
                                 star <= review.rating
-                                  ? "fill-yellow-400 text-yellow-400"
-                                  : "text-gray-300"
+                                  ? "fill-warning text-warning"
+                                  : "text-muted-foreground"
                               )}
                             />
                           ))}
@@ -259,7 +260,7 @@ export function ReviewList({ listingId, className }: ReviewListProps) {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleDeleteReview(review._id)}
-                              className="text-red-600"
+                              className="text-destructive"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete Review
@@ -270,7 +271,7 @@ export function ReviewList({ listingId, className }: ReviewListProps) {
                     </div>
 
                     {review.comment && (
-                      <p className="text-gray-700">{review.comment}</p>
+                      <p className="text-foreground">{review.comment}</p>
                     )}
 
                     {/* Review Images */}
@@ -289,14 +290,14 @@ export function ReviewList({ listingId, className }: ReviewListProps) {
 
                     {/* Farmer Response */}
                     {review.response && (
-                      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                      <div className="mt-3 p-3 bg-muted rounded-lg">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-medium text-gray-700">Farmer Response:</span>
-                          <span className="text-sm text-gray-500">
+                          <span className="text-sm font-medium text-foreground">Farmer Response:</span>
+                          <span className="text-sm text-muted-foreground">
                             {formatDate(review.response.respondedAt)}
                           </span>
                         </div>
-                        <p className="text-gray-600 text-sm">{review.response.comment}</p>
+                        <p className="text-muted-foreground text-sm">{review.response.comment}</p>
                       </div>
                     )}
 
@@ -335,12 +336,12 @@ export function ReviewList({ listingId, className }: ReviewListProps) {
         </div>
       ) : (
         <Card>
-          <CardContent className="p-6 text-center">
-            <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Reviews Yet</h3>
-            <p className="text-muted-foreground">
-              Be the first to review this product and help other buyers make informed decisions.
-            </p>
+          <CardContent>
+            <EmptyState
+              icon={MessageCircle}
+              title="No Reviews Yet"
+              description="Be the first to review this product and help other buyers make informed decisions."
+            />
           </CardContent>
         </Card>
       )}

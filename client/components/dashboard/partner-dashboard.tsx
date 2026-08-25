@@ -324,10 +324,10 @@ export function PartnerDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-              <div className="h-8 sm:h-9 bg-gray-200 rounded animate-pulse w-48 sm:w-64"></div>
+              <div className="h-8 sm:h-9 bg-muted rounded animate-pulse w-48 sm:w-64"></div>
             </h1>
             <div className="text-muted-foreground text-sm sm:text-base mt-2">
-              <div className="h-4 bg-gray-200 rounded animate-pulse w-64 sm:w-80"></div>
+              <div className="h-4 bg-muted rounded animate-pulse w-64 sm:w-80"></div>
             </div>
           </div>
           <div className="flex-shrink-0">
@@ -407,13 +407,13 @@ export function PartnerDashboard() {
           </Button>
         </div>
 
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-destructive/10 bg-destructive/10">
           <CardContent className="pt-6">
             <div className="flex items-center space-x-4">
-              <AlertCircle className="h-8 w-8 text-red-600" />
+              <AlertCircle className="h-8 w-8 text-destructive" />
               <div>
-                <h3 className="text-lg font-semibold text-red-900">Failed to Load Dashboard</h3>
-                <p className="text-red-700 mt-1">{error}</p>
+                <h3 className="text-lg font-semibold text-destructive">Failed to Load Dashboard</h3>
+                <p className="text-destructive mt-1">{error}</p>
                 <Button
                   onClick={handleRefresh}
                   className="mt-4"
@@ -445,14 +445,14 @@ export function PartnerDashboard() {
           </Button>
         </div>
 
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-destructive/10 bg-destructive/10">
           <CardContent className="pt-6">
             <div className="flex items-center space-x-4">
-              <AlertCircle className="h-8 w-8 text-red-600" />
+              <AlertCircle className="h-8 w-8 text-destructive" />
               <div>
-                <h3 className="text-lg font-semibold text-red-900">Database Connection Error</h3>
-                <p className="text-red-700 mt-1">{error}</p>
-                <p className="text-red-600 text-sm mt-2">
+                <h3 className="text-lg font-semibold text-destructive">Database Connection Error</h3>
+                <p className="text-destructive mt-1">{error}</p>
+                <p className="text-destructive text-sm mt-2">
                   Please check your internet connection and try again.
                 </p>
                 <Button

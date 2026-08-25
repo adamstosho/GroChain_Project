@@ -33,7 +33,7 @@ export function AiTrustBadge({ userId, showLabel = true, className = "" }: AiTru
   }
 
   if (loading && !data) {
-    return <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />
+    return <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
   }
 
   if (!data) return null
@@ -89,7 +89,7 @@ export function AiTrustBadge({ userId, showLabel = true, className = "" }: AiTru
               <span>Success:</span> <span className="text-right">{data.metrics.successRate}%</span>
               <span>Rating:</span> <span className="text-right">{data.metrics.avgRating}/5</span>
             </div>
-            <p className="pt-1 text-[10px] text-slate-400">Score generated in real-time from blockchain and txn history.</p>
+            <p className="pt-1 text-[10px] text-muted-foreground">Score generated in real-time from blockchain and txn history.</p>
           </div>
         </TooltipContent>
       </Tooltip>

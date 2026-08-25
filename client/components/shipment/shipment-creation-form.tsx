@@ -209,7 +209,7 @@ export function ShipmentCreationForm({
     <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Package className="h-5 w-5 text-green-600" />
+          <Package className="h-5 w-5 text-success" />
           Create Shipment
         </CardTitle>
       </CardHeader>
@@ -234,7 +234,7 @@ export function ShipmentCreationForm({
               </SelectContent>
             </Select>
             {errors.shippingMethod && (
-              <p className="text-sm text-red-600">{errors.shippingMethod.message}</p>
+              <p className="text-sm text-destructive">{errors.shippingMethod.message}</p>
             )}
           </div>
 
@@ -254,7 +254,7 @@ export function ShipmentCreationForm({
               </SelectContent>
             </Select>
             {errors.carrier && (
-              <p className="text-sm text-red-600">{errors.carrier.message}</p>
+              <p className="text-sm text-destructive">{errors.carrier.message}</p>
             )}
           </div>
 
@@ -267,7 +267,7 @@ export function ShipmentCreationForm({
               min={new Date().toISOString().slice(0, 16)}
             />
             {errors.estimatedDelivery && (
-              <p className="text-sm text-red-600">{errors.estimatedDelivery.message}</p>
+              <p className="text-sm text-destructive">{errors.estimatedDelivery.message}</p>
             )}
           </div>
 
@@ -282,7 +282,7 @@ export function ShipmentCreationForm({
                 placeholder="0.00"
               />
               {errors.shippingCost && (
-                <p className="text-sm text-red-600">{errors.shippingCost.message}</p>
+                <p className="text-sm text-destructive">{errors.shippingCost.message}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -294,14 +294,14 @@ export function ShipmentCreationForm({
                 placeholder="0.00"
               />
               {errors.insuranceCost && (
-                <p className="text-sm text-red-600">{errors.insuranceCost.message}</p>
+                <p className="text-sm text-destructive">{errors.insuranceCost.message}</p>
               )}
             </div>
           </div>
 
           {/* Special Requirements */}
           <div className="space-y-4">
-            <h4 className="font-medium text-gray-900 flex items-center gap-2">
+            <h4 className="font-medium text-foreground flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
               Special Requirements
             </h4>
@@ -354,7 +354,7 @@ export function ShipmentCreationForm({
 
           {/* Packaging Details */}
           <div className="space-y-4">
-            <h4 className="font-medium text-gray-900 flex items-center gap-2">
+            <h4 className="font-medium text-foreground flex items-center gap-2">
               <Package className="h-4 w-4" />
               Packaging Details
             </h4>
@@ -386,7 +386,7 @@ export function ShipmentCreationForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="packagingLength">Length (cm)</Label>
                 <Input

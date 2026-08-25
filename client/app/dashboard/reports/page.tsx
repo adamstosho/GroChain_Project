@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { apiService } from "@/lib/api"
 import { useAuthStore } from "@/lib/auth"
 import { useToast } from "@/hooks/use-toast"
@@ -52,9 +53,9 @@ const reportTemplates: ReportTemplate[] = [
 ]
 
 const categoryMeta = {
-  harvest: { label: 'Harvest', icon: Crop, color: 'text-green-600' },
-  financial: { label: 'Financial', icon: Banknote, color: 'text-blue-600' },
-  marketplace: { label: 'Marketplace', icon: Package, color: 'text-purple-600' }
+  harvest: { label: 'Harvest', icon: Crop, color: 'text-success' },
+  financial: { label: 'Financial', icon: Banknote, color: 'text-primary' },
+  marketplace: { label: 'Marketplace', icon: Package, color: 'text-accent' }
 }
 
 export default function ReportsPage() {
@@ -62,6 +63,9 @@ export default function ReportsPage() {
   const [recentReports, setRecentReports] = useState<RecentReport[]>([])
   const { user } = useAuthStore()
   const { toast } = useToast()
+
+  // Harvest/financial/marketplace reports are all farmer-specific data - not relevant to buyers
+  const visibleReportTemplates = user?.role === 'farmer' ? reportTemplates : []
 
   const formatDate = (value: any) =>
     value ? new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'
@@ -258,16 +262,26 @@ export default function ReportsPage() {
   return (
     <DashboardLayout pageTitle="Reports">
       <div className="space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-gray-900">Reports & Export</h1>
-            <p className="text-gray-600">Generate reports from your real farm data, ready to print or save as PDF</p>
-          </div>
-        </div>
+        <DashboardPageHeader
+          badge="Reporting Active"
+          title="Reports"
+          titleHighlight="& Export"
+          description="Generate reports from your real farm data, ready to print or save as PDF."
+        />
+
+        {visibleReportTemplates.length === 0 && (
+          <Card className="border border-border">
+            <CardContent className="py-12 text-center">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No Reports Available</h3>
+              <p className="text-muted-foreground">Report exports for your account type aren&apos;t available yet.</p>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {reportTemplates.map((template) => (
-            <Card key={template.id} className="border border-gray-200">
+          {visibleReportTemplates.map((template) => (
+            <Card key={template.id} className="border border-border">
               <CardHeader>
                 <div className="flex items-center gap-2">
                   {getCategoryIcon(template.category)}
@@ -280,7 +294,7 @@ export default function ReportsPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-sm text-gray-600">{template.description}</p>
+                <p className="text-sm text-muted-foreground">{template.description}</p>
 
                 <Button
                   variant="outline"
@@ -307,7 +321,7 @@ export default function ReportsPage() {
         </div>
 
         {recentReports.length > 0 && (
-          <Card className="border border-gray-200">
+          <Card className="border border-border">
             <CardHeader>
               <CardTitle className="text-base font-medium">Generated This Session</CardTitle>
               <CardDescription>
@@ -317,12 +331,12 @@ export default function ReportsPage() {
             <CardContent>
               <div className="space-y-3">
                 {recentReports.map((report) => (
-                  <div key={report.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+                  <div key={report.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
                     <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm font-medium text-gray-900">{report.name}</span>
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-foreground">{report.name}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />
                       {new Date(report.generatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                     </div>

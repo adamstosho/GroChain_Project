@@ -110,9 +110,9 @@ export function AiAnalyticsInsights() {
                     {i === 0 ? (
                       <TrendingUp className="h-4 w-4 text-primary" />
                     ) : i === 1 ? (
-                      <Target className="h-4 w-4 text-blue-600" />
+                      <Target className="h-4 w-4 text-primary" />
                     ) : (
-                      <Lightbulb className="h-4 w-4 text-amber-600" />
+                      <Lightbulb className="h-4 w-4 text-warning" />
                     )}
                   </div>
                   <p className="text-xs font-medium leading-relaxed text-foreground">{insight}</p>
@@ -129,7 +129,7 @@ export function AiAnalyticsInsights() {
           </div>
           <div className="h-1 w-1 rounded-full bg-border" aria-hidden />
           <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground">
-            <Target className="h-3 w-3 text-blue-600" />
+            <Target className="h-3 w-3 text-primary" />
             NEURAL NETWORK RE-TRAINED 2H AGO
           </div>
         </div>

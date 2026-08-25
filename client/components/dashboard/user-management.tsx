@@ -396,28 +396,28 @@ export function UserManagement() {
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'farmer':
-        return <User className="h-4 w-4 text-green-600" />
+        return <User className="h-4 w-4 text-success" />
       case 'buyer':
-        return <ShoppingCart className="h-4 w-4 text-blue-600" />
+        return <ShoppingCart className="h-4 w-4 text-primary" />
       case 'partner':
-        return <Building className="h-4 w-4 text-purple-600" />
+        return <Building className="h-4 w-4 text-accent" />
       case 'admin':
-        return <Shield className="h-4 w-4 text-red-600" />
+        return <Shield className="h-4 w-4 text-destructive" />
       default:
-        return <User className="h-4 w-4 text-gray-600" />
+        return <User className="h-4 w-4 text-muted-foreground" />
     }
   }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return <Badge className="bg-green-100 text-green-800 border-green-200"><CheckCircle className="h-3 w-3 mr-1" />Active</Badge>
+        return <Badge className="bg-success/10 text-success border-success/10"><CheckCircle className="h-3 w-3 mr-1" />Active</Badge>
       case 'suspended':
-        return <Badge className="bg-red-100 text-red-800 border-red-200"><Ban className="h-3 w-3 mr-1" />Suspended</Badge>
+        return <Badge className="bg-destructive/10 text-destructive border-destructive/10"><Ban className="h-3 w-3 mr-1" />Suspended</Badge>
       case 'inactive':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200"><Clock className="h-3 w-3 mr-1" />Inactive</Badge>
+        return <Badge className="bg-warning/10 text-warning border-warning/10"><Clock className="h-3 w-3 mr-1" />Inactive</Badge>
       case 'verified':
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-200"><UserCheck className="h-3 w-3 mr-1" />Verified</Badge>
+        return <Badge className="bg-primary/10 text-primary border-primary/10"><UserCheck className="h-3 w-3 mr-1" />Verified</Badge>
       default:
         return <Badge variant="secondary">{status}</Badge>
     }
@@ -425,12 +425,12 @@ export function UserManagement() {
 
   const getRoleBadge = (role: string) => {
     const colors = {
-      farmer: 'bg-green-100 text-green-800 border-green-200',
-      buyer: 'bg-blue-100 text-blue-800 border-blue-200',
-      partner: 'bg-purple-100 text-purple-800 border-purple-200',
-      admin: 'bg-red-100 text-red-800 border-red-200'
+      farmer: 'bg-success/10 text-success border-success/10',
+      buyer: 'bg-primary/10 text-primary border-primary/10',
+      partner: 'bg-accent/10 text-accent border-accent/10',
+      admin: 'bg-destructive/10 text-destructive border-destructive/10'
     }
-    return <Badge className={colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-200'}>{role}</Badge>
+    return <Badge className={colors[role as keyof typeof colors] || 'bg-muted text-foreground border-border'}>{role}</Badge>
   }
 
   const formatCurrency = (amount: number) => {
@@ -453,8 +453,8 @@ export function UserManagement() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold text-gray-900">Users Management</h1>
-          <p className="text-gray-600">Manage all platform users, roles, and permissions</p>
+          <h1 className="text-2xl font-semibold text-foreground">Users Management</h1>
+          <p className="text-muted-foreground">Manage all platform users, roles, and permissions</p>
         </div>
         
         <div className="flex flex-wrap gap-2">
@@ -481,53 +481,53 @@ export function UserManagement() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
               <Users className="h-4 w-4 mr-2" />
               Total Users
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.totalUsers}</div>
-            <div className="text-sm text-gray-600 mt-1">All platform users</div>
+            <div className="text-2xl font-bold text-foreground">{stats.totalUsers}</div>
+            <div className="text-sm text-muted-foreground mt-1">All platform users</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+              <CheckCircle className="h-4 w-4 mr-2 text-success" />
               Active Users
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.activeUsers}</div>
-            <div className="text-sm text-gray-600 mt-1">Currently active</div>
+            <div className="text-2xl font-bold text-foreground">{stats.activeUsers}</div>
+            <div className="text-sm text-muted-foreground mt-1">Currently active</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Clock className="h-4 w-4 mr-2 text-yellow-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+              <Clock className="h-4 w-4 mr-2 text-warning" />
               Pending Verification
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.pendingUsers}</div>
-            <div className="text-sm text-gray-600 mt-1">Awaiting approval</div>
+            <div className="text-2xl font-bold text-foreground">{stats.pendingUsers}</div>
+            <div className="text-sm text-muted-foreground mt-1">Awaiting approval</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Ban className="h-4 w-4 mr-2 text-red-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+              <Ban className="h-4 w-4 mr-2 text-destructive" />
               Suspended Users
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.suspendedUsers}</div>
-            <div className="text-sm text-gray-600 mt-1">Account suspended</div>
+            <div className="text-2xl font-bold text-foreground">{stats.suspendedUsers}</div>
+            <div className="text-sm text-muted-foreground mt-1">Account suspended</div>
           </CardContent>
         </Card>
       </div>
@@ -536,53 +536,53 @@ export function UserManagement() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <User className="h-4 w-4 mr-2 text-green-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+              <User className="h-4 w-4 mr-2 text-success" />
               Farmers
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.farmers}</div>
-            <div className="text-sm text-gray-600 mt-1">Agricultural producers</div>
+            <div className="text-2xl font-bold text-foreground">{stats.farmers}</div>
+            <div className="text-sm text-muted-foreground mt-1">Agricultural producers</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <ShoppingCart className="h-4 w-4 mr-2 text-blue-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+              <ShoppingCart className="h-4 w-4 mr-2 text-primary" />
               Buyers
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.buyers}</div>
-            <div className="text-sm text-gray-600 mt-1">Product purchasers</div>
+            <div className="text-2xl font-bold text-foreground">{stats.buyers}</div>
+            <div className="text-sm text-muted-foreground mt-1">Product purchasers</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Building className="h-4 w-4 mr-2 text-purple-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+              <Building className="h-4 w-4 mr-2 text-accent" />
               Partners
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.partners}</div>
-            <div className="text-sm text-gray-600 mt-1">Business partners</div>
+            <div className="text-2xl font-bold text-foreground">{stats.partners}</div>
+            <div className="text-sm text-muted-foreground mt-1">Business partners</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Shield className="h-4 w-4 mr-2 text-red-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+              <Shield className="h-4 w-4 mr-2 text-destructive" />
               Admins
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.admins}</div>
-            <div className="text-sm text-gray-600 mt-1">System administrators</div>
+            <div className="text-2xl font-bold text-foreground">{stats.admins}</div>
+            <div className="text-sm text-muted-foreground mt-1">System administrators</div>
           </CardContent>
         </Card>
       </div>
@@ -599,7 +599,7 @@ export function UserManagement() {
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search users..."
                 value={filters.search}
@@ -666,7 +666,7 @@ export function UserManagement() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-muted-foreground">
                   {selectedUsers.length} user(s) selected
                 </span>
               </div>
@@ -699,7 +699,7 @@ export function UserManagement() {
                   variant="outline"
                   size="sm"
                   onClick={() => handleBulkAction('delete')}
-                  className="text-red-600 hover:text-red-700"
+                  className="text-destructive hover:text-destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete All
@@ -728,7 +728,7 @@ export function UserManagement() {
             <CardContent className="p-0">
               <div className="overflow-x-auto max-w-full">
                 <table className="w-full min-w-[800px]">
-                  <thead className="bg-gray-50 border-b">
+                  <thead className="bg-muted border-b">
                     <tr>
                       <th className="px-4 lg:px-6 py-3 text-left">
                         <Checkbox
@@ -742,32 +742,32 @@ export function UserManagement() {
                           }}
                         />
                       </th>
-                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         User
                       </th>
-                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Role
                       </th>
-                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">
                         Location
                       </th>
-                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">
                         Joined
                       </th>
-                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">
                         Last Login
                       </th>
-                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-border">
                     {filteredUsers.map((user) => (
-                      <tr key={user._id} className="hover:bg-gray-50">
+                      <tr key={user._id} className="hover:bg-muted">
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                           <Checkbox
                             checked={selectedUsers.includes(user._id)}
@@ -782,16 +782,16 @@ export function UserManagement() {
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                            <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                               {getRoleIcon(user.role)}
                             </div>
                             <div className="ml-3 lg:ml-4 min-w-0">
-                              <div className="text-sm font-medium text-gray-900 truncate">
+                              <div className="text-sm font-medium text-foreground truncate">
                                 {user.name}
                               </div>
-                              <div className="text-sm text-gray-500 truncate">{user.email}</div>
+                              <div className="text-sm text-muted-foreground truncate">{user.email}</div>
                               {user.phone && (
-                                <div className="text-xs text-gray-400 truncate">{user.phone}</div>
+                                <div className="text-xs text-muted-foreground truncate">{user.phone}</div>
                               )}
                             </div>
                           </div>
@@ -802,15 +802,15 @@ export function UserManagement() {
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                           {getStatusBadge(user.status)}
                         </td>
-                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
+                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-foreground hidden md:table-cell">
                           <div className="truncate max-w-[120px]">
                             {user.location || user.city || 'N/A'}
                           </div>
                         </td>
-                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
+                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-muted-foreground hidden lg:table-cell">
                           {new Date(user.createdAt).toLocaleDateString()}
                         </td>
-                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
+                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-muted-foreground hidden lg:table-cell">
                           {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -836,7 +836,7 @@ export function UserManagement() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleUserAction(user._id, 'suspend')}
-                                className="text-yellow-600 hover:text-yellow-700 h-8 w-8 p-0"
+                                className="text-warning hover:text-warning h-8 w-8 p-0"
                               >
                                 <UserX className="h-4 w-4" />
                               </Button>
@@ -845,7 +845,7 @@ export function UserManagement() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleUserAction(user._id, 'activate')}
-                                className="text-green-600 hover:text-green-700 h-8 w-8 p-0"
+                                className="text-success hover:text-success h-8 w-8 p-0"
                               >
                                 <UserCheck className="h-4 w-4" />
                               </Button>
@@ -854,7 +854,7 @@ export function UserManagement() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleUserAction(user._id, 'delete')}
-                              className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
+                              className="text-destructive hover:text-destructive h-8 w-8 p-0"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -868,9 +868,9 @@ export function UserManagement() {
 
               {filteredUsers.length === 0 && (
                 <div className="text-center py-12">
-                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
-                  <p className="text-gray-600 mb-4">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-foreground mb-2">No users found</h3>
+                  <p className="text-muted-foreground mb-4">
                     Try adjusting your filters or search criteria.
                   </p>
                   <Button variant="outline" onClick={() => setFilters({
@@ -904,14 +904,14 @@ export function UserManagement() {
             <div className="space-y-4 sm:space-y-6">
               {/* User Basic Info */}
               <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
-                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                   {getRoleIcon(selectedUser.role)}
                 </div>
                 <div className="flex-1 min-w-0 w-full">
                   <h3 className="text-base sm:text-lg font-semibold truncate">
                     {selectedUser.name}
                   </h3>
-                  <p className="text-sm text-gray-600 truncate break-all">{selectedUser.email}</p>
+                  <p className="text-sm text-muted-foreground truncate break-all">{selectedUser.email}</p>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     {getRoleBadge(selectedUser.role)}
                     {getStatusBadge(selectedUser.status)}
@@ -922,35 +922,35 @@ export function UserManagement() {
               {/* User Details Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1 sm:space-y-2">
-                  <Label className="text-xs sm:text-sm font-medium text-gray-500">Phone</Label>
+                  <Label className="text-xs sm:text-sm font-medium text-muted-foreground">Phone</Label>
                   <p className="text-xs sm:text-sm break-all">{selectedUser.phone || 'N/A'}</p>
                 </div>
                 <div className="space-y-1 sm:space-y-2">
-                  <Label className="text-xs sm:text-sm font-medium text-gray-500">Location</Label>
+                  <Label className="text-xs sm:text-sm font-medium text-muted-foreground">Location</Label>
                   <p className="text-xs sm:text-sm truncate">{selectedUser.location || selectedUser.city || 'N/A'}</p>
                 </div>
                 <div className="space-y-1 sm:space-y-2">
-                  <Label className="text-xs sm:text-sm font-medium text-gray-500">Email Verified</Label>
+                  <Label className="text-xs sm:text-sm font-medium text-muted-foreground">Email Verified</Label>
                   <p className="text-xs sm:text-sm">
                     {selectedUser.emailVerified ? (
-                      <Badge className="bg-green-100 text-green-800 text-xs">Verified</Badge>
+                      <Badge className="bg-success/10 text-success text-xs">Verified</Badge>
                     ) : (
-                      <Badge className="bg-red-100 text-red-800 text-xs">Unverified</Badge>
+                      <Badge className="bg-destructive/10 text-destructive text-xs">Unverified</Badge>
                     )}
                   </p>
                 </div>
                 <div className="space-y-1 sm:space-y-2">
-                  <Label className="text-xs sm:text-sm font-medium text-gray-500">Joined</Label>
+                  <Label className="text-xs sm:text-sm font-medium text-muted-foreground">Joined</Label>
                   <p className="text-xs sm:text-sm">{new Date(selectedUser.createdAt).toLocaleDateString()}</p>
                 </div>
                 <div className="space-y-1 sm:space-y-2">
-                  <Label className="text-xs sm:text-sm font-medium text-gray-500">Last Login</Label>
+                  <Label className="text-xs sm:text-sm font-medium text-muted-foreground">Last Login</Label>
                   <p className="text-xs sm:text-sm">
                     {selectedUser.lastLogin ? new Date(selectedUser.lastLogin).toLocaleDateString() : 'Never'}
                   </p>
                 </div>
                 <div className="space-y-1 sm:space-y-2">
-                  <Label className="text-xs sm:text-sm font-medium text-gray-500">Total Revenue</Label>
+                  <Label className="text-xs sm:text-sm font-medium text-muted-foreground">Total Revenue</Label>
                   <p className="text-xs sm:text-sm">
                     {selectedUser.totalRevenue ? formatCurrency(selectedUser.totalRevenue) : 'N/A'}
                   </p>

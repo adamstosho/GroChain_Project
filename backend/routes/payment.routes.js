@@ -31,6 +31,16 @@ router.post(
   ctrl.webhookVerify
 )
 
+// Flutterwave webhook (no auth) — Flutterwave signs via a static 'verif-hash'
+// header rather than an HMAC, so it needs its own route/handler.
+router.post(
+  '/verify/flutterwave',
+  rateLimit('paymentWebhook'),
+  express.json({ type: '*/*' }),
+  validatePayment.webhook,
+  ctrl.webhookVerifyFlutterwave
+)
+
 // Protected routes (require authentication)
 router.use(authenticate)
 

@@ -37,21 +37,21 @@ function NotificationsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen bg-muted/50">
       {/* Navigation Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+      <div className="bg-white border-b border-border sticky top-0 z-40 shadow-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col space-y-3 py-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
             {/* Breadcrumb Navigation */}
             <div className="flex items-center space-x-2 text-sm">
               <Link 
                 href="/dashboard" 
-                className="flex items-center text-gray-600 hover:text-primary transition-colors duration-200"
+                className="flex items-center text-muted-foreground hover:text-primary transition-colors duration-200"
               >
                 <Home className="h-4 w-4 mr-1" />
                 <span className="hidden sm:inline">Dashboard</span>
               </Link>
-              <ChevronRight className="h-4 w-4 text-gray-400" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
               <span className="flex items-center text-primary font-medium">
                 <Bell className="h-4 w-4 mr-1" />
                 Notifications
@@ -103,7 +103,7 @@ function NotificationsContent() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">
+          <div className="bg-white rounded-lg border border-border shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">
             <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
               {/* Title Section */}
               <div className="flex items-start space-x-3 sm:space-x-4">
@@ -111,10 +111,10 @@ function NotificationsContent() {
                   <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
                     Notifications
                   </h1>
-                  <p className="text-sm sm:text-base text-gray-600 mt-1">
+                  <p className="text-sm sm:text-base text-muted-foreground mt-1">
                     Stay updated with your latest activities and system notifications
                   </p>
                 </div>
@@ -124,8 +124,8 @@ function NotificationsContent() {
               <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
                 {/* Connection Status */}
                 <div className="flex items-center space-x-2">
-                  <div className={`h-2 w-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
-                  <span className="text-sm text-gray-600">
+                  <div className={`h-2 w-2 rounded-full ${connected ? 'bg-success' : 'bg-destructive'}`} />
+                  <span className="text-sm text-muted-foreground">
                     {connected ? 'Real-time' : 'Offline'}
                   </span>
                 </div>
@@ -156,9 +156,9 @@ function NotificationsContent() {
           </div>
 
           {/* Tabs */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+          <div className="bg-white rounded-lg border border-border shadow-sm">
             <Tabs defaultValue="list" className="w-full">
-              <div className="border-b border-gray-200 px-4 sm:px-6">
+              <div className="border-b border-border px-4 sm:px-6">
                 <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto">
                   <TabsTrigger 
                     value="list" 

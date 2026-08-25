@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -111,7 +112,7 @@ export function OnboardingOverview() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Success Rate</span>
-                <span className="text-lg font-bold text-green-600">{stats?.successRate}%</span>
+                <span className="text-lg font-bold text-success">{stats?.successRate}%</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Avg Completion Time</span>
@@ -119,11 +120,11 @@ export function OnboardingOverview() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">This Week</span>
-                <span className="text-lg font-bold text-blue-600">{stats?.thisWeek}</span>
+                <span className="text-lg font-bold text-primary">{stats?.thisWeek}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">This Month</span>
-                <span className="text-lg font-bold text-blue-600">{stats?.thisMonth}</span>
+                <span className="text-lg font-bold text-primary">{stats?.thisMonth}</span>
               </div>
             </div>
           </CardContent>
@@ -141,8 +142,8 @@ export function OnboardingOverview() {
             {recentOnboardings.map((onboarding) => (
               <div key={onboarding._id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Users className="w-5 h-5 text-blue-600" />
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Users className="w-5 h-5 text-primary" />
                   </div>
                   <div>
                     <h4 className="font-medium">{onboarding.farmer.name}</h4>
@@ -162,10 +163,10 @@ export function OnboardingOverview() {
                 
                 <div className="text-right">
                   <div className="flex items-center space-x-2 mb-2">
-                    {onboarding.status === 'pending' && <Clock className="w-4 h-4 text-yellow-500" />}
-                    {onboarding.status === 'in_progress' && <TrendingUp className="w-4 h-4 text-blue-500" />}
-                    {onboarding.status === 'completed' && <CheckCircle className="w-4 h-4 text-green-500" />}
-                    {onboarding.status === 'on_hold' && <AlertTriangle className="w-4 h-4 text-orange-500" />}
+                    {onboarding.status === 'pending' && <Clock className="w-4 h-4 text-warning" />}
+                    {onboarding.status === 'in_progress' && <TrendingUp className="w-4 h-4 text-primary" />}
+                    {onboarding.status === 'completed' && <CheckCircle className="w-4 h-4 text-success" />}
+                    {onboarding.status === 'on_hold' && <AlertTriangle className="w-4 h-4 text-warning" />}
                     <Badge variant="outline" className="text-xs capitalize">
                       {onboarding.stage}
                     </Badge>
@@ -174,7 +175,7 @@ export function OnboardingOverview() {
                     Created {new Date(onboarding.createdAt).toLocaleDateString()}
                   </p>
                   {onboarding.nextFollowUp && (
-                    <p className="text-xs text-blue-600">
+                    <p className="text-xs text-primary">
                       Follow-up: {new Date(onboarding.nextFollowUp).toLocaleDateString()}
                     </p>
                   )}
@@ -183,11 +184,12 @@ export function OnboardingOverview() {
             ))}
             
             {recentOnboardings.length === 0 && (
-              <div className="text-center py-8">
-                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No recent onboardings</p>
-                <p className="text-sm text-muted-foreground">Start onboarding your first farmer</p>
-              </div>
+              <EmptyState
+                icon={Users}
+                title="No recent onboardings"
+                description="Start onboarding your first farmer."
+                className="py-8"
+              />
             )}
           </div>
         </CardContent>
@@ -207,7 +209,7 @@ export function OnboardingOverview() {
               .map((onboarding) => (
                 <div key={onboarding._id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <Calendar className="w-4 h-4 text-blue-500" />
+                    <Calendar className="w-4 h-4 text-primary" />
                     <div>
                       <span className="font-medium">{onboarding.farmer.name}</span>
                       <span className="text-sm text-muted-foreground ml-2">
@@ -228,7 +230,7 @@ export function OnboardingOverview() {
             
             {onboardings.filter(o => o.nextFollowUp && new Date(o.nextFollowUp) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)).length === 0 && (
               <div className="text-center py-6">
-                <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                <CheckCircle className="h-8 w-8 text-success mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">No upcoming follow-ups</p>
                 <p className="text-xs text-muted-foreground">All farmers are on track</p>
               </div>

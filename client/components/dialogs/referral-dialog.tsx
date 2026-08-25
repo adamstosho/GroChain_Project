@@ -173,7 +173,7 @@ export function ReferralDialog({ open, onOpenChange, referral, onCreateSuccess }
           <div className="space-y-2">
             <Label htmlFor="farmer-search">Select Farmer</Label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="farmer-search"
                 placeholder="Search for farmer by name or email..."
@@ -182,30 +182,30 @@ export function ReferralDialog({ open, onOpenChange, referral, onCreateSuccess }
                 className="pl-10"
               />
               {isSearching && (
-                <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
+                <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
               )}
             </div>
             {errors.farmer && (
-              <p className="text-sm text-red-600">{errors.farmer}</p>
+              <p className="text-sm text-destructive">{errors.farmer}</p>
             )}
 
             {/* Selected Farmer */}
             {selectedFarmer && (
-              <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-success/10 border border-success/10 rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <User className="h-4 w-4 text-green-600" />
+                  <div className="h-8 w-8 bg-success/10 rounded-full flex items-center justify-center">
+                    <User className="h-4 w-4 text-success" />
                   </div>
                   <div>
-                    <p className="font-medium text-green-900">{selectedFarmer.name}</p>
-                    <p className="text-sm text-green-700">{selectedFarmer.email}</p>
+                    <p className="font-medium text-success">{selectedFarmer.name}</p>
+                    <p className="text-sm text-success">{selectedFarmer.email}</p>
                   </div>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleRemoveFarmer}
-                  className="text-green-600 hover:text-green-700"
+                  className="text-success hover:text-success"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -214,20 +214,20 @@ export function ReferralDialog({ open, onOpenChange, referral, onCreateSuccess }
 
             {/* Search Results */}
             {farmers.length > 0 && !selectedFarmer && (
-              <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+              <div className="max-h-48 overflow-y-auto border border-border rounded-lg">
                 {farmers.map((farmer) => (
                   <button
                     key={farmer._id}
                     onClick={() => handleSelectFarmer(farmer)}
-                    className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50 text-left"
+                    className="w-full flex items-center space-x-3 p-3 hover:bg-muted text-left"
                   >
-                    <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center">
-                      <User className="h-4 w-4 text-gray-600" />
+                    <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center">
+                      <User className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{farmer.name}</p>
-                      <p className="text-sm text-gray-500 truncate">{farmer.email}</p>
-                      <p className="text-xs text-gray-400 truncate">{farmer.location}</p>
+                      <p className="text-sm text-muted-foreground truncate">{farmer.email}</p>
+                      <p className="text-xs text-muted-foreground truncate">{farmer.location}</p>
                     </div>
                   </button>
                 ))}
@@ -249,7 +249,7 @@ export function ReferralDialog({ open, onOpenChange, referral, onCreateSuccess }
               placeholder="Enter commission rate"
             />
             {errors.commissionRate && (
-              <p className="text-sm text-red-600">{errors.commissionRate}</p>
+              <p className="text-sm text-destructive">{errors.commissionRate}</p>
             )}
           </div>
 

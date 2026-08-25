@@ -77,20 +77,20 @@ const getFactorImpact = (value: number): 'positive' | 'negative' | 'neutral' => 
 }
 
 const creditGrades = {
-  'A': { label: 'Excellent', color: 'bg-emerald-500', textColor: 'text-emerald-700', bgColor: 'bg-emerald-50' },
-  'B': { label: 'Good', color: 'bg-blue-500', textColor: 'text-blue-700', bgColor: 'bg-blue-50' },
-  'C': { label: 'Fair', color: 'bg-amber-500', textColor: 'text-amber-700', bgColor: 'bg-amber-50' },
-  'D': { label: 'Poor', color: 'bg-orange-500', textColor: 'text-orange-700', bgColor: 'bg-orange-50' },
-  'E': { label: 'Very Poor', color: 'bg-red-500', textColor: 'text-red-700', bgColor: 'bg-red-50' },
-  'F': { label: 'Critical', color: 'bg-red-600', textColor: 'text-red-800', bgColor: 'bg-red-100' }
+  'A': { label: 'Excellent', color: 'bg-success', textColor: 'text-success', bgColor: 'bg-success/10' },
+  'B': { label: 'Good', color: 'bg-primary', textColor: 'text-primary', bgColor: 'bg-primary/10' },
+  'C': { label: 'Fair', color: 'bg-warning', textColor: 'text-warning', bgColor: 'bg-warning/10' },
+  'D': { label: 'Poor', color: 'bg-warning', textColor: 'text-warning', bgColor: 'bg-warning/10' },
+  'E': { label: 'Very Poor', color: 'bg-destructive', textColor: 'text-destructive', bgColor: 'bg-destructive/10' },
+  'F': { label: 'Critical', color: 'bg-destructive', textColor: 'text-destructive', bgColor: 'bg-destructive/10' }
 }
 
 const statusColors = {
-  excellent: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  good: 'bg-blue-100 text-blue-800 border-blue-200',
-  fair: 'bg-amber-100 text-amber-800 border-amber-200',
-  poor: 'bg-orange-100 text-orange-800 border-orange-200',
-  very_poor: 'bg-red-100 text-red-800 border-red-200'
+  excellent: 'bg-success/10 text-success border-success/10',
+  good: 'bg-primary/10 text-primary border-primary/10',
+  fair: 'bg-warning/10 text-warning border-warning/10',
+  poor: 'bg-warning/10 text-warning border-warning/10',
+  very_poor: 'bg-destructive/10 text-destructive border-destructive/10'
 }
 
 export default function CreditScorePage() {
@@ -271,19 +271,19 @@ export default function CreditScorePage() {
   }
 
   const getScoreColor = (score: number) => {
-    if (score >= 800) return 'text-emerald-600'
-    if (score >= 700) return 'text-blue-600'
-    if (score >= 600) return 'text-amber-600'
-    if (score >= 500) return 'text-orange-600'
-    return 'text-red-600'
+    if (score >= 800) return 'text-success'
+    if (score >= 700) return 'text-primary'
+    if (score >= 600) return 'text-warning'
+    if (score >= 500) return 'text-warning'
+    return 'text-destructive'
   }
 
   const getScoreBackground = (score: number) => {
-    if (score >= 800) return 'bg-emerald-50'
-    if (score >= 700) return 'bg-blue-50'
-    if (score >= 600) return 'bg-amber-50'
-    if (score >= 500) return 'bg-orange-50'
-    return 'bg-red-50'
+    if (score >= 800) return 'bg-success/10'
+    if (score >= 700) return 'bg-primary/10'
+    if (score >= 600) return 'bg-warning/10'
+    if (score >= 500) return 'bg-warning/10'
+    return 'bg-destructive/10'
   }
 
   if (loading) {
@@ -292,14 +292,14 @@ export default function CreditScorePage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {[...Array(3)].map((_, i) => (
-              <Card key={i} className="animate-pulse border border-gray-200">
+              <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-3">
-                  <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-5 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-4 bg-gray-200 rounded mb-3"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-4 bg-muted rounded mb-3"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
@@ -313,9 +313,9 @@ export default function CreditScorePage() {
     return (
       <DashboardLayout pageTitle="Credit Score">
         <div className="text-center py-12">
-          <CreditCard className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Credit Score Not Available</h3>
-          <p className="text-gray-600">
+          <CreditCard className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">Credit Score Not Available</h3>
+          <p className="text-muted-foreground">
             Unable to load your credit score information. Please try again.
           </p>
         </div>
@@ -329,8 +329,8 @@ export default function CreditScorePage() {
         {/* Page Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-gray-900">Credit Score</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-semibold text-foreground">Credit Score</h1>
+            <p className="text-muted-foreground">
               Monitor your credit health and eligibility for financial services
             </p>
           </div>
@@ -350,7 +350,7 @@ export default function CreditScorePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Credit Score Card */}
           <div className="lg:col-span-2">
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
@@ -378,16 +378,16 @@ export default function CreditScorePage() {
                 {/* Score Range */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Poor</span>
-                    <span className="text-gray-600">Excellent</span>
+                    <span className="text-muted-foreground">Poor</span>
+                    <span className="text-muted-foreground">Excellent</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="w-full bg-muted rounded-full h-3">
                     <div
                       className={`h-3 rounded-full ${getScoreBackground(creditScore.score)}`}
                       style={{ width: `${(creditScore.score / 850) * 100}%` }}
                     ></div>
                   </div>
-                  <div className="flex justify-between text-xs text-gray-500">
+                  <div className="flex justify-between text-xs text-muted-foreground">
                     <span>300</span>
                     <span>500</span>
                     <span>650</span>
@@ -399,7 +399,7 @@ export default function CreditScorePage() {
             </Card>
 
             {/* Credit Score History */}
-            <Card className="border border-gray-200 mt-6">
+            <Card className="border border-border mt-6">
               <CardHeader>
                 <CardTitle className="text-lg font-medium">Score History</CardTitle>
                 <CardDescription>
@@ -410,26 +410,26 @@ export default function CreditScorePage() {
                 {creditScore.history.length > 0 ? (
                   <div className="space-y-4">
                     {creditScore.history.map((entry, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+                      <div key={index} className="flex items-center justify-between p-3 border border-border rounded-lg">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <span className="text-sm font-medium text-blue-600">{entry.score}</span>
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-sm font-medium text-primary">{entry.score}</span>
                           </div>
                           <div>
                             <div className="font-medium text-sm">{new Date(entry.updatedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
-                            <div className="text-xs text-gray-500">{entry.reason}</div>
+                            <div className="text-xs text-muted-foreground">{entry.reason}</div>
                           </div>
                         </div>
                         {entry.change !== null && (
                           <div className="flex items-center gap-2">
                             {entry.change > 0 ? (
-                              <TrendingUp className="h-4 w-4 text-emerald-500" />
+                              <TrendingUp className="h-4 w-4 text-success" />
                             ) : entry.change < 0 ? (
-                              <TrendingDown className="h-4 w-4 text-red-500" />
+                              <TrendingDown className="h-4 w-4 text-destructive" />
                             ) : (
-                              <div className="w-4 h-4 text-gray-400">-</div>
+                              <div className="w-4 h-4 text-muted-foreground">-</div>
                             )}
-                            <span className={`text-sm font-medium ${entry.change > 0 ? 'text-emerald-600' : entry.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                            <span className={`text-sm font-medium ${entry.change > 0 ? 'text-success' : entry.change < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
                               {entry.change > 0 ? '+' : ''}{entry.change}
                             </span>
                           </div>
@@ -438,7 +438,7 @@ export default function CreditScorePage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 text-center py-6">No score history yet.</p>
+                  <p className="text-sm text-muted-foreground text-center py-6">No score history yet.</p>
                 )}
               </CardContent>
             </Card>
@@ -447,7 +447,7 @@ export default function CreditScorePage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Eligibility Status */}
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader>
                 <CardTitle className="text-base font-medium">Eligibility Status</CardTitle>
                 <CardDescription>
@@ -477,7 +477,7 @@ export default function CreditScorePage() {
             </Card>
 
             {/* Credit Limits */}
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader>
                 <CardTitle className="text-base font-medium">Credit Limits</CardTitle>
                 <CardDescription>
@@ -487,14 +487,14 @@ export default function CreditScorePage() {
               <CardContent className="space-y-3">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Loan Amount</span>
+                    <span className="text-sm text-muted-foreground">Loan Amount</span>
                     <span className="text-sm font-medium">₦{(creditScore.eligibility.limits.loanAmount / 1000).toFixed(0)}K</span>
                   </div>
                   <Progress value={75} className="h-2" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Insurance Coverage</span>
+                    <span className="text-sm text-muted-foreground">Insurance Coverage</span>
                     <span className="text-sm font-medium">₦{(creditScore.eligibility.limits.insuranceCoverage / 1000000).toFixed(1)}M</span>
                   </div>
                   <Progress value={60} className="h-2" />
@@ -503,7 +503,7 @@ export default function CreditScorePage() {
             </Card>
 
             {/* Quick Actions */}
-            <Card className="border border-gray-200">
+            <Card className="border border-border">
               <CardHeader>
                 <CardTitle className="text-base font-medium">Quick Actions</CardTitle>
               </CardHeader>
@@ -526,7 +526,7 @@ export default function CreditScorePage() {
         </div>
 
         {/* Credit Factors */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader>
             <CardTitle className="text-lg font-medium">Credit Score Factors</CardTitle>
             <CardDescription>
@@ -536,25 +536,25 @@ export default function CreditScorePage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {creditScore.factors.map((factor) => (
-                <div key={factor.key} className="p-4 border border-gray-100 rounded-lg">
+                <div key={factor.key} className="p-4 border border-border rounded-lg">
                   <div className="flex items-start justify-between mb-2">
                     <h4 className="font-medium text-sm">{factor.label}</h4>
                     <div className="flex items-center gap-2">
                       {factor.impact === 'positive' ? (
-                        <CheckCircle className="h-4 w-4 text-emerald-500" />
+                        <CheckCircle className="h-4 w-4 text-success" />
                       ) : factor.impact === 'negative' ? (
-                        <XCircle className="h-4 w-4 text-red-500" />
+                        <XCircle className="h-4 w-4 text-destructive" />
                       ) : (
-                        <Clock className="h-4 w-4 text-gray-500" />
+                        <Clock className="h-4 w-4 text-muted-foreground" />
                       )}
-                      <span className="text-xs font-medium text-gray-600">{factor.value}/100</span>
+                      <span className="text-xs font-medium text-muted-foreground">{factor.value}/100</span>
                     </div>
                   </div>
                   <div className="mt-2">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-muted rounded-full h-2">
                       <div
-                        className={`h-2 rounded-full ${factor.impact === 'positive' ? 'bg-emerald-500' :
-                          factor.impact === 'negative' ? 'bg-red-500' : 'bg-gray-500'
+                        className={`h-2 rounded-full ${factor.impact === 'positive' ? 'bg-success' :
+                          factor.impact === 'negative' ? 'bg-destructive' : 'bg-secondary'
                           }`}
                         style={{ width: `${factor.value}%` }}
                       ></div>
@@ -567,7 +567,7 @@ export default function CreditScorePage() {
         </Card>
 
         {/* Recommendations */}
-        <Card className="border border-gray-200">
+        <Card className="border border-border">
           <CardHeader>
             <CardTitle className="text-lg font-medium">Improvement Recommendations</CardTitle>
             <CardDescription>
@@ -578,18 +578,18 @@ export default function CreditScorePage() {
             {creditScore.recommendations.length > 0 ? (
               <div className="space-y-4">
                 {creditScore.recommendations.map((recommendation, index) => (
-                  <div key={index} className="flex items-start gap-4 p-4 border border-gray-100 rounded-lg">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-100 text-blue-600">
+                  <div key={index} className="flex items-start gap-4 p-4 border border-border rounded-lg">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary/10 text-primary">
                       <Target className="h-4 w-4" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-gray-600">{recommendation}</p>
+                      <p className="text-sm text-muted-foreground">{recommendation}</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 text-center py-6">No recommendations available yet.</p>
+              <p className="text-sm text-muted-foreground text-center py-6">No recommendations available yet.</p>
             )}
           </CardContent>
         </Card>
