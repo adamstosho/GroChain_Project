@@ -125,8 +125,8 @@ export function RegisterForm() {
 
       console.log("[REGISTRATION] Registration successful")
 
-      // Direct redirect to login with verification notice - no toasts
-      router.replace("/login?verify=1&email=" + encodeURIComponent(formData.email))
+      // Redirect to OTP verification page
+      router.replace("/verify-email?email=" + encodeURIComponent(formData.email))
     } catch (error: any) {
       console.error("[REGISTRATION] Registration error:", error)
 

@@ -16,20 +16,50 @@ class OfflineApiService {
     return `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
+  private shouldQueueForRetry(error: any): boolean {
+    const status = error?.status;
+    if (typeof status === 'number') {
+      // Client/validation errors should surface to the user, not be queued.
+      if (status >= 400 && status < 500 && status !== 408 && status !== 429) {
+        return false;
+      }
+      if (status >= 500 || status === 408 || status === 429) {
+        return true;
+      }
+    }
+
+    const message = String(error?.message || '');
+    return (
+      error instanceof TypeError ||
+      message.includes('Network error') ||
+      message.includes('Unable to connect') ||
+      message.includes('Request timeout')
+    );
+  }
+
+  private queueAction(
+    offlineHook: ReturnType<typeof useOffline>,
+    type: OfflineApiOptions['type'],
+    data: any,
+    action: OfflineApiOptions['action']
+  ) {
+    const offlineAction = {
+      id: this.generateId(),
+      type,
+      data,
+      timestamp: Date.now(),
+      action,
+    };
+    offlineHook.addOfflineAction(offlineAction);
+    return offlineAction;
+  }
+
   async makeRequest(options: OfflineApiOptions, offlineHook: ReturnType<typeof useOffline>) {
     const { endpoint, data, method, type, action } = options;
     
     // If offline, queue the action
     if (offlineHook.isOffline) {
-      const offlineAction = {
-        id: this.generateId(),
-        type,
-        data,
-        timestamp: Date.now(),
-        action
-      };
-      
-      offlineHook.addOfflineAction(offlineAction);
+      const offlineAction = this.queueAction(offlineHook, type, data, action);
       
       return {
         success: true,
@@ -59,26 +89,26 @@ class OfflineApiService {
       return {
         success: true,
         queued: false,
-        data: response.data,
+        data: response,
         message: `${type} ${action} completed successfully`
       };
     } catch (error: any) {
-      // If API call fails and we're online, queue it for retry
-      const offlineAction = {
-        id: this.generateId(),
-        type,
-        data,
-        timestamp: Date.now(),
-        action
-      };
-      
-      offlineHook.addOfflineAction(offlineAction);
+      if (!this.shouldQueueForRetry(error)) {
+        return {
+          success: false,
+          queued: false,
+          error: error.message,
+          message: error.message,
+        };
+      }
+
+      const offlineAction = this.queueAction(offlineHook, type, data, action);
       
       return {
         success: false,
         queued: true,
         error: error.message,
-        message: `API call failed, ${type} ${action} queued for retry`,
+        message: `Connection issue detected, ${type} ${action} queued for retry`,
         offlineAction
       };
     }

@@ -4,7 +4,6 @@ const { signAccess, signRefresh, verifyRefresh } = require('../utils/jwt')
 const nodemailer = require('nodemailer')
 const { sendEmailViaSendGrid } = require('../utils/sendgrid-direct')
 const { sendEmailViaResend } = require('../utils/resend-direct')
-// crypto is built-in to Node.js, no need to require it
 
 const registerSchema = Joi.object({
   name: Joi.string().required(),
@@ -17,6 +16,58 @@ const registerSchema = Joi.object({
 
 const tempTokens = new Map()
 const tempSmsOtps = new Map()
+const tempEmailOtpMeta = new Map()
+
+const EMAIL_OTP_EXPIRY_MS = Number(process.env.EMAIL_VERIFICATION_OTP_EXPIRY_MS || 15 * 60 * 1000)
+const EMAIL_OTP_MAX_ATTEMPTS = Number(process.env.EMAIL_VERIFICATION_OTP_MAX_ATTEMPTS || 5)
+
+const generateEmailOtp = () => String(Math.floor(100000 + Math.random() * 900000))
+
+const buildVerificationOtpEmailHtml = (name, code) => `
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+    <h2 style="color: #166534; margin-bottom: 8px;">Verify your GroChain account</h2>
+    <p>Hi ${name || 'there'},</p>
+    <p>Use this one-time verification code to complete your signup:</p>
+    <div style="text-align: center; margin: 32px 0;">
+      <span style="display: inline-block; letter-spacing: 8px; font-size: 32px; font-weight: bold; color: #166534; background: #f0fdf4; padding: 16px 24px; border-radius: 8px; border: 2px dashed #166534;">
+        ${code}
+      </span>
+    </div>
+    <p style="color: #6b7280; font-size: 14px;">This code expires in 15 minutes. Do not share it with anyone.</p>
+    <p style="color: #6b7280; font-size: 14px;">If you didn't create a GroChain account, you can safely ignore this email.</p>
+    <p>Best regards,<br>The GroChain Team</p>
+  </div>
+`
+
+async function issueEmailVerificationOtp(user) {
+  const code = generateEmailOtp()
+  const expiresAt = new Date(Date.now() + EMAIL_OTP_EXPIRY_MS)
+
+  await User.findByIdAndUpdate(user._id, {
+    emailVerificationToken: code,
+    emailVerificationExpires: expiresAt
+  })
+
+  tempEmailOtpMeta.set(String(user._id), { attempts: 0, exp: expiresAt.getTime() })
+
+  const html = buildVerificationOtpEmailHtml(user.name, code)
+
+  try {
+    await sendEmail(user.email, 'Your GroChain verification code', html)
+  } catch (emailError) {
+    console.error('Failed to send verification OTP email:', emailError?.message || emailError)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[DEV-EMAIL-OTP] Verification code for', user.email, ':', code)
+    }
+    throw emailError
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[DEV-EMAIL-OTP] Verification code for', user.email, ':', code)
+  }
+
+  return code
+}
 
 async function sendEmail(to, subject, html) {
   console.log('📧 Attempting to send email to:', to)
@@ -135,10 +186,13 @@ async function sendEmail(to, subject, html) {
     // If we get here, no email method worked
     console.error('❌ All email sending methods failed')
     
-    // Development fallback - log the verification link
-    const verificationLink = html.match(/href="([^"]+)"/)?.[1] || 'NO_LINK_FOUND'
-    console.log('[DEV-EMAIL] Verification link:', verificationLink)
-    console.log('[DEV-EMAIL] Full HTML:', html)
+    // Development fallback - log OTP or link from email body
+    const otpMatch = html.match(/>(\d{6})</)
+    if (otpMatch) {
+      console.log('[DEV-EMAIL] Verification OTP:', otpMatch[1])
+    }
+    const verificationLink = html.match(/href="([^"]+)"/)?.[1]
+    if (verificationLink) console.log('[DEV-EMAIL] Verification link:', verificationLink)
     return false
   } catch (error) {
     console.error('❌ Email sending failed:', error.message)
@@ -160,82 +214,38 @@ exports.register = async (req, res) => {
     if (error) return res.status(400).json({ status: 'error', message: error.details[0].message })
     
     // Check if user already exists
-    const exists = await User.findOne({ email: value.email })
+    const exists = await User.findOne({ email: value.email.toLowerCase().trim() })
     if (exists) {
-      // If email exists but not verified, resend verification instead of blocking
+      // If email exists but not verified, resend OTP instead of blocking
       if (!exists.emailVerified) {
         try {
-          const token = require('crypto').randomBytes(32).toString('hex')
-          tempTokens.set(token, { id: exists._id, email: exists.email, exp: Date.now() + 1000 * 60 * 60 })
-          const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`
-          const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #166534;">Complete your GroChain signup</h2>
-        <p>Hi ${exists.name || 'there'},</p>
-        <p>It looks like you tried to sign up before but didn't verify your email. Click below to verify and finish setting up your account:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${verificationLink}" 
-             style="background-color: #166534; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-            Verify Email Address
-          </a>
-        </div>
-        <p>Or copy and paste this link into your browser:</p>
-        <p style="word-break: break-all; color: #6b7280;">${verificationLink}</p>
-        <p>This link will expire in 1 hour.</p>
-        <p>Best regards,<br>The GroChain Team</p>
-      </div>
-    `
-          try { await sendEmail(exists.email, 'Verify your GroChain account', emailHtml) } catch (emailError) { console.error('Resend on register failed:', emailError?.message || emailError) }
+          await issueEmailVerificationOtp(exists)
         } catch (genErr) {
-          console.error('Token generation failed during re-register:', genErr)
+          console.error('OTP generation failed during re-register:', genErr)
         }
-        return res.status(200).json({ 
-          status: 'success', 
-          message: 'Account exists but is not verified yet. We\'ve sent a new verification link to your email.',
-          requiresVerification: true
+        return res.status(200).json({
+          status: 'success',
+          message: 'Account exists but is not verified yet. We\'ve sent a new 6-digit code to your email.',
+          requiresVerification: true,
+          user: { _id: exists._id, email: exists.email, role: exists.role, emailVerified: false }
         })
       }
       return res.status(409).json({ status: 'error', message: 'Email already exists' })
     }
-    
-    const user = await User.create(value)
-    const token = require('crypto').randomBytes(32).toString('hex')
-    tempTokens.set(token, { id: user._id, email: user.email, exp: Date.now() + 1000 * 60 * 60 })
-    
-    // Send verification email
-    const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`
-    const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #166534;">Welcome to GroChain!</h2>
-        <p>Hi ${user.name},</p>
-        <p>Thank you for registering with GroChain. To complete your registration, please verify your email address by clicking the button below:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${verificationLink}" 
-             style="background-color: #166534; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-            Verify Email Address
-          </a>
-        </div>
-        <p>Or copy and paste this link into your browser:</p>
-        <p style="word-break: break-all; color: #6b7280;">${verificationLink}</p>
-        <p>This link will expire in 1 hour.</p>
-        <p>If you didn't create this account, please ignore this email.</p>
-        <p>Best regards,<br>The GroChain Team</p>
-      </div>
-    `
-    
-    // Enqueue the verification email; do not block the request
+
+    const user = await User.create({ ...value, email: value.email.toLowerCase().trim() })
+
     try {
-      const emailQueue = require('../services/email-queue.service')
-      emailQueue.enqueue({ to: user.email, subject: 'Verify your GroChain account', html: emailHtml })
+      await issueEmailVerificationOtp(user)
     } catch (emailError) {
-      console.error('Registration: enqueue email failed:', emailError && emailError.message ? emailError.message : emailError)
+      console.error('Registration: verification OTP email failed:', emailError?.message || emailError)
     }
-    
-    return res.status(201).json({ 
-      status: 'success', 
-      message: 'Registration successful! Please check your email to verify your account.',
+
+    return res.status(201).json({
+      status: 'success',
+      message: 'Registration successful! Check your email for a 6-digit verification code.',
       requiresVerification: true,
-      user: { _id: user._id, email: user.email, role: user.role, emailVerified: false } 
+      user: { _id: user._id, email: user.email, role: user.role, emailVerified: false }
     })
   } catch (e) {
     console.error('Registration error:', e)
@@ -245,25 +255,84 @@ exports.register = async (req, res) => {
 
 exports.verifyEmail = async (req, res) => {
   try {
-    const { token } = req.body || {}
-    if (!token) return res.status(400).json({ status: 'error', message: 'Token required' })
-    
-    const entry = tempTokens.get(token)
-    if (!entry) return res.status(400).json({ status: 'error', message: 'Invalid token' })
-    if (entry.exp < Date.now()) {
+    const { email, code, token } = req.body || {}
+
+    // Legacy link/token verification (backward compatible)
+    if (token && !code) {
+      const entry = tempTokens.get(token)
+      if (!entry) return res.status(400).json({ status: 'error', message: 'Invalid or expired verification link' })
+      if (entry.exp < Date.now()) {
+        tempTokens.delete(token)
+        return res.status(400).json({ status: 'error', message: 'Verification link expired' })
+      }
+
+      const user = await User.findByIdAndUpdate(
+        entry.id,
+        { emailVerified: true, emailVerificationToken: null, emailVerificationExpires: null },
+        { new: true }
+      )
+      if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
+
       tempTokens.delete(token)
-      return res.status(400).json({ status: 'error', message: 'Token expired' })
+      return res.json({
+        status: 'success',
+        message: 'Email verified successfully! You can now login to your account.',
+        user: { _id: user._id, email: user.email, role: user.role, emailVerified: true }
+      })
     }
-    
-    const user = await User.findByIdAndUpdate(entry.id, { emailVerified: true }, { new: true })
-    if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
-    
-    tempTokens.delete(token)
-    
-    return res.json({ 
-      status: 'success', 
+
+    if (!email || !code) {
+      return res.status(400).json({ status: 'error', message: 'Email and 6-digit verification code are required' })
+    }
+
+    const normalizedCode = String(code).replace(/\D/g, '').trim()
+    if (normalizedCode.length !== 6) {
+      return res.status(400).json({ status: 'error', message: 'Enter the 6-digit code from your email' })
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() })
+    if (!user) {
+      return res.status(400).json({ status: 'error', message: 'Invalid verification code' })
+    }
+
+    if (user.emailVerified) {
+      return res.json({
+        status: 'success',
+        message: 'Email already verified. You can sign in.',
+        user: { _id: user._id, email: user.email, role: user.role, emailVerified: true }
+      })
+    }
+
+    if (!user.emailVerificationToken || !user.emailVerificationExpires) {
+      return res.status(400).json({ status: 'error', message: 'No verification code found. Request a new one.' })
+    }
+
+    if (user.emailVerificationExpires < new Date()) {
+      return res.status(400).json({ status: 'error', message: 'Verification code expired. Request a new one.' })
+    }
+
+    const meta = tempEmailOtpMeta.get(String(user._id)) || { attempts: 0 }
+    meta.attempts += 1
+    tempEmailOtpMeta.set(String(user._id), meta)
+
+    if (meta.attempts > EMAIL_OTP_MAX_ATTEMPTS) {
+      return res.status(429).json({ status: 'error', message: 'Too many attempts. Request a new code.' })
+    }
+
+    if (user.emailVerificationToken !== normalizedCode) {
+      return res.status(400).json({ status: 'error', message: 'Invalid verification code' })
+    }
+
+    user.emailVerified = true
+    user.emailVerificationToken = undefined
+    user.emailVerificationExpires = undefined
+    await user.save()
+    tempEmailOtpMeta.delete(String(user._id))
+
+    return res.json({
+      status: 'success',
       message: 'Email verified successfully! You can now login to your account.',
-      user: { _id: user._id, email: user.email, role: user.role, emailVerified: true } 
+      user: { _id: user._id, email: user.email, role: user.role, emailVerified: true }
     })
   } catch (e) {
     console.error('Email verification error:', e)
@@ -291,7 +360,7 @@ exports.verifyEmailGet = async (req, res) => {
     
     // For GET requests, redirect to frontend with success message
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
-    const redirectUrl = `${frontendUrl}/verify-email?success=true&email=${encodeURIComponent(user.email)}`
+    const redirectUrl = `${frontendUrl}/verify-email?email=${encodeURIComponent(user.email)}&verified=1`
     
     return res.redirect(redirectUrl)
   } catch (e) {
@@ -360,7 +429,7 @@ exports.login = async (req, res) => {
     if (!user.emailVerified && !relaxedSecurity && process.env.DISABLE_EMAIL_VERIFICATION !== 'true') {
       return res.status(403).json({ 
         status: 'error', 
-        message: 'Please verify your email address before logging in. Check your inbox for a verification link.',
+        message: 'Please verify your email address before logging in. Check your inbox for your 6-digit code.',
         requiresVerification: true,
         user: { _id: user._id, email: user.email, role: user.role, emailVerified: false }
       })
@@ -420,44 +489,18 @@ exports.resendVerification = async (req, res) => {
   try {
     const { email } = req.body || {}
     if (!email) return res.status(400).json({ status: 'error', message: 'Email required' })
-    
-    const user = await User.findOne({ email })
-    if (!user) return res.json({ status: 'success', message: 'If account exists, verification email sent' })
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() })
+    if (!user) return res.json({ status: 'success', message: 'If account exists, verification code sent' })
     if (user.emailVerified) return res.json({ status: 'success', message: 'Email already verified' })
-    
-    // Generate new token
-    const token = require('crypto').randomBytes(32).toString('hex')
-    tempTokens.set(token, { id: user._id, email: user.email, exp: Date.now() + 1000 * 60 * 60 })
-    
-    // Send verification email
-    const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`
-    const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #166534;">GroChain Email Verification</h2>
-        <p>Hi ${user.name},</p>
-        <p>You requested a new verification email. Please click the button below to verify your email address:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${verificationLink}" 
-             style="background-color: #166534; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-            Verify Email Address
-          </a>
-        </div>
-        <p>Or copy and paste this link into your browser:</p>
-        <p style="word-break: break-all; color: #6b7280;">${verificationLink}</p>
-        <p>This link will expire in 1 hour.</p>
-        <p>If you didn't request this email, please ignore it.</p>
-        <p>Best regards,<br>The GroChain Team</p>
-      </div>
-    `
-    
+
     try {
-      const emailQueue = require('../services/email-queue.service')
-      emailQueue.enqueue({ to: user.email, subject: 'Verify your GroChain account', html: emailHtml })
+      await issueEmailVerificationOtp(user)
     } catch (emailError) {
-      console.error('Resend verification: enqueue email failed:', emailError && emailError.message ? emailError.message : emailError)
+      console.error('Resend verification OTP failed:', emailError?.message || emailError)
     }
-    
-    return res.json({ status: 'success', message: 'Verification email sent' })
+
+    return res.json({ status: 'success', message: 'Verification code sent' })
   } catch (e) {
     console.error('Resend verification error:', e)
     return res.status(500).json({ status: 'error', message: 'Server error' })

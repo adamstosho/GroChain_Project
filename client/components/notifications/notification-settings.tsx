@@ -24,7 +24,9 @@ const NOTIFICATION_CATEGORIES = [
   { key: 'marketplace', label: 'Marketplace Activity', description: 'Notifications about product listings, sales, and marketplace updates' },
   { key: 'financial', label: 'Financial Transactions', description: 'Notifications about payments, loans, and financial activities' },
   { key: 'system', label: 'System Notifications', description: 'Important system updates and maintenance notifications' },
-  { key: 'weather', label: 'Weather Alerts', description: 'Weather-related alerts and agricultural insights' }
+  { key: 'weather', label: 'Weather Alerts', description: 'Weather-related alerts and agricultural insights' },
+  { key: 'shipment', label: 'Shipment Updates', description: 'Order shipping and delivery notifications' },
+  { key: 'payment', label: 'Payments', description: 'Payment confirmations and transaction updates' }
 ]
 
 /**
@@ -71,7 +73,33 @@ export function NotificationSettings() {
     try {
       const data = await getNotificationPreferences()
       if (data) {
-        setPreferences(data)
+        const categoryDefaults = {
+          harvest: true,
+          marketplace: true,
+          financial: true,
+          system: true,
+          weather: false,
+          shipment: true,
+          payment: true,
+          partner: true
+        }
+        const categories = Array.isArray(data.categories)
+          ? Object.fromEntries(
+              Object.keys(categoryDefaults).map((key) => [
+                key,
+                data.categories.length === 0 ? categoryDefaults[key as keyof typeof categoryDefaults] : data.categories.includes(key)
+              ])
+            )
+          : { ...categoryDefaults, ...(data.categories || {}) }
+
+        setPreferences({
+          websocket: data.websocket !== false,
+          email: data.email !== false,
+          sms: Boolean(data.sms),
+          push: data.push !== false,
+          categories,
+          priorityThreshold: data.priorityThreshold || 'normal'
+        })
       }
     } catch (error) {
       console.error('Failed to load notification preferences:', error)
@@ -83,7 +111,18 @@ export function NotificationSettings() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const success = await updateNotificationPreferences(preferences)
+      // Backend stores categories as an enabled string array
+      const payload = {
+        websocket: preferences.websocket,
+        email: preferences.email,
+        sms: preferences.sms,
+        push: preferences.push,
+        categories: Object.entries(preferences.categories)
+          .filter(([, enabled]) => enabled)
+          .map(([key]) => key),
+        priorityThreshold: preferences.priorityThreshold
+      }
+      const success = await updateNotificationPreferences(payload)
       if (success) {
         toast({
           title: "Preferences Saved",

@@ -7,6 +7,7 @@ import { HarvestForm, type HarvestFormData } from "@/components/agricultural"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { useToast } from "@/hooks/use-toast"
 import { useOfflineApi } from "@/hooks/use-offline-api"
+import { apiService } from "@/lib/api"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -15,9 +16,9 @@ export default function NewHarvestPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
-  const { createHarvest } = useOfflineApi()
+  const { createHarvest, isOffline } = useOfflineApi()
 
-  const handleSubmit = async (data: HarvestFormData) => {
+  const handleSubmit = async (data: HarvestFormData & { images?: string[] }) => {
     try {
       setLoading(true)
 
@@ -47,28 +48,41 @@ export default function NewHarvestPage() {
         certification: data.certification
       }
 
-      // Use offline-aware API
-      const result = await createHarvest(payload)
+      let created: any = null
 
-      if (result.success && !result.queued) {
-        // Only navigate if successfully saved to server
-        const created = result.data?.harvest || result.data
-        const id = created?._id || created?.id
-
-        if (id) {
-          router.push(`/dashboard/harvests/${id}`)
-        } else {
+      if (isOffline) {
+        const result = await createHarvest(payload)
+        if (result.queued) {
+          sessionStorage.removeItem("harvest-form-draft")
           router.push('/dashboard/harvests')
+          return
         }
-      } else if (result.queued) {
-        // If queued, just go back to harvests list
+        if (!result.success) {
+          throw new Error(result.error || "Failed to queue harvest for sync")
+        }
+      } else {
+        const response = await apiService.createHarvest(payload) as any
+        created = response?.harvest || response?.data?.harvest || response?.data || response
+      }
+
+      sessionStorage.removeItem("harvest-form-draft")
+
+      const id = created?._id || created?.id
+      toast({
+        title: "Harvest logged successfully",
+        description: "Your harvest batch has been recorded.",
+      })
+
+      if (id) {
+        router.push(`/dashboard/harvests/${id}`)
+      } else {
         router.push('/dashboard/harvests')
       }
     } catch (error) {
       console.error("Failed to create harvest:", error)
       toast({
         title: "Failed to log harvest",
-        description: (error as any)?.message || "Please try again.",
+        description: (error as Error)?.message || "Please check your connection and try again.",
         variant: "destructive"
       })
     } finally {

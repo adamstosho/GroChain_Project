@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { NotificationList } from '@/components/notifications/notification-list'
 import { NotificationSettings } from '@/components/notifications/notification-settings'
-import { NotificationProvider, useNotificationContext } from '@/components/notifications/notification-provider'
+import { useNotificationContext } from '@/components/notifications/notification-provider'
 import { useToast } from '@/hooks/use-toast'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -216,19 +216,17 @@ function NotificationsContent() {
 
 export default function NotificationsPage() {
   return (
-    <NotificationProvider>
-      <Suspense fallback={
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <span className="ml-2">Loading notifications...</span>
-            </div>
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-2">Loading notifications...</span>
           </div>
         </div>
-      }>
-        <NotificationsContent />
-      </Suspense>
-    </NotificationProvider>
+      </div>
+    }>
+      <NotificationsContent />
+    </Suspense>
   )
 }

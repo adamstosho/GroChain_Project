@@ -3,17 +3,23 @@ const router = express.Router()
 const notificationController = require('../controllers/notification.controller')
 const { authenticate, authorize } = require('../middlewares/auth.middleware')
 
-// Create role-based notification (internal/admin use)
-router.post('/create', authenticate, authorize('admin', 'system'), notificationController.createRoleBasedNotification)
+// Create role-based notification (admin use)
+router.post('/create', authenticate, authorize('admin'), notificationController.createRoleBasedNotification)
 
 // Get user's notifications with advanced filtering
 router.get('/', authenticate, notificationController.getUserNotifications)
+
+// Unread badge count
+router.get('/unread-count', authenticate, notificationController.getUnreadCount)
 
 // Mark multiple notifications as read
 router.patch('/mark-read', authenticate, notificationController.markNotificationsAsRead)
 
 // Mark all notifications as read
 router.patch('/mark-all-read', authenticate, notificationController.markAllAsRead)
+
+// Delete a notification
+router.delete('/:id', authenticate, notificationController.deleteNotification)
 
 // Get notification preferences
 router.get('/preferences', authenticate, notificationController.getNotificationPreferences)
@@ -33,4 +39,3 @@ router.post('/marketplace', authenticate, authorize('admin'), notificationContro
 router.post('/transaction', authenticate, authorize('admin'), notificationController.sendTransactionNotification)
 
 module.exports = router
-

@@ -1,12 +1,10 @@
 const PriceAlert = require('../models/price-alert.model')
-const Notification = require('../models/notification.model')
-const { WebSocketService } = require('./websocket.service')
+const { createAndEmitNotification } = require('../controllers/notification.controller')
 
 class PriceAlertService {
   constructor() {
     this.isRunning = false
     this.checkInterval = null
-    this.wsService = new WebSocketService()
   }
 
   // Start the price alert monitoring service
@@ -99,13 +97,13 @@ class PriceAlertService {
   // Create notification for triggered alert
   async createAlertNotification(alert, currentPrice) {
     try {
-      const notification = new Notification({
-        user: alert.user._id,
-        title: 'Price Alert Triggered! 🔔',
+      await createAndEmitNotification({
+        userId: alert.user._id,
+        title: 'Price Alert Triggered!',
         message: this.generateAlertMessage(alert, currentPrice),
         type: 'info',
         category: 'marketplace',
-        priority: 'normal',
+        priority: 'high',
         actionUrl: `/dashboard/products/${alert.listing._id}`,
         data: {
           alertId: alert._id,
@@ -115,19 +113,6 @@ class PriceAlertService {
           alertType: alert.alertType,
           productName: alert.productName
         }
-      })
-
-      await notification.save()
-
-      // Send real-time notification via WebSocket
-      await this.wsService.sendNotificationToUser(alert.user._id, {
-        id: notification._id,
-        title: notification.title,
-        message: notification.message,
-        type: notification.type,
-        category: notification.category,
-        actionUrl: notification.actionUrl,
-        data: notification.data
       })
 
       console.log(`Notification sent for alert ${alert._id}`)

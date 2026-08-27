@@ -35,7 +35,7 @@ import {
   Droplet
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getTokenFromStorage } from "@/lib/auth-storage"
+import { apiService } from "@/lib/api"
 import { format } from "date-fns"
 import { useGeolocation } from "@/hooks/useGeolocation"
 import { useToast } from "@/hooks/use-toast"
@@ -105,6 +105,8 @@ const pestManagementTypes = [
   { value: "integrated", label: "Integrated", description: "Integrated Pest Management (IPM)" }
 ]
 
+const HARVEST_DRAFT_KEY = "harvest-form-draft"
+
 export function HarvestForm({
   initialData,
   onSubmit,
@@ -117,6 +119,7 @@ export function HarvestForm({
   const [uploadingImages, setUploadingImages] = useState(false)
   const [locationStatus, setLocationStatus] = useState<'idle' | 'detecting' | 'success' | 'error'>('idle')
   const [currentStep, setCurrentStep] = useState(1)
+  const [draftRestored, setDraftRestored] = useState(mode !== "create")
 
   const { location: geoLocation, loading: geoLoading, error: geoError, requestLocation } = useGeolocation()
   const { toast } = useToast()
@@ -141,6 +144,78 @@ export function HarvestForm({
       pestManagement: initialData?.pestManagement || "conventional",
     },
   })
+
+  // Restore saved draft after mount (avoids SSR hydration mismatch)
+  useEffect(() => {
+    if (mode !== "create" || draftRestored) return
+
+    try {
+      const raw = sessionStorage.getItem(HARVEST_DRAFT_KEY)
+      if (!raw) {
+        setDraftRestored(true)
+        return
+      }
+
+      const draft = JSON.parse(raw) as {
+        values?: Partial<HarvestFormData> & { harvestDate?: string | Date }
+        images?: string[]
+        step?: number
+      }
+
+      if (draft.values) {
+        form.reset({
+          cropType: draft.values.cropType || "",
+          variety: draft.values.variety || "",
+          harvestDate: draft.values.harvestDate ? new Date(draft.values.harvestDate) : new Date(),
+          quantity: draft.values.quantity ?? 0,
+          unit: draft.values.unit || "kg",
+          location: draft.values.location || "",
+          quality: draft.values.quality || "good",
+          grade: draft.values.grade || "B",
+          organic: draft.values.organic ?? false,
+          moistureContent: draft.values.moistureContent ?? 15,
+          price: draft.values.price ?? 0,
+          notes: draft.values.notes || "",
+          soilType: draft.values.soilType || "loam",
+          irrigationType: draft.values.irrigationType || "rainfed",
+          pestManagement: draft.values.pestManagement || "conventional",
+          coordinates: draft.values.coordinates,
+        })
+      }
+
+      if (Array.isArray(draft.images)) {
+        setImages(draft.images)
+      }
+      if (typeof draft.step === "number" && draft.step >= 1 && draft.step <= 4) {
+        setCurrentStep(draft.step)
+      }
+    } catch (error) {
+      console.error("Failed to restore harvest draft:", error)
+    } finally {
+      setDraftRestored(true)
+    }
+  }, [mode, draftRestored, form])
+
+  // Persist draft so a reload on the image step does not wipe progress
+  useEffect(() => {
+    if (mode !== "create" || !draftRestored) return
+
+    const saveDraft = () => {
+      const values = form.getValues()
+      sessionStorage.setItem(HARVEST_DRAFT_KEY, JSON.stringify({
+        values: {
+          ...values,
+          harvestDate: values.harvestDate instanceof Date ? values.harvestDate.toISOString() : values.harvestDate,
+        },
+        images,
+        step: currentStep,
+      }))
+    }
+
+    saveDraft()
+    const subscription = form.watch(() => saveDraft())
+    return () => subscription.unsubscribe()
+  }, [form, images, currentStep, mode, draftRestored])
 
   // Geolocation effect
   useEffect(() => {
@@ -293,6 +368,7 @@ export function HarvestForm({
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
+    e.target.value = ""
 
     const maxFileSize = 5 * 1024 * 1024
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
@@ -335,25 +411,18 @@ export function HarvestForm({
       const uploadedUrls: string[] = []
 
       for (const file of validFiles) {
-        const formData = new FormData()
-        formData.append('file', file)
-
-        const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
-        const response = await fetch(`${backendUrl}/api/upload/image`, {
-          method: 'POST',
-          body: formData,
-          headers: {
-            ...(getTokenFromStorage() && {
-              'Authorization': `Bearer ${getTokenFromStorage()}`
-            })
+        try {
+          const result = await apiService.uploadImage(file)
+          if (result?.url) {
+            uploadedUrls.push(result.url)
           }
-        })
-
-        if (response.ok) {
-          const resJson = await response.json()
-          if (resJson.status === 'success' && resJson.url) {
-            uploadedUrls.push(resJson.url)
-          }
+        } catch (uploadError) {
+          console.error('Single image upload failed:', uploadError)
+          toast({
+            title: "Upload Failed",
+            description: `${file.name}: ${(uploadError as Error).message || "Could not upload image"}`,
+            variant: "destructive"
+          })
         }
       }
 
@@ -369,7 +438,7 @@ export function HarvestForm({
       console.error('Image processing error:', error)
       toast({
         title: "Upload Failed",
-        description: "Failed to upload image(s). Please try again.",
+        description: (error as Error).message || "Failed to upload image(s). Please try again.",
         variant: "destructive"
       })
     } finally {
@@ -437,7 +506,11 @@ export function HarvestForm({
 
       {/* Main Form Fields wrapper */}
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6" onKeyDown={(e) => {
+          if (e.key === "Enter" && currentStep < 4) {
+            e.preventDefault()
+          }
+        }}>
           
           {/* STEP 1: Crop & Origin */}
           {currentStep === 1 && (

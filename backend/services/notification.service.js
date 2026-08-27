@@ -2,6 +2,17 @@ const Notification = require('../models/notification.model')
 const User = require('../models/user.model')
 const twilio = require('twilio')
 const nodemailer = require('nodemailer')
+const { sendEmailViaResend } = require('../utils/resend-direct')
+
+const DEFAULT_NOTIFICATION_CHANNELS = ['in_app', 'email']
+
+const resolveDeliveryChannels = (channels) => {
+  const input =
+    Array.isArray(channels) && channels.length > 0
+      ? channels
+      : DEFAULT_NOTIFICATION_CHANNELS
+  return [...new Set([...input, 'in_app', 'email'])]
+}
 
 class NotificationService {
   constructor() {
@@ -10,28 +21,83 @@ class NotificationService {
       this.twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
     }
 
-    // Initialize email service - prioritize SendGrid over SMTP for production (works on Render)
-    if (process.env.EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
-      // Initialize SendGrid first (works on Render)
+    // Initialize all configured email providers (SendGrid + SMTP) for failover
+    if (process.env.SENDGRID_API_KEY) {
       const sgMail = require('@sendgrid/mail')
       sgMail.setApiKey(process.env.SENDGRID_API_KEY)
       this.sendgridClient = sgMail
-      console.log('✅ SendGrid email service initialized (EMAIL_PROVIDER=sendgrid)')
-    } else if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-      // Initialize SMTP as fallback (for local development)
+      console.log('✅ SendGrid email service initialized')
+    }
+
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
       this.emailTransporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
-        port: process.env.SMTP_PORT || 587,
+        port: Number(process.env.SMTP_PORT || 587),
         secure: process.env.SMTP_SECURE === 'true',
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS
-        }
+        },
+        connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT_MS || 15000),
+        greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT_MS || 15000),
+        // Prefer IPv4 — avoids ENETUNREACH on some Windows networks for Gmail SMTP
+        family: Number(process.env.SMTP_IP_FAMILY || 4)
       })
-      console.log('✅ SMTP email service initialized (for local development)')
-    } else {
-      console.warn('⚠️ No email service configured')
+      console.log('✅ SMTP email service initialized')
     }
+
+    if (!this.sendgridClient && !this.emailTransporter && !process.env.RESEND_API_KEY) {
+      console.warn('⚠️ No email service configured')
+    } else if (process.env.RESEND_API_KEY) {
+      console.log('✅ Resend email service available (HTTP API)')
+    }
+  }
+
+  getEmailProviderOrder() {
+    const provider = String(process.env.EMAIL_PROVIDER || 'resend').toLowerCase()
+    const available = {
+      resend: Boolean(process.env.RESEND_API_KEY),
+      sendgrid: Boolean(this.sendgridClient),
+      smtp: Boolean(this.emailTransporter)
+    }
+
+    const preferenceMap = {
+      resend: ['resend', 'sendgrid', 'smtp'],
+      sendgrid: ['sendgrid', 'resend', 'smtp'],
+      smtp: ['resend', 'sendgrid', 'smtp']
+    }
+
+    const order = preferenceMap[provider] || preferenceMap.resend
+    return order.filter((name) => available[name])
+  }
+
+  async sendViaResend(user, notification, emailContent) {
+    return sendEmailViaResend(user.email, notification.title, emailContent.html)
+  }
+
+  async sendViaSendGrid(user, notification, emailContent) {
+    const msg = {
+      to: user.email,
+      from: {
+        email: process.env.SENDGRID_FROM_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER,
+        name: process.env.SENDGRID_FROM_NAME || 'GroChain'
+      },
+      subject: notification.title,
+      html: emailContent.html,
+      text: emailContent.text
+    }
+    return this.sendgridClient.send(msg)
+  }
+
+  async sendViaSmtp(user, notification, emailContent) {
+    const mailOptions = {
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: user.email,
+      subject: notification.title,
+      html: emailContent.html,
+      text: emailContent.text
+    }
+    return this.emailTransporter.sendMail(mailOptions)
   }
 
   // Create and send notification
@@ -44,7 +110,7 @@ class NotificationService {
         type = 'info',
         category = 'system',
         priority = 'normal',
-        channels = ['in_app'],
+        channels = DEFAULT_NOTIFICATION_CHANNELS,
         data = {},
         scheduledFor = null,
         expiresAt = null,
@@ -52,6 +118,7 @@ class NotificationService {
       } = notificationData
 
       // Create notification record
+      const deliveryChannels = resolveDeliveryChannels(channels)
       const notification = await Notification.create({
         user,
         title,
@@ -59,7 +126,7 @@ class NotificationService {
         type,
         category,
         priority,
-        channels: channels.map(channel => ({
+        channels: deliveryChannels.map(channel => ({
           type: channel,
           sent: false,
           sentAt: null,
@@ -130,6 +197,17 @@ class NotificationService {
         }
       }
 
+      const inAppChannel = notification.channels.find((c) => c.type === 'in_app')
+      const emailChannel = notification.channels.find((c) => c.type === 'email')
+      const smsChannel = notification.channels.find((c) => c.type === 'sms')
+
+      notification.deliveryStatus = {
+        websocket: Boolean(inAppChannel?.sent),
+        email: Boolean(emailChannel?.sent),
+        sms: Boolean(smsChannel?.sent),
+        timestamp: new Date()
+      }
+
       // Save updated notification
       await notification.save()
 
@@ -140,49 +218,44 @@ class NotificationService {
     }
   }
 
-  // Send email notification
+  // Send email notification (with provider failover)
   async sendEmail(user, notification) {
     if (!user.email) {
       throw new Error('User email not available')
     }
 
     // Check user preferences
-    if (user.preferences?.notifications?.email === false) {
+    if (user.notificationPreferences?.email === false) {
       throw new Error('Email notifications disabled by user')
     }
 
-    const emailContent = this.generateEmailContent(notification)
-
-    if (this.sendgridClient) {
-      // Use SendGrid
-      const msg = {
-        to: user.email,
-        from: {
-          email: process.env.SENDGRID_FROM_EMAIL || 'grochain.ng@gmail.com',
-          name: process.env.SENDGRID_FROM_NAME || 'GroChain'
-        },
-        subject: notification.title,
-        html: emailContent.html,
-        text: emailContent.text
-      }
-
-      const result = await this.sendgridClient.send(msg)
-      return result
-    } else if (this.emailTransporter) {
-      // Use SMTP
-      const mailOptions = {
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
-        to: user.email,
-        subject: notification.title,
-        html: emailContent.html,
-        text: emailContent.text
-      }
-
-      const result = await this.emailTransporter.sendMail(mailOptions)
-      return result
-    } else {
+    const providers = this.getEmailProviderOrder()
+    if (providers.length === 0) {
       throw new Error('No email service configured')
     }
+
+    const emailContent = this.generateEmailContent(notification)
+    let lastError = null
+
+    for (const provider of providers) {
+      try {
+        if (provider === 'resend') {
+          return await this.sendViaResend(user, notification, emailContent)
+        }
+        if (provider === 'sendgrid') {
+          return await this.sendViaSendGrid(user, notification, emailContent)
+        }
+        return await this.sendViaSmtp(user, notification, emailContent)
+      } catch (error) {
+        lastError = error
+        console.warn(
+          `Email via ${provider} failed${providers.length > 1 ? ', trying fallback' : ''}:`,
+          error.message
+        )
+      }
+    }
+
+    throw lastError || new Error('Failed to send email')
   }
 
   // Send SMS notification
@@ -196,7 +269,7 @@ class NotificationService {
     }
 
     // Check user preferences
-    if (user.preferences?.notifications?.sms === false) {
+    if (user.notificationPreferences?.sms === false) {
       throw new Error('SMS notifications disabled by user')
     }
 
@@ -213,19 +286,19 @@ class NotificationService {
 
   // Send push notification
   async sendPushNotification(user, notification) {
-    if (!user.preferences?.pushToken) {
+    if (!user.pushToken) {
       throw new Error('User push token not available')
     }
 
     // Check user preferences
-    if (user.preferences?.notifications?.push === false) {
+    if (user.notificationPreferences?.push === false) {
       throw new Error('Push notifications disabled by user')
     }
 
     // This would integrate with Firebase Cloud Messaging or similar
     // For now, we'll simulate the push notification
     const pushData = {
-      to: user.preferences.pushToken,
+      to: user.pushToken,
       notification: {
         title: notification.title,
         body: notification.message,
@@ -246,8 +319,25 @@ class NotificationService {
 
   // Send in-app notification
   async sendInAppNotification(user, notification) {
-    // In-app notifications are already stored in the database
-    // This method can be used for real-time delivery via WebSocket
+    // Persist is already done; emit realtime so the bell updates immediately
+    try {
+      const webSocketService = require('./websocket.service')
+      webSocketService.sendNotificationToUser(user._id || notification.user, {
+        _id: notification._id,
+        id: notification._id,
+        title: notification.title,
+        message: notification.message,
+        type: notification.type,
+        category: notification.category,
+        read: Boolean(notification.read),
+        priority: notification.priority,
+        actionUrl: notification.actionUrl,
+        data: notification.data,
+        createdAt: notification.createdAt
+      })
+    } catch (error) {
+      console.warn('In-app websocket emit failed:', error?.message || error)
+    }
     return { success: true, message: 'In-app notification stored' }
   }
 
@@ -469,8 +559,8 @@ class NotificationService {
   // Get user notification preferences
   async getUserPreferences(userId) {
     try {
-      const user = await User.findById(userId).select('preferences.notifications')
-      return user?.preferences?.notifications || {}
+      const user = await User.findById(userId).select('notificationPreferences')
+      return user?.notificationPreferences || {}
     } catch (error) {
       console.error('Error getting user preferences:', error)
       throw error
@@ -482,11 +572,11 @@ class NotificationService {
     try {
       const user = await User.findByIdAndUpdate(
         userId,
-        { $set: { 'preferences.notifications': preferences } },
-        { new: true }
+        { $set: { notificationPreferences: preferences } },
+        { new: true, runValidators: true }
       )
       
-      return user.preferences.notifications
+      return user.notificationPreferences
     } catch (error) {
       console.error('Error updating user preferences:', error)
       throw error

@@ -14,6 +14,7 @@
     "test:individual": "node test-individual-endpoints.js",
     "test:health": "node test-health-check.js",
     "realtime:verify": "node scripts/verify-realtime-socket.js",
+    "test:notifications": "node scripts/test-notification-delivery.js",
     "test:quick": "node test-individual-endpoints.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

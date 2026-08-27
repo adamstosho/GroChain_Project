@@ -17,6 +17,15 @@ export function useOfflineApi() {
     });
   };
 
+  const showQueuedRetryMessage = (type: string, action: string) => {
+    toast({
+      title: `${type} ${action} saved locally`,
+      description: 'We will retry automatically when the server is reachable',
+      variant: 'success',
+      duration: 4000,
+    });
+  };
+
   const showOnlineMessage = (type: string, action: string) => {
     toast({
       title: `${type} ${action} completed`,
@@ -39,8 +48,10 @@ export function useOfflineApi() {
   const createHarvest = async (data: any) => {
     const result = await offlineApiService.createHarvest(data, offlineHook);
     
-    if (result.queued) {
+    if (result.queued && result.success) {
       showOfflineMessage('Harvest', 'creation');
+    } else if (result.queued) {
+      showQueuedRetryMessage('Harvest', 'creation');
     } else if (result.success) {
       showOnlineMessage('Harvest', 'creation');
     } else {

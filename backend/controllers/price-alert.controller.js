@@ -1,7 +1,6 @@
 const mongoose = require('mongoose')
 const PriceAlert = require('../models/price-alert.model')
 const Listing = require('../models/listing.model')
-const { WebSocketService } = require('../services/websocket.service')
 const NotificationService = require('../services/notification.service')
 
 const priceAlertController = {
@@ -260,10 +259,16 @@ const priceAlertController = {
         if (wasTriggered) {
           triggeredAlerts.push(alert)
           
-          // Get enabled notification channels from the alert
-          const enabledChannels = alert.notificationChannels
-            .filter(channel => channel.enabled)
-            .map(channel => channel.type)
+          // Get enabled notification channels from the alert (always include in-app + email)
+          const enabledChannels = [
+            ...new Set([
+              ...alert.notificationChannels
+                .filter(channel => channel.enabled)
+                .map(channel => channel.type),
+              'in_app',
+              'email'
+            ])
+          ]
 
           // Create notification using the notification service
           const notificationData = {
@@ -285,22 +290,9 @@ const priceAlertController = {
             }
           }
 
-          // Send notification through all enabled channels (email, SMS, push, in-app)
+          // Send notification through all enabled channels (email, SMS, push, in-app).
+          // In-app channel emits Socket.IO via NotificationService.sendInAppNotification.
           const notification = await NotificationService.createNotification(notificationData)
-
-          // Send real-time notification via WebSocket for in-app notifications
-          if (enabledChannels.includes('in_app')) {
-            const wsService = new WebSocketService()
-            await wsService.sendNotificationToUser(alert.user._id, {
-              id: notification._id,
-              title: notification.title,
-              message: notification.message,
-              type: notification.type,
-              category: notification.category,
-              actionUrl: notification.actionUrl,
-              data: notification.data
-            })
-          }
 
           // Mark alert as notification sent
           alert.resetAfterNotification()

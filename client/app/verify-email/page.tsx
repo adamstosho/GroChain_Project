@@ -6,13 +6,18 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp"
 import { api } from "@/lib/api"
 import { CheckCircle, Mail, AlertCircle } from "lucide-react"
 
 function VerifyEmailForm() {
   const router = useRouter()
   const params = useSearchParams()
-  const [token, setToken] = useState("")
+  const [code, setCode] = useState("")
   const [email, setEmail] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [resending, setResending] = useState(false)
@@ -22,58 +27,32 @@ function VerifyEmailForm() {
   const [successMessage, setSuccessMessage] = useState("")
 
   useEffect(() => {
-    try {
-      // Safely extract parameters with error handling
-      const t = params?.get("token")
-      const e = params?.get("email")
-      const success = params?.get("success")
-      const error = params?.get("error")
-      const message = params?.get("message")
-      
-      if (t) setToken(t)
-      if (e) setEmail(e)
-      
-      // Handle redirect from GET endpoint
-      if (success === "true") {
-        setVerified(true)
-        setSuccessMessage("Email verified successfully! You can now sign in to your account.")
-        
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          router.push("/login")
-        }, 3000)
-      }
-      
-      if (error === "verification_failed") {
-        setVerificationError(message || "Verification failed. Please try again.")
-      }
-      
-      setIsLoading(false)
-    } catch (error) {
-      console.error("Error parsing URL parameters:", error)
-      setVerificationError("Invalid verification link format")
-      setIsLoading(false)
-    }
-  }, [params, router])
-
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!token) return
-    setSubmitting(true)
-    setVerificationError("")
-    
-    try {
-      await api.verifyEmail(token)
+    const e = params?.get("email")
+    const verified = params?.get("verified")
+    if (e) setEmail(e)
+    if (verified === "1") {
       setVerified(true)
       setSuccessMessage("Email verified successfully! You can now sign in to your account.")
-      
-      // Redirect to login after 3 seconds
-      setTimeout(() => {
-        router.push("/login")
-      }, 3000)
+      setTimeout(() => router.push("/login"), 3000)
+    }
+    setIsLoading(false)
+  }, [params, router])
+
+  const handleVerify = async (e?: React.FormEvent, overrideCode?: string) => {
+    e?.preventDefault()
+    const otp = (overrideCode ?? code).replace(/\D/g, "")
+    if (!email || otp.length !== 6) return
+
+    setSubmitting(true)
+    setVerificationError("")
+
+    try {
+      await api.verifyEmail(email, otp)
+      setVerified(true)
+      setSuccessMessage("Email verified successfully! You can now sign in to your account.")
+      setTimeout(() => router.push("/login"), 3000)
     } catch (err: any) {
-      const errorMessage = err?.message || "Invalid or expired verification link."
-      setVerificationError(errorMessage)
+      setVerificationError(err?.message || "Invalid or expired verification code.")
     } finally {
       setSubmitting(false)
     }
@@ -83,9 +62,11 @@ function VerifyEmailForm() {
     e.preventDefault()
     if (!email) return
     setResending(true)
+    setVerificationError("")
     try {
       await api.resendVerification(email)
-      setSuccessMessage("Verification email sent! Check your inbox for a new verification link.")
+      setSuccessMessage("A new 6-digit code was sent to your email.")
+      setCode("")
     } catch (err: any) {
       setVerificationError(err?.message || "Please try again later.")
     } finally {
@@ -93,19 +74,15 @@ function VerifyEmailForm() {
     }
   }
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="mx-auto max-w-md p-6">
         <Card>
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-              <div className="h-8 w-8 bg-primary rounded-full animate-pulse" />
+              <div className="h-8 w-8 animate-pulse rounded-full bg-primary" />
             </div>
             <CardTitle>Loading verification...</CardTitle>
-            <CardDescription>
-              Please wait while we load your verification page.
-            </CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -122,7 +99,7 @@ function VerifyEmailForm() {
             </div>
             <CardTitle className="text-success">Email Verified!</CardTitle>
             <CardDescription>
-              Your email has been successfully verified. You will be redirected to the login page shortly.
+              Your email has been verified. Redirecting you to sign in...
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
@@ -144,87 +121,86 @@ function VerifyEmailForm() {
           </div>
           <CardTitle>Verify your email</CardTitle>
           <CardDescription>
-            {token 
-              ? "Click the button below to verify your email address."
-              : "Enter your verification token from the email we sent you."
-            }
+            Enter the 6-digit code we sent to your inbox. It expires in 15 minutes.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {successMessage && (
-            <div className="flex items-center space-x-2 p-3 bg-success/10 border border-success/10 rounded-md">
+            <div className="flex items-center space-x-2 rounded-md border border-success/10 bg-success/10 p-3">
               <CheckCircle className="h-4 w-4 text-success" />
               <p className="text-sm text-success">{successMessage}</p>
             </div>
           )}
-          
-          {/* Always show verification form */}
+
           <form onSubmit={handleVerify} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="token">Verification Token</Label>
-              <Input 
-                id="token" 
-                value={token} 
-                onChange={(e) => setToken(e.target.value)} 
-                placeholder="Paste verification token from your email here"
-                className="font-mono text-sm"
+              <Label htmlFor="email">Email address</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
                 required
               />
-              <p className="text-xs text-muted-foreground">
-                Copy the verification token from the email we sent you and paste it above.
+            </div>
+
+            <div className="space-y-2">
+              <Label>Verification code</Label>
+              <div className="flex justify-center">
+                <InputOTP
+                  maxLength={6}
+                  value={code}
+                  onChange={(value) => {
+                    setCode(value)
+                    if (value.length === 6 && email) {
+                      void handleVerify(undefined, value)
+                    }
+                  }}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+              <p className="text-center text-xs text-muted-foreground">
+                Check your inbox and spam folder for an email from GroChain.
               </p>
             </div>
-            
+
             {verificationError && (
               <div className="flex items-center space-x-2 rounded-md border border-destructive/10 bg-destructive/10 p-3 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4" />
+                <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>{verificationError}</span>
               </div>
             )}
-            
-            <Button type="submit" disabled={!token || submitting} className="w-full">
+
+            <Button
+              type="submit"
+              disabled={!email || code.length !== 6 || submitting}
+              className="w-full"
+            >
               {submitting ? "Verifying..." : "Verify Email"}
             </Button>
           </form>
 
           <div className="text-center text-sm text-muted-foreground">— or —</div>
 
-          <form onSubmit={handleResend} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-                placeholder="you@example.com" 
-                required
-                disabled={!!params?.get("email")} // Disable if email is pre-filled from URL
-              />
-              {params?.get("email") && (
-                <p className="text-xs text-muted-foreground">
-                  Email pre-filled from registration. You can change it if needed.
-                </p>
-              )}
-            </div>
-            
-            <Button type="submit" variant="outline" disabled={!email || resending} className="w-full">
-              {resending ? "Sending..." : "Resend Verification Link"}
+          <form onSubmit={handleResend} className="space-y-3">
+            <Button
+              type="submit"
+              variant="outline"
+              disabled={!email || resending}
+              className="w-full"
+            >
+              {resending ? "Sending..." : "Resend code"}
             </Button>
           </form>
-
-          <div className="text-center text-xs text-muted-foreground space-y-2">
-            <p><strong>How to get your verification token:</strong></p>
-            <ol className="text-left space-y-1 ml-4">
-              <li>1. Check your email inbox (and spam folder)</li>
-              <li>2. Look for an email from GroChain</li>
-              <li>3. Copy the verification token from the email</li>
-              <li>4. Paste it in the field above and click "Verify Email"</li>
-            </ol>
-            <p className="text-primary">
-              <strong>Tip:</strong> Verification links expire in 1 hour. If you don't see the email, try resending it above.
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>
@@ -233,12 +209,14 @@ function VerifyEmailForm() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    </div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
+        </div>
+      }
+    >
       <VerifyEmailForm />
     </Suspense>
   )
 }
-
-

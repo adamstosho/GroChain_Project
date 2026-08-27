@@ -22,6 +22,20 @@ import { useToast } from './use-toast'
 import { APP_CONFIG } from '@/lib/constants'
 import { getTokenFromStorage } from '@/lib/auth-storage'
 
+export interface NotificationChannel {
+  type: 'email' | 'sms' | 'push' | 'in_app'
+  sent?: boolean
+  sentAt?: string
+  error?: string | null
+}
+
+export interface NotificationDeliveryStatus {
+  websocket?: boolean
+  email?: boolean
+  sms?: boolean
+  timestamp?: string
+}
+
 export interface Notification {
   id: string
   _id?: string // Backend uses _id
@@ -35,6 +49,8 @@ export interface Notification {
   actionUrl?: string
   data?: Record<string, any>
   priority?: 'low' | 'normal' | 'high' | 'urgent'
+  channels?: NotificationChannel[]
+  deliveryStatus?: NotificationDeliveryStatus
 }
 
 interface NotificationState {
@@ -77,19 +93,27 @@ export const useNotifications = () => {
 
   // Normalize backend notification to frontend format
   const normalizeNotification = (backendNotification: any): Notification => {
+    const allowedTypes = ['info', 'success', 'warning', 'error'] as const
+    const rawType = backendNotification.type
+    const type = allowedTypes.includes(rawType) ? rawType : 'info'
+    const id = String(backendNotification._id || backendNotification.id || '')
+    const isRead = Boolean(backendNotification.read ?? backendNotification.isRead)
+
     return {
-      id: backendNotification._id || backendNotification.id,
+      id,
       _id: backendNotification._id,
       title: backendNotification.title,
       message: backendNotification.message,
-      type: backendNotification.type,
-      category: backendNotification.category,
-      isRead: backendNotification.read || false,
-      read: backendNotification.read,
-      createdAt: backendNotification.createdAt,
+      type,
+      category: backendNotification.category || 'system',
+      isRead,
+      read: isRead,
+      createdAt: backendNotification.createdAt || new Date().toISOString(),
       actionUrl: backendNotification.actionUrl,
       data: backendNotification.data,
-      priority: backendNotification.priority
+      priority: backendNotification.priority,
+      channels: backendNotification.channels,
+      deliveryStatus: backendNotification.deliveryStatus
     }
   }
 
@@ -113,7 +137,7 @@ export const useNotifications = () => {
 
       // Handle different response structures
       const responseData = response.data?.data || response.data
-      const { notifications: rawNotifications, pagination } = responseData || {}
+      const { notifications: rawNotifications, pagination, unreadCount } = responseData || {}
       
       if (!rawNotifications) {
         throw new Error('Invalid response structure from notifications API')
@@ -121,15 +145,19 @@ export const useNotifications = () => {
 
       // Normalize backend notifications to frontend format
       const notifications = rawNotifications.map(normalizeNotification)
+      const resolvedUnread =
+        typeof unreadCount === 'number'
+          ? unreadCount
+          : notifications.filter((n: Notification) => !n.isRead).length
 
       setState(prev => ({
         ...prev,
         notifications,
-        unreadCount: notifications.filter((n: Notification) => !n.isRead).length,
+        unreadCount: resolvedUnread,
         loading: false
       }))
 
-      return { notifications, pagination }
+      return { notifications, pagination, unreadCount: resolvedUnread }
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to fetch notifications'
       setState(prev => ({
@@ -160,15 +188,22 @@ export const useNotifications = () => {
       })
 
       // Optimistically update local state
-      setState(prev => ({
-        ...prev,
-        notifications: prev.notifications.map(n =>
-          notificationIds.includes(n.id)
-            ? { ...n, isRead: true }
-            : n
-        ),
-        unreadCount: prev.unreadCount - notificationIds.length
-      }))
+      setState(prev => {
+        const ids = new Set(notificationIds.map(String))
+        let newlyRead = 0
+        const notifications = prev.notifications.map(n => {
+          if (ids.has(String(n.id)) && !n.isRead) {
+            newlyRead += 1
+            return { ...n, isRead: true, read: true }
+          }
+          return n
+        })
+        return {
+          ...prev,
+          notifications,
+          unreadCount: Math.max(0, prev.unreadCount - newlyRead)
+        }
+      })
 
       return true
     } catch (error: any) {
@@ -193,9 +228,9 @@ export const useNotifications = () => {
     try {
       await api.patch('/api/notifications/mark-all-read', {})
 
-      setState(prev => ({
+        setState(prev => ({
         ...prev,
-        notifications: prev.notifications.map(n => ({ ...n, isRead: true })),
+        notifications: prev.notifications.map(n => ({ ...n, isRead: true, read: true })),
         unreadCount: 0
       }))
 
@@ -214,6 +249,37 @@ export const useNotifications = () => {
       return false
     }
   }, [user]) // Remove toast dependency
+
+  // Delete a notification
+  const deleteNotification = useCallback(async (notificationId: string) => {
+    if (!user) return false
+
+    try {
+      await api.delete(`/api/notifications/${notificationId}`)
+
+      setState(prev => {
+        const removed = prev.notifications.find(n => String(n.id) === String(notificationId))
+        const wasUnread = removed && !removed.isRead
+        return {
+          ...prev,
+          notifications: prev.notifications.filter(n => String(n.id) !== String(notificationId)),
+          unreadCount: wasUnread ? Math.max(0, prev.unreadCount - 1) : prev.unreadCount
+        }
+      })
+
+      return true
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to delete notification'
+      if (typeof window !== 'undefined' && !document.hidden) {
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive"
+        })
+      }
+      return false
+    }
+  }, [user])
 
   // Get notification preferences
   const getNotificationPreferences = useCallback(async () => {
@@ -358,12 +424,21 @@ export const useNotifications = () => {
 
           // Normalize the notification
           const notification = normalizeNotification(rawNotification)
+          if (!notification.id) {
+            notification.id = `live-${Date.now()}`
+          }
 
-          setState(prev => ({
-            ...prev,
-            notifications: [notification, ...prev.notifications],
-            unreadCount: prev.unreadCount + 1
-          }))
+          setState(prev => {
+            const exists = prev.notifications.some(
+              n => String(n.id) === String(notification.id)
+            )
+            if (exists) return prev
+            return {
+              ...prev,
+              notifications: [notification, ...prev.notifications],
+              unreadCount: notification.isRead ? prev.unreadCount : prev.unreadCount + 1
+            }
+          })
 
           // Only show toast if component is still mounted and not in background
           if (typeof window !== 'undefined' && !document.hidden) {
@@ -522,6 +597,7 @@ export const useNotifications = () => {
     fetchNotifications,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
     getNotificationPreferences,
     updateNotificationPreferences,
     updatePushToken,

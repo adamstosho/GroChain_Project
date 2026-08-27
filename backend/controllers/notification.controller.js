@@ -1,6 +1,103 @@
 const Notification = require('../models/notification.model')
 const User = require('../models/user.model')
 const webSocketService = require('../services/websocket.service')
+const NotificationService = require('../services/notification.service')
+
+const DEFAULT_NOTIFICATION_CHANNELS = ['in_app', 'email']
+
+const NOTIFICATION_CATEGORIES = [
+  'harvest',
+  'marketplace',
+  'financial',
+  'system',
+  'weather',
+  'order',
+  'payment',
+  'shipment'
+]
+
+const PREFERENCE_CATEGORIES = [...NOTIFICATION_CATEGORIES, 'partner']
+
+const normalizeNotificationCategory = (category) => {
+  const map = {
+    commission: 'financial',
+    farmer: 'system',
+    performance: 'system',
+    partner: 'system',
+    review: 'marketplace'
+  }
+  const mapped = map[category] || category || 'system'
+  return NOTIFICATION_CATEGORIES.includes(mapped) ? mapped : 'system'
+}
+
+const resolveDeliveryChannels = (channels) => {
+  const input =
+    Array.isArray(channels) && channels.length > 0
+      ? channels
+      : DEFAULT_NOTIFICATION_CHANNELS
+  return [...new Set([...input, 'in_app', 'email'])]
+}
+
+const toChannelObjects = (channels = DEFAULT_NOTIFICATION_CHANNELS) => {
+  const list = resolveDeliveryChannels(channels)
+  return list.map((channel) => {
+    if (typeof channel === 'string') {
+      return { type: channel, sent: false }
+    }
+    if (channel && typeof channel === 'object' && channel.type) {
+      return {
+        type: channel.type,
+        sent: Boolean(channel.sent),
+        sentAt: channel.sentAt,
+        error: channel.error
+      }
+    }
+    return { type: 'in_app', sent: false }
+  })
+}
+
+const toClientNotification = (notification) => {
+  const doc = notification?.toObject ? notification.toObject() : notification
+  return {
+    _id: doc._id,
+    id: doc._id,
+    title: doc.title,
+    message: doc.message,
+    type: doc.type,
+    category: doc.category,
+    read: Boolean(doc.read),
+    priority: doc.priority,
+    actionUrl: doc.actionUrl || null,
+    data: doc.data || {},
+    createdAt: doc.createdAt
+  }
+}
+
+const emitRealtimeNotification = (userId, notification) => {
+  if (!userId || !notification) return false
+  try {
+    return webSocketService.sendNotificationToUser(
+      userId.toString(),
+      toClientNotification(notification)
+    )
+  } catch (error) {
+    console.warn('Failed to emit realtime notification:', error?.message || error)
+    return false
+  }
+}
+
+const normalizePreferenceCategories = (categories) => {
+  if (Array.isArray(categories)) {
+    return categories.filter((c) => PREFERENCE_CATEGORIES.includes(c))
+  }
+  if (categories && typeof categories === 'object') {
+    return Object.entries(categories)
+      .filter(([, enabled]) => Boolean(enabled))
+      .map(([key]) => key)
+      .filter((c) => PREFERENCE_CATEGORIES.includes(c))
+  }
+  return undefined
+}
 
 // Notification templates for different roles and activities
 const NOTIFICATION_TEMPLATES = {
@@ -54,6 +151,12 @@ const NOTIFICATION_TEMPLATES = {
         title: "Order Cancelled",
         message: "Order for {productName} has been cancelled.",
         type: "warning",
+        priority: "normal"
+      },
+      reviewReceived: {
+        title: "New Review Received",
+        message: "{buyerName} left a {rating}-star review for your {productName}.",
+        type: "info",
         priority: "normal"
       }
     },
@@ -208,6 +311,53 @@ const NOTIFICATION_TEMPLATES = {
   }
 }
 
+// Persist + deliver in-app (WebSocket) and email for every notification
+exports.createAndEmitNotification = async ({
+  userId,
+  title,
+  message,
+  type = 'info',
+  category = 'system',
+  priority = 'normal',
+  data = {},
+  actionUrl = null,
+  channels = DEFAULT_NOTIFICATION_CHANNELS
+}) => {
+  try {
+    if (!userId || !title || !message) return null
+
+    const deliveryChannels = resolveDeliveryChannels(channels)
+
+    const notification = new Notification({
+      user: userId,
+      title,
+      message,
+      type,
+      category: normalizeNotificationCategory(category),
+      channels: toChannelObjects(deliveryChannels),
+      data,
+      priority,
+      actionUrl
+    })
+
+    await notification.save()
+
+    // Deliver email + in-app (WebSocket bell/toast) via NotificationService
+    try {
+      await NotificationService.sendNotification(notification)
+    } catch (deliveryError) {
+      console.error('Error delivering notification channels:', deliveryError)
+      // Fallback: still push to bell if email delivery threw before in-app ran
+      emitRealtimeNotification(userId, notification)
+    }
+
+    return notification
+  } catch (error) {
+    console.error('Error creating and emitting notification:', error)
+    return null
+  }
+}
+
 // Enhanced notification creation with role and activity context
 exports.createRoleBasedNotification = async (req, res) => {
   try {
@@ -238,23 +388,16 @@ exports.createRoleBasedNotification = async (req, res) => {
     const title = template.title.replace(/\{(\w+)\}/g, (_, key) => context[key] || '')
     const message = template.message.replace(/\{(\w+)\}/g, (_, key) => context[key] || '')
 
-    // Create notification
-    const notification = new Notification({
-      user: userId,
+    const notification = await exports.createAndEmitNotification({
+      userId,
       title,
       message,
       type: template.type,
       category: activity,
-      channels: ['in_app'], // Default to in-app, can be expanded
-      data: context,
       priority: template.priority,
+      data: context,
       actionUrl: context.actionUrl || null
     })
-
-    await notification.save()
-
-    // Emit via websocket for real-time delivery
-    webSocketService.emitToUser(userId, 'notification', notification)
 
     return res.json({ 
       status: 'success', 
@@ -287,22 +430,28 @@ exports.getUserNotifications = async (req, res) => {
     if (read !== undefined) filter.read = read === 'true'
     if (priority) filter.priority = priority
 
-    const notifications = await Notification.find(filter)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(Number(limit))
+    const pageNum = Math.max(1, Number(page) || 1)
+    const limitNum = Math.min(100, Math.max(1, Number(limit) || 20))
 
-    const total = await Notification.countDocuments(filter)
+    const [notifications, total, unreadCount] = await Promise.all([
+      Notification.find(filter)
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum),
+      Notification.countDocuments(filter),
+      Notification.countDocuments({ user: userId, read: false })
+    ])
 
     return res.json({
       status: 'success',
       data: {
         notifications,
+        unreadCount,
         pagination: {
-          page,
-          limit,
+          page: pageNum,
+          limit: limitNum,
           total,
-          totalPages: Math.ceil(total / limit)
+          totalPages: Math.ceil(total / limitNum)
         }
       }
     })
@@ -312,11 +461,28 @@ exports.getUserNotifications = async (req, res) => {
   }
 }
 
+exports.getUnreadCount = async (req, res) => {
+  try {
+    const unreadCount = await Notification.countDocuments({
+      user: req.user.id,
+      read: false
+    })
+    return res.json({ status: 'success', data: { unreadCount } })
+  } catch (error) {
+    console.error('Unread count error:', error)
+    return res.status(500).json({ status: 'error', message: 'Server error' })
+  }
+}
+
 // Mark notifications as read
 exports.markNotificationsAsRead = async (req, res) => {
   try {
     const { notificationIds } = req.body
     const userId = req.user.id
+
+    if (!Array.isArray(notificationIds) || notificationIds.length === 0) {
+      return res.status(400).json({ status: 'error', message: 'notificationIds required' })
+    }
 
     const result = await Notification.updateMany(
       { 
@@ -354,6 +520,25 @@ exports.markAllAsRead = async (req, res) => {
   }
 }
 
+exports.deleteNotification = async (req, res) => {
+  try {
+    const { id } = req.params
+    const result = await Notification.findOneAndDelete({
+      _id: id,
+      user: req.user.id
+    })
+
+    if (!result) {
+      return res.status(404).json({ status: 'error', message: 'Notification not found' })
+    }
+
+    return res.json({ status: 'success', message: 'Notification deleted' })
+  } catch (error) {
+    console.error('Delete notification error:', error)
+    return res.status(500).json({ status: 'error', message: 'Server error' })
+  }
+}
+
 exports.getNotificationPreferences = async (req, res) => {
   try {
     const userId = req.user.id
@@ -368,7 +553,12 @@ exports.getNotificationPreferences = async (req, res) => {
 exports.updateNotificationPreferences = async (req, res) => {
   try {
     const userId = req.user.id
-    const preferences = req.body.notifications || req.body
+    const preferences = { ...(req.body.notifications || req.body) }
+    const normalizedCategories = normalizePreferenceCategories(preferences.categories)
+    if (normalizedCategories !== undefined) {
+      preferences.categories = normalizedCategories
+    }
+    preferences.lastUpdated = new Date()
     
     const user = await User.findByIdAndUpdate(
       userId,
@@ -378,7 +568,8 @@ exports.updateNotificationPreferences = async (req, res) => {
     
     return res.json({ status: 'success', data: user.notificationPreferences })
   } catch (error) {
-    return res.status(500).json({ status: 'error', message: 'Server error' })
+    console.error('Update notification preferences error:', error)
+    return res.status(500).json({ status: 'error', message: error.message || 'Server error' })
   }
 }
 
@@ -405,18 +596,16 @@ exports.sendHarvestNotification = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Harvest not found' })
     }
     
-    const notification = new Notification({
-      user: harvest.farmer._id,
+    const notification = await exports.createAndEmitNotification({
+      userId: harvest.farmer._id,
       title: `Harvest Update: ${harvest.cropType}`,
       message,
       type: 'info',
       category: 'harvest',
       channels: ['in_app', 'email'],
       data: { harvestId, type },
-      actionUrl: `/harvests/${harvestId}`
+      actionUrl: `/dashboard/harvests/${harvestId}`
     })
-    
-    await notification.save()
     
     return res.json({ status: 'success', data: notification })
   } catch (error) {
@@ -433,18 +622,16 @@ exports.sendMarketplaceNotification = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Listing not found' })
     }
     
-    const notification = new Notification({
-      user: listing.farmer._id,
+    const notification = await exports.createAndEmitNotification({
+      userId: listing.farmer._id,
       title: `Marketplace Update: ${listing.cropName}`,
       message,
       type: 'info',
       category: 'marketplace',
       channels: ['in_app', 'email'],
       data: { listingId, type },
-      actionUrl: `/marketplace/listings/${listingId}`
+      actionUrl: `/dashboard/marketplace/listings`
     })
-    
-    await notification.save()
     
     return res.json({ status: 'success', data: notification })
   } catch (error) {
@@ -461,18 +648,16 @@ exports.sendTransactionNotification = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Order not found' })
     }
 
-    const notification = new Notification({
-      user: order.buyer._id,
-      title: `Transaction Update`,
+    const notification = await exports.createAndEmitNotification({
+      userId: order.buyer._id,
+      title: 'Transaction Update',
       message,
       type: 'success',
       category: 'financial',
       channels: ['in_app', 'email'],
       data: { orderId, type },
-      actionUrl: `/orders/${orderId}`
+      actionUrl: `/dashboard/orders/${orderId}`
     })
-
-    await notification.save()
 
     return res.json({ status: 'success', data: notification })
   } catch (error) {
@@ -493,28 +678,16 @@ exports.createNotificationForActivity = async (userId, role, activity, subActivi
     const title = template.title.replace(/\{(\w+)\}/g, (_, key) => context[key] || '')
     const message = template.message.replace(/\{(\w+)\}/g, (_, key) => context[key] || '')
 
-    // Create notification
-    const notification = new Notification({
-      user: userId,
+    return exports.createAndEmitNotification({
+      userId,
       title,
       message,
       type: template.type,
-      category: activity === 'commission' ? 'financial' : activity,
-      channels: [{
-        type: 'in_app',
-        sent: false
-      }],
+      category: activity,
       data: context,
       priority: template.priority,
       actionUrl: context.actionUrl || null
     })
-
-    await notification.save()
-
-    // Emit via websocket for real-time delivery
-    webSocketService.emitToUser(userId, 'notification', notification)
-
-    return notification
   } catch (error) {
     console.error('Error creating notification for activity:', error)
     return null
@@ -543,10 +716,18 @@ exports.notifyPartners = async (farmerId, activity, subActivity, context = {}) =
     const farmer = await User.findById(farmerId).populate('partner')
     if (!farmer || !farmer.partner) return false
 
-    const partner = await User.findById(farmer.partner._id)
-    if (!partner) return false
+    // Partner org doc is not a User — resolve partner login by matching email
+    const partnerUser = await User.findOne({
+      email: farmer.partner.email,
+      role: 'partner'
+    }).select('_id')
 
-    await exports.createNotificationForActivity(partner._id, 'partner', activity, subActivity, context)
+    if (!partnerUser) {
+      console.warn(`No partner user found for org email ${farmer.partner.email}`)
+      return false
+    }
+
+    await exports.createNotificationForActivity(partnerUser._id, 'partner', activity, subActivity, context)
     return true
   } catch (error) {
     console.error('Error notifying partners:', error)
@@ -560,30 +741,14 @@ exports.testNotification = async (req, res) => {
     const { type, category, title, message } = req.body
     const userId = req.user.id
 
-    // Create notification
-    const notification = new Notification({
-      user: userId,
-      title: title || `Test ${type} notification`,
-      message: message || `This is a test ${type} notification for ${category} category`,
+    const notification = await exports.createAndEmitNotification({
+      userId,
+      title: title || `Test ${type || 'info'} notification`,
+      message: message || `This is a test ${type || 'info'} notification for ${category || 'system'} category`,
       type: type || 'info',
       category: category || 'system',
-      channels: ['in_app'],
       priority: type === 'error' ? 'urgent' : 'normal',
       data: { test: true, timestamp: new Date() }
-    })
-
-    await notification.save()
-
-    // Send real-time notification via WebSocket
-    webSocketService.sendNotificationToUser(userId, {
-      id: notification._id,
-      title: notification.title,
-      message: notification.message,
-      type: notification.type,
-      category: notification.category,
-      createdAt: notification.createdAt,
-      priority: notification.priority,
-      data: notification.data
     })
 
     return res.json({
@@ -596,4 +761,3 @@ exports.testNotification = async (req, res) => {
     return res.status(500).json({ status: 'error', message: 'Failed to send test notification' })
   }
 }
-

@@ -400,10 +400,10 @@ class ApiService {
   }
 
   // Email verification helpers
-  async verifyEmail(token: string) {
+  async verifyEmail(email: string, code: string) {
     return this.request<{ message: string; user: User }>("/api/auth/verify-email", {
       method: "POST",
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({ email, code }),
     })
   }
 

@@ -1,6 +1,53 @@
 const RESEND_API = 'https://api.resend.com/emails'
 const MAX_RETRIES = 2
 
+const PUBLIC_MAILBOX_DOMAINS = [
+  'gmail.com',
+  'googlemail.com',
+  'yahoo.com',
+  'hotmail.com',
+  'outlook.com',
+  'live.com'
+]
+
+/**
+ * Resend requires a verified domain or onboarding@resend.dev (test mode).
+ * Reject public mailbox domains that will always fail with 403.
+ */
+function resolveFromEmail() {
+  const configured =
+    process.env.RESEND_FROM_EMAIL ||
+    process.env.EMAIL_FROM ||
+    'GroChain <onboarding@resend.dev>'
+
+  const extractDomain = (value) => {
+    const match = value.match(/<([^>]+)>/) || value.match(/([^\s<>]+@[^\s<>]+)/)
+    const email = (match ? match[1] : value).trim()
+    return email.split('@')[1]?.toLowerCase() || ''
+  }
+
+  const domain = extractDomain(configured)
+  const isPublicMailbox = PUBLIC_MAILBOX_DOMAINS.some(
+    (blocked) => domain === blocked || domain.endsWith(`.${blocked}`)
+  )
+
+  if (isPublicMailbox) {
+    const fallback =
+      process.env.RESEND_FALLBACK_FROM_EMAIL || 'GroChain <onboarding@resend.dev>'
+    console.warn(
+      `⚠️ Resend cannot send from ${configured} (public/unverified domain). Using ${fallback}`
+    )
+    return fallback
+  }
+
+  if (configured.includes('<') && configured.includes('>')) {
+    return configured
+  }
+
+  const name = process.env.RESEND_FROM_NAME || process.env.SENDGRID_FROM_NAME || 'GroChain'
+  return `${name} <${configured}>`
+}
+
 /**
  * Send email using Resend HTTP API directly
  * This bypasses SMTP port blocking and provides better error handling
@@ -8,7 +55,7 @@ const MAX_RETRIES = 2
  */
 async function sendEmailViaResend(to, subject, html) {
   const RESEND_API_KEY = process.env.RESEND_API_KEY
-  const EMAIL_FROM = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || 'onboarding@resend.dev'
+  const EMAIL_FROM = resolveFromEmail()
 
   if (!RESEND_API_KEY) {
     throw new Error('Missing RESEND_API_KEY in environment variables')
@@ -67,9 +114,16 @@ async function sendEmailViaResend(to, subject, html) {
         
         console.error(`❌ Resend: HTTP ${resp.status}:`, parsedBody)
         
-        // 4xx likely permanent; break on authentication or bad request
-        if (resp.status === 401 || resp.status === 403) {
+        // Permanent client errors — do not retry
+        if (resp.status === 401) {
           throw new Error('Resend authentication failed - check RESEND_API_KEY')
+        }
+        if (resp.status === 403) {
+          const msg =
+            typeof parsedBody === 'object' && parsedBody?.message
+              ? parsedBody.message
+              : 'Resend forbidden — verify domain or use account owner email in test mode'
+          throw new Error(msg)
         }
         if (resp.status === 400) {
           throw new Error(`Resend bad request: ${JSON.stringify(parsedBody)}`)
@@ -77,8 +131,8 @@ async function sendEmailViaResend(to, subject, html) {
         if (resp.status === 422) {
           throw new Error(`Resend validation error: ${JSON.stringify(parsedBody)}`)
         }
-        
-        // Don't retry on 4xx except for rate limits
+
+        // Don't retry on other 4xx except rate limits
         if (resp.status >= 400 && resp.status < 500 && resp.status !== 429) {
           break
         }
@@ -108,4 +162,4 @@ async function sendEmailViaResend(to, subject, html) {
   throw new Error(`Resend send failed after ${attempt} attempts: ${JSON.stringify(lastError)}`)
 }
 
-module.exports = { sendEmailViaResend }
+module.exports = { sendEmailViaResend, resolveFromEmail }

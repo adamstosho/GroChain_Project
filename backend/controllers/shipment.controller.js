@@ -2,7 +2,6 @@ const mongoose = require('mongoose')
 const Shipment = require('../models/shipment.model')
 const Order = require('../models/order.model')
 const User = require('../models/user.model')
-const Notification = require('../models/notification.model')
 const webSocketService = require('../services/websocket.service')
 const {
   userCanJoinOrderRoom,
@@ -220,15 +219,17 @@ const shipmentController = {
         'Shipment has been created and is pending confirmation'
       )
 
-      // Create notification for buyer
+      // Create notification for buyer (persist + realtime bell toast)
       const orderNumber = order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`
-      await Notification.create({
-        user: order.buyer._id,
+      const { createAndEmitNotification } = require('./notification.controller')
+      await createAndEmitNotification({
+        userId: order.buyer._id,
         title: 'Shipment Created',
         message: `Your order #${orderNumber} has been shipped. Track your delivery with shipment #${shipmentWithEvent.shipmentNumber}`,
         type: 'info',
         category: 'shipment',
-        data: { shipmentId: shipmentWithEvent._id, orderId: order._id }
+        data: { shipmentId: shipmentWithEvent._id, orderId: order._id },
+        actionUrl: `/dashboard/shipments/${shipmentWithEvent._id}`
       })
 
       emitShipmentUpdate(
@@ -469,16 +470,18 @@ const shipmentController = {
       // Add tracking event
       const updatedShipment = await shipment.addTrackingEvent(status, location, description, coordinates)
 
-      // Create notification for buyer
+      // Create notification for buyer (persist + realtime)
       const order = await Order.findById(shipment.order)
       const orderNumber = order?.orderNumber || `ORD-${shipment.order?.toString().slice(-6).toUpperCase() || 'UNKNOWN'}`
-      await Notification.create({
-        user: updatedShipment.buyer,
+      const { createAndEmitNotification } = require('./notification.controller')
+      await createAndEmitNotification({
+        userId: updatedShipment.buyer,
         title: 'Shipment Update',
         message: `Your order #${orderNumber} shipment #${updatedShipment.shipmentNumber} status: ${status} - ${description}`,
         type: 'info',
         category: 'shipment',
-        data: { shipmentId: updatedShipment._id, status, location }
+        data: { shipmentId: updatedShipment._id, status, location },
+        actionUrl: `/dashboard/shipments/${updatedShipment._id}`
       })
 
       emitShipmentUpdate(
@@ -554,25 +557,26 @@ const shipmentController = {
         deliveredShipment.destination.coordinates
       )
 
-      // Create notification for buyer and seller
-      const notifications = [
-        {
-          user: shipmentWithTracking.buyer,
+      // Create notification for buyer and seller (persist + realtime)
+      const { createAndEmitNotification } = require('./notification.controller')
+      await Promise.all([
+        createAndEmitNotification({
+          userId: shipmentWithTracking.buyer,
           title: 'Package Delivered',
           message: `Your shipment #${shipmentWithTracking.shipmentNumber} has been delivered successfully!`,
           type: 'success',
-          category: 'shipment'
-        },
-        {
-          user: shipmentWithTracking.seller,
+          category: 'shipment',
+          actionUrl: `/dashboard/shipments/${shipmentWithTracking._id}`
+        }),
+        createAndEmitNotification({
+          userId: shipmentWithTracking.seller,
           title: 'Delivery Confirmed',
           message: `Shipment #${shipmentWithTracking.shipmentNumber} has been delivered to the buyer.`,
           type: 'success',
-          category: 'shipment'
-        }
-      ]
-
-      await Notification.insertMany(notifications)
+          category: 'shipment',
+          actionUrl: `/dashboard/shipments/${shipmentWithTracking._id}`
+        })
+      ])
 
       emitShipmentUpdate(
         shipmentWithTracking,
@@ -635,28 +639,23 @@ const shipmentController = {
       // Report issue
       await shipment.reportIssue(type, description, req.user.id)
 
-      // Create notification for relevant parties
-      const notifications = []
-      
-      if (req.user.id === shipment.buyer.toString()) {
-        notifications.push({
-          user: shipment.seller,
-          title: 'Shipment Issue Reported',
-          message: `Buyer reported an issue with shipment #${shipment.shipmentNumber}: ${type}`,
-          type: 'warning',
-          category: 'shipment'
-        })
-      } else {
-        notifications.push({
-          user: shipment.buyer,
-          title: 'Shipment Issue Reported',
-          message: `Seller reported an issue with shipment #${shipment.shipmentNumber}: ${type}`,
-          type: 'warning',
-          category: 'shipment'
-        })
-      }
+      // Create notification for relevant parties (persist + realtime)
+      const { createAndEmitNotification } = require('./notification.controller')
+      const targetUserId =
+        req.user.id === shipment.buyer.toString() ? shipment.seller : shipment.buyer
+      const reporterRole =
+        req.user.id === shipment.buyer.toString() ? 'Buyer' : 'Seller'
 
-      await Notification.insertMany(notifications)
+      await createAndEmitNotification({
+        userId: targetUserId,
+        title: 'Shipment Issue Reported',
+        message: `${reporterRole} reported an issue with shipment #${shipment.shipmentNumber}: ${type}`,
+        type: 'warning',
+        category: 'shipment',
+        priority: 'high',
+        data: { shipmentId: shipment._id, issueType: type, description },
+        actionUrl: `/dashboard/shipments/${shipment._id}`
+      })
 
       res.json({
         status: 'success',

@@ -11,7 +11,8 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useNotifications } from "@/hooks/use-notifications"
+import { useNotificationContext } from "@/components/notifications/notification-provider"
+import { NotificationDeliveryBadges } from "@/components/notifications/notification-delivery-badges"
 
 export function NotificationBell() {
   const {
@@ -22,7 +23,7 @@ export function NotificationBell() {
     connected,
     markAsRead,
     markAllAsRead,
-  } = useNotifications()
+  } = useNotificationContext()
 
   const [isOpen, setIsOpen] = useState(false)
 
@@ -171,10 +172,15 @@ export function NotificationBell() {
                               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                                 {notification.message}
                               </p>
-                              <div className="flex items-center gap-1 mt-0.5">
+                              <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                                 <Badge variant="secondary" className="text-xs">
                                   {notification.category}
                                 </Badge>
+                                <NotificationDeliveryBadges
+                                  channels={notification.channels}
+                                  deliveryStatus={notification.deliveryStatus}
+                                  compact
+                                />
                                 <span className="text-xs text-muted-foreground">
                                   {formatTime(notification.createdAt)}
                                 </span>

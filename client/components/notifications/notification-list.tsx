@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useNotificationContext } from './notification-provider'
 import { useToast } from '@/hooks/use-toast'
-import { formatDistanceToNow } from 'date-fns'
+import { NotificationDeliveryBadges } from './notification-delivery-badges'
 
 export function NotificationList() {
   const {
@@ -19,7 +19,8 @@ export function NotificationList() {
     unreadCount,
     loading,
     markAsRead,
-    markAllAsRead
+    markAllAsRead,
+    deleteNotification
   } = useNotificationContext()
 
   const { toast } = useToast()
@@ -94,6 +95,22 @@ export function NotificationList() {
       setSelectedNotifications(new Set())
     } else {
       setSelectedNotifications(new Set(filteredNotifications.map(n => n.id)))
+    }
+  }
+
+  const handleDelete = async (notificationId: string) => {
+    const success = await deleteNotification(notificationId)
+    if (success) {
+      setSelectedNotifications(prev => {
+        const next = new Set(prev)
+        next.delete(notificationId)
+        return next
+      })
+      toast({
+        title: "Notification Deleted",
+        description: "The notification has been removed",
+        variant: "success"
+      })
     }
   }
 
@@ -222,6 +239,8 @@ export function NotificationList() {
                   <SelectItem value="financial">Financial</SelectItem>
                   <SelectItem value="system">System</SelectItem>
                   <SelectItem value="weather">Weather</SelectItem>
+                  <SelectItem value="shipment">Shipment</SelectItem>
+                  <SelectItem value="payment">Payment</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -317,7 +336,11 @@ export function NotificationList() {
                         <p className="text-sm text-muted-foreground mb-2">
                           {notification.message}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <NotificationDeliveryBadges
+                          channels={notification.channels}
+                          deliveryStatus={notification.deliveryStatus}
+                        />
+                        <p className="text-xs text-muted-foreground mt-2">
                           {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                         </p>
                       </div>
@@ -354,6 +377,12 @@ export function NotificationList() {
                                 Mark as Read
                               </DropdownMenuItem>
                             )}
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleDelete(notification.id)}
+                            >
+                              Delete
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>

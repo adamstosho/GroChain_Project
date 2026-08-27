@@ -413,7 +413,7 @@ class WebSocketService {
     return this.connectedUsers.has(userId.toString())
   }
 
-  // Send real-time harvest approval update
+  // Send real-time harvest approval update (domain event — not bell notification payload)
   sendHarvestApprovalUpdate(harvestId, status, farmerId, partnerId) {
     const update = {
       harvestId,
@@ -421,22 +421,12 @@ class WebSocketService {
       timestamp: new Date()
     }
 
-    // Send to farmer
-    this.sendNotificationToUser(farmerId, {
-      type: 'harvest-approval',
-      title: 'Harvest Status Updated',
-      message: `Your harvest has been ${status}`,
-      data: update
-    })
+    if (farmerId) {
+      this.emitToUser(farmerId, 'harvest-approval-update', update)
+    }
 
-    // Send to partner
     if (partnerId) {
-      this.sendNotificationToUser(partnerId, {
-        type: 'harvest-approval',
-        title: 'Harvest Processed',
-        message: `Harvest ${harvestId} has been ${status}`,
-        data: update
-      })
+      this.emitToUser(partnerId, 'harvest-approval-update', update)
     }
 
     // Broadcast to relevant roles
@@ -471,6 +461,7 @@ class WebSocketService {
   }
 
   // Send real-time shipment update
+  // Send real-time shipment update (tracking event — not in-app notification payload)
   sendShipmentUpdate(shipmentId, status, buyerId, sellerId, extra = {}) {
     const update = {
       shipmentId,
@@ -479,24 +470,13 @@ class WebSocketService {
       ...extra
     }
 
-    // Send to buyer
+    // Send dedicated shipment-update events to buyer/seller sockets
     if (buyerId) {
-      this.sendNotificationToUser(buyerId, {
-        type: 'shipment-update',
-        title: 'Shipment Update',
-        message: `Your shipment status: ${status}`,
-        data: update
-      })
+      this.emitToUser(buyerId, 'shipment-update', update)
     }
 
-    // Send to seller
     if (sellerId) {
-      this.sendNotificationToUser(sellerId, {
-        type: 'shipment-update',
-        title: 'Shipment Update',
-        message: `Shipment ${shipmentId} status: ${status}`,
-        data: update
-      })
+      this.emitToUser(sellerId, 'shipment-update', update)
     }
 
     // Broadcast to relevant roles
@@ -522,13 +502,9 @@ class WebSocketService {
     }
 
     // Send to user
+    // Domain event only — persisted bell notifications are created by payment controllers
     if (userId) {
-      this.sendNotificationToUser(userId, {
-        type: 'payment-update',
-        title: 'Payment Update',
-        message: `Your payment status: ${status}`,
-        data: update
-      })
+      this.emitToUser(userId, 'payment-update', update)
     }
 
     // Broadcast to relevant roles

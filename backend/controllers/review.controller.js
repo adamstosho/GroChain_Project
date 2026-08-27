@@ -174,17 +174,20 @@ const reviewController = {
 
       // Send notification to farmer about new review
       try {
-        const Notification = require('../models/notification.model')
-        await Notification.create({
-          user: listing.farmer._id,
-          type: 'review',
+        const { createAndEmitNotification } = require('./notification.controller')
+        await createAndEmitNotification({
+          userId: listing.farmer._id,
+          type: 'info',
+          category: 'marketplace',
           title: 'New Review Received',
           message: `${review.buyer.name} left a ${rating}-star review for your ${listing.cropName}`,
+          priority: 'normal',
           data: {
             reviewId: review._id,
             listingId: listingId,
             rating: rating
-          }
+          },
+          actionUrl: `/dashboard/reviews`
         })
       } catch (notificationError) {
         console.error('Error creating review notification:', notificationError)

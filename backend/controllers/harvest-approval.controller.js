@@ -2,7 +2,20 @@ const mongoose = require('mongoose')
 const Harvest = require('../models/harvest.model')
 const Listing = require('../models/listing.model')
 const User = require('../models/user.model')
-const Notification = require('../models/notification.model')
+const { createAndEmitNotification } = require('./notification.controller')
+
+const notifyHarvestFarmer = async ({ farmerId, title, message, type, harvestId, data = {} }) => {
+  await createAndEmitNotification({
+    userId: farmerId,
+    title,
+    message,
+    type,
+    category: 'harvest',
+    priority: type === 'warning' || type === 'error' ? 'high' : 'normal',
+    data: { harvestId, ...data },
+    actionUrl: `/dashboard/harvests/${harvestId}`
+  })
+}
 
 // Helper function to map crop types to categories
 const getCategoryFromCropType = (cropType) => {
@@ -320,14 +333,14 @@ const harvestApprovalController = {
       console.log('Harvest saved successfully')
 
       console.log('Creating notification...')
-      // Create notification for farmer
-      await Notification.create({
-        user: harvest.farmer,
+      // Create notification for farmer (persist + realtime)
+      await notifyHarvestFarmer({
+        farmerId: harvest.farmer,
         title: 'Harvest Approved',
         message: `Your ${harvest.cropType} harvest has been approved with ${harvest.quality} quality rating.`,
         type: 'success',
-        category: 'harvest',
-        data: { harvestId: harvest._id, quality: harvest.quality }
+        harvestId: harvest._id,
+        data: { quality: harvest.quality }
       })
       console.log('Notification created')
 
@@ -424,14 +437,14 @@ const harvestApprovalController = {
       
       await harvest.save()
       
-      // Create notification for farmer
-      await Notification.create({
-        user: harvest.farmer,
+      // Create notification for farmer (persist + realtime)
+      await notifyHarvestFarmer({
+        farmerId: harvest.farmer,
         title: 'Harvest Rejected',
         message: `Your ${harvest.cropType} harvest has been rejected. Reason: ${rejectionReason}`,
         type: 'warning',
-        category: 'harvest',
-        data: { harvestId: harvest._id, rejectionReason }
+        harvestId: harvest._id,
+        data: { rejectionReason }
       })
       
       res.json({
@@ -492,14 +505,14 @@ const harvestApprovalController = {
       
       await harvest.save()
       
-      // Create notification for farmer
-      await Notification.create({
-        user: harvest.farmer,
+      // Create notification for farmer (persist + realtime)
+      await notifyHarvestFarmer({
+        farmerId: harvest.farmer,
         title: 'Harvest Revision Requested',
         message: `Your ${harvest.cropType} harvest needs revision. Please review the feedback and resubmit.`,
-        type: 'info',
-        category: 'harvest',
-        data: { harvestId: harvest._id, revisionNotes, requiredChanges }
+        type: 'warning',
+        harvestId: harvest._id,
+        data: { revisionNotes, requiredChanges }
       })
       
       res.json({
@@ -1087,22 +1100,23 @@ const harvestApprovalController = {
         updateData
       )
       
-      // Create notifications for farmers
-      const notifications = harvests.map(harvest => ({
-        user: harvest.farmer,
-        title: `Harvest ${action === 'approve' ? 'Approved' : 'Rejected'}`,
-        message: `Your ${harvest.cropType} harvest has been ${action === 'approve' ? 'approved' : 'rejected'}.`,
-        type: action === 'approve' ? 'success' : 'warning',
-        category: 'harvest',
-        data: { 
-          harvestId: harvest._id, 
-          action,
-          quality: action === 'approve' ? quality : undefined,
-          rejectionReason: action === 'reject' ? rejectionReason : undefined
-        }
-      }))
-      
-      await Notification.insertMany(notifications)
+      // Create notifications for farmers (persist + realtime)
+      await Promise.all(
+        harvests.map((harvest) =>
+          notifyHarvestFarmer({
+            farmerId: harvest.farmer,
+            title: `Harvest ${action === 'approve' ? 'Approved' : 'Rejected'}`,
+            message: `Your ${harvest.cropType} harvest has been ${action === 'approve' ? 'approved' : 'rejected'}.`,
+            type: action === 'approve' ? 'success' : 'warning',
+            harvestId: harvest._id,
+            data: {
+              action,
+              quality: action === 'approve' ? quality : undefined,
+              rejectionReason: action === 'reject' ? rejectionReason : undefined
+            }
+          })
+        )
+      )
       
       res.json({
         status: 'success',

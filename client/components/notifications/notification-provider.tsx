@@ -12,6 +12,7 @@ interface NotificationContextType {
   connected: boolean
   markAsRead: (notificationIds: string[]) => Promise<boolean>
   markAllAsRead: () => Promise<boolean>
+  deleteNotification: (notificationId: string) => Promise<boolean>
   fetchNotifications: (filters?: any) => Promise<any>
   getNotificationPreferences: () => Promise<any>
   updateNotificationPreferences: (preferences: any) => Promise<boolean>
