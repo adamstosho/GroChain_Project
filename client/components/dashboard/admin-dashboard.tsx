@@ -176,7 +176,7 @@ export function AdminDashboard() {
   }, [toast, stats?.totalUsers])
 
   // Smart event-driven refresh system
-  const { refresh } = useDashboardRefresh({
+  useDashboardRefresh({
     onRefresh: fetchDashboardData
   })
 
@@ -193,7 +193,7 @@ export function AdminDashboard() {
         description: "Admin dashboard data has been updated",
         variant: "default",
       })
-    } catch (error) {
+    } catch {
       toast({
         title: "Refresh failed",
         description: "Could not refresh dashboard data",
@@ -608,7 +608,7 @@ export function AdminDashboard() {
                           asChild
                           className="text-xs sm:text-sm h-8 sm:h-9 w-full sm:w-auto"
                         >
-                          <Link href={`/dashboard/users/${user._id}`}>
+                          <Link href="/dashboard/users">
                             <span className="hidden sm:inline">View</span>
                             <span className="sm:hidden">View Details</span>
                           </Link>
@@ -666,7 +666,7 @@ export function AdminDashboard() {
                     {systemHealth?.errorRate || "0.1%"}
                   </span>
                 </div>
-                <Button variant="outline" size="sm" className="w-full bg-transparent" asChild>
+                <Button variant="outline" size="sm" className="w-full" asChild>
                   <Link href="/dashboard/system">View Details</Link>
                 </Button>
               </div>
@@ -683,19 +683,19 @@ export function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <Button variant="outline" size="sm" className="w-full justify-start bg-transparent text-xs sm:text-sm" asChild>
+                <Button variant="outline" size="sm" className="w-full justify-start text-xs sm:text-sm" asChild>
                   <Link href="/dashboard/system">
                     <Database className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     System Management
                   </Link>
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start bg-transparent text-xs sm:text-sm" asChild>
+                <Button variant="outline" size="sm" className="w-full justify-start text-xs sm:text-sm" asChild>
                   <Link href="/dashboard/settings">
                     <Settings className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     System Settings
                   </Link>
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start bg-transparent text-xs sm:text-sm" asChild>
+                <Button variant="outline" size="sm" className="w-full justify-start text-xs sm:text-sm" asChild>
                   <Link href="/dashboard/reports">
                     <FileText className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Generate Reports

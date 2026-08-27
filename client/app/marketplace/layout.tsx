@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Marketplace | GroChain - Digital Agriculture",
     description: "Connect with verified farmers and buy quality produce.",
-    images: ["/herosection-image.png"],
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "GroChain Marketplace" }],
   },
 }
 

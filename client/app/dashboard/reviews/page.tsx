@@ -1,32 +1,28 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { useAuthStore } from "@/lib/auth"
-import { 
-  Star, 
-  MessageCircle, 
-  Search, 
-  Filter, 
-  Reply, 
-  CheckCircle, 
-  Clock, 
-  XCircle,
-  TrendingUp,
-  Users,
-  ThumbsUp
+import {
+  Star,
+  MessageCircle,
+  Search,
+  Filter,
+  Reply,
+  CheckCircle,
+  Clock,
+  XCircle
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -67,7 +63,6 @@ interface ReviewStats {
 }
 
 export default function ReviewsPage() {
-  const { user } = useAuthStore()
   const { toast } = useToast()
   const [reviews, setReviews] = useState<Review[]>([])
   const [stats, setStats] = useState<ReviewStats>({
@@ -330,10 +325,12 @@ export default function ReviewsPage() {
                       {review.images && review.images.length > 0 && (
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                           {review.images.map((image, index) => (
-                            <img
+                            <Image
                               key={index}
                               src={image}
                               alt={`Review image ${index + 1}`}
+                              width={150}
+                              height={80}
                               className="w-full h-20 object-cover rounded-lg"
                             />
                           ))}

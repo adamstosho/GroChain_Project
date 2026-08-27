@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
+import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
 import {
   Plus,
@@ -20,21 +21,12 @@ import {
   XCircle,
   AlertCircle,
   TrendingUp,
-  Banknote,
-  Calendar,
   Download,
   Eye,
   RefreshCw,
   Upload,
-  MapPin,
   Crop,
-  Thermometer,
-  Droplets,
-  Wind,
-  Sun,
-  Cloud,
-  CloudRain,
-  Zap
+  CloudRain
 } from "lucide-react"
 import Link from "next/link"
 
@@ -249,9 +241,7 @@ export default function InsuranceClaimsPage() {
     return <FileText className="h-4 w-4" />
   }
 
-  const formatCurrency = (amount: number) => {
-    return `₦${(amount / 1000).toFixed(0)}K`
-  }
+  const formatCurrency = (amount: number) => formatCompactCurrency(amount)
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -593,14 +583,37 @@ export default function InsuranceClaimsPage() {
                     <span>Submit Claim</span>
                   </Button>
                   
-                  <Button variant="outline" className="h-auto p-4 flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    className="h-auto p-4 flex-col gap-2"
+                    onClick={async () => {
+                      const { getExportService } = await import("@/lib/export-utils")
+                      const exportService = getExportService()
+                      const rows = claims.map((c) => ({
+                        id: c.id,
+                        claimType: c.claimType,
+                        amount: c.claimAmount,
+                        status: c.status,
+                        location: c.location,
+                        description: c.description,
+                        reportedDate: c.reportedDate,
+                        paidAmount: c.paidAmount,
+                      }))
+                      await exportService.exportCustomData(rows, {
+                        format: "excel",
+                        filename: `grochain-insurance-claims-${new Date().toISOString().slice(0, 10)}.xlsx`,
+                      })
+                    }}
+                  >
                     <Download className="h-6 w-6 text-success" />
-                    <span>Download Forms</span>
+                    <span>Export Claims</span>
                   </Button>
                   
-                  <Button variant="outline" className="h-auto p-4 flex-col gap-2">
-                    <Eye className="h-6 w-6 text-accent" />
-                    <span>View Policies</span>
+                  <Button variant="outline" className="h-auto p-4 flex-col gap-2" asChild>
+                    <Link href="/dashboard/financial/insurance/policies">
+                      <Eye className="h-6 w-6 text-accent" />
+                      <span>View Policies</span>
+                    </Link>
                   </Button>
                 </div>
               </CardContent>
@@ -705,7 +718,33 @@ export default function InsuranceClaimsPage() {
                             <Upload className="h-4 w-4 mr-2" />
                             Upload Docs
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              const { getExportService } = await import("@/lib/export-utils")
+                              const exportService = getExportService()
+                              await exportService.exportCustomData(
+                                [
+                                  {
+                                    id: claim.id,
+                                    policyNumber: claim.policyNumber,
+                                    claimType: claim.claimType,
+                                    description: claim.description,
+                                    claimAmount: claim.claimAmount,
+                                    status: claim.status,
+                                    location: claim.location,
+                                    reportedDate: claim.reportedDate,
+                                    paidAmount: claim.paidAmount || "",
+                                  },
+                                ],
+                                {
+                                  format: "excel",
+                                  filename: `grochain-claim-${claim.id}.xlsx`,
+                                }
+                              )
+                            }}
+                          >
                             <Download className="h-4 w-4 mr-2" />
                             Download
                           </Button>

@@ -9,7 +9,6 @@ import { apiService } from "@/lib/api"
 import { io, Socket } from "socket.io-client"
 import { APP_CONFIG } from "@/lib/constants"
 import { ShipmentStatusBadge } from "./shipment-status-badge"
-import { ShipmentTrackingTimeline } from "./shipment-tracking-timeline"
 import { 
   Package, 
   Truck, 
@@ -194,26 +193,6 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
       socket.emit("join-room", `shipment:${sid}`)
     }
   }, [shipment?._id])
-
-  const formatPrice = (price: number | undefined | null) => {
-    if (price === undefined || price === null || isNaN(price)) {
-      return '₦0'
-    }
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price)
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
 
   const getEstimatedDeliveryStatus = () => {
     if (!shipment) return { text: '', color: '' }

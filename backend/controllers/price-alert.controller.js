@@ -1,7 +1,6 @@
 const mongoose = require('mongoose')
 const PriceAlert = require('../models/price-alert.model')
 const Listing = require('../models/listing.model')
-const Notification = require('../models/notification.model')
 const { WebSocketService } = require('../services/websocket.service')
 const NotificationService = require('../services/notification.service')
 

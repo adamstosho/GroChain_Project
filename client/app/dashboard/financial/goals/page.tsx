@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
+import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
 import {
   ArrowLeft,
@@ -22,12 +23,10 @@ import {
   Banknote,
   CheckCircle,
   Clock,
-  AlertCircle,
   Edit,
   Trash2,
   PiggyBank,
   Building,
-  Car,
   GraduationCap,
   Shield,
   Zap
@@ -129,14 +128,6 @@ export default function FinancialGoalsPage() {
   const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deletingGoal, setDeletingGoal] = useState<FinancialGoal | null>(null)
-  const [stats, setStats] = useState({
-    totalGoals: 0,
-    activeGoals: 0,
-    completedGoals: 0,
-    totalTarget: 0,
-    totalCurrent: 0,
-    averageProgress: 0
-  })
   const [formData, setFormData] = useState<GoalFormData>({
     title: '',
     description: '',
@@ -185,23 +176,6 @@ export default function FinancialGoalsPage() {
         }))
 
         setGoals(transformedGoals)
-
-        // Calculate statistics
-        const totalGoals = transformedGoals.length
-        const activeGoals = transformedGoals.filter(goal => goal.status === 'active').length
-        const completedGoals = transformedGoals.filter(goal => goal.status === 'completed').length
-        const totalTarget = transformedGoals.reduce((sum, goal) => sum + goal.targetAmount, 0)
-        const totalCurrent = transformedGoals.reduce((sum, goal) => sum + goal.currentAmount, 0)
-        const averageProgress = totalGoals > 0 ? Math.round(transformedGoals.reduce((sum, goal) => sum + goal.progress, 0) / totalGoals) : 0
-
-        setStats({
-          totalGoals,
-          activeGoals,
-          completedGoals,
-          totalTarget,
-          totalCurrent,
-          averageProgress
-        })
       } else {
         throw new Error('Failed to fetch financial goals')
       }
@@ -380,14 +354,6 @@ export default function FinancialGoalsPage() {
     return diffDays
   }
 
-  const getProgressColor = (progress: number) => {
-    if (progress >= 80) return 'bg-success'
-    if (progress >= 60) return 'bg-primary'
-    if (progress >= 40) return 'bg-warning'
-    if (progress >= 20) return 'bg-warning'
-    return 'bg-destructive'
-  }
-
   if (loading) {
     return (
       <DashboardLayout pageTitle="Financial Goals">
@@ -461,7 +427,7 @@ export default function FinancialGoalsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
-                ₦{(goals.reduce((sum, goal) => sum + goal.targetAmount, 0) / 1000000).toFixed(1)}M
+                {formatCompactCurrency(goals.reduce((sum, goal) => sum + goal.targetAmount, 0))}
               </div>
               <p className="text-xs text-muted-foreground">Combined target</p>
             </CardContent>
@@ -476,7 +442,7 @@ export default function FinancialGoalsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
-                ₦{(goals.reduce((sum, goal) => sum + goal.currentAmount, 0) / 1000000).toFixed(1)}M
+                {formatCompactCurrency(goals.reduce((sum, goal) => sum + goal.currentAmount, 0))}
               </div>
               <p className="text-xs text-muted-foreground">Current progress</p>
             </CardContent>

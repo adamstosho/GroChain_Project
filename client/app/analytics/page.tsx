@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { BuyerAnalytics } from "@/components/analytics/buyer-analytics"
 
 export default function AnalyticsPage() {

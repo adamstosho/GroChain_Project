@@ -1,13 +1,12 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { useShipments, useShipmentStats, useExportShipments } from "@/hooks/use-shipments"
 import { useAuth } from "@/hooks/use-auth"
@@ -18,7 +17,6 @@ import {
   Search, 
   Filter, 
   RefreshCw,
-  TrendingUp,
   Clock,
   AlertTriangle,
   CheckCircle,
@@ -30,7 +28,6 @@ import {
 } from "lucide-react"
 import { ShipmentFilters } from "@/types/shipment"
 import Link from "next/link"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // Custom debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -61,7 +58,7 @@ export default function ShipmentsPage() {
   
   const { toast } = useToast()
   const { shipments, loading, error, pagination, refreshShipments } = useShipments(filters)
-  const { stats, loading: statsLoading, error: statsError, refreshStats } = useShipmentStats()
+  const { stats, loading: statsLoading, refreshStats } = useShipmentStats()
   const { exportShipments, loading: exporting } = useExportShipments()
 
   // Update filters when debounced search changes
@@ -104,7 +101,7 @@ export default function ShipmentsPage() {
   const handleExport = async () => {
     try {
       await exportShipments('csv', filters)
-    } catch (err) {
+    } catch {
       // Error handled in hook
     }
   }
@@ -192,7 +189,7 @@ export default function ShipmentsPage() {
                 variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
                 size="sm" 
                 onClick={() => setViewMode('list')}
-                className={`h-7 px-3 rounded-md transition-all ${viewMode === 'list' ? 'shadow-sm bg-white' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`h-7 px-3 rounded-md transition-all ${viewMode === 'list' ? 'shadow-sm bg-card' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <ListIcon className="h-3.5 w-3.5 mr-1.5" />
                 List
@@ -201,7 +198,7 @@ export default function ShipmentsPage() {
                 variant={viewMode === 'map' ? 'secondary' : 'ghost'} 
                 size="sm" 
                 onClick={() => setViewMode('map')}
-                className={`h-7 px-3 rounded-md transition-all ${viewMode === 'map' ? 'shadow-sm bg-white' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`h-7 px-3 rounded-md transition-all ${viewMode === 'map' ? 'shadow-sm bg-card' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <MapIcon className="h-3.5 w-3.5 mr-1.5" />
                 Map
@@ -325,7 +322,7 @@ export default function ShipmentsPage() {
                     <AlertTriangle className="h-16 w-16 text-destructive mx-auto mb-4 opacity-50" />
                     <h3 className="text-xl font-bold text-destructive mb-2">Sync Interrupted</h3>
                     <p className="text-destructive max-w-sm mx-auto mb-6">{error}</p>
-                    <Button onClick={handleRefresh} className="bg-destructive hover:bg-destructive text-white">
+                    <Button onClick={handleRefresh} className="bg-destructive hover:bg-destructive-hover text-destructive-foreground">
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Reconnect Sync
                     </Button>
@@ -335,7 +332,7 @@ export default function ShipmentsPage() {
                 <div className="py-20 flex flex-col items-center justify-center text-center">
                   <div className="relative mb-8">
                     <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl opacity-10 animate-pulse"></div>
-                    <div className="relative bg-white p-6 rounded-3xl shadow-xl border border-border">
+                    <div className="relative bg-card p-6 rounded-3xl shadow-xl border border-border">
                       <Package className="h-16 w-16 text-muted-foreground" />
                     </div>
                   </div>
@@ -353,7 +350,7 @@ export default function ShipmentsPage() {
                       </Button>
                     )}
                     {isFarmer && (
-                      <Button asChild className="bg-primary hover:bg-primary/90 text-white">
+                      <Button asChild className="bg-primary hover:bg-primary-hover text-primary-foreground">
                         <Link href="/dashboard/orders">
                           Fulfill Pending Orders
                         </Link>
@@ -383,7 +380,7 @@ export default function ShipmentsPage() {
                         {' '}- <span className="text-foreground font-bold">{Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)}</span> 
                         {' '}of <span className="text-foreground font-bold">{pagination.totalItems}</span> logistics units
                       </div>
-                      <div className="flex items-center justify-center gap-1 bg-white p-1 rounded-xl shadow-sm border border-border">
+                      <div className="flex items-center justify-center gap-1 bg-card p-1 rounded-xl shadow-sm border border-border">
                         <Button
                           variant="ghost"
                           size="sm"

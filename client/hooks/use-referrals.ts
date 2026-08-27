@@ -188,22 +188,26 @@ export function useReferrals() {
     referralService.clearCache()
   }, [])
 
+  // Referrals (referring farmers to the platform for commission) is a partner-only
+  // feature - the backend rejects these calls for any other role.
+  const canViewReferrals = user?.role === 'partner'
+
   // Load initial data
   useEffect(() => {
-    if (user?._id) {
+    if (user?._id && canViewReferrals) {
       Promise.all([
         fetchReferrals(),
         fetchStats()
       ])
     }
-  }, [user?._id, fetchReferrals, fetchStats])
+  }, [user?._id, canViewReferrals, fetchReferrals, fetchStats])
 
   // Refetch when filters change
   useEffect(() => {
-    if (user?._id) {
+    if (user?._id && canViewReferrals) {
       fetchReferrals()
     }
-  }, [filters, user?._id, fetchReferrals])
+  }, [filters, user?._id, canViewReferrals, fetchReferrals])
 
   return {
     // State

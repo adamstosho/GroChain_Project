@@ -19,18 +19,14 @@ import {
   Thermometer,
   Droplets,
   Eye,
-  Navigation,
   Calendar,
   AlertTriangle,
   CheckCircle,
   Clock,
   RefreshCw,
-  Download,
   MapPin,
-  Crop,
   Leaf,
   Zap,
-  Umbrella,
   Shield
 } from "lucide-react"
 
@@ -132,7 +128,7 @@ const mapWeatherCondition = (mainCondition: string): string => {
   return 'clear' // default fallback
 }
 
-const generateFarmingRecommendations = (agri: any, currentTemp: number, currentHumidity: number): FarmingRecommendation[] => {
+const generateFarmingRecommendations = (agri: any, currentTemp: number): FarmingRecommendation[] => {
   if (!agri) return []
   
   const recs: FarmingRecommendation[] = []
@@ -416,8 +412,7 @@ export default function WeatherPage() {
         // Map recommendations dynamically
         const mappedRecommendations = generateFarmingRecommendations(
           data.agricultural,
-          mappedCurrent.temperature,
-          mappedCurrent.humidity
+          mappedCurrent.temperature
         )
 
         // Calculate stats

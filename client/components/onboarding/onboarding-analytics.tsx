@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { 
   TrendingUp, 
-  TrendingDown,
   Users,
   Clock,
   CheckCircle,
@@ -63,7 +62,37 @@ export function OnboardingAnalytics() {
             <Filter className="w-4 h-4 mr-2" />
             Filter
           </Button>
-          <Button variant="outline">
+          <Button
+            variant="outline"
+            onClick={async () => {
+              const { getExportService } = await import("@/lib/export-utils")
+              const exportService = getExportService()
+              const rows = (onboardings || []).map((o: any) => ({
+                id: o._id,
+                farmer: o.farmer?.name || o.farmerName,
+                email: o.farmer?.email,
+                status: o.status,
+                stage: o.stage,
+                priority: o.priority,
+                createdAt: o.createdAt,
+              }))
+              if (!rows.length) {
+                rows.push({
+                  id: "summary",
+                  farmer: "—",
+                  email: "—",
+                  status: `total:${stats.total}`,
+                  stage: `successRate:${stats.successRate}`,
+                  priority: `thisMonth:${stats.thisMonth}`,
+                  createdAt: new Date().toISOString(),
+                } as any)
+              }
+              await exportService.exportCustomData(rows, {
+                format: "excel",
+                filename: `grochain-onboarding-analytics-${new Date().toISOString().slice(0, 10)}.xlsx`,
+              })
+            }}
+          >
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>

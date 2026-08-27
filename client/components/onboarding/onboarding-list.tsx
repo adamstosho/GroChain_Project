@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { 
   Search, 
-  Filter, 
   Eye, 
   Edit, 
   MessageSquare, 
@@ -28,7 +27,7 @@ import {
 import { useOnboarding } from "@/hooks/use-onboarding"
 
 export function OnboardingList() {
-  const { onboardings, filters, setFilters } = useOnboarding()
+  const { onboardings } = useOnboarding()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [stageFilter, setStageFilter] = useState<string>("all")

@@ -2,7 +2,6 @@ const mongoose = require('mongoose')
 const Shipment = require('../models/shipment.model')
 const Order = require('../models/order.model')
 const User = require('../models/user.model')
-const Listing = require('../models/listing.model')
 const Notification = require('../models/notification.model')
 const webSocketService = require('../services/websocket.service')
 const {
@@ -13,6 +12,7 @@ const {
   mergeShipmentQueries,
   toAclUser
 } = require('../utils/realtime-room-access.util')
+const { getCoordinatesForState } = require('../utils/nigerian-states.util')
 
 const aclUserFromReq = (req) => toAclUser(req.user)
 
@@ -147,30 +147,38 @@ const shipmentController = {
         buyer: order.buyer._id,
         seller: order.seller._id,
         items,
-        origin: {
-          address: order.seller.profile?.address || order.seller.location || 'Farm Location',
-          city: order.seller.profile?.city || order.seller.location || 'Unknown',
-          state: order.seller.profile?.state || order.seller.location || 'Unknown',
-          country: order.seller.profile?.country || 'Nigeria',
-          coordinates: {
-            lat: order.seller.profile?.coordinates?.lat || 6.5244, // Default to Lagos
-            lng: order.seller.profile?.coordinates?.lng || 3.3792
-          },
-          contactPerson: order.seller.name || 'Unknown',
-          phone: order.seller.phone || 'N/A'
-        },
-        destination: {
-          address: order.buyer.profile?.address || order.buyer.location || 'Delivery Address',
-          city: order.buyer.profile?.city || order.buyer.location || 'Unknown',
-          state: order.buyer.profile?.state || order.buyer.location || 'Unknown',
-          country: order.buyer.profile?.country || 'Nigeria',
-          coordinates: {
-            lat: order.buyer.profile?.coordinates?.lat || 6.5244, // Default to Lagos
-            lng: order.buyer.profile?.coordinates?.lng || 3.3792
-          },
-          contactPerson: order.buyer.name || 'Unknown',
-          phone: order.buyer.phone || 'N/A'
-        },
+        origin: (() => {
+          const state = order.seller.profile?.state || order.seller.location || 'Unknown'
+          const fallbackCoords = getCoordinatesForState(state)
+          return {
+            address: order.seller.profile?.address || order.seller.location || 'Farm Location',
+            city: order.seller.profile?.city || order.seller.location || 'Unknown',
+            state,
+            country: order.seller.profile?.country || 'Nigeria',
+            coordinates: {
+              lat: order.seller.profile?.coordinates?.lat ?? fallbackCoords.lat,
+              lng: order.seller.profile?.coordinates?.lng ?? fallbackCoords.lng
+            },
+            contactPerson: order.seller.name || 'Unknown',
+            phone: order.seller.phone || 'N/A'
+          }
+        })(),
+        destination: (() => {
+          const state = order.buyer.profile?.state || order.buyer.location || 'Unknown'
+          const fallbackCoords = getCoordinatesForState(state)
+          return {
+            address: order.buyer.profile?.address || order.buyer.location || 'Delivery Address',
+            city: order.buyer.profile?.city || order.buyer.location || 'Unknown',
+            state,
+            country: order.buyer.profile?.country || 'Nigeria',
+            coordinates: {
+              lat: order.buyer.profile?.coordinates?.lat ?? fallbackCoords.lat,
+              lng: order.buyer.profile?.coordinates?.lng ?? fallbackCoords.lng
+            },
+            contactPerson: order.buyer.name || 'Unknown',
+            phone: order.buyer.phone || 'N/A'
+          }
+        })(),
         shippingMethod,
         carrier: carrier || 'GIG Logistics',
         estimatedDelivery: new Date(estimatedDelivery),

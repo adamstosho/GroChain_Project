@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,15 +40,11 @@ import {
   Edit,
   Trash2,
   RefreshCw,
-  Star,
-  Thermometer,
   Shield,
   Scale,
   Banknote,
   MoreHorizontal,
-  BarChart3,
-  FileText,
-  Activity
+  BarChart3
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -83,9 +80,14 @@ function getHarvestStatusColor(status: string) {
     case "pending":
       return "bg-warning/10 text-warning border-warning/10"
     case "approved":
+    case "listed":
+    case "verified":
       return "bg-success/10 text-success border-success/10"
     case "rejected":
       return "bg-destructive/10 text-destructive border-destructive/10"
+    case "revision_requested":
+    case "under_review":
+      return "bg-primary/10 text-primary border-primary/10"
     case "shipped":
       return "bg-primary/10 text-primary border-primary/10"
     default:
@@ -110,16 +112,34 @@ function getHarvestQualityColor(quality: string) {
 
 function FarmerHarvestListingCard({
   harvest,
-  variant = "default",
+  variant: _variant = "default",
   onDeleteRequest,
+  onExportHarvest,
+  selectable = false,
+  selected = false,
+  onSelectChange,
 }: {
   harvest: HarvestData
   variant?: "default" | "detailed"
   onDeleteRequest: (harvest: HarvestData) => void
+  onExportHarvest: (harvest: HarvestData) => void
+  selectable?: boolean
+  selected?: boolean
+  onSelectChange?: (checked: boolean) => void
 }) {
   return (
-    <Card className="group h-full border border-border transition-all duration-200 hover:shadow-lg">
+    <Card className={`group h-full border transition-all duration-200 hover:shadow-lg ${selected ? "border-primary ring-1 ring-primary" : "border-border"}`}>
       <div className="relative">
+        {selectable && (
+          <div className="absolute left-2 top-2 z-10 sm:left-3 sm:top-3">
+            <Checkbox
+              checked={selected}
+              onCheckedChange={(checked) => onSelectChange?.(checked === true)}
+              className="h-5 w-5 border-2 border-white bg-white/90 shadow-sm data-[state=checked]:bg-primary"
+              aria-label={`Select ${harvest.cropType} harvest`}
+            />
+          </div>
+        )}
         {harvest.images && harvest.images.length > 0 ? (
           <div className="aspect-video overflow-hidden rounded-t-lg">
             <Image
@@ -263,11 +283,13 @@ function FarmerHarvestListingCard({
                   </DropdownMenuItem>
                 )}
 
-                <DropdownMenuItem>
-                  <QrCode className="mr-2 h-4 w-4" />
-                  Generate QR Code
+                <DropdownMenuItem asChild>
+                  <Link href={`/dashboard/qr-codes/generate?harvestId=${harvest._id}`}>
+                    <QrCode className="mr-2 h-4 w-4" />
+                    Generate QR Code
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExportHarvest(harvest)}>
                   <Download className="mr-2 h-4 w-4" />
                   Export Data
                 </DropdownMenuItem>
@@ -300,6 +322,7 @@ export default function FarmerHarvestsPage() {
   const [showBulkActions, setShowBulkActions] = useState(false)
   const [selectedHarvest, setSelectedHarvest] = useState<HarvestData | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [stats, setStats] = useState({
     total: 0,
@@ -489,7 +512,7 @@ export default function FarmerHarvestsPage() {
       await Promise.all([loadHarvests(), loadStats(true)])
       setShowDeleteDialog(false)
       setSelectedHarvest(null)
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to delete harvest",
@@ -510,7 +533,7 @@ export default function FarmerHarvestsPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedHarvests(harvests.map(h => h._id))
+      setSelectedHarvests(filteredHarvests.map(h => h._id))
     } else {
       setSelectedHarvests([])
     }
@@ -531,9 +554,11 @@ export default function FarmerHarvestsPage() {
       })
 
       setSelectedHarvests([])
+      setShowBulkDeleteDialog(false)
+      setShowBulkActions(false)
       void loadHarvests()
       void loadStats(true)
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to delete selected harvests",
@@ -543,7 +568,6 @@ export default function FarmerHarvestsPage() {
       setDeleting(false)
     }
   }
-
 
   const handleBulkExport = async () => {
     try {
@@ -561,7 +585,7 @@ export default function FarmerHarvestsPage() {
         description: "Harvest data exported successfully",
         variant: "default"
       })
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to export harvest data",
@@ -594,6 +618,51 @@ export default function FarmerHarvestsPage() {
     setSelectedHarvest(harvest)
     setShowDeleteDialog(true)
   }, [])
+
+  const handleExportHarvest = useCallback(
+    async (harvest: HarvestData) => {
+      try {
+        const { getExportService } = await import("@/lib/export-utils")
+        const exportService = getExportService()
+        const result = await exportService.exportCustomData(
+          [
+            {
+              id: harvest._id || harvest.id,
+              cropType: harvest.cropType,
+              variety: harvest.variety,
+              quantity: harvest.quantity,
+              unit: harvest.unit,
+              harvestDate: harvest.harvestDate,
+              quality: harvest.quality,
+              status: harvest.status,
+              organic: harvest.organic ? "Yes" : "No",
+              price: harvest.price || 0,
+              location:
+                typeof harvest.location === "string"
+                  ? harvest.location
+                  : `${harvest.location?.city || ""} ${harvest.location?.state || ""}`.trim(),
+            },
+          ],
+          {
+            format: "excel",
+            filename: `grochain-harvest-${harvest._id || harvest.id}.xlsx`,
+          }
+        )
+        if (!result.success) throw new Error(result.error)
+        toast({
+          title: "Export Started",
+          description: "Harvest data has been downloaded",
+        })
+      } catch {
+        toast({
+          title: "Export Failed",
+          description: "Failed to export harvest data",
+          variant: "destructive",
+        })
+      }
+    },
+    [toast]
+  )
 
   const filteredHarvests = harvests.filter(harvest => {
     const matchesSearch = harvest.cropType.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -808,7 +877,110 @@ export default function FarmerHarvestsPage() {
                   List
                 </Button>
               </div>
+
+              <Button
+                variant={showBulkActions ? "default" : "outline"}
+                size="sm"
+                className="h-8 sm:h-9 text-xs sm:text-sm"
+                onClick={() => {
+                  setShowBulkActions(!showBulkActions)
+                  setSelectedHarvests([])
+                }}
+              >
+                {showBulkActions ? "Cancel" : "Select"}
+              </Button>
             </div>
+
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-2 md:grid-cols-5">
+              <Select value={qualityFilter} onValueChange={setQualityFilter}>
+                <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
+                  <SelectValue placeholder="Filter by quality" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Quality</SelectItem>
+                  <SelectItem value="excellent">Excellent</SelectItem>
+                  <SelectItem value="good">Good</SelectItem>
+                  <SelectItem value="fair">Fair</SelectItem>
+                  <SelectItem value="poor">Poor</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={organicFilter} onValueChange={setOrganicFilter}>
+                <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
+                  <SelectValue placeholder="Organic" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Organic &amp; Non-organic</SelectItem>
+                  <SelectItem value="true">Organic Only</SelectItem>
+                  <SelectItem value="false">Non-organic Only</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="oldest">Oldest First</SelectItem>
+                  <SelectItem value="quantity">Quantity</SelectItem>
+                  <SelectItem value="price">Price</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Input
+                type="date"
+                value={dateRange.from ? dateRange.from.toISOString().split("T")[0] : ""}
+                onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value ? new Date(e.target.value) : undefined }))}
+                className="h-8 sm:h-9 text-xs sm:text-sm"
+                aria-label="From date"
+              />
+
+              <Input
+                type="date"
+                value={dateRange.to ? dateRange.to.toISOString().split("T")[0] : ""}
+                onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value ? new Date(e.target.value) : undefined }))}
+                className="h-8 sm:h-9 text-xs sm:text-sm"
+                aria-label="To date"
+              />
+            </div>
+
+            {showBulkActions && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-primary/10 bg-primary/10 p-2 sm:p-3">
+                <Checkbox
+                  checked={filteredHarvests.length > 0 && selectedHarvests.length === filteredHarvests.length}
+                  onCheckedChange={(checked) => handleSelectAll(checked === true)}
+                  aria-label="Select all harvests"
+                />
+                <span className="text-xs text-muted-foreground sm:text-sm">
+                  {selectedHarvests.length > 0
+                    ? `${selectedHarvests.length} selected`
+                    : "Select all"}
+                </span>
+                <div className="ml-auto flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs sm:h-8 sm:text-sm"
+                    disabled={selectedHarvests.length === 0}
+                    onClick={handleBulkExport}
+                  >
+                    <Download className="mr-1 h-3 w-3" />
+                    Export
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="h-7 text-xs sm:h-8 sm:text-sm"
+                    disabled={selectedHarvests.length === 0}
+                    onClick={() => setShowBulkDeleteDialog(true)}
+                  >
+                    <Trash2 className="mr-1 h-3 w-3" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -867,6 +1039,10 @@ export default function FarmerHarvestsPage() {
                       harvest={harvest}
                       variant={viewMode === "list" ? "detailed" : "default"}
                       onDeleteRequest={handleDeleteRequest}
+                      onExportHarvest={handleExportHarvest}
+                      selectable={showBulkActions}
+                      selected={selectedHarvests.includes(harvest._id)}
+                      onSelectChange={(checked) => handleSelectHarvest(harvest._id, checked)}
                     />
                   ))}
                 </div>
@@ -901,6 +1077,10 @@ export default function FarmerHarvestsPage() {
                   key={harvest._id}
                   harvest={harvest}
                   onDeleteRequest={handleDeleteRequest}
+                  onExportHarvest={handleExportHarvest}
+                  selectable={showBulkActions}
+                  selected={selectedHarvests.includes(harvest._id)}
+                  onSelectChange={(checked) => handleSelectHarvest(harvest._id, checked)}
                 />
               ))}
             </div>
@@ -913,6 +1093,10 @@ export default function FarmerHarvestsPage() {
                   key={harvest._id}
                   harvest={harvest}
                   onDeleteRequest={handleDeleteRequest}
+                  onExportHarvest={handleExportHarvest}
+                  selectable={showBulkActions}
+                  selected={selectedHarvests.includes(harvest._id)}
+                  onSelectChange={(checked) => handleSelectHarvest(harvest._id, checked)}
                 />
               ))}
             </div>
@@ -925,6 +1109,10 @@ export default function FarmerHarvestsPage() {
                   key={harvest._id}
                   harvest={harvest}
                   onDeleteRequest={handleDeleteRequest}
+                  onExportHarvest={handleExportHarvest}
+                  selectable={showBulkActions}
+                  selected={selectedHarvests.includes(harvest._id)}
+                  onSelectChange={(checked) => handleSelectHarvest(harvest._id, checked)}
                 />
               ))}
             </div>
@@ -945,9 +1133,11 @@ export default function FarmerHarvestsPage() {
                   Add New Harvest
                 </Link>
               </Button>
-              <Button variant="outline" className="w-full">
-                <QrCode className="h-4 w-4 mr-2" />
-                Generate QR Codes
+              <Button variant="outline" className="w-full" asChild>
+                <Link href="/dashboard/qr-codes/generate">
+                  <QrCode className="h-4 w-4 mr-2" />
+                  Generate QR Codes
+                </Link>
               </Button>
               <Button
                 variant="outline"
@@ -963,7 +1153,7 @@ export default function FarmerHarvestsPage() {
                       title: "Export Started",
                       description: "Your harvest data export has been downloaded",
                     })
-                  } catch (error) {
+                  } catch {
                     toast({
                       title: "Export Failed",
                       description: "Failed to export harvest data",
@@ -1026,6 +1216,30 @@ export default function FarmerHarvestsPage() {
               disabled={deleting}
             >
               {deleting ? "Deleting..." : "Delete Harvest"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete {selectedHarvests.length} Harvest{selectedHarvests.length > 1 ? "s" : ""}</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {selectedHarvests.length} selected harvest{selectedHarvests.length > 1 ? "s" : ""}? This action cannot be undone and will remove all associated data including QR codes and marketplace listings.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 justify-end">
+            <Button variant="outline" onClick={() => setShowBulkDeleteDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : `Delete ${selectedHarvests.length} Harvest${selectedHarvests.length > 1 ? "s" : ""}`}
             </Button>
           </div>
         </DialogContent>

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose')
 const Commission = require('../models/commission.model')
 const Partner = require('../models/partner.model')
 const User = require('../models/user.model')
@@ -436,34 +437,46 @@ const commissionController = {
       }
       
       const totalPayoutAmount = commissions.reduce((sum, c) => sum + c.amount, 0)
-      
-      // Update commission statuses
-      await Commission.updateMany(
-        { _id: { $in: commissionIds } },
-        { 
-          status: 'paid',
-          paidAt: new Date(),
-          payoutMethod,
-          payoutDetails
-        }
-      )
-      
-      // Create payout transaction
-      const payoutTransaction = await Transaction.create({
-        type: 'commission_payout',
-        status: 'completed',
-        amount: totalPayoutAmount,
-        currency: 'NGN',
-        reference: `PAYOUT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        description: `Commission payout for ${commissions.length} commissions`,
-        userId: req.user.id,
-        metadata: {
-          commissionIds,
-          payoutMethod,
-          payoutDetails
-        }
-      })
-      
+      const idsToPay = commissions.map((c) => c._id)
+
+      const session = await mongoose.startSession()
+      session.startTransaction()
+      let payoutTransaction
+      try {
+        await Commission.updateMany(
+          { _id: { $in: idsToPay }, status: 'pending' },
+          {
+            status: 'paid',
+            paidAt: new Date(),
+            payoutMethod,
+            payoutDetails
+          },
+          { session }
+        )
+
+        ;[payoutTransaction] = await Transaction.create([{
+          type: 'commission_payout',
+          status: 'completed',
+          amount: totalPayoutAmount,
+          currency: 'NGN',
+          reference: `PAYOUT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          description: `Commission payout for ${commissions.length} commissions`,
+          userId: req.user.id,
+          metadata: {
+            commissionIds: idsToPay,
+            payoutMethod,
+            payoutDetails
+          }
+        }], { session })
+
+        await session.commitTransaction()
+      } catch (txError) {
+        await session.abortTransaction()
+        throw txError
+      } finally {
+        session.endSession()
+      }
+
       res.json({
         status: 'success',
         data: {

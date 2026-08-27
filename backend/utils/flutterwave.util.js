@@ -37,7 +37,7 @@ class FlutterwaveUtil {
         customizations: {
           title: 'GroChain Payment',
           description: `Payment for order ${data.orderId}`,
-          logo: 'https://your-domain.com/logo.png'
+          logo: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/logo-icon.png`
         },
         meta: {
           order_id: data.orderId,
@@ -68,55 +68,43 @@ class FlutterwaveUtil {
     }
   }
   
-  // Verify transaction
-  async verifyTransaction(transactionId) {
+  // Verify transaction by OUR tx_ref (not Flutterwave's numeric id).
+  // Amount is returned in naira.
+  async verifyTransaction(reference) {
     try {
-      const response = await this.axiosInstance.get(`/transactions/${transactionId}/verify`)
-      
-      if (response.data.status === 'success') {
+      const response = await this.axiosInstance.get(
+        `/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`
+      )
+
+      if (response.data.status === 'success' && response.data.data) {
         const transaction = response.data.data
-        
-        // Check if transaction is successful
-        if (transaction.status === 'successful') {
-          return {
-            success: true,
-            data: {
-              reference: transaction.tx_ref,
-              amount: transaction.amount,
-              currency: transaction.currency,
-              status: transaction.status,
-              gateway_response: transaction.processor_response,
-              paid_at: transaction.created_at,
-              channel: transaction.payment_type,
-              ip_address: transaction.ip,
-              fees: transaction.charged_amount - transaction.amount,
-              customer: transaction.customer,
-              metadata: transaction.meta
-            },
-            message: 'Transaction verified successfully'
-          }
-        } else {
-          return {
-            success: false,
-            message: `Transaction failed: ${transaction.processor_response}`,
-            data: {
-              reference: transaction.tx_ref,
-              status: transaction.status,
-              gateway_response: transaction.processor_response
-            }
-          }
-        }
-      } else {
         return {
-          success: false,
-          message: response.data.message || 'Failed to verify transaction'
+          success: true,
+          paid: transaction.status === 'successful',
+          status: transaction.status,
+          amount: transaction.amount,
+          reference: transaction.tx_ref,
+          providerTransactionId: transaction.id,
+          channel: transaction.payment_type,
+          customer: transaction.customer,
+          paid_at: transaction.created_at,
+          currency: transaction.currency,
+          gateway_response: transaction.processor_response,
+          metadata: transaction.meta
         }
+      }
+
+      return {
+        success: false,
+        paid: false,
+        error: response.data.message || 'Failed to verify transaction'
       }
     } catch (error) {
       console.error('Flutterwave verification error:', error.response?.data || error.message)
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to verify transaction'
+        paid: false,
+        error: error.response?.data?.message || error.message || 'Failed to verify transaction'
       }
     }
   }

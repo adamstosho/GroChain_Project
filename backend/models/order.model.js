@@ -48,6 +48,9 @@ const OrderSchema = new mongoose.Schema({
   actualDelivery: { type: Date },
   trackingNumber: { type: String },
   notes: { type: String },
+  // Client-supplied key scoped per buyer — same key returns the same pending order
+  // instead of creating duplicates across tabs/retries.
+  idempotencyKey: { type: String, maxlength: 128 },
   metadata: { type: Object }
 }, { timestamps: true })
 
@@ -57,6 +60,13 @@ OrderSchema.index({ status: 1 })
 OrderSchema.index({ paymentStatus: 1 })
 OrderSchema.index({ createdAt: -1 })
 OrderSchema.index({ orderNumber: 1 }, { unique: true })
+OrderSchema.index(
+  { buyer: 1, idempotencyKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { idempotencyKey: { $type: 'string' } }
+  }
+)
 
 // Calculate totals before saving
 OrderSchema.pre('save', function(next) {

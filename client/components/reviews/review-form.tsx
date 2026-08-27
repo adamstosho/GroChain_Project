@@ -1,12 +1,13 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Star, Camera, Upload, CheckCircle, AlertCircle } from "lucide-react"
+import { Star, Camera, CheckCircle, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -35,6 +36,7 @@ export function ReviewForm({
   const [comment, setComment] = useState("")
   const [images, setImages] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [uploadingImages, setUploadingImages] = useState(false)
   const { toast } = useToast()
 
   const ratingLabels = {
@@ -90,28 +92,41 @@ export function ReviewForm({
     }
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
-    if (files) {
-      // Convert files to base64 (simplified - in production, upload to cloud storage)
-      Array.from(files).forEach(file => {
-        if (file.size > 5 * 1024 * 1024) { // 5MB limit
-          toast({
-            title: "File Too Large",
-            description: "Please select images smaller than 5MB.",
-            variant: "destructive"
-          })
-          return
-        }
+    if (!files || files.length === 0) return
 
-        const reader = new FileReader()
-        reader.onload = (event) => {
-          if (event.target?.result) {
-            setImages(prev => [...prev, event.target!.result as string])
-          }
-        }
-        reader.readAsDataURL(file)
+    const validFiles = Array.from(files).filter(file => {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "File Too Large",
+          description: "Please select images smaller than 5MB.",
+          variant: "destructive"
+        })
+        return false
+      }
+      return true
+    })
+
+    if (validFiles.length === 0) return
+
+    setUploadingImages(true)
+    try {
+      const uploadedUrls = await apiService.uploadImages(validFiles)
+      if (uploadedUrls.length === 0) {
+        throw new Error('No image URLs returned')
+      }
+      setImages(prev => [...prev, ...uploadedUrls])
+    } catch (error) {
+      console.error('Image upload failed:', error)
+      toast({
+        title: "Image upload failed",
+        description: "Please try again.",
+        variant: "destructive"
       })
+    } finally {
+      setUploadingImages(false)
+      e.target.value = ''
     }
   }
 
@@ -208,17 +223,17 @@ export function ReviewForm({
                   multiple
                   onChange={handleImageUpload}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  disabled={images.length >= 5}
+                  disabled={images.length >= 5 || uploadingImages}
                 />
                 <div className={cn(
                   "flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg transition-colors",
-                  images.length >= 5 
-                    ? "border-border bg-muted cursor-not-allowed" 
+                  images.length >= 5 || uploadingImages
+                    ? "border-border bg-muted cursor-not-allowed"
                     : "border-border hover:border-border hover:bg-muted cursor-pointer"
                 )}>
                   <Camera className="h-5 w-5 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    {images.length >= 5 ? "Maximum 5 photos" : "Click to add photos"}
+                    {uploadingImages ? "Uploading..." : images.length >= 5 ? "Maximum 5 photos" : "Click to add photos"}
                   </span>
                 </div>
               </div>
@@ -228,15 +243,17 @@ export function ReviewForm({
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {images.map((image, index) => (
                     <div key={index} className="relative group">
-                      <img
+                      <Image
                         src={image}
                         alt={`Review image ${index + 1}`}
+                        width={200}
+                        height={96}
                         className="w-full h-24 object-cover rounded-lg"
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

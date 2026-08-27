@@ -7,29 +7,20 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
+import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
 import {
   CreditCard,
   TrendingUp,
   TrendingDown,
   CheckCircle,
-  AlertCircle,
   XCircle,
   Clock,
-  Banknote,
-  Calendar,
   FileText,
   Download,
   RefreshCw,
-  Star,
-  Award,
   Target,
-  BarChart3,
-  PieChart,
-  Activity,
-  Shield,
-  Eye,
-  EyeOff
+  Shield
 } from "lucide-react"
 
 interface CreditScore {
@@ -96,7 +87,6 @@ const statusColors = {
 export default function CreditScorePage() {
   const [creditScore, setCreditScore] = useState<CreditScore | null>(null)
   const [loading, setLoading] = useState(true)
-  const [showDetails, setShowDetails] = useState(false)
   const { toast } = useToast()
 
   const fetchCreditScore = useCallback(async () => {
@@ -488,14 +478,14 @@ export default function CreditScorePage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Loan Amount</span>
-                    <span className="text-sm font-medium">₦{(creditScore.eligibility.limits.loanAmount / 1000).toFixed(0)}K</span>
+                    <span className="text-sm font-medium">{formatCompactCurrency(creditScore.eligibility.limits.loanAmount)}</span>
                   </div>
                   <Progress value={75} className="h-2" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Insurance Coverage</span>
-                    <span className="text-sm font-medium">₦{(creditScore.eligibility.limits.insuranceCoverage / 1000000).toFixed(1)}M</span>
+                    <span className="text-sm font-medium">{formatCompactCurrency(creditScore.eligibility.limits.insuranceCoverage)}</span>
                   </div>
                   <Progress value={60} className="h-2" />
                 </div>

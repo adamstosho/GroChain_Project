@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { useReferrals } from "@/hooks/use-referrals"
-import { Loader2, User, AlertCircle } from "lucide-react"
+import { Loader2, User, AlertCircle, Clock, CheckCircle2, Banknote, XCircle } from "lucide-react"
 
 interface ReferralStatusDialogProps {
   open: boolean
@@ -141,25 +141,25 @@ export function ReferralStatusDialog({
               <SelectContent>
                 <SelectItem value="pending">
                   <div className="flex items-center space-x-2">
-                    <span className="text-warning">⏳</span>
+                    <Clock className="h-4 w-4 text-warning" />
                     <span>Pending</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="active">
                   <div className="flex items-center space-x-2">
-                    <span className="text-primary">✅</span>
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
                     <span>Active</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="completed">
                   <div className="flex items-center space-x-2">
-                    <span className="text-success">💰</span>
+                    <Banknote className="h-4 w-4 text-success" />
                     <span>Completed</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="cancelled">
                   <div className="flex items-center space-x-2">
-                    <span className="text-destructive">❌</span>
+                    <XCircle className="h-4 w-4 text-destructive" />
                     <span>Cancelled</span>
                   </div>
                 </SelectItem>

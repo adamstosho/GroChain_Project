@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { useReferrals } from "@/hooks/use-referrals"
-import { useAuthStore } from "@/lib/auth"
 import { ReferralDialog } from "@/components/dialogs/referral-dialog"
 import { ReferralStatusDialog } from "@/components/dialogs/referral-status-dialog"
 import { useToast } from "@/hooks/use-toast"
@@ -23,9 +22,7 @@ import {
   Edit,
   Trash2,
   MoreHorizontal,
-  CheckCircle,
-  AlertCircle,
-  Loader2
+  CheckCircle
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -45,17 +42,13 @@ export default function ReferralsContent() {
     isLoading,
     isRefreshing,
     refreshData,
-    createReferral,
-    updateReferral,
     deleteReferral,
     updateFilters,
     getReferralStatusColor,
-    getReferralStatusIcon,
     formatCurrency,
     formatDate
   } = useReferrals()
 
-  const { user } = useAuthStore()
   const { toast } = useToast()
 
   // Prevent hydration issues
@@ -473,7 +466,7 @@ export default function ReferralsContent() {
                             variant="secondary"
                             className={`${getReferralStatusColor(referral.status)} text-xs sm:text-sm`}
                           >
-                            {getReferralStatusIcon(referral.status)} {referral.status}
+                            {referral.status}
                           </Badge>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

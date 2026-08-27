@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -13,15 +13,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { 
   CreditCard, 
   Banknote, 
-  Smartphone, 
   Plus, 
   Edit, 
   Trash2, 
   Download, 
   Eye, 
-  Search,
-  Filter,
-  Calendar,
   TrendingUp,
   TrendingDown,
   CheckCircle,
@@ -30,21 +26,18 @@ import {
   AlertCircle,
   FileText,
   Receipt,
-  ArrowUpRight,
   ArrowDownRight,
   CreditCard as CreditCardIcon,
   Building2,
   Phone,
   RefreshCw
 } from "lucide-react"
-import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { ReceiptGenerator } from "@/lib/receipt-generator"
 
 export default function PaymentsPage() {
   const [activeTab, setActiveTab] = useState("transactions")
-  const { profile } = useBuyerStore()
   const { toast } = useToast()
 
   // State for API data
@@ -347,7 +340,7 @@ export default function PaymentsPage() {
               Manage your payment methods, view transactions, and handle billing.
               {error && (
                 <span className="mt-2 block text-xs sm:text-sm text-destructive bg-destructive/10 p-2 rounded">
-                  ⚠️ {error}
+                  {error}
                 </span>
               )}
             </>

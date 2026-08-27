@@ -27,7 +27,7 @@ const HarvestSchema = new mongoose.Schema({
   qrCodeData: { type: mongoose.Schema.Types.Mixed }, // Structured QR code data
   status: {
     type: String,
-    enum: ['pending', 'verified', 'rejected', 'approved', 'listed'],
+    enum: ['pending', 'verified', 'rejected', 'approved', 'listed', 'revision_requested'],
     default: 'pending'
   },
   verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

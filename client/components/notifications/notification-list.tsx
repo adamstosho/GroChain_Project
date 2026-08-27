@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useMemo } from 'react'
-import { Bell, CheckCircle, AlertCircle, AlertTriangle, Info, Check, X, Filter, Search, MoreVertical } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { Bell, CheckCircle, AlertCircle, AlertTriangle, Info, Check, X, Search, MoreVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -19,11 +19,19 @@ export function NotificationList() {
     unreadCount,
     loading,
     markAsRead,
-    markAllAsRead,
-    fetchNotifications
+    markAllAsRead
   } = useNotificationContext()
 
   const { toast } = useToast()
+  // Guards against a hydration mismatch: `loading` (from context) can already be false on the
+  // client's very first render in some auth-state timings, while the server always rendered the
+  // loading card (no client JS ran yet). `mounted` starts false on both server and client and
+  // only flips inside an effect, so the first client render is guaranteed to match the server's
+  // loading output regardless of what `loading` itself resolves to. See design/02-audits, round 11.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
@@ -124,7 +132,7 @@ export function NotificationList() {
     setReadFilter('all')
   }
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">

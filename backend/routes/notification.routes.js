@@ -27,10 +27,10 @@ router.put('/push-token', authenticate, notificationController.updatePushToken)
 // Test notification endpoint (for development)
 router.post('/test', authenticate, notificationController.testNotification)
 
-// Specialized notification endpoints
-router.post('/harvest', authenticate, notificationController.sendHarvestNotification)
-router.post('/marketplace', authenticate, notificationController.sendMarketplaceNotification)
-router.post('/transaction', authenticate, notificationController.sendTransactionNotification)
+// Specialized notification endpoints (admin only — prevent spam/abuse)
+router.post('/harvest', authenticate, authorize('admin'), notificationController.sendHarvestNotification)
+router.post('/marketplace', authenticate, authorize('admin'), notificationController.sendMarketplaceNotification)
+router.post('/transaction', authenticate, authorize('admin'), notificationController.sendTransactionNotification)
 
 module.exports = router
 

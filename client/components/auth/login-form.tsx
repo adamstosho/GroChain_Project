@@ -44,29 +44,34 @@ export function LoginForm() {
     }
   }, [emailFromUrl])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    const native = new FormData(e.currentTarget)
+    const email = String(native.get("email") || formData.email).trim()
+    const password = String(native.get("password") || formData.password)
+    setError("")
     setIsLoading(true)
 
     try {
-      await login(formData.email, formData.password, formData.rememberMe)
+      await login(email, password, formData.rememberMe)
 
       if (formData.rememberMe) {
-        saveRememberEmail(formData.email)
+        saveRememberEmail(email)
       } else {
         clearRememberEmail()
       }
 
       // Check for redirect URL in query parameters
-      const redirectUrl = searchParams.get('redirect') || "/dashboard"
+      const redirectUrl = searchParams.get('redirect') || searchParams.get('callbackUrl') || "/dashboard"
       router.push(redirectUrl)
     } catch (error: any) {
-      const requiresVerification = error?.payload?.requiresVerification || false
-      const email = formData.email
+      const payload = typeof error?.payload === "string"
+        ? (() => { try { return JSON.parse(error.payload) } catch { return {} } })()
+        : error?.payload || {}
+      const requiresVerification = payload.requiresVerification || false
       if (requiresVerification && email) {
         router.push(`/verify-email?email=${encodeURIComponent(email)}`)
       } else {
-        // Set error state for display in UI
         setError(error.message || "Please check your credentials and try again.")
       }
     } finally {
@@ -116,7 +121,7 @@ export function LoginForm() {
               <div className="flex space-x-2">
                 <Link 
                   href="/verify-email" 
-                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 rounded-md hover:bg-primary/10 transition-colors"
+                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-primary bg-primary-soft rounded-md hover:bg-primary-soft transition-colors"
                 >
                   Enter Token
                 </Link>
@@ -138,7 +143,9 @@ export function LoginForm() {
             <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               id="email"
+              name="email"
               type="email"
+              autoComplete="email"
               placeholder="Enter your email"
               className="pl-10"
               value={formData.email}
@@ -154,7 +161,9 @@ export function LoginForm() {
             <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               id="password"
+              name="password"
               type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
               placeholder="Enter your password"
               className="pl-10 pr-10"
               value={formData.password}
@@ -165,7 +174,7 @@ export function LoginForm() {
               type="button"
               variant="ghost"
               size="sm"
-              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+              className="absolute right-0 top-0 h-full px-3 py-2"
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

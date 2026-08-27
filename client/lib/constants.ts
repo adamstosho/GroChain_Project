@@ -25,6 +25,7 @@ export const USER_ROLES = {
   BUYER: "buyer",
   PARTNER: "partner",
   ADMIN: "admin",
+  CARRIER: "carrier",
 } as const
 
 export const HARVEST_STATUS = {
@@ -32,15 +33,19 @@ export const HARVEST_STATUS = {
   VERIFIED: "verified",
   REJECTED: "rejected",
   APPROVED: "approved",
+  LISTED: "listed",
+  REVISION_REQUESTED: "revision_requested",
 } as const
 
 export const ORDER_STATUS = {
   PENDING: "pending",
   CONFIRMED: "confirmed",
+  PAID: "paid",
   PROCESSING: "processing",
   SHIPPED: "shipped",
   DELIVERED: "delivered",
   CANCELLED: "cancelled",
+  REFUNDED: "refunded",
 } as const
 
 export const QUALITY_GRADES = {

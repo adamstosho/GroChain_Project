@@ -715,7 +715,7 @@ router.get('/settings/me', authenticate, async (req, res) => {
 
 router.put('/settings/me', authenticate, async (req, res) => {
   try {
-    const { general, notifications, preferences, security } = req.body
+    const { general, notifications, preferences } = req.body
 
     // Prepare update data
     const updateData = {}
@@ -913,7 +913,7 @@ router.get('/recent-activities', authenticate, async (req, res) => {
 })
 
 // Avatar upload endpoint (must be before admin middleware)
-router.post('/upload-avatar', authenticate, upload.single('avatar'), async (req, res) => {
+router.post('/upload-avatar', authenticate, upload.single('avatar'), upload.validateMagicBytes, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -960,24 +960,33 @@ router.post('/upload-avatar', authenticate, upload.single('avatar'), async (req,
 // Proxy endpoint for serving avatars (bypasses CORS issues)
 router.get('/avatar/:filename', async (req, res) => {
   try {
-    console.log('Avatar proxy request received for:', req.params.filename)
     const fs = require('fs')
     const path = require('path')
-    const filename = req.params.filename
-    const filePath = path.join(__dirname, '..', 'uploads', 'avatars', filename)
-
-    console.log('Looking for file at:', filePath)
+    const avatarsDir = path.resolve(__dirname, '..', 'uploads', 'avatars')
+    const filename = path.basename(req.params.filename || '')
+    if (!filename || filename === '.' || filename.includes('..')) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Forbidden'
+      })
+    }
+    const filePath = path.resolve(avatarsDir, filename)
+    const relative = path.relative(avatarsDir, filePath)
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Forbidden'
+      })
+    }
 
     // Check if file exists
     if (!fs.existsSync(filePath)) {
-      console.log('File not found:', filePath)
       return res.status(404).json({
         status: 'error',
         message: 'Avatar not found'
       })
     }
 
-    console.log('File exists, sending file...')
     // Send the file directly (no CORS issues since it's from the same origin)
     res.sendFile(filePath, (err) => {
       if (err) {
@@ -989,8 +998,6 @@ router.get('/avatar/:filename', async (req, res) => {
             message: 'Failed to serve avatar'
           })
         }
-      } else {
-        console.log('File sent successfully')
       }
     })
   } catch (error) {
@@ -1119,9 +1126,21 @@ router.get('/:userId', async (req, res) => {
   return res.json({ status: 'success', data: user })
 })
 
-// Update user
+// Update user (whitelist only — role via PATCH /:userId/role; password via change-password)
 router.put('/:userId', async (req, res) => {
-  const user = await User.findByIdAndUpdate(req.params.userId, req.body, { new: true })
+  const allowedFields = [
+    'name', 'email', 'phone', 'location', 'status', 'profile',
+    'emailVerified', 'phoneVerified', 'notificationPreferences', 'partner',
+    'adminProfile', 'farmSize', 'crops', 'address'
+  ]
+  const updateData = {}
+  for (const key of allowedFields) {
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, key)) {
+      updateData[key] = req.body[key]
+    }
+  }
+  // Explicitly never mass-assign secrets / privileged auth fields
+  const user = await User.findByIdAndUpdate(req.params.userId, updateData, { new: true })
   if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
   return res.json({ status: 'success', data: user })
 })
@@ -1163,7 +1182,10 @@ router.patch('/:userId/reactivate', async (req, res) => {
 
 router.patch('/:userId/role', async (req, res) => {
   const { role } = req.body || {}
-  if (!role) return res.status(400).json({ status: 'error', message: 'role required' })
+  const allowedRoles = ['farmer', 'partner', 'admin', 'buyer', 'carrier']
+  if (!role || !allowedRoles.includes(role)) {
+    return res.status(400).json({ status: 'error', message: 'Valid role required' })
+  }
   const user = await User.findByIdAndUpdate(req.params.userId, { role }, { new: true })
   if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
   return res.json({ status: 'success', data: user })
@@ -1171,7 +1193,25 @@ router.patch('/:userId/role', async (req, res) => {
 
 // Export users (stub)
 router.post('/export', async (req, res) => {
-  return res.json({ status: 'success', data: { url: null, message: 'Not yet implemented' } })
+  try {
+    const ExportImportService = require('../services/exportImport.service')
+    const { format = 'csv', filters = {} } = req.body || {}
+    const result = await ExportImportService.exportUsers(filters, format === 'xlsx' ? 'excel' : format)
+    return res.json({
+      status: 'success',
+      data: {
+        filename: result.filename,
+        downloadUrl: `/api/export-import/download/${result.filename}`,
+        recordCount: result.recordCount,
+      },
+      message: 'Users exported successfully',
+    })
+  } catch (error) {
+    return res.status(500).json({
+      status: 'error',
+      message: error.message || 'Export failed',
+    })
+  }
 })
 
 

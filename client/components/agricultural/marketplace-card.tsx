@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, type MouseEvent } from "react"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Separator } from "@/components/ui/separator"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   Heart,
   ShoppingCart,
@@ -14,12 +14,10 @@ import {
   MapPin,
   Leaf,
   Scale,
-  Calendar,
   Shield,
   Eye,
-  MessageCircle,
-  Share2,
-  QrCode
+  QrCode,
+  Share2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useBuyerStore } from "@/hooks/use-buyer-store"
@@ -73,17 +71,10 @@ interface MarketplaceCardProps {
   className?: string
 }
 
-const qualityColors = {
-  excellent: "bg-success text-success-foreground",
-  good: "bg-primary text-primary-foreground",
-  fair: "bg-warning text-warning-foreground",
-  poor: "bg-destructive text-destructive-foreground"
-}
-
 const gradeColors = {
-  A: "bg-gradient-to-r from-warning/80 to-warning text-white",
-  B: "bg-gradient-to-r from-primary/80 to-primary text-white",
-  C: "bg-gradient-to-r from-secondary/80 to-secondary text-white"
+  A: "bg-warning text-warning-foreground",
+  B: "bg-primary text-primary-foreground",
+  C: "bg-secondary text-secondary-foreground"
 }
 
 export function MarketplaceCard({
@@ -97,9 +88,8 @@ export function MarketplaceCard({
   className
 }: MarketplaceCardProps) {
   const router = useRouter()
-  const [showQR, setShowQR] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
-  const { favorites, addToFavorites, removeFromFavorites, fetchFavorites } = useBuyerStore()
+  const { favorites, addToFavorites, removeFromFavorites } = useBuyerStore()
   const { toast } = useToast()
 
   // Check if product is in favorites
@@ -127,6 +117,7 @@ export function MarketplaceCard({
           title: "Added to favorites!",
           description: `${product.name} has been added to your favorites.`,
         })
+        onAddToWishlist?.(product.id)
       }
     } catch (error: any) {
       console.error('Failed to toggle favorite:', error)
@@ -140,9 +131,11 @@ export function MarketplaceCard({
     }
   }
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (event?: MouseEvent) => {
+    event?.preventDefault()
+    event?.stopPropagation()
     if (onAddToCart) {
-      onAddToCart(product.id)
+      onAddToCart(String(product.id))
     }
   }
 
@@ -175,9 +168,11 @@ export function MarketplaceCard({
           <div className="flex flex-col h-full">
             {/* Image and badges */}
             <div className="relative mb-3">
-              <img
+              <Image
                 src={product.images[0]}
                 alt={product.name}
+                width={300}
+                height={80}
                 className="w-full h-20 object-cover rounded-lg"
               />
               {product.organic && (
@@ -226,7 +221,7 @@ export function MarketplaceCard({
                 ) : (
                   <Button
                     size="sm"
-                    className="h-7 w-7 p-0 bg-primary hover:bg-primary/90 flex-shrink-0"
+                    className="h-7 w-7 p-0 bg-primary hover:bg-primary-hover flex-shrink-0"
                     onClick={handleAddToCart}
                   >
                     <ShoppingCart className="h-3 w-3" />
@@ -241,13 +236,14 @@ export function MarketplaceCard({
   }
 
   return (
-    <Card className={cn("hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 ease-out group overflow-hidden w-full border border-border hover:border-success/20 bg-card", className)}>
+    <Card className={cn("hover:shadow-lg transition-shadow duration-200 group overflow-hidden w-full border border-border hover:border-primary/30 bg-card", className)}>
       {/* Product Image */}
       <div className="relative aspect-[5/3] sm:aspect-[4/3] overflow-hidden">
-        <img
+        <Image
           src={product.images[0]}
           alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
         
         {/* Overlay Badges */}
@@ -256,9 +252,14 @@ export function MarketplaceCard({
             Grade {product.grade}
           </Badge>
           {product.organic && (
-            <Badge className="backdrop-blur-md bg-success/90 text-white text-[10px] sm:text-xs px-2 py-0.5 sm:py-1 font-semibold flex items-center shadow-sm border border-success/25">
+            <Badge className="bg-success text-success-foreground text-[10px] sm:text-xs px-2 py-0.5 sm:py-1 font-semibold flex items-center shadow-sm border border-success/25">
               <Leaf className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
               Organic
+            </Badge>
+          )}
+          {discount > 0 && (
+            <Badge className="bg-destructive text-destructive-foreground text-[10px] sm:text-xs px-2 py-0.5 sm:py-1 font-semibold shadow-sm border border-destructive/25">
+              {discount}% OFF
             </Badge>
           )}
         </div>
@@ -285,6 +286,21 @@ export function MarketplaceCard({
               <QrCode className="h-4 w-4" />
             </Button>
           )}
+          {onShare && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-8 w-8 p-0 bg-white/95 hover:bg-white hover:text-primary text-muted-foreground shadow-md rounded-full transition-transform hover:scale-105"
+              onClick={(event: MouseEvent) => {
+                event.preventDefault()
+                event.stopPropagation()
+                handleShare()
+              }}
+              title="Share"
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -304,11 +320,16 @@ export function MarketplaceCard({
 
         {/* Price */}
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-0.5 min-w-0 flex-1">
+          <div className="flex items-center gap-0.5 min-w-0 flex-1 flex-wrap">
             <span className="text-sm sm:text-base font-bold text-success truncate">
               ₦{product.price.toLocaleString()}
             </span>
             <span className="text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">/{product.unit}</span>
+            {discount > 0 && (
+              <span className="text-[10px] sm:text-xs text-muted-foreground line-through flex-shrink-0">
+                ₦{product.originalPrice!.toLocaleString()}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
             <Star className="h-3.5 w-3.5 fill-warning text-warning" />
@@ -332,7 +353,7 @@ export function MarketplaceCard({
         {product.availableQuantity > 0 && product.availableQuantity < 150 && (
           <div className="space-y-1">
             <div className="flex justify-between text-[9px] font-semibold text-warning">
-              <span className="flex items-center gap-0.5">⚠️ Low Stock</span>
+              <span className="flex items-center gap-0.5">Low Stock</span>
               <span>{Math.round((product.availableQuantity / (product.quantity || 150)) * 100)}%</span>
             </div>
             <div className="w-full bg-warning/10 rounded-full h-1 overflow-hidden">
@@ -371,12 +392,12 @@ export function MarketplaceCard({
             <span className="truncate">View</span>
           </Button>
           {product.availableQuantity <= 0 ? (
-            <Button size="sm" className="flex-1 h-7 text-[10px] sm:text-xs bg-secondary text-white min-w-0" disabled>
+            <Button size="sm" className="flex-1 h-7 text-[10px] sm:text-xs bg-secondary text-secondary-foreground min-w-0" disabled>
               <ShoppingCart className="h-3 w-3 mr-1 flex-shrink-0" />
               <span className="truncate">Sold Out</span>
             </Button>
           ) : (
-            <Button size="sm" className="flex-1 h-7 text-[10px] sm:text-xs bg-success hover:bg-success text-white min-w-0 font-medium" onClick={handleAddToCart}>
+            <Button size="sm" className="flex-1 h-7 text-[10px] sm:text-xs bg-success hover:bg-success-hover text-success-foreground min-w-0 font-medium" onClick={handleAddToCart}>
               <ShoppingCart className="h-3 w-3 mr-1 flex-shrink-0" />
               <span className="truncate">Add to Cart</span>
             </Button>

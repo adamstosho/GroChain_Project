@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertCircle, RefreshCw, Mail } from 'lucide-react'
+import { AlertCircle, RefreshCw } from 'lucide-react'
 
 export default function Error({
   error,
@@ -50,7 +50,7 @@ export default function Error({
           </div>
           
           <div className="text-xs text-muted-foreground space-y-2 pt-4 border-t">
-            <p>💡 <strong>Common causes:</strong></p>
+            <p><strong>Common causes:</strong></p>
             <ul className="text-left space-y-1">
               <li>• Opening the link in a different browser</li>
               <li>• Browser cache or cookie issues</li>

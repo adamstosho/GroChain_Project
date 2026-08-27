@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useStableDataFetch } from "@/hooks/use-stable-data-fetch"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -16,21 +16,14 @@ import {
   Edit,
   Plus,
   Search,
-  Filter,
   RefreshCw,
-  Calendar,
   Banknote,
   MapPin,
-  TrendingUp,
-  TrendingDown,
   EyeOff,
-  Archive,
   ShoppingCart,
   ArrowLeft,
   Upload,
   Star,
-  MoreHorizontal,
-  Trash2,
   Settings
 } from "lucide-react"
 import Link from "next/link"
@@ -110,7 +103,6 @@ export default function MarketplaceListingsPage() {
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
   const [showListingDetails, setShowListingDetails] = useState(false)
   const [updatingListing, setUpdatingListing] = useState<string | null>(null)
-  const [showCreateModal, setShowCreateModal] = useState(false)
 
   const { toast } = useToast()
 
@@ -463,7 +455,7 @@ export default function MarketplaceListingsPage() {
               {refreshing ? 'Refreshing...' : 'Refresh'}
             </Button>
             <Button asChild>
-              <Link href="/dashboard/marketplace/listings/new">
+              <Link href="/dashboard/marketplace/new">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Listing
               </Link>
@@ -649,7 +641,7 @@ export default function MarketplaceListingsPage() {
               </p>
               {listings.length === 0 && (
                 <Button asChild>
-                  <Link href="/dashboard/marketplace/listings/new">
+                  <Link href="/dashboard/marketplace/new">
                     <Plus className="h-4 w-4 mr-2" />
                     Create Your First Listing
                   </Link>
@@ -827,7 +819,7 @@ export default function MarketplaceListingsPage() {
         {/* Listing Details Modal */}
         {showListingDetails && selectedListing && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="bg-card rounded-lg max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
               <div className="p-4 sm:p-6 border-b border-border">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg sm:text-xl font-semibold text-foreground">
@@ -958,7 +950,7 @@ export default function MarketplaceListingsPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="font-medium">Rating:</span>
-                        <span>{selectedListing.rating || 0} ⭐ ({selectedListing.reviews || 0} reviews)</span>
+                        <span className="inline-flex items-center gap-1">{selectedListing.rating || 0} <Star className="h-3 w-3 text-secondary" /> ({selectedListing.reviews || 0} reviews)</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="font-medium">Revenue:</span>

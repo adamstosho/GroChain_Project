@@ -13,12 +13,11 @@ import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { useAuthStore } from "@/lib/auth"
 import { usePriceAlerts } from "@/hooks/use-price-alerts"
 import { PriceAlertDialog } from "@/components/dialogs/price-alert-dialog"
-import { useExportService } from "@/lib/export-utils"
+import { getExportService } from "@/lib/export-utils"
 import {
   Heart,
   Search,
   MapPin,
-  Star,
   ShoppingCart,
   Eye,
   Trash2,
@@ -86,10 +85,10 @@ export default function FavoritesPage() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [isExporting, setIsExporting] = useState(false)
   const { toast } = useToast()
-  const { addToCart, removeFromFavorites, fetchFavorites, addToFavorites, profile } = useBuyerStore()
+  const { addToCart, removeFromFavorites, fetchFavorites } = useBuyerStore()
   const { user } = useAuthStore()
-  const { hasAlertForProduct, getAlertForProduct, createAlert, updateAlert } = usePriceAlerts()
-  const exportService = useExportService()
+  const { hasAlertForProduct, getAlertForProduct } = usePriceAlerts()
+  const exportService = getExportService()
 
   // Fetch favorites from backend
   useEffect(() => {
@@ -164,6 +163,7 @@ export default function FavoritesPage() {
     try {
       // Convert favorite product to cart format
       const cartProduct = {
+        id: product.listing._id,
         _id: product.listing._id,
         listingId: product.listing._id,
         cropName: product.listing.cropName,
@@ -192,22 +192,6 @@ export default function FavoritesPage() {
     }
   }
 
-  const handleAddToFavorites = async (listingId: string, notes?: string) => {
-    try {
-      await addToFavorites(listingId, notes)
-      toast({
-        title: "Added to favorites",
-        description: "Product has been added to your favorites",
-      })
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to add to favorites. Please try again.",
-        variant: "destructive"
-      })
-    }
-  }
-
   const handleRemoveFromFavorites = async (favoriteId: string, listingId: string) => {
     try {
       await removeFromFavorites(listingId)
@@ -217,7 +201,7 @@ export default function FavoritesPage() {
         title: "Removed from favorites",
         description: "Product has been removed from your favorites",
       })
-    } catch (error: any) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to remove from favorites. Please try again.",
@@ -264,7 +248,7 @@ export default function FavoritesPage() {
         title: "Refreshed",
         description: "Your favorites have been updated",
       })
-    } catch (error: any) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to refresh favorites. Please try again.",
@@ -289,7 +273,16 @@ export default function FavoritesPage() {
       setIsExporting(true)
       const result = await exportService.exportFavorites({
         format: 'csv',
-        filename: `favorites-export-${new Date().toISOString().split('T')[0]}.csv`
+        filename: `favorites-export-${new Date().toISOString().split('T')[0]}.csv`,
+        rows: favorites.map((f: any) => ({
+          listingId: f.listing?._id || f.listingId || f._id,
+          cropName: f.listing?.cropName || f.cropName || '',
+          price: f.listing?.price ?? f.price ?? '',
+          quality: f.listing?.quality || '',
+          farmer: f.listing?.farmer?.name || '',
+          notes: f.notes || '',
+          addedAt: f.createdAt || f.addedAt || '',
+        })),
       })
 
       if (!result.success) {
@@ -672,12 +665,12 @@ function FavoriteCard({
                 className="rounded-lg object-cover"
               />
               {listing.organic && (
-                <Badge className="absolute top-1 left-1 bg-success text-white text-[10px] px-1 py-0.5">
+                <Badge className="absolute top-1 left-1 bg-success text-success-foreground text-[10px] px-1 py-0.5">
                   Organic
                 </Badge>
               )}
               {qualityGrade === 'premium' && (
-                <Badge className="absolute top-1 right-1 bg-warning text-white text-[10px] px-1 py-0.5">
+                <Badge className="absolute top-1 right-1 bg-warning text-warning-foreground text-[10px] px-1 py-0.5">
                   Premium
                 </Badge>
               )}
@@ -776,12 +769,12 @@ function FavoriteCard({
           {/* Badges */}
           <div className="absolute top-1.5 left-1.5 flex flex-col gap-1">
             {listing.organic && (
-              <Badge className="bg-success text-white text-[10px] px-1.5 py-0.5">
+              <Badge className="bg-success text-success-foreground text-[10px] px-1.5 py-0.5">
                 Organic
               </Badge>
             )}
             {qualityGrade === 'premium' && (
-              <Badge className="bg-warning text-white text-[10px] px-1.5 py-0.5">
+              <Badge className="bg-warning text-warning-foreground text-[10px] px-1.5 py-0.5">
                 Premium
               </Badge>
             )}

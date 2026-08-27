@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Camera, Upload, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
+import { getTokenFromStorage } from "@/lib/auth-storage"
 
 interface AvatarUploadProps {
   currentAvatar?: string
@@ -30,6 +31,7 @@ export function AvatarUpload({
   const [isUploading, setIsUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
   const { toast } = useToast()
 
   const sizeClasses = {
@@ -41,6 +43,9 @@ export function AvatarUpload({
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
+    // Reset the input's value immediately so selecting the same file again
+    // (e.g. retrying after a failed or cancelled upload) always fires onChange.
+    event.target.value = ''
     if (!file) return
 
     // Validate file type
@@ -75,10 +80,15 @@ export function AvatarUpload({
   }
 
   const handleUpload = async (file: File) => {
+    // Cancel any upload already in flight before starting a new one
+    abortControllerRef.current?.abort()
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
     try {
       setIsUploading(true)
 
-      const token = localStorage.getItem('grochain_auth_token')
+      const token = getTokenFromStorage()
       if (!token) {
         throw new Error('User is not authenticated. Please log in again.')
       }
@@ -86,7 +96,7 @@ export function AvatarUpload({
       const formData = new FormData()
       formData.append('avatar', file)
 
-      const result = await apiService.uploadAvatar(formData, isAdmin)
+      const result = await apiService.uploadAvatar(formData, isAdmin, controller.signal)
 
       if (result.status === 'success') {
         onAvatarUpdate(result.data.avatar)
@@ -100,6 +110,10 @@ export function AvatarUpload({
         throw new Error(result.message || 'Failed to upload avatar')
       }
     } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        // User cancelled - no error toast, state already reset by handleRemove
+        return
+      }
       console.error('Avatar upload error:', error)
       setPreviewUrl(null)
       toast({
@@ -108,11 +122,17 @@ export function AvatarUpload({
         variant: "destructive"
       })
     } finally {
-      setIsUploading(false)
+      if (abortControllerRef.current === controller) {
+        setIsUploading(false)
+        abortControllerRef.current = null
+      }
     }
   }
 
   const handleRemove = () => {
+    abortControllerRef.current?.abort()
+    abortControllerRef.current = null
+    setIsUploading(false)
     setPreviewUrl(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''

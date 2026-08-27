@@ -8,6 +8,19 @@ const cookieParser = require('cookie-parser')
 const http = require('http')
 require('dotenv').config()
 
+// Keep the process alive on errors that would otherwise silently take the
+// whole API down (e.g. an async controller path missing a try/catch). Express
+// already isolates each request, so logging and continuing is safer here than
+// crashing with no supervisor to restart us (local dev has none; nodemon only
+// restarts on file changes, not on crash).
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Promise Rejection:', reason)
+})
+
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err)
+})
+
 const app = express()
 
 // Import auto-verify middleware
@@ -54,7 +67,8 @@ const corsOptions = {
     }
   },
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-Requested-With']
 }
 
 app.use(cors(corsOptions))
@@ -70,6 +84,9 @@ app.use(compression())
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 app.use(cookieParser())
+
+const { sanitizeAll } = require('./middlewares/sanitize.middleware')
+app.use(sanitizeAll)
 
 // Auto-verify payments middleware
 app.use(autoVerifyPayments)
@@ -105,7 +122,16 @@ app.use('/uploads', express.static('uploads', {
 app.get('/uploads/avatars/*', (req, res) => {
   const fs = require('fs')
   const path = require('path')
-  const filePath = path.join(__dirname, req.path)
+  const avatarsDir = path.resolve(__dirname, 'uploads', 'avatars')
+  const filename = path.basename(req.path)
+  if (!filename || filename === '.' || filename.includes('..')) {
+    return res.status(403).json({ error: 'Forbidden' })
+  }
+  const filePath = path.resolve(avatarsDir, filename)
+  const relative = path.relative(avatarsDir, filePath)
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    return res.status(403).json({ error: 'Forbidden' })
+  }
 
   // Check if file exists
   if (!fs.existsSync(filePath)) {
@@ -155,11 +181,27 @@ app.options('/uploads/avatars/*', (req, res) => {
   res.status(200).end()
 })
 
-// Metrics
+// Metrics (gated: METRICS_TOKEN, or non-production only)
 const client = require('prom-client')
 client.collectDefaultMetrics()
 app.get('/metrics', async (req, res) => {
   try {
+    const metricsToken = process.env.METRICS_TOKEN
+    if (metricsToken) {
+      const authHeader = req.headers.authorization || ''
+      const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
+      const provided = bearer || req.headers['x-metrics-token']
+      if (!provided || typeof provided !== 'string') {
+        return res.status(401).send('Unauthorized')
+      }
+      const a = Buffer.from(provided)
+      const b = Buffer.from(metricsToken)
+      if (a.length !== b.length || !require('crypto').timingSafeEqual(a, b)) {
+        return res.status(401).send('Unauthorized')
+      }
+    } else if (process.env.NODE_ENV === 'production') {
+      return res.status(404).send('Not found')
+    }
     res.set('Content-Type', client.register.contentType)
     res.end(await client.register.metrics())
   } catch (e) {
@@ -319,15 +361,84 @@ app.get('/api/debug/database', (req, res) => {
 
 // Initialize application
 const initializeApp = async () => {
+  // Create the HTTP server and start listening FIRST, before touching the
+  // database. Render (and most PaaS health checks) mark a deploy unhealthy
+  // and can crash-loop it if the process doesn't bind its PORT quickly.
+  // Previously server.listen() was gated behind up to 5 MongoDB connection
+  // attempts (each with a 30s serverSelectionTimeoutMS) plus retry backoff -
+  // worst case minutes before the port opened. If MONGODB_URI was ever
+  // invalid/unreachable, the process would blow past Render's boot timeout
+  // on every restart, producing a permanent 503. Binding immediately means
+  // the health check succeeds regardless of DB status; routes are attached
+  // to the already-running app once the DB connection outcome is known.
+  const server = http.createServer(app);
+
   try {
-    // Connect to database first
+    server.headersTimeout = Number(process.env.SERVER_HEADERS_TIMEOUT_MS || 65000)
+    server.requestTimeout = Number(process.env.SERVER_REQUEST_TIMEOUT_MS || 60000)
+    server.keepAliveTimeout = Number(process.env.SERVER_KEEPALIVE_TIMEOUT_MS || 60000)
+    console.log('⏱️ Server timeouts configured:', {
+      headersTimeout: server.headersTimeout,
+      requestTimeout: server.requestTimeout,
+      keepAliveTimeout: server.keepAliveTimeout
+    })
+  } catch (timeoutErr) {
+    console.warn('⏱️ Failed to apply custom server timeouts:', timeoutErr?.message || timeoutErr)
+  }
+
+  const webSocketService = require('./services/websocket.service');
+  webSocketService.initialize(server);
+
+  const PORT = process.env.PORT || 5000;
+  const isVercel = process.env.VERCEL === '1';
+  const deploymentUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://localhost:${PORT}`;
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(PORT, () => {
+      server.removeListener('error', reject);
+      console.log('='.repeat(60));
+      console.log('🚀 GROCHAIN BACKEND API DEPLOYED SUCCESSFULLY! 🚀');
+      console.log('='.repeat(60));
+
+      if (isVercel) {
+        console.log(`🌍 DEPLOYMENT: Vercel Production Environment`);
+        console.log(`🔗 API URL: ${deploymentUrl}`);
+        console.log(`🏥 Health Check: ${deploymentUrl}/api/health`);
+        console.log(`📚 API Documentation: ${deploymentUrl}/swagger.json`);
+        console.log(`🔌 WebSocket: ${deploymentUrl.replace('https://', 'wss://')}/notifications`);
+      } else {
+        console.log(`🏠 LOCAL DEVELOPMENT ENVIRONMENT`);
+        console.log(`🔗 API URL: ${deploymentUrl}`);
+        console.log(`🏥 Health Check: ${deploymentUrl}/api/health`);
+        console.log(`📚 API Documentation: ${deploymentUrl}/swagger.json`);
+        console.log(`🔌 WebSocket: ${deploymentUrl.replace('http://', 'ws://')}/notifications`);
+      }
+
+      console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🔔 Notifications: ✅ WebSocket Ready`);
+      console.log('='.repeat(60));
+      resolve();
+    });
+  }).catch((listenErr) => {
+    // Failing to bind the port at all (e.g. EADDRINUSE) is genuinely fatal -
+    // there is no server to serve fallback responses from.
+    console.error('❌ Failed to bind server port:', listenErr);
+    process.exit(1);
+  });
+
+  try {
+    // Connect to database
     console.log('🚀 Initializing GroChain Backend...');
     let dbConnected = await connectDB();
-    
-    // If first attempt fails, try again with a delay
-    if (!dbConnected) {
-      console.log('🔄 First connection attempt failed, retrying...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Retry with backoff instead of giving up after one attempt - a transient
+    // network blip to MongoDB Atlas at boot shouldn't permanently wedge the
+    // API into serving 503s until someone manually restarts the process.
+    for (let attempt = 1; !dbConnected && attempt <= 4; attempt++) {
+      const delayMs = attempt * 3000;
+      console.log(`🔄 Connection attempt ${attempt} failed, retrying in ${delayMs}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
       dbConnected = await connectDB();
     }
     
@@ -375,6 +486,7 @@ const initializeApp = async () => {
       app.use('/api/onboarding', require('./routes/onboarding.routes'));
       app.use('/api/ussd', require('./routes/ussd.routes'));
       app.use('/api/bvn', require('./routes/bvnVerification.routes'));
+      app.use('/api/language', require('./routes/language.routes'));
       app.use('/api/ai', require('./routes/ai.routes'));
       app.use('/api/debug', require('./routes/debug.route'));
     } else {
@@ -421,77 +533,33 @@ const initializeApp = async () => {
     app.use(errorHandler)
     
     console.log('✅ Application initialized successfully');
-    
-    // Create HTTP server for Socket.IO
-    const server = http.createServer(app);
 
-    // Configure server timeouts suitable for Render
-    try {
-      server.headersTimeout = Number(process.env.SERVER_HEADERS_TIMEOUT_MS || 65000)
-      server.requestTimeout = Number(process.env.SERVER_REQUEST_TIMEOUT_MS || 60000)
-      server.keepAliveTimeout = Number(process.env.SERVER_KEEPALIVE_TIMEOUT_MS || 60000)
-      console.log('⏱️ Server timeouts configured:', {
-        headersTimeout: server.headersTimeout,
-        requestTimeout: server.requestTimeout,
-        keepAliveTimeout: server.keepAliveTimeout
-      })
-    } catch (timeoutErr) {
-      console.warn('⏱️ Failed to apply custom server timeouts:', timeoutErr?.message || timeoutErr)
-    }
-
-    // Initialize WebSocket service before starting the server
-    const webSocketService = require('./services/websocket.service');
-    
-    // WebSocket endpoint is handled by Socket.IO service at /notifications path
-    
-    // Initialize WebSocket with server
-    webSocketService.initialize(server);
-    
     // Initialize inventory cleanup service
     const inventoryCleanupService = require('./services/inventory-cleanup.service');
     inventoryCleanupService.start();
-    
+
     // Initialize shipping update service
     const shippingUpdateService = require('./services/shipping-update.service');
     shippingUpdateService.start(30); // Run every 30 minutes
-    
-    // Start the server only after everything is set up
-    const PORT = process.env.PORT || 5000;
-    const isVercel = process.env.VERCEL === '1';
-    const deploymentUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://localhost:${PORT}`;
-    
-    server.listen(PORT, () => {
-      console.log('='.repeat(60));
-      console.log('🚀 GROCHAIN BACKEND API DEPLOYED SUCCESSFULLY! 🚀');
-      console.log('='.repeat(60));
-      
-      if (isVercel) {
-        console.log(`🌍 DEPLOYMENT: Vercel Production Environment`);
-        console.log(`🔗 API URL: ${deploymentUrl}`);
-        console.log(`🏥 Health Check: ${deploymentUrl}/api/health`);
-        console.log(`📚 API Documentation: ${deploymentUrl}/swagger.json`);
-        console.log(`🔌 WebSocket: ${deploymentUrl.replace('https://', 'wss://')}/notifications`);
-      } else {
-        console.log(`🏠 LOCAL DEVELOPMENT ENVIRONMENT`);
-        console.log(`🔗 API URL: ${deploymentUrl}`);
-        console.log(`🏥 Health Check: ${deploymentUrl}/api/health`);
-        console.log(`📚 API Documentation: ${deploymentUrl}/swagger.json`);
-        console.log(`🔌 WebSocket: ${deploymentUrl.replace('http://', 'ws://')}/notifications`);
-      }
-      
-      console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🗄️ Database: ${mongoose.connection.readyState === 1 ? '✅ Connected' : '❌ Disconnected'}`);
-      console.log(`🧹 Inventory Cleanup: ✅ Active`);
-      console.log(`📦 Shipping Updates: ✅ Active`);
-      console.log(`🔔 Notifications: ✅ WebSocket Ready`);
-      console.log('='.repeat(60));
-      console.log('🎉 GroChain Backend is ready to serve requests!');
-      console.log('='.repeat(60));
-    });
-    
+
+    // Real file-based backups + scheduled auto-backup (Admin Settings)
+    const backupService = require('./services/backup.service');
+    backupService.startBackupScheduler(60 * 60 * 1000);
+
+    console.log(`🗄️ Database: ${mongoose.connection.readyState === 1 ? '✅ Connected' : '❌ Disconnected'}`);
+    console.log(`🧹 Inventory Cleanup: ✅ Active`);
+    console.log(`📦 Shipping Updates: ✅ Active`);
+    console.log(`💾 System Backups: ✅ Active`);
+    console.log('🎉 GroChain Backend is ready to serve requests!');
+
   } catch (error) {
-    console.error('❌ Application initialization failed:', error);
-    process.exit(1);
+    // The HTTP server is already listening at this point, so a failure here
+    // (a broken route require, a DB/service hiccup) must not exit the
+    // process - that would tear down an otherwise-working server and,
+    // combined with Render's auto-restart, recreate the exact crash loop
+    // this refactor exists to prevent. Log it and keep serving whatever
+    // did get set up (routes, or the 503 fallback registered above).
+    console.error('❌ Application initialization failed (server remains running):', error);
   }
 };
 

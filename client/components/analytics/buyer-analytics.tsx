@@ -6,29 +6,23 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { brandColors, chartSeries } from "@/lib/brand/colors"
+import { formatCompactCurrency, formatCompactNumber } from "@/lib/format"
 import {
   TrendingUp,
-  TrendingDown,
   Banknote,
   ShoppingCart,
-  Heart,
-  Calendar,
   BarChart3,
   PieChart,
   Activity,
   RefreshCw,
-  MapPin,
   Package,
   Target,
   Star,
-  Truck,
-  AlertCircle,
   CheckCircle,
-  XCircle,
   Clock
 } from "lucide-react"
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart as RechartsPieChart, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Pie, Legend } from "recharts"
-import { cn } from "@/lib/utils"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 
@@ -71,12 +65,6 @@ interface BuyerAnalyticsData {
   }>
 }
 
-interface ChartData {
-  name: string
-  value: number
-  [key: string]: any
-}
-
 export function BuyerAnalytics() {
   const [analyticsData, setAnalyticsData] = useState<BuyerAnalyticsData | null>(null)
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d" | "1y">("30d")
@@ -114,28 +102,15 @@ export function BuyerAnalytics() {
   }
 
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      notation: 'compact',
-      maximumFractionDigits: 1
-    }).format(value)
-  }
-
-  const formatNumber = (value: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      notation: 'compact',
-      maximumFractionDigits: 1
-    }).format(value)
-  }
+  const formatCurrency = formatCompactCurrency
+  const formatNumber = formatCompactNumber
 
   // Helper functions for data validation and formatting
   const isValidData = (data: any) => {
     return data && (Array.isArray(data) ? data.length > 0 : true)
   }
 
-  const getChartColors = () => ['#22c55e', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899']
+  const getChartColors = () => [...chartSeries]
 
   const prepareCategorySpendingData = () => {
     if (!analyticsData?.spendingByCategory) return []
@@ -152,14 +127,6 @@ export function BuyerAnalytics() {
       orders: item.orders,
       spending: item.spending,
       avgOrder: item.orders > 0 ? item.spending / item.orders : 0
-    }))
-  }
-
-  const prepareOrderStatusData = () => {
-    if (!analyticsData?.ordersByStatus) return []
-    return analyticsData.ordersByStatus.map((item, index) => ({
-      ...item,
-      color: getChartColors()[index % getChartColors().length]
     }))
   }
 
@@ -343,29 +310,28 @@ export function BuyerAnalytics() {
             value="overview"
             className="text-xs sm:text-sm py-2 px-2 sm:px-3 lg:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[36px] sm:min-h-[40px]"
           >
-            <span className="hidden sm:inline">Overview</span>
-            <span className="sm:hidden">📊</span>
+            Overview
           </TabsTrigger>
           <TabsTrigger
             value="purchases"
             className="text-xs sm:text-sm py-2 px-2 sm:px-3 lg:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[36px] sm:min-h-[40px]"
           >
             <span className="hidden sm:inline">Purchase Analysis</span>
-            <span className="sm:hidden">🛒</span>
+            <span className="sm:hidden">Purchases</span>
           </TabsTrigger>
           <TabsTrigger
             value="categories"
             className="text-xs sm:text-sm py-2 px-2 sm:px-3 lg:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[36px] sm:min-h-[40px]"
           >
             <span className="hidden sm:inline">Category Spending</span>
-            <span className="sm:hidden">📂</span>
+            <span className="sm:hidden">Categories</span>
           </TabsTrigger>
           <TabsTrigger
             value="suppliers"
             className="text-xs sm:text-sm py-2 px-2 sm:px-3 lg:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[36px] sm:min-h-[40px]"
           >
             <span className="hidden sm:inline">Supplier Performance</span>
-            <span className="sm:hidden">👥</span>
+            <span className="sm:hidden">Suppliers</span>
           </TabsTrigger>
         </TabsList>
 
@@ -414,7 +380,7 @@ export function BuyerAnalytics() {
                       <Tooltip
                         contentStyle={{
                           backgroundColor: 'white',
-                          border: '1px solid #e5e7eb',
+                          border: '1px solid var(--border)',
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           fontSize: '12px'
@@ -428,8 +394,8 @@ export function BuyerAnalytics() {
                         yAxisId="left"
                         type="monotone"
                         dataKey="orders"
-                        stroke="#3b82f6"
-                        fill="#3b82f6"
+                        stroke={brandColors.chartEarth}
+                        fill={brandColors.chartEarth}
                         fillOpacity={0.1}
                         name="Orders"
                         strokeWidth={2}
@@ -438,7 +404,7 @@ export function BuyerAnalytics() {
                         yAxisId="right"
                         type="monotone"
                         dataKey="spending"
-                        stroke="#22c55e"
+                        stroke="#166534"
                         strokeWidth={2}
                         name="Total Spending"
                       />
@@ -446,7 +412,7 @@ export function BuyerAnalytics() {
                         yAxisId="right"
                         type="monotone"
                         dataKey="avgOrder"
-                        stroke="#8b5cf6"
+                        stroke={brandColors.chartGold}
                         strokeWidth={2}
                         name="Average Order"
                       />
@@ -545,7 +511,7 @@ export function BuyerAnalytics() {
                       <XAxis dataKey="name" fontSize={10} />
                       <YAxis tickFormatter={(value) => formatNumber(value)} fontSize={10} />
                       <Tooltip formatter={(value: any) => [formatNumber(value), 'Orders']} />
-                      <Bar dataKey="orders" fill="#3b82f6" />
+                      <Bar dataKey="orders" fill={brandColors.chartEarth} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -580,7 +546,7 @@ export function BuyerAnalytics() {
                       <Line
                         type="monotone"
                         dataKey="spending"
-                        stroke="#22c55e"
+                        stroke="#166534"
                         strokeWidth={2}
                       />
                     </LineChart>
@@ -622,7 +588,7 @@ export function BuyerAnalytics() {
                         labelLine={false}
                         label={(props) => `${(props as any).category} ${(props as any).percentage}%`}
                         outerRadius={60}
-                        fill="#8884d8"
+                        fill={chartSeries[0]}
                         dataKey="percentage"
                       >
                         {prepareCategorySpendingData().map((entry, index) => (
@@ -662,7 +628,7 @@ export function BuyerAnalytics() {
                       <XAxis dataKey="category" fontSize={10} />
                       <YAxis tickFormatter={(value) => formatCurrency(value)} fontSize={10} />
                       <Tooltip formatter={(value: any) => [formatCurrency(value), 'Total Spent']} />
-                      <Bar dataKey="amount" fill="#22c55e" />
+                      <Bar dataKey="amount" fill="#166534" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -704,14 +670,14 @@ export function BuyerAnalytics() {
                       </tr>
                     </thead>
                     <tbody>
-                      {analyticsData!.topSuppliers!.map((supplier, index) => (
+                      {analyticsData!.topSuppliers!.map((supplier) => (
                         <tr key={supplier.name} className="border-b hover:bg-muted/30">
                           <td className="p-1 sm:p-2 font-medium text-xs sm:text-sm truncate max-w-[120px]">{supplier.name}</td>
                           <td className="p-1 sm:p-2 text-xs sm:text-sm">{supplier.orders}</td>
                           <td className="p-1 sm:p-2 text-xs sm:text-sm">{formatCurrency(supplier.totalSpent)}</td>
                           <td className="p-1 sm:p-2 flex items-center gap-1 text-xs sm:text-sm">
                             <Star className="h-3 w-3 fill-warning text-warning flex-shrink-0" />
-                            {supplier.rating.toFixed(1)}
+                            {(supplier.rating ?? 0).toFixed(1)}
                           </td>
                           <td className="p-1 sm:p-2">
                             <Badge
@@ -753,7 +719,7 @@ export function BuyerAnalytics() {
               </CardHeader>
               <CardContent className="p-3 sm:p-4 lg:p-6">
                 <div className="space-y-3 sm:space-y-4">
-                  {analyticsData!.recentOrders!.slice(0, 5).map((order, index) => (
+                  {analyticsData!.recentOrders!.slice(0, 5).map((order) => (
                     <div key={order.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border rounded-lg gap-2 sm:gap-4">
                       <div className="space-y-1 min-w-0 flex-1">
                         <p className="font-medium text-sm sm:text-base truncate">{order.orderNumber}</p>

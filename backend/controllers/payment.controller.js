@@ -4,7 +4,6 @@ const Order = require('../models/order.model')
 const Transaction = require('../models/transaction.model')
 const Commission = require('../models/commission.model')
 const PaymentMethod = require('../models/payment-method.model')
-const https = require('https')
 const notificationController = require('./notification.controller')
 const realTimeCommissionService = require('../services/commission-realtime.service')
 const PaystackUtil = require('../utils/paystack.util')
@@ -134,29 +133,53 @@ exports.initializePayment = async (req, res) => {
         message: `Payment amount must match order total (₦${orderTotal.toLocaleString('en-NG')})`
       })
     }
-    
-    // Generate unique reference
-    const reference = `GROCHAIN_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`
-    
-    // Create transaction record
-    const transaction = new Transaction({
-      type: 'payment',
+
+    // Reuse an existing pending transaction for this order+provider+amount so retries
+    // (cancel popup, retry payment) don't pile up orphan pending Transaction rows.
+    let transaction = await Transaction.findOne({
+      orderId,
       status: 'pending',
-      amount: amount,
-      currency: 'NGN',
-      reference: reference,
-      description: `Payment for order ${orderId}`,
-      userId: order.buyer._id,
-      orderId: orderId,
-      paymentProvider: paymentProvider,
-      metadata: {
-        orderId: orderId,
-        callbackUrl: callbackUrl,
-        paymentProvider: paymentProvider
+      paymentProvider,
+      amount: requestedAmount,
+      type: 'payment'
+    }).sort({ createdAt: -1 })
+
+    let reference
+    if (transaction) {
+      reference = transaction.reference
+      console.log('♻️ Reusing pending transaction for order:', orderId, reference)
+      transaction.metadata = {
+        ...(transaction.metadata || {}),
+        orderId,
+        callbackUrl,
+        paymentProvider,
+        reusedAt: new Date()
       }
-    })
-    
-    await transaction.save()
+      await transaction.save()
+    } else {
+      // Generate unique reference
+      reference = `GROCHAIN_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`
+
+      // Create transaction record
+      transaction = new Transaction({
+        type: 'payment',
+        status: 'pending',
+        amount: requestedAmount,
+        currency: 'NGN',
+        reference: reference,
+        description: `Payment for order ${orderId}`,
+        userId: order.buyer._id,
+        orderId: orderId,
+        paymentProvider: paymentProvider,
+        metadata: {
+          orderId: orderId,
+          callbackUrl: callbackUrl,
+          paymentProvider: paymentProvider
+        }
+      })
+
+      await transaction.save()
+    }
     
     // Allow insecure test-mode behavior only when explicitly enabled
     console.log('🔍 Checking payment provider configuration:', {
@@ -399,15 +422,18 @@ exports.initializePayment = async (req, res) => {
 }
 
 exports.verifyPayment = async (req, res) => {
+  let verifyLockToken = null
+  let verifyReference = null
   try {
     const { reference } = req.params
     const { paymentProvider } = req.query
     const currentUserId = req.user?.id || req.user?._id
     const currentUserRole = req.user?.role
+    verifyReference = reference
 
     console.log('🔍 Manual payment verification for reference:', reference, 'provider:', paymentProvider)
 
-    const transaction = await Transaction.findOne({ reference: reference })
+    let transaction = await Transaction.findOne({ reference: reference })
     if (!transaction) {
       console.log('❌ Transaction not found:', reference)
       return res.status(404).json({ status: 'error', message: 'Transaction not found' })
@@ -445,6 +471,59 @@ exports.verifyPayment = async (req, res) => {
         }
       })
     }
+
+    // Share webhookLock with webhook handlers so concurrent verify + webhook
+    // cannot both apply inventory/commission side effects.
+    const now = new Date()
+    verifyLockToken = crypto.randomBytes(16).toString('hex')
+    const lockedTx = await Transaction.findOneAndUpdate(
+      {
+        reference,
+        status: { $ne: 'completed' },
+        $or: [
+          { 'metadata.webhookLock.status': { $exists: false } },
+          { 'metadata.webhookLock.status': { $ne: 'processing' } },
+          { 'metadata.webhookLock.expiresAt': { $lt: now } }
+        ]
+      },
+      {
+        $set: {
+          'metadata.webhookLock': {
+            status: 'processing',
+            token: verifyLockToken,
+            event: 'manual_verify',
+            startedAt: now,
+            expiresAt: new Date(now.getTime() + 5 * 60 * 1000)
+          }
+        }
+      },
+      { new: true }
+    )
+
+    if (!lockedTx) {
+      const existingTx = await Transaction.findOne({ reference })
+      if (existingTx?.status === 'completed') {
+        let orderData = null
+        if (existingTx.orderId) {
+          orderData = await Order.findById(existingTx.orderId)
+            .populate('items.listing', 'cropName availableQuantity quantity status updatedAt createdAt')
+        }
+        return res.json({
+          status: 'success',
+          data: {
+            transaction: existingTx,
+            order: orderData,
+            message: 'Payment already verified'
+          }
+        })
+      }
+      return res.status(409).json({
+        status: 'error',
+        message: 'Payment verification already in progress. Please try again shortly.'
+      })
+    }
+
+    transaction = lockedTx
 
     // Check if this is a test mode payment
     const isTestMode = (req.query.test_mode === 'true' || req.body?.test_mode === true) && allowInsecureTestPayments()
@@ -484,6 +563,16 @@ exports.verifyPayment = async (req, res) => {
       } else if (provider === 'flutterwave') {
         providerVerification = await verifyWithFlutterwaveAPI(reference)
       } else {
+        await Transaction.findOneAndUpdate(
+          { reference, 'metadata.webhookLock.token': verifyLockToken },
+          {
+            $set: {
+              'metadata.webhookLock.status': 'failed',
+              'metadata.webhookLock.failedAt': new Date(),
+              'metadata.webhookLock.error': `Unsupported payment provider: ${provider}`
+            }
+          }
+        )
         return res.status(400).json({ 
           status: 'error', 
           message: `Unsupported payment provider: ${provider}` 
@@ -492,6 +581,16 @@ exports.verifyPayment = async (req, res) => {
       
       if (!providerVerification.success) {
         console.log(`❌ ${provider} verification failed:`, providerVerification.error)
+        await Transaction.findOneAndUpdate(
+          { reference, 'metadata.webhookLock.token': verifyLockToken },
+          {
+            $set: {
+              'metadata.webhookLock.status': 'failed',
+              'metadata.webhookLock.failedAt': new Date(),
+              'metadata.webhookLock.error': providerVerification.error || 'Provider verification failed'
+            }
+          }
+        )
         return res.status(400).json({ 
           status: 'error', 
           message: 'Payment verification failed: ' + providerVerification.error 
@@ -500,14 +599,49 @@ exports.verifyPayment = async (req, res) => {
 
       if (!providerVerification.paid) {
         console.log(`❌ Payment not successful according to ${provider}`)
-        return res.status(400).json({ 
-          status: 'error', 
-          message: 'Payment was not successful' 
+        await Transaction.findOneAndUpdate(
+          { reference, 'metadata.webhookLock.token': verifyLockToken },
+          {
+            $set: {
+              'metadata.webhookLock.status': 'failed',
+              'metadata.webhookLock.failedAt': new Date(),
+              'metadata.webhookLock.error': 'Payment was not successful'
+            }
+          }
+        )
+        return res.status(400).json({
+          status: 'error',
+          message: 'Payment was not successful'
+        })
+      }
+
+      // Paystack/Flutterwave both allow underpayment via bank transfer/USSD channels —
+      // a "success" status only means *some* amount was received, not that it matches
+      // what we asked for. Without this check an order could be marked fully paid after
+      // the buyer sent less than the total.
+      const paidAmountNaira = provider === 'paystack'
+        ? providerVerification.amount / 100
+        : providerVerification.amount
+      if (Math.abs(paidAmountNaira - transaction.amount) > 1) {
+        console.error(`❌ Amount mismatch for ${reference}: expected ₦${transaction.amount}, ${provider} confirmed ₦${paidAmountNaira}`)
+        await Transaction.findOneAndUpdate(
+          { reference, 'metadata.webhookLock.token': verifyLockToken },
+          {
+            $set: {
+              'metadata.webhookLock.status': 'failed',
+              'metadata.webhookLock.failedAt': new Date(),
+              'metadata.webhookLock.error': `Amount mismatch: expected ${transaction.amount}, got ${paidAmountNaira}`
+            }
+          }
+        )
+        return res.status(400).json({
+          status: 'error',
+          message: 'Payment verification failed: amount paid does not match the amount due'
         })
       }
 
       console.log(`✅ ${provider} verification successful`)
-      
+
       verificationData = {
         status: 'success',
         amount: providerVerification.amount,
@@ -545,7 +679,13 @@ exports.verifyPayment = async (req, res) => {
       transaction.status = 'completed'
       transaction.paymentProviderReference = reference
       transaction.processedAt = new Date()
+      transaction.metadata = transaction.metadata || {}
       transaction.metadata.verification = verificationData
+      transaction.metadata.webhookLock = {
+        ...(transaction.metadata.webhookLock || {}),
+        status: 'completed',
+        completedAt: new Date()
+      }
       await transaction.save({ session })
 
       if (transaction.orderId) {
@@ -619,6 +759,18 @@ exports.verifyPayment = async (req, res) => {
       console.error('❌ Payment verification transaction failed, rolling back:', txError)
       await session.abortTransaction()
       session.endSession()
+      if (verifyReference && verifyLockToken) {
+        await Transaction.findOneAndUpdate(
+          { reference: verifyReference, 'metadata.webhookLock.token': verifyLockToken },
+          {
+            $set: {
+              'metadata.webhookLock.status': 'failed',
+              'metadata.webhookLock.failedAt': new Date(),
+              'metadata.webhookLock.error': txError.message
+            }
+          }
+        )
+      }
       return res.status(500).json({ status: 'error', message: 'Failed to finalize payment. Please try verifying again.' })
     }
     session.endSession()
@@ -732,6 +884,22 @@ exports.verifyPayment = async (req, res) => {
     })
   } catch (error) {
     console.error('❌ Payment verification error:', error)
+    if (verifyReference && verifyLockToken) {
+      try {
+        await Transaction.findOneAndUpdate(
+          { reference: verifyReference, 'metadata.webhookLock.token': verifyLockToken },
+          {
+            $set: {
+              'metadata.webhookLock.status': 'failed',
+              'metadata.webhookLock.failedAt': new Date(),
+              'metadata.webhookLock.error': error.message
+            }
+          }
+        )
+      } catch {
+        // best-effort lock release
+      }
+    }
     return res.status(500).json({ status: 'error', message: 'Payment verification failed' })
   }
 }
@@ -1022,31 +1190,67 @@ exports.processRefund = async (req, res) => {
       })
     }
 
-    // Only mark refunded once the provider has actually confirmed the refund
-    const refundTransaction = new Transaction({
-      type: 'refund',
-      status: 'completed',
-      amount: refundAmount,
-      currency: 'NGN',
-      reference: `REFUND_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`,
-      description: `Refund for order ${orderId}: ${reason || 'no reason given'}`,
-      userId: order.buyer,
-      orderId: orderId,
-      paymentProvider: provider,
-      processedAt: new Date(),
-      metadata: {
-        reason: reason,
-        originalOrderId: orderId,
-        originalTransactionId: originalPayment._id,
-        providerResponse: providerResult.data
+    // Provider already moved money — wrap DB side in a transaction so order +
+    // refund record + inventory restore stay consistent. If this fails after a
+    // successful provider refund, log for manual reconcile.
+    const session = await mongoose.startSession()
+    session.startTransaction()
+    let refundTransaction
+    try {
+      const Listing = require('../models/listing.model')
+      const populatedOrder = await Order.findById(orderId).session(session)
+      if (!populatedOrder) {
+        throw new Error('Order disappeared during refund')
       }
-    })
 
-    await refundTransaction.save()
+      ;[refundTransaction] = await Transaction.create([{
+        type: 'refund',
+        status: 'completed',
+        amount: refundAmount,
+        currency: 'NGN',
+        reference: `REFUND_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`,
+        description: `Refund for order ${orderId}: ${reason || 'no reason given'}`,
+        userId: populatedOrder.buyer,
+        orderId: orderId,
+        paymentProvider: provider,
+        processedAt: new Date(),
+        metadata: {
+          reason: reason,
+          originalOrderId: orderId,
+          originalTransactionId: originalPayment._id,
+          providerResponse: providerResult.data
+        }
+      }], { session })
 
-    order.status = 'refunded'
-    order.paymentStatus = 'refunded'
-    await order.save()
+      populatedOrder.status = 'refunded'
+      populatedOrder.paymentStatus = 'refunded'
+      await populatedOrder.save({ session })
+
+      // Restore stock that was decremented when payment completed
+      for (const item of populatedOrder.items || []) {
+        const listingId = item.listing?._id || item.listing
+        if (!listingId) continue
+        await Listing.findByIdAndUpdate(
+          listingId,
+          { $inc: { availableQuantity: Number(item.quantity) || 0 } },
+          { session }
+        )
+      }
+
+      await session.commitTransaction()
+    } catch (txError) {
+      await session.abortTransaction()
+      console.error(
+        'CRITICAL: Provider refund succeeded but DB commit failed — manual reconcile required',
+        { orderId, provider, refundAmount, error: txError.message }
+      )
+      return res.status(500).json({
+        status: 'error',
+        message: 'Refund succeeded at provider but failed to update records. Support has been alerted.'
+      })
+    } finally {
+      session.endSession()
+    }
 
     return res.json({
       status: 'success',
@@ -1056,6 +1260,7 @@ exports.processRefund = async (req, res) => {
       }
     })
   } catch (error) {
+    console.error('processRefund error:', error)
     return res.status(500).json({ status: 'error', message: 'Server error' })
   }
 }
@@ -1141,13 +1346,7 @@ exports.webhookVerify = async (req, res) => {
         return res.status(500).json({ status: 'error', message: 'Webhook secret not configured' })
       }
 
-      const payload = JSON.stringify(req.body)
-      const expected = crypto.createHmac('sha512', secret).update(payload).digest('hex')
-      const expectedBuf = Buffer.from(expected, 'hex')
-      const signatureBuf = Buffer.from(String(signature), 'hex')
-      const signatureValid =
-        expectedBuf.length === signatureBuf.length && crypto.timingSafeEqual(expectedBuf, signatureBuf)
-      if (!signatureValid) {
+      if (!PaystackUtil.verifyWebhookSignature(req.body, signature, secret)) {
         return res.status(401).json({ status: 'error', message: 'Invalid signature' })
       }
     }
@@ -1243,6 +1442,25 @@ exports.webhookVerify = async (req, res) => {
             }
           )
           return res.json({ status: 'success', message: 'Webhook received but payment not verified' })
+        }
+
+        // Guard against underpayment (e.g. bank transfer/USSD channels that don't
+        // enforce the requested amount) — a "success" charge that paid less than
+        // the transaction total must not be allowed to mark the order as paid.
+        const paidAmountNaira = paystackVerification.amount / 100
+        if (Math.abs(paidAmountNaira - tx.amount) > 1) {
+          console.error(`❌ Webhook amount mismatch for ${reference}: expected ₦${tx.amount}, Paystack confirmed ₦${paidAmountNaira}`)
+          await Transaction.findOneAndUpdate(
+            { reference: webhookReference, 'metadata.webhookLock.token': webhookLockToken },
+            {
+              $set: {
+                'metadata.webhookLock.status': 'failed',
+                'metadata.webhookLock.failedAt': new Date(),
+                'metadata.webhookLock.error': `Amount mismatch: expected ${tx.amount}, got ${paidAmountNaira}`
+              }
+            }
+          )
+          return res.json({ status: 'success', message: 'Webhook received but amount did not match' })
         }
 
         console.log('✅ Paystack verification confirmed, updating transaction')
@@ -1620,6 +1838,24 @@ exports.webhookVerifyFlutterwave = async (req, res) => {
             }
           )
           return res.json({ status: 'success', message: 'Webhook received but payment not verified' })
+        }
+
+        // Guard against underpayment (e.g. bank transfer/USSD channels that don't
+        // enforce the requested amount) — a "success" charge that paid less than
+        // the transaction total must not be allowed to mark the order as paid.
+        if (Math.abs(flutterwaveVerification.amount - tx.amount) > 1) {
+          console.error(`❌ Webhook amount mismatch for ${reference}: expected ₦${tx.amount}, Flutterwave confirmed ₦${flutterwaveVerification.amount}`)
+          await Transaction.findOneAndUpdate(
+            { reference: webhookReference, 'metadata.webhookLock.token': webhookLockToken },
+            {
+              $set: {
+                'metadata.webhookLock.status': 'failed',
+                'metadata.webhookLock.failedAt': new Date(),
+                'metadata.webhookLock.error': `Amount mismatch: expected ${tx.amount}, got ${flutterwaveVerification.amount}`
+              }
+            }
+          )
+          return res.json({ status: 'success', message: 'Webhook received but amount did not match' })
         }
 
         console.log('✅ Flutterwave verification confirmed, updating transaction')
@@ -2019,219 +2255,29 @@ exports.bulkSyncOrders = async (req, res) => {
   }
 }
 
-// Helper function to initialize payment with Paystack API
-async function initializePaystackPayment(paymentData) {
-  return new Promise((resolve) => {
-    const options = {
-      hostname: 'api.paystack.co',
-      port: 443,
-      path: '/transaction/initialize',
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    }
-
-    const postData = JSON.stringify(paymentData)
-
-    const req = https.request(options, (res) => {
-      let data = ''
-
-      res.on('data', (chunk) => data += chunk)
-
-      res.on('end', () => {
-        try {
-          const response = JSON.parse(data)
-          console.log('📊 Paystack Initialize Response:', response)
-          
-          if (response.status && response.data) {
-            resolve({
-              success: true,
-              authorization_url: response.data.authorization_url,
-              access_code: response.data.access_code,
-              reference: response.data.reference
-            })
-          } else {
-            resolve({
-              success: false,
-              error: response.message || 'Payment initialization failed'
-            })
-          }
-        } catch (error) {
-          console.error('❌ Paystack initialization response parsing error:', error)
-          resolve({
-            success: false,
-            error: 'Invalid response from Paystack'
-          })
-        }
-      })
-    })
-
-    req.on('error', (error) => {
-      console.error('❌ Paystack initialization request error:', error)
-      resolve({
-        success: false,
-        error: error.message
-      })
-    })
-
-    req.setTimeout(10000, () => {
-      req.destroy()
-      resolve({
-        success: false,
-        error: 'Paystack API timeout'
-      })
-    })
-
-    req.write(postData)
-    req.end()
-  })
-}
-
-// Helper function to verify payment with Paystack API
+// Provider verification helpers — delegate to shared utils (single source of truth)
 async function verifyWithPaystackAPI(reference) {
-  return new Promise((resolve) => {
-    const options = {
-      hostname: 'api.paystack.co',
-      port: 443,
-      path: `/transaction/verify/${reference}`,
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    }
-
-    const req = https.request(options, (res) => {
-      let data = ''
-
-      res.on('data', (chunk) => data += chunk)
-
-      res.on('end', () => {
-        try {
-          const response = JSON.parse(data)
-          console.log('📊 Paystack API Response:', response)
-          
-          if (response.status && response.data) {
-            resolve({
-              success: true,
-              paid: response.data.status === 'success',
-              status: response.data.status,
-              amount: response.data.amount,
-              reference: response.data.reference,
-              channel: response.data.channel,
-              customer: response.data.customer,
-              paid_at: response.data.paid_at
-            })
-          } else {
-            resolve({
-              success: false,
-              error: response.message || 'Verification failed'
-            })
-          }
-        } catch (error) {
-          console.error('❌ Paystack API response parsing error:', error)
-          resolve({
-            success: false,
-            error: 'Invalid response from Paystack'
-          })
-        }
-      })
-    })
-
-    req.on('error', (error) => {
-      console.error('❌ Paystack API request error:', error)
-      resolve({
-        success: false,
-        error: error.message
-      })
-    })
-
-    req.setTimeout(10000, () => {
-      req.destroy()
-      resolve({
-        success: false,
-        error: 'Paystack API timeout'
-      })
-    })
-
-    req.end()
-  })
+  try {
+    const paystackUtil = new PaystackUtil()
+    const result = await paystackUtil.verifyTransaction(reference)
+    console.log('📊 Paystack API Response:', result)
+    return result
+  } catch (error) {
+    console.error('❌ Paystack API request error:', error)
+    return { success: false, paid: false, error: error.message }
+  }
 }
 
-// Helper function to verify payment with Flutterwave API
 async function verifyWithFlutterwaveAPI(reference) {
-  return new Promise((resolve) => {
-    const options = {
-      hostname: 'api.flutterwave.com',
-      port: 443,
-      // Verify by OUR reference (tx_ref), not Flutterwave's internal numeric id —
-      // we never receive/store that id, so /v3/transactions/{id}/verify can't be used here.
-      path: `/v3/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`,
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    }
-
-    const req = https.request(options, (res) => {
-      let data = ''
-
-      res.on('data', (chunk) => data += chunk)
-
-      res.on('end', () => {
-        try {
-          const response = JSON.parse(data)
-          console.log('📊 Flutterwave API Response:', response)
-
-          if (response.status === 'success' && response.data) {
-            resolve({
-              success: true,
-              paid: response.data.status === 'successful',
-              status: response.data.status,
-              amount: response.data.amount,
-              reference: response.data.tx_ref,
-              providerTransactionId: response.data.id,
-              channel: response.data.payment_type,
-              customer: response.data.customer,
-              paid_at: response.data.created_at
-            })
-          } else {
-            resolve({
-              success: false,
-              error: response.message || 'Verification failed'
-            })
-          }
-        } catch (error) {
-          console.error('❌ Flutterwave API response parsing error:', error)
-          resolve({
-            success: false,
-            error: 'Invalid response from Flutterwave'
-          })
-        }
-      })
-    })
-
-    req.on('error', (error) => {
-      console.error('❌ Flutterwave API request error:', error)
-      resolve({
-        success: false,
-        error: error.message
-      })
-    })
-
-    req.setTimeout(10000, () => {
-      req.destroy()
-      resolve({
-        success: false,
-        error: 'Flutterwave API timeout'
-      })
-    })
-
-    req.end()
-  })
+  try {
+    const flutterwaveUtil = new FlutterwaveUtil()
+    const result = await flutterwaveUtil.verifyTransaction(reference)
+    console.log('📊 Flutterwave API Response:', result)
+    return result
+  } catch (error) {
+    console.error('❌ Flutterwave API request error:', error)
+    return { success: false, paid: false, error: error.message }
+  }
 }
 
 // Payment Methods Management

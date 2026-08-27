@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
@@ -19,15 +18,13 @@ import {
   ShoppingCart,
   Calendar,
   Leaf,
-  TrendingUp,
   User,
   Package,
   Truck,
   Shield,
   RefreshCw,
   Minus,
-  Plus,
-  Eye
+  Plus
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -81,7 +78,6 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
-  const [favorites, setFavorites] = useState<any[]>([])
 
   const productId = params.productId as string
 

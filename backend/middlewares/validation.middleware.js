@@ -35,7 +35,7 @@ const userSchemas = {
     email: commonSchemas.email,
     phone: commonSchemas.phone,
     password: commonSchemas.password,
-    role: Joi.string().valid('farmer', 'buyer', 'partner', 'admin').default('farmer'),
+    role: Joi.string().valid('farmer', 'buyer', 'partner', 'admin', 'carrier').default('farmer'),
     location: commonSchemas.location.optional(),
     profileImage: Joi.string().uri().optional(),
     bvn: Joi.string().length(11).pattern(/^\d+$/).optional(),

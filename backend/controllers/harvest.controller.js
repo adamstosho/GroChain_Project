@@ -1,10 +1,9 @@
 const Joi = require('joi')
-const { v4: uuidv4 } = require('uuid')
 const QRCode = require('qrcode')
 const Harvest = require('../models/harvest.model')
 const User = require('../models/user.model')
 const notificationController = require('./notification.controller')
-const { ensureExactPrecision, validateQuantity, validatePrice } = require('../utils/number-precision')
+const { validateQuantity, validatePrice } = require('../utils/number-precision')
 
 const harvestSchema = Joi.object({
   cropType: Joi.string().required(),
@@ -687,34 +686,33 @@ exports.exportHarvests = async (req, res) => {
       .populate('farmer', 'name email profile')
       .sort({ createdAt: -1 })
 
-    if (format === 'pdf') {
-      // For now, return JSON data that can be used to generate PDF on frontend
-      // In production, you'd use a library like pdfkit or puppeteer
-      const exportData = {
-        farmer: harvests[0]?.farmer?.name || 'Unknown Farmer',
-        farmName: harvests[0]?.farmer?.profile?.farmName || 'Unknown Farm',
-        exportDate: new Date().toISOString(),
-        totalHarvests: harvests.length,
-        harvests: harvests.map(h => ({
-          batchId: h.batchId,
-          cropType: h.cropType,
-          variety: h.variety,
-          quantity: h.quantity,
-          unit: h.unit,
-          quality: h.quality,
-          qualityGrade: h.qualityGrade,
-          location: h.location,
-          harvestDate: h.date,
-          status: h.status,
-          price: h.price,
-          organic: h.sustainability?.organicCertified,
-          description: h.description
-        }))
-      }
-
-      res.setHeader('Content-Type', 'application/json')
-      res.setHeader('Content-Disposition', `attachment; filename=harvests-export-${Date.now()}.json`)
-      return res.json(exportData)
+    if (format === 'pdf' || format === 'excel' || format === 'xlsx') {
+      const ExportImportService = require('../services/exportImport.service')
+      const exportRows = harvests.map(h => ({
+        batchId: h.batchId,
+        cropType: h.cropType,
+        variety: h.variety,
+        quantity: h.quantity,
+        unit: h.unit,
+        quality: h.quality,
+        qualityGrade: h.qualityGrade,
+        location: typeof h.location === 'string' ? h.location : h.location?.city,
+        harvestDate: h.date,
+        status: h.status,
+        price: h.price,
+        organic: h.sustainability?.organicCertified ? 'Yes' : 'No',
+        farmerName: h.farmer?.name || '',
+        description: h.description
+      }))
+      const result = await ExportImportService.exportData(exportRows, {
+        format: 'excel',
+        filename: `grochain-harvests-${Date.now()}.xlsx`,
+      })
+      const fs = require('fs')
+      const path = require('path')
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      res.setHeader('Content-Disposition', `attachment; filename="${path.basename(result.filePath)}"`)
+      return fs.createReadStream(result.filePath).pipe(res)
     }
 
     // For CSV format
@@ -727,7 +725,7 @@ exports.exportHarvests = async (req, res) => {
         'Unit': h.unit,
         'Quality': h.quality,
         'Quality Grade': h.qualityGrade,
-        'Location': h.location,
+        'Location': typeof h.location === 'string' ? h.location : (h.location?.city || ''),
         'Harvest Date': h.date,
         'Status': h.status,
         'Price': h.price,
@@ -736,16 +734,16 @@ exports.exportHarvests = async (req, res) => {
       }))
 
       const csvString = [
-        Object.keys(csvData[0] || {}).join(','),
-        ...csvData.map(row => Object.values(row).map(val => `"${val || ''}"`).join(','))
+        Object.keys(csvData[0] || { message: 'empty' }).join(','),
+        ...csvData.map(row => Object.values(row).map(val => `"${String(val ?? '').replace(/"/g, '""')}"`).join(','))
       ].join('\n')
 
-      res.setHeader('Content-Type', 'text/csv')
-      res.setHeader('Content-Disposition', `attachment; filename=harvests-export-${Date.now()}.csv`)
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+      res.setHeader('Content-Disposition', `attachment; filename=grochain-harvests-${Date.now()}.csv`)
       return res.send(csvString)
     }
 
-    return res.status(400).json({ status: 'error', message: 'Invalid export format' })
+    return res.status(400).json({ status: 'error', message: 'Invalid export format. Use csv, excel, or pdf.' })
 
   } catch (e) {
     console.error('Export error:', e)

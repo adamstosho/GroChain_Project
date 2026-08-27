@@ -11,19 +11,19 @@ router.use(rateLimit('api'))
 // Export routes
 router.post('/export/harvests', 
   authenticate, 
-  authorize('admin','partner'), 
+  authorize('admin','partner','farmer'), 
   ExportImportController.exportHarvests
 )
 
 router.post('/export/listings', 
   authenticate, 
-  authorize('admin','partner','farmer'), 
+  authorize('admin','partner','farmer','buyer'), 
   ExportImportController.exportListings
 )
 
 router.post('/export/users', 
   authenticate, 
-  authorize('admin'), 
+  authorize('admin','partner'), 
   ExportImportController.exportUsers
 )
 
@@ -35,19 +35,19 @@ router.post('/export/partners',
 
 router.post('/export/shipments', 
   authenticate, 
-  authorize('admin','partner','farmer'), 
+  authorize('admin','partner','farmer','buyer'), 
   ExportImportController.exportShipments
 )
 
 router.post('/export/transactions', 
   authenticate, 
-  authorize('admin'), 
+  authorize('admin','buyer','farmer','partner'), 
   ExportImportController.exportTransactions
 )
 
 router.post('/export/orders', 
   authenticate, 
-  authorize('admin','partner'), 
+  authorize('admin','partner','buyer','farmer'), 
   ExportImportController.exportOrders
 )
 
@@ -59,7 +59,7 @@ router.post('/export/analytics',
 
 router.post('/export/custom', 
   authenticate, 
-  authorize('admin','partner'), 
+  authorize('admin','partner','farmer','buyer'), 
   ExportImportController.exportCustomData
 )
 

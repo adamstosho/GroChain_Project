@@ -75,55 +75,42 @@ class PaystackUtil {
     }
   }
   
-  // Verify transaction
+  // Verify transaction by reference.
+  // Amount is returned in kobo (Paystack's native unit) so callers can compare
+  // against stored naira amounts via amount / 100.
   async verifyTransaction(reference) {
     try {
       const response = await this.axiosInstance.get(`/transaction/verify/${reference}`)
-      
-      if (response.data.status) {
+
+      if (response.data.status && response.data.data) {
         const transaction = response.data.data
-        
-        // Check if transaction is successful
-        if (transaction.status === 'success') {
-          return {
-            success: true,
-            data: {
-              reference: transaction.reference,
-              amount: transaction.amount / 100, // Convert from kobo to naira
-              currency: transaction.currency,
-              status: transaction.status,
-              gateway_response: transaction.gateway_response,
-              paid_at: transaction.paid_at,
-              channel: transaction.channel,
-              ip_address: transaction.ip_address,
-              fees: transaction.fees / 100,
-              customer: transaction.customer,
-              metadata: transaction.metadata
-            },
-            message: 'Transaction verified successfully'
-          }
-        } else {
-          return {
-            success: false,
-            message: `Transaction failed: ${transaction.gateway_response}`,
-            data: {
-              reference: transaction.reference,
-              status: transaction.status,
-              gateway_response: transaction.gateway_response
-            }
-          }
-        }
-      } else {
         return {
-          success: false,
-          message: response.data.message || 'Failed to verify transaction'
+          success: true,
+          paid: transaction.status === 'success',
+          status: transaction.status,
+          amount: transaction.amount,
+          reference: transaction.reference,
+          channel: transaction.channel,
+          customer: transaction.customer,
+          paid_at: transaction.paid_at,
+          currency: transaction.currency,
+          gateway_response: transaction.gateway_response,
+          fees: transaction.fees,
+          metadata: transaction.metadata
         }
+      }
+
+      return {
+        success: false,
+        paid: false,
+        error: response.data.message || 'Failed to verify transaction'
       }
     } catch (error) {
       console.error('Paystack verification error:', error.response?.data || error.message)
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to verify transaction'
+        paid: false,
+        error: error.response?.data?.message || error.message || 'Failed to verify transaction'
       }
     }
   }
@@ -338,19 +325,40 @@ class PaystackUtil {
     }
   }
   
-  // Verify webhook signature
-  verifyWebhookSignature(payload, signature) {
+  // Verify Paystack webhook HMAC-SHA512 signature (timing-safe).
+  // Prefer the static form so callers don't need a constructed instance
+  // (constructor requires PAYSTACK_SECRET_KEY; webhooks may use PAYSTACK_WEBHOOK_SECRET only).
+  static verifyWebhookSignature(payload, signature, secretOverride) {
     try {
-      const hash = require('crypto')
-        .createHmac('sha512', this.secretKey)
-        .update(JSON.stringify(payload))
-        .digest('hex')
-      
-      return hash === signature
+      if (!signature) return false
+
+      const crypto = require('crypto')
+      const secret =
+        secretOverride ||
+        process.env.PAYSTACK_WEBHOOK_SECRET ||
+        process.env.PAYSTACK_SECRET_KEY
+      if (!secret) return false
+
+      const body = typeof payload === 'string' ? payload : JSON.stringify(payload)
+      const expected = crypto.createHmac('sha512', secret).update(body).digest('hex')
+      const expectedBuf = Buffer.from(expected, 'hex')
+      const signatureBuf = Buffer.from(String(signature), 'hex')
+      return (
+        expectedBuf.length === signatureBuf.length &&
+        crypto.timingSafeEqual(expectedBuf, signatureBuf)
+      )
     } catch (error) {
       console.error('Webhook signature verification error:', error)
       return false
     }
+  }
+
+  verifyWebhookSignature(payload, signature, secretOverride) {
+    return PaystackUtil.verifyWebhookSignature(
+      payload,
+      signature,
+      secretOverride || this.secretKey
+    )
   }
   
   // Generate reference

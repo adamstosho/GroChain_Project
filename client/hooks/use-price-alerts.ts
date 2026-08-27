@@ -326,9 +326,9 @@ export const usePriceAlerts = () => {
 
   // Get alert status color
   const getAlertStatusColor = useCallback((alert: PriceAlert) => {
-    if (!alert.isActive) return 'text-gray-500'
-    if (alert.triggeredAt) return 'text-green-600'
-    return 'text-blue-600'
+    if (!alert.isActive) return 'text-muted-foreground'
+    if (alert.triggeredAt) return 'text-success'
+    return 'text-primary'
   }, [])
 
   // Load initial data only if user is authenticated

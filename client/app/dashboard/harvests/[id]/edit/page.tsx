@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { HarvestForm, type HarvestFormData } from "@/components/agricultural"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { ArrowLeft, Leaf, Edit, Save, AlertCircle, CheckCircle2 } from "lucide-react"
+import { ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
 import { useRouter, useParams } from "next/navigation"
@@ -272,7 +272,7 @@ export default function EditHarvestPage() {
         </div>
 
         {/* Harvest Form */}
-        <Card className="border border-border shadow-sm bg-white overflow-hidden rounded-2xl">
+        <Card className="border border-border shadow-sm bg-card overflow-hidden rounded-2xl">
           <CardContent className="p-4 sm:p-6 lg:p-8">
             <HarvestForm
               initialData={initialData}

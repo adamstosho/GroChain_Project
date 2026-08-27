@@ -2,10 +2,6 @@ const { verifyAccess } = require('../utils/jwt')
 
 async function authenticate(req, res, next) {
   try {
-    console.log('🔐 Auth middleware called for path:', req.path, 'Method:', req.method, 'Original URL:', req.originalUrl);
-
-    // Production-ready authentication - no bypasses
-
     // Check Authorization header first
     let header = req.headers.authorization || ''
     let token = header.startsWith('Bearer ') ? header.slice(7) : null
@@ -52,16 +48,9 @@ async function authenticate(req, res, next) {
       partner: user.partner || undefined
     }
 
-    console.log('🔌 JWT decoded successfully:', {
-      id: decoded.id,
-      email: decoded.email,
-      name: decoded.name,
-      role: decoded.role
-    })
-
     next()
   } catch (e) {
-    console.error('Auth middleware error:', e);
+    console.error('Auth middleware error:', e.message || e)
     return res.status(401).json({ status: 'error', message: 'Invalid token' })
   }
 }
@@ -81,5 +70,3 @@ module.exports = {
   authenticate, 
   authorize: authorizeRoles 
 }
-
-

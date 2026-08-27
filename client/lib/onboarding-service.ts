@@ -295,7 +295,7 @@ export class OnboardingService {
   //   (see app/partners/bulk-onboard/page.tsx), not Onboarding pipeline records.
   // Wiring this to either endpoint would misrepresent what actually happens, so
   // this throws a clear "not implemented" error instead of faking success.
-  async processBulkOnboarding(file: File): Promise<BulkOnboardingResult> {
+  async processBulkOnboarding(_file: File): Promise<BulkOnboardingResult> {
     console.error('[onboarding-service] processBulkOnboarding: no matching backend endpoint exists for CSV bulk onboarding of Onboarding pipeline records')
     throw new Error(
       'Bulk CSV onboarding is not yet supported by the backend. No endpoint exists to create/update onboarding pipeline records from a CSV file.'
@@ -308,7 +308,7 @@ export class OnboardingService {
   // generic user notifications (harvest/marketplace/transaction/test) - none of
   // which match this template-based onboarding communication flow. Throwing
   // rather than silently returning `true` as the old mock implementation did.
-  async sendCommunication(templateId: string, farmerId: string, variables: Record<string, string>): Promise<boolean> {
+  async sendCommunication(_templateId: string, _farmerId: string, _variables: Record<string, string>): Promise<boolean> {
     console.error('[onboarding-service] sendCommunication: no matching backend endpoint exists for template-based communications')
     throw new Error(
       'Sending onboarding communications is not yet supported by the backend. No endpoint exists for template-based farmer communications.'

@@ -350,7 +350,7 @@ class AdminApiService {
   }
 
   async getBackupStatus(): Promise<AdminApiResponse<any>> {
-    return this.request('/api/admin/system/backup')
+    return this.request('/api/admin/system/backups')
   }
 
   async triggerManualBackup(backupData: any): Promise<AdminApiResponse<any>> {

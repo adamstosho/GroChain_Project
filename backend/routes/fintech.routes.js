@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const ctrl = require('../controllers/fintech.controller')
-const { authenticate, authorizeRoles } = require('../middlewares/auth.middleware')
+const { authenticate } = require('../middlewares/auth.middleware')
 
 // Public routes
 router.get('/loan-referrals', authenticate, ctrl.getLoanReferrals)

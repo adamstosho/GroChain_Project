@@ -10,16 +10,10 @@ import {
   TrendingUp, 
   Clock, 
   CheckCircle, 
-  XCircle, 
-  Pause,
+  XCircle,
   MapPin,
   Leaf,
-  FileText,
   Download,
-  Upload,
-  MessageSquare,
-  Settings,
-  BarChart3,
   Plus
 } from "lucide-react"
 import { useOnboarding } from "@/hooks/use-onboarding"
@@ -28,6 +22,7 @@ import { OnboardingList } from "./onboarding-list"
 import { OnboardingTemplates } from "./onboarding-templates"
 import { OnboardingWorkflow } from "./onboarding-workflow"
 import { OnboardingAnalytics } from "./onboarding-analytics"
+import Link from "next/link"
 
 interface OnboardingPortalProps {
   className?: string
@@ -36,23 +31,6 @@ interface OnboardingPortalProps {
 export function OnboardingPortal({ className }: OnboardingPortalProps) {
   const [activeTab, setActiveTab] = useState("overview")
   const { stats, isLoading, error, refreshData, exportData } = useOnboarding()
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Pending</Badge>
-      case "in_progress":
-        return <Badge variant="default"><TrendingUp className="w-3 h-3 mr-1" />In Progress</Badge>
-      case "completed":
-        return <Badge variant="default" className="bg-success/10 text-success"><CheckCircle className="w-3 h-3 mr-1" />Completed</Badge>
-      case "rejected":
-        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>
-      case "on_hold":
-        return <Badge variant="outline"><Pause className="w-3 h-3 mr-1" />On Hold</Badge>
-      default:
-        return <Badge variant="secondary">{status}</Badge>
-    }
-  }
 
   if (error) {
     return (
@@ -166,9 +144,11 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Farmer
+          <Button asChild>
+            <Link href="/dashboard/farmers/add">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Farmer
+            </Link>
           </Button>
         </div>
       </div>

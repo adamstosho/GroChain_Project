@@ -63,7 +63,7 @@ function VerifyEmailForm() {
     setVerificationError("")
     
     try {
-      const response = await api.verifyEmail(token)
+      await api.verifyEmail(token)
       setVerified(true)
       setSuccessMessage("Email verified successfully! You can now sign in to your account.")
       
@@ -222,7 +222,7 @@ function VerifyEmailForm() {
               <li>4. Paste it in the field above and click "Verify Email"</li>
             </ol>
             <p className="text-primary">
-              💡 <strong>Tip:</strong> Verification links expire in 1 hour. If you don't see the email, try resending it above.
+              <strong>Tip:</strong> Verification links expire in 1 hour. If you don't see the email, try resending it above.
             </p>
           </div>
         </CardContent>

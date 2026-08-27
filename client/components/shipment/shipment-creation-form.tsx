@@ -56,13 +56,13 @@ export function ShipmentCreationForm({
 }: ShipmentCreationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
-  const { createShipment, loading } = useCreateShipment()
-  const { createShipment: createShipmentOffline, isOffline } = useOfflineApi()
+  const { loading } = useCreateShipment()
+  const { createShipment: createShipmentOffline } = useOfflineApi()
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid },
+    formState: { errors },
     setValue,
     watch,
     reset

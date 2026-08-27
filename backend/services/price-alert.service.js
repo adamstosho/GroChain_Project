@@ -1,5 +1,4 @@
 const PriceAlert = require('../models/price-alert.model')
-const Listing = require('../models/listing.model')
 const Notification = require('../models/notification.model')
 const { WebSocketService } = require('./websocket.service')
 
@@ -140,7 +139,7 @@ class PriceAlertService {
 
   // Generate alert message based on alert type
   generateAlertMessage(alert, currentPrice) {
-    const { productName, targetPrice, alertType } = alert
+    const { productName, targetPrice } = alert
     const priceChange = currentPrice - alert.metadata.originalPrice
     const changePercent = ((priceChange / alert.metadata.originalPrice) * 100).toFixed(1)
     

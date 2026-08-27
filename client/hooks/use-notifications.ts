@@ -20,6 +20,7 @@ import { api } from '@/lib/api'
 import { useAuth } from './use-auth'
 import { useToast } from './use-toast'
 import { APP_CONFIG } from '@/lib/constants'
+import { getTokenFromStorage } from '@/lib/auth-storage'
 
 export interface Notification {
   id: string
@@ -54,7 +55,7 @@ interface NotificationFilters {
 }
 
 export const useNotifications = () => {
-  const { user } = useAuth()
+  const { user, isHydrated } = useAuth()
   const { toast } = useToast()
   const [state, setState] = useState<NotificationState>({
     notifications: [],
@@ -314,7 +315,7 @@ export const useNotifications = () => {
 
     try {
       const serverUrl = APP_CONFIG.api.wsUrl || APP_CONFIG.api.baseUrl
-      const token = localStorage.getItem('grochain_auth_token')
+      const token = getTokenFromStorage()
 
       if (!token) {
         console.warn('🔔 No auth token available for Socket.IO connection')
@@ -433,7 +434,7 @@ export const useNotifications = () => {
       // Provide more context about the connection attempt
       console.error('🔔 Server URL attempted:', APP_CONFIG.api.baseUrl)
       console.error('🔔 User authenticated:', !!user)
-      console.error('🔔 Token available:', !!localStorage.getItem('grochain_auth_token'))
+      console.error('🔔 Token available:', !!getTokenFromStorage())
       console.error('🔔 Error details:', error instanceof Error ? error.message : String(error))
 
       // If Socket.IO creation fails, we could fallback to polling
@@ -468,8 +469,16 @@ export const useNotifications = () => {
   connectSocketRef.current = connectSocket
   disconnectSocketRef.current = disconnectSocket
 
-  // Initialize notifications and Socket.IO connection (stable deps — avoid reconnect loops)
+  // Initialize notifications and Socket.IO connection (stable deps — avoid reconnect loops).
+  // Waits for auth rehydration (isHydrated) before resolving `loading` either way: the auth
+  // store starts every client render with user=null (same as the server), then rehydrates from
+  // localStorage a tick later. Without this guard, an unauthenticated visitor's first client
+  // render already had loading:false by the time React checked it against the server-rendered
+  // loading:true HTML, causing a real, reproducible hydration mismatch on this and every page
+  // that renders NotificationList while logged out. See design/02-audits, round 11.
   useEffect(() => {
+    if (!isHydrated) return
+
     if (userId) {
       void fetchNotificationsRef.current()
 
@@ -495,7 +504,7 @@ export const useNotifications = () => {
       connected: false,
     }))
     disconnectSocketRef.current()
-  }, [userId])
+  }, [userId, isHydrated])
 
   // Refresh notifications periodically
   useEffect(() => {

@@ -4,8 +4,6 @@ import { useState, useCallback } from "react"
 import { useDropzone } from "react-dropzone"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
@@ -18,7 +16,6 @@ import {
   CheckCircle, 
   AlertCircle, 
   XCircle, 
-  Users, 
   ArrowLeft,
   Eye,
   EyeOff,
@@ -48,7 +45,6 @@ interface ValidationResult {
 
 export default function BulkUploadPage() {
   const [file, setFile] = useState<File | null>(null)
-  const [csvData, setCsvData] = useState<FarmerData[]>([])
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -108,22 +104,45 @@ export default function BulkUploadPage() {
 
   const processCSV = useCallback(async (file: File) => {
     try {
-      const text = await file.text()
-      const lines = text.split(/\r?\n/).filter(Boolean)
-      const headers = lines[0].split(',').map(h => h.trim())
-      
-      const data: FarmerData[] = lines.slice(1).map((line, index) => {
-        const values = line.split(',')
+      const text = (await file.text()).replace(/^\uFEFF/, "")
+      const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0)
+
+      const parseCsvLine = (line: string): string[] => {
+        const result: string[] = []
+        let current = ""
+        let inQuotes = false
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i]
+          if (c === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              current += '"'
+              i += 1
+            } else {
+              inQuotes = !inQuotes
+            }
+          } else if (c === "," && !inQuotes) {
+            result.push(current.trim())
+            current = ""
+          } else {
+            current += c
+          }
+        }
+        result.push(current.trim())
+        return result
+      }
+
+      const headers = parseCsvLine(lines[0]).map((h) => h.trim().toLowerCase().replace(/\s+/g, ""))
+      const data: FarmerData[] = lines.slice(1).map((line) => {
+        const values = parseCsvLine(line)
         const row = {} as FarmerData
         headers.forEach((header, i) => {
-          row[header] = values[i]?.trim() || ''
+          row[header] = values[i] || ""
         })
         return row
       })
 
-      setCsvData(data)
       validateData(data)
-    } catch (error) {
+    } catch {
       toast({
         title: "Error processing CSV",
         description: "Please check your file format",
@@ -182,7 +201,6 @@ export default function BulkUploadPage() {
 
         // Reset form
         setFile(null)
-        setCsvData([])
         setValidationResult(null)
         setUploadProgress(0)
         setShowPreview(false)
@@ -202,23 +220,22 @@ export default function BulkUploadPage() {
   }
 
   const downloadTemplate = () => {
-    const template = `name,email,phone,location
-John Doe,john@farmer.com,+2348012345678,Lagos
-Jane Smith,jane@farmer.com,+2348012345679,Abuja
-Mike Johnson,mike@farmer.com,+2348012345680,Kano`
-    
-    const blob = new Blob([template], { type: 'text/csv' })
+    // Canonical partner farmer CSV — matches backend required + optional columns
+    const template = `name,email,phone,location,gender,age,education
+John Doe,john.doe@farmer.ng,+2348012345678,"Lagos, Nigeria",Male,35,Secondary
+Jane Smith,jane.smith@farmer.ng,+2348087654321,"Kano, Nigeria",Female,28,Tertiary
+`
+    const blob = new Blob([template], { type: 'text/csv;charset=utf-8' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'farmer_template.csv'
+    a.download = 'grochain_farmer_template.csv'
     a.click()
     window.URL.revokeObjectURL(url)
   }
 
   const removeFile = () => {
     setFile(null)
-    setCsvData([])
     setValidationResult(null)
     setUploadProgress(0)
   }

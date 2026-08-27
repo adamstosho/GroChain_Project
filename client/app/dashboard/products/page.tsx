@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { apiService } from "@/lib/api"
@@ -28,8 +27,6 @@ import {
   ShoppingCart,
   Eye,
   Calendar,
-  Leaf,
-  TrendingUp,
   RefreshCw,
   Grid3X3,
   List,
@@ -78,7 +75,6 @@ interface ProductFilters {
 }
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<ProductListing[]>([])
   const [filteredProducts, setFilteredProducts] = useState<ProductListing[]>([])
   const { isInitialLoading, isRefreshing, begin, finish } = useStableDataFetch()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -282,7 +278,6 @@ export default function ProductsPage() {
         qualityGrade: listing.qualityGrade || 'standard'
       }))
 
-      setProducts(convertedProducts)
       setFilteredProducts(convertedProducts)
       finish(generation)
 
@@ -294,7 +289,6 @@ export default function ProductsPage() {
         description: error.message || "Failed to load products. Please try again.",
         variant: "destructive",
       })
-      setProducts((prev) => (prev.length > 0 ? prev : []))
       setFilteredProducts((prev) => (prev.length > 0 ? prev : []))
     }
   }, [filters, debouncedSearchQuery, toast, begin, finish])
@@ -418,10 +412,10 @@ export default function ProductsPage() {
 
   const getQualityColor = (quality: string) => {
     switch (quality) {
-      case 'premium': return 'bg-gradient-to-r from-warning to-warning/70 text-white'
-      case 'standard': return 'bg-primary text-white'
-      case 'basic': return 'bg-secondary text-white'
-      default: return 'bg-secondary text-white'
+      case 'premium': return 'bg-gradient-to-r from-warning to-warning/70 text-warning-foreground'
+      case 'standard': return 'bg-primary text-primary-foreground'
+      case 'basic': return 'bg-secondary text-secondary-foreground'
+      default: return 'bg-secondary text-secondary-foreground'
     }
   }
 
@@ -697,8 +691,6 @@ function ProductCard({
   favorites,
   isProcessing
 }: ProductCardProps) {
-  const { toast } = useToast()
-
   // Check if product is in favorites - improved detection
   const isWishlisted = Array.isArray(favorites) && favorites.some((fav: any) => {
     // Check both possible ID fields and handle different data structures
@@ -741,7 +733,7 @@ function ProductCard({
                 className="rounded-lg object-cover"
               />
               {product.organic && (
-                <Badge className="absolute top-2 left-2 bg-success text-white text-xs">
+                <Badge className="absolute top-2 left-2 bg-success text-success-foreground text-xs">
                   Organic
                 </Badge>
               )}
@@ -878,7 +870,7 @@ function ProductCard({
             />
           </div>
           {product.organic && (
-            <Badge className="absolute top-1.5 left-1.5 bg-success text-white text-[10px] px-1.5 py-0.5">
+            <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[10px] px-1.5 py-0.5">
               Organic
             </Badge>
           )}

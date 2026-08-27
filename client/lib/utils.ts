@@ -13,7 +13,7 @@ export function isStorageAvailable(type: 'localStorage' | 'sessionStorage' = 'lo
     storage.setItem(test, test)
     storage.removeItem(test)
     return true
-  } catch (e) {
+  } catch {
     return false
   }
 }

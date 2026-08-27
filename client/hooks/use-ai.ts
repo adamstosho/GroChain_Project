@@ -5,25 +5,34 @@ import { useToast } from './use-toast'
 export interface TrustScoreData {
   score: number
   grade: string
+  confidence?: number
   metrics: {
-    successRate: number
-    avgRating: string
+    successRate: number | null
+    avgRating: number | string | null
     totalTransactions: number
+    reviewCount?: number
     verificationStatus: string
+    verificationFactors?: string[]
   }
+  factors?: Record<string, number>
   summary: string
+  disclaimer?: string
+  method?: string
+  engine?: string
 }
 
 export interface PricePulseData {
   cropType: string
-  suggestedPrice: number
+  suggestedPrice: number | null
   priceRange: {
     min: number
     max: number
-  }
+  } | null
   trend: 'rising' | 'falling' | 'stable'
   confidence: number
+  sampleSize?: number
   marketInsights: string
+  disclaimer?: string
 }
 
 export interface ScanResult {
@@ -32,46 +41,53 @@ export interface ScanResult {
   confidence: number
   findings: string[]
   recommendations: string
+  cropGuess?: string
+  disclaimer?: string
+}
+
+function unwrap(response: any) {
+  // Supports both { success, data } and { status: 'success', data }
+  if (response?.data && (response.success === true || response.status === 'success')) {
+    return response.data
+  }
+  return null
 }
 
 export function useAi() {
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
-  /**
-   * Fetch AI Trust Score for a user
-   */
-  const getTrustScore = async (userId: string): Promise<TrustScoreData | null> => {
-    setLoading(true)
+  const getTrustScore = async (
+    userId: string,
+    options?: { silent?: boolean }
+  ): Promise<TrustScoreData | null> => {
+    if (!options?.silent) setLoading(true)
     try {
       const response = await apiService.get(`/ai/trust-score/${userId}`)
-      if (response.success) {
-        return response.data
-      }
-      throw new Error(response.message || 'Failed to fetch trust score')
+      const data = unwrap(response)
+      if (data) return data
+      throw new Error(response?.message || 'Failed to fetch trust score')
     } catch (error: any) {
-      toast({
-        title: "AI Analysis Error",
-        description: error.message,
-        variant: "destructive",
-      })
+      if (!options?.silent) {
+        toast({
+          title: 'Trust score unavailable',
+          description: error.message,
+          variant: 'destructive',
+        })
+      }
       return null
     } finally {
-      setLoading(false)
+      if (!options?.silent) setLoading(false)
     }
   }
 
-  /**
-   * Fetch PricePulse advisory for a crop
-   */
   const getPricePulse = async (cropType: string, location?: string): Promise<PricePulseData | null> => {
     setLoading(true)
     try {
-      const response = await apiService.get(`/ai/price-pulse?cropType=${cropType}${location ? `&location=${location}` : ''}`)
-      if (response.success) {
-        return response.data
-      }
-      throw new Error(response.message || 'Failed to fetch price advisory')
+      const q = encodeURIComponent(cropType)
+      const loc = location ? `&location=${encodeURIComponent(location)}` : ''
+      const response = await apiService.get(`/ai/price-pulse?cropType=${q}${loc}`)
+      return unwrap(response)
     } catch (error: any) {
       console.error('PricePulse Error:', error)
       return null
@@ -80,42 +96,41 @@ export function useAi() {
     }
   }
 
-  /**
-   * Fetch AI Shipment Risk Analysis
-   */
   const getShipmentRisk = async (shipmentId: string): Promise<any | null> => {
     try {
       const response = await apiService.get(`/ai/shipment-risk/${shipmentId}`)
-      if (response.success) {
-        return response.data
-      }
-      return null
+      return unwrap(response)
     } catch (error: any) {
       console.error('ShipmentRisk Error:', error)
       return null
     }
   }
 
-  /**
-   * Execute GroScan (Vision AI) for crop quality
-   */
   const scanCropQuality = async (imageUrl: string): Promise<ScanResult | null> => {
     setLoading(true)
     try {
       const response = await apiService.post('/ai/scan-quality', { imageUrl })
-      if (response.success) {
+      const data = unwrap(response)
+      if (data) {
         toast({
-          title: "Scan Complete",
-          description: "AI Vision analysis successfully processed.",
+          title: 'Scan complete',
+          description: 'Advisory crop quality analysis is ready. Confirm with a human inspector.',
         })
-        return response.data
+        return data
       }
-      throw new Error(response.message || 'Failed to analyze crop')
+      throw new Error(response?.message || 'Failed to analyze crop')
     } catch (error: any) {
+      const message = error?.message || 'Failed to analyze crop'
+      const unavailable =
+        error?.status === 501 ||
+        /not (yet )?configured|not yet available|VISION_NOT_CONFIGURED|501/i.test(message)
+
       toast({
-        title: "Vision AI Error",
-        description: error.message,
-        variant: "destructive",
+        title: unavailable ? 'Vision AI not configured' : 'Vision AI error',
+        description: unavailable
+          ? 'Crop scanning needs GEMINI_API_KEY on the server. You can still grade harvests manually.'
+          : message,
+        variant: unavailable ? 'default' : 'destructive',
       })
       return null
     } finally {
@@ -123,22 +138,18 @@ export function useAi() {
     }
   }
 
-  /**
-   * Fetch AI Growth Forecast for the logged-in farmer
-   */
   const getGrowthForecast = async (): Promise<{
     forecastedRevenue: number
     confidence: number
     growthIndicator: 'rising' | 'falling'
     insights: string[]
+    disclaimer?: string
+    sampleSize?: number
   } | null> => {
     setLoading(true)
     try {
       const response = await apiService.get('/ai/forecast')
-      if (response.success) {
-        return response.data
-      }
-      return null
+      return unwrap(response)
     } catch (error: any) {
       console.error('Forecast Error:', error)
       return null
@@ -153,6 +164,6 @@ export function useAi() {
     getPricePulse,
     getShipmentRisk,
     getGrowthForecast,
-    scanCropQuality
+    scanCropQuality,
   }
 }

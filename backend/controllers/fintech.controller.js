@@ -1,7 +1,6 @@
 const CreditScore = require('../models/credit-score.model')
 const LoanReferral = require('../models/loanReferral.model')
 const User = require('../models/user.model')
-const Partner = require('../models/partner.model')
 const Transaction = require('../models/transaction.model')
 
 // Import additional models
@@ -252,6 +251,17 @@ const fintechController = {
         userId = req.user.id
       } else {
         userId = farmerId === 'me' ? req.user.id : farmerId
+      }
+
+      if (req.user.role !== 'admin' && req.user.id !== userId) {
+        if (req.user.role === 'partner') {
+          const targetFarmer = await User.findById(userId).select('partner')
+          if (!targetFarmer || targetFarmer.partner?.toString() !== req.user.id) {
+            return res.status(403).json({ status: 'error', message: 'Forbidden' })
+          }
+        } else {
+          return res.status(403).json({ status: 'error', message: 'Forbidden' })
+        }
       }
 
       // Check if user exists and is a farmer
@@ -527,7 +537,18 @@ const fintechController = {
   async getFinancialHealth(req, res) {
     try {
       const { farmerId } = req.params
-      const userId = farmerId === 'me' ? req.user.id : farmerId
+      const userId = (!farmerId || farmerId === 'me') ? req.user.id : farmerId
+
+      if (req.user.role !== 'admin' && req.user.id !== userId) {
+        if (req.user.role === 'partner') {
+          const targetFarmer = await User.findById(userId).select('partner')
+          if (!targetFarmer || targetFarmer.partner?.toString() !== req.user.id) {
+            return res.status(403).json({ status: 'error', message: 'Forbidden' })
+          }
+        } else {
+          return res.status(403).json({ status: 'error', message: 'Forbidden' })
+        }
+      }
       
       // Get user's financial data
       const user = await User.findById(userId)
@@ -776,8 +797,7 @@ const fintechController = {
       
       const Order = require('../models/order.model')
       const Harvest = require('../models/harvest.model')
-      const Listing = require('../models/listing.model')
-      
+
       const match = {}
       if (farmerId) match.seller = farmerId
       
@@ -875,12 +895,24 @@ const fintechController = {
   async getFinancialGoals(req, res) {
     try {
       const { farmerId } = req.params
+      const resolvedFarmerId = (!farmerId || farmerId === 'me') ? req.user.id : farmerId
+
+      if (req.user.role !== 'admin' && req.user.id !== resolvedFarmerId) {
+        if (req.user.role === 'partner') {
+          const targetFarmer = await User.findById(resolvedFarmerId).select('partner')
+          if (!targetFarmer || targetFarmer.partner?.toString() !== req.user.id) {
+            return res.status(403).json({ status: 'error', message: 'Forbidden' })
+          }
+        } else {
+          return res.status(403).json({ status: 'error', message: 'Forbidden' })
+        }
+      }
       
       const FinancialGoal = require('../models/financial-goal.model')
       const Order = require('../models/order.model')
       
       // Get farmer's financial goals
-      const goals = await FinancialGoal.find({ farmer: farmerId }).sort({ targetDate: 1 })
+      const goals = await FinancialGoal.find({ farmer: resolvedFarmerId }).sort({ targetDate: 1 })
       
       // Calculate progress for each goal
       const goalsWithProgress = await Promise.all(goals.map(async (goal) => {
@@ -888,7 +920,7 @@ const fintechController = {
         const endDate = goal.targetDate || new Date()
         
         const revenueMatch = { 
-          seller: farmerId, 
+          seller: resolvedFarmerId, 
           createdAt: { $gte: startDate, $lte: endDate },
           paymentStatus: 'paid'
         }
@@ -935,7 +967,7 @@ const fintechController = {
       res.json({
         status: 'success',
         data: {
-          farmerId,
+          farmerId: resolvedFarmerId,
           goals: goalsWithProgress,
           summary: {
             totalGoals,
@@ -1194,6 +1226,17 @@ const fintechController = {
         return res.status(404).json({
           status: 'error',
           message: 'Loan application not found'
+        })
+      }
+
+      const farmerId = loanApplication.farmer?._id?.toString() || loanApplication.farmer?.toString()
+      const partnerId = loanApplication.partner?._id?.toString() || loanApplication.partner?.toString()
+      const isSelf = req.user.id === farmerId
+      const isAssignedPartner = req.user.role === 'partner' && partnerId === req.user.id
+      if (req.user.role !== 'admin' && !isSelf && !isAssignedPartner) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Forbidden'
         })
       }
       

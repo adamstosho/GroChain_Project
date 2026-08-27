@@ -394,7 +394,7 @@ class WebSocketService {
   getOnlineUsersByRole(role) {
     const users = []
     
-    for (const [userId, socketId] of this.connectedUsers.entries()) {
+    for (const userId of this.connectedUsers.keys()) {
       const socket = this.userSockets.get(userId)
       if (socket && socket.user.role === role) {
         users.push({

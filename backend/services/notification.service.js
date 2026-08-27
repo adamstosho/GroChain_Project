@@ -2,7 +2,6 @@ const Notification = require('../models/notification.model')
 const User = require('../models/user.model')
 const twilio = require('twilio')
 const nodemailer = require('nodemailer')
-const axios = require('axios')
 
 class NotificationService {
   constructor() {
@@ -263,10 +262,10 @@ class NotificationService {
           <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #4CAF50; color: white; padding: 20px; text-align: center; }
+            .header { background: #166534; color: white; padding: 20px; text-align: center; }
             .content { padding: 20px; background: #f9f9f9; }
             .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-            .button { display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; }
+            .button { display: inline-block; padding: 10px 20px; background: #166534; color: white; text-decoration: none; border-radius: 5px; }
           </style>
         </head>
         <body>

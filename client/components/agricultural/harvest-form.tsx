@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -28,14 +29,13 @@ import {
   X,
   Navigation,
   Loader2,
-  AlertCircle,
   CheckCircle2,
   ArrowRight,
   ArrowLeft,
-  ChevronRight,
   Droplet
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getTokenFromStorage } from "@/lib/auth-storage"
 import { format } from "date-fns"
 import { useGeolocation } from "@/hooks/useGeolocation"
 import { useToast } from "@/hooks/use-toast"
@@ -180,7 +180,7 @@ export function HarvestForm({
     setLocationStatus('detecting')
     try {
       await requestLocation()
-    } catch (error) {
+    } catch {
       setLocationStatus('error')
       toast({
         title: "Location Error",
@@ -343,8 +343,8 @@ export function HarvestForm({
           method: 'POST',
           body: formData,
           headers: {
-            ...(localStorage.getItem('grochain_auth_token') && {
-              'Authorization': `Bearer ${localStorage.getItem('grochain_auth_token')}`
+            ...(getTokenFromStorage() && {
+              'Authorization': `Bearer ${getTokenFromStorage()}`
             })
           }
         })
@@ -406,26 +406,26 @@ export function HarvestForm({
                 onClick={() => handleStepClick(st.id)}
                 className={cn(
                   "flex flex-col sm:flex-row items-center gap-2 p-2.5 rounded-xl border text-left transition-all duration-300 group",
-                  isActive 
-                    ? "bg-success/50 border-success shadow-sm text-success" 
-                    : isCompleted 
-                      ? "bg-success/20 border-success/10 text-success" 
-                      : "bg-white border-border text-muted-foreground hover:border-border"
+                  isActive
+                    ? "bg-success border-success shadow-sm text-success-foreground"
+                    : isCompleted
+                      ? "bg-success/20 border-success/10 text-success"
+                      : "bg-card border-border text-muted-foreground hover:border-border"
                 )}
               >
                 <div className={cn(
                   "flex items-center justify-center w-8 h-8 rounded-lg transition-colors",
-                  isActive 
-                    ? "bg-success text-white shadow-md shadow-emerald-600/20" 
-                    : isCompleted 
-                      ? "bg-success/10 text-success" 
+                  isActive
+                    ? "bg-success-foreground/15 text-success-foreground"
+                    : isCompleted
+                      ? "bg-success/10 text-success"
                       : "bg-muted text-muted-foreground group-hover:bg-muted"
                 )}>
                   {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <IconComponent className="h-4 w-4" />}
                 </div>
                 <div className="hidden sm:block min-w-0">
                   <p className="text-xs font-semibold leading-none truncate">{st.name}</p>
-                  <p className="text-[10px] text-muted-foreground truncate mt-0.5">{st.description}</p>
+                  <p className={cn("text-[10px] truncate mt-0.5", isActive ? "text-success-foreground/80" : "text-muted-foreground")}>{st.description}</p>
                 </div>
               </button>
             )
@@ -606,7 +606,7 @@ export function HarvestForm({
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="absolute right-1 top-1 h-8 px-2 text-xs text-success hover:text-success hover:bg-success/50"
+                          className="absolute right-1 top-1 h-8 px-2 text-xs text-success hover:text-success-foreground hover:bg-success"
                           onClick={handleGetLocation}
                           disabled={locationStatus === 'detecting'}
                         >
@@ -736,7 +736,7 @@ export function HarvestForm({
                         max={100}
                         min={0}
                         step={1}
-                        className="w-full cursor-pointer accent-emerald-600"
+                        className="w-full cursor-pointer accent-primary"
                       />
                     </FormControl>
                     <FormDescription className="text-[11px] text-muted-foreground">
@@ -751,7 +751,7 @@ export function HarvestForm({
                 control={form.control}
                 name="organic"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-border bg-white p-4">
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-border bg-card p-4">
                     <FormControl>
                       <Checkbox
                         checked={field.value}
@@ -762,7 +762,7 @@ export function HarvestForm({
                     <div className="space-y-1 leading-none">
                       <FormLabel className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5">
                         Organic Production Certificate
-                        <Badge className="bg-success/10 hover:bg-success/10 text-success border-success/10 text-[10px] py-0 px-1.5 font-normal">Premium Tag</Badge>
+                        <Badge className="bg-success-soft text-success border-success/20 text-[10px] py-0 px-1.5 font-normal">Premium Tag</Badge>
                       </FormLabel>
                       <FormDescription className="text-[11px] text-muted-foreground">
                         Declare that no chemical pesticides or fertilizers were applied on this crop batch.
@@ -891,10 +891,11 @@ export function HarvestForm({
                 <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
                   {images.map((image, index) => (
                     <div key={index} className="relative aspect-video rounded-xl overflow-hidden border border-border group shadow-sm bg-muted">
-                      <img
+                      <Image
                         src={image}
                         alt={`Harvest snapshot ${index + 1}`}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                         <Button
@@ -911,7 +912,7 @@ export function HarvestForm({
                   ))}
                   
                   {images.length < 6 && (
-                    <label className="aspect-video border-2 border-dashed border-border hover:border-success rounded-xl flex flex-col items-center justify-center cursor-pointer bg-muted/50 hover:bg-success/10 transition-all duration-300 group">
+                    <label className="aspect-video border-2 border-dashed border-border hover:border-primary rounded-xl flex flex-col items-center justify-center cursor-pointer bg-muted/50 hover:bg-primary-soft transition-colors duration-200 group">
                       {uploadingImages ? (
                         <div className="text-center">
                           <Loader2 className="h-6 w-6 animate-spin text-success mx-auto mb-1" />
@@ -975,12 +976,12 @@ export function HarvestForm({
 
             <div>
               {currentStep < 4 ? (
-                <Button type="button" onClick={nextStep} className="h-10 text-xs sm:text-sm bg-success hover:bg-success text-white flex items-center gap-1">
+                <Button type="button" onClick={nextStep} className="h-10 text-xs sm:text-sm bg-success hover:bg-success-hover text-success-foreground flex items-center gap-1">
                   <span>Continue</span>
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button type="submit" disabled={isLoading} className="h-10 text-xs sm:text-sm bg-success hover:bg-success text-white min-w-[140px]">
+                <Button type="submit" disabled={isLoading} className="h-10 text-xs sm:text-sm bg-success hover:bg-success-hover text-success-foreground min-w-[140px]">
                   {isLoading ? (
                     <div className="flex items-center justify-center gap-1.5">
                       <Loader2 className="h-4 w-4 animate-spin" />

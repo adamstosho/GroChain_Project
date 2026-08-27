@@ -27,14 +27,15 @@ export function CTA() {
             <Button
               size="lg"
               variant="outline"
-              className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground hover:text-primary bg-transparent"
+              className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground hover:text-primary hover:border-primary-foreground"
+              asChild
             >
-              Try QR Verification
+              <Link href="/marketplace">Browse Marketplace</Link>
             </Button>
           </div>
 
           <p className="text-sm text-primary-foreground/60">
-            Join thousands of farmers, buyers, and agencies already using GroChain
+            Create an account to list harvests, buy verified produce, or onboard farmers as a partner
           </p>
         </div>
       </div>

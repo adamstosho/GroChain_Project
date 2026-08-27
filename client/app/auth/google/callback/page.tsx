@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuthStore } from "@/lib/auth"
 import { apiService } from "@/lib/api"
+import { clearAuthTokens, setTokenInStorage } from "@/lib/auth-storage"
 import { Loader2, CheckCircle, XCircle } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,13 +12,11 @@ import { Button } from "@/components/ui/button"
 function GoogleCallbackContent() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
-  const [retryCount, setRetryCount] = useState(0)
   const router = useRouter()
   const searchParams = useSearchParams()
   const { setUser, setToken } = useAuthStore()
 
   const handleRetry = () => {
-    setRetryCount(prev => prev + 1)
     setStatus('loading')
     setMessage('Retrying authentication...')
     // Redirect back to Google OAuth
@@ -75,7 +74,7 @@ function GoogleCallbackContent() {
           let errorData
           try {
             errorData = JSON.parse(errorText)
-          } catch (e) {
+          } catch {
             errorData = { message: errorText }
           }
           
@@ -100,21 +99,34 @@ function GoogleCallbackContent() {
         }
 
         if (data.status === 'success') {
-          // Store tokens and user data
-          if (data.token) {
-            setToken(data.token)
-            apiService.setToken(data.token)
-            localStorage.setItem(process.env.NEXT_PUBLIC_JWT_STORAGE_KEY || 'grochain_auth_token', data.token)
+          // Prefer canonical email-login shape; fall back to legacy flat Google fields
+          const accessToken = data.data?.accessToken || data.token
+          const authUser = data.data?.user || data.user
+
+          if (accessToken) {
+            clearAuthTokens()
+            setTokenInStorage(accessToken)
+            setToken(accessToken)
+            apiService.setToken(accessToken)
           }
 
-          if (data.user) {
-            setUser(data.user)
+          if (data.data?.refreshToken) {
+            try {
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('grochain_refresh_token', data.data.refreshToken)
+              }
+            } catch {
+              // ignore storage failures
+            }
+          }
+
+          if (authUser) {
+            setUser(authUser)
           }
 
           setStatus('success')
           setMessage('Successfully signed in with Google!')
 
-          // Redirect to dashboard after a short delay
           setTimeout(() => {
             router.push('/dashboard')
           }, 1000)

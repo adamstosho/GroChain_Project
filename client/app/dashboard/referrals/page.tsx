@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,13 +25,10 @@ import {
   Edit,
   Trash2,
   MoreHorizontal,
-  CheckCircle,
-  AlertCircle,
-  Loader2
+  CheckCircle
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function ReferralsPage() {
   const [mounted, setMounted] = useState(false)
@@ -47,23 +45,29 @@ export default function ReferralsPage() {
     isLoading,
     isRefreshing,
     refreshData,
-    createReferral,
-    updateReferral,
     deleteReferral,
     updateFilters,
     getReferralStatusColor,
-    getReferralStatusIcon,
     formatCurrency,
     formatDate
   } = useReferrals()
 
-  const { user } = useAuthStore()
+  const { user, hasHydrated } = useAuthStore()
   const { toast } = useToast()
+  const router = useRouter()
+  // This page tracks a partner's farmer referrals/commissions - not applicable to other roles
+  const isNonPartner = !!user && user.role !== 'partner'
 
   // Prevent hydration issues
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (hasHydrated && isNonPartner) {
+      router.replace('/dashboard')
+    }
+  }, [hasHydrated, isNonPartner, router])
 
   // Update filters when status changes
   useEffect(() => {
@@ -74,7 +78,7 @@ export default function ReferralsPage() {
     }
   }, [statusFilter, updateFilters, mounted])
 
-  if (!mounted) {
+  if (!mounted || !hasHydrated || isNonPartner) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -460,7 +464,7 @@ export default function ReferralsPage() {
                             variant="secondary"
                             className={`${getReferralStatusColor(referral.status)} text-xs sm:text-sm`}
                           >
-                            {getReferralStatusIcon(referral.status)} {referral.status}
+                            {referral.status}
                           </Badge>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

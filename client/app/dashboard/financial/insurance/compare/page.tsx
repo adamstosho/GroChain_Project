@@ -9,22 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { 
-  ArrowLeft, 
-  Shield, 
-  CheckCircle, 
-  XCircle, 
-  Info, 
-  Star, 
+import {
+  ArrowLeft,
+  Shield,
+  CheckCircle,
+  Info,
+  Star,
   Calculator,
   TrendingUp,
-  AlertTriangle,
   FileText,
-  Clock,
-  Banknote,
-  MapPin,
-  Users,
-  Building
+  Users
 } from "lucide-react"
 import Link from "next/link"
 
@@ -106,7 +100,6 @@ const coverageTypes = [
 ]
 
 export default function InsuranceComparisonPage() {
-  const [policies, setPolicies] = useState<InsurancePolicy[]>([])
   const [filteredPolicies, setFilteredPolicies] = useState<InsurancePolicy[]>([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<ComparisonFilters>({
@@ -168,7 +161,6 @@ export default function InsuranceComparisonPage() {
           specialOffers: policy.specialOffers || []
         }))
 
-        setPolicies(transformedPolicies)
         setFilteredPolicies(transformedPolicies)
       } else {
         throw new Error('Failed to fetch insurance policies')
@@ -183,12 +175,6 @@ export default function InsuranceComparisonPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  // Backend handles filtering now, so we just use the fetched data
-  const applyFilters = () => {
-    // Since backend handles filtering, we just set filtered policies to all policies
-    setFilteredPolicies(policies)
   }
 
   const handlePolicySelection = (policyId: string) => {
@@ -226,12 +212,6 @@ export default function InsuranceComparisonPage() {
     if (feature.includes('discount') || feature.includes('free')) return <TrendingUp className="h-4 w-4 text-success" />
     if (feature.includes('process') || feature.includes('online')) return <FileText className="h-4 w-4 text-accent" />
     return <CheckCircle className="h-4 w-4 text-success" />
-  }
-
-  const getExclusionIcon = (exclusion: string) => {
-    if (exclusion.includes('pre-existing') || exclusion.includes('poor')) return <AlertTriangle className="h-4 w-4 text-warning" />
-    if (exclusion.includes('intentional') || exclusion.includes('war')) return <XCircle className="h-4 w-4 text-destructive" />
-    return <XCircle className="h-4 w-4 text-muted-foreground" />
   }
 
   if (loading) {

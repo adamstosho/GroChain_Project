@@ -4,9 +4,25 @@ const Harvest = require('../models/harvest.model')
 const Listing = require('../models/listing.model')
 const Shipment = require('../models/shipment.model')
 
+const WEAK_QR_FALLBACK = 'grochain-qr-secret-2025'
+
+function resolveQrSecret() {
+  const secret = process.env.QR_SECRET_KEY || (process.env.NODE_ENV === 'production' ? null : WEAK_QR_FALLBACK)
+  if (!secret) {
+    throw new Error('QR_SECRET_KEY must be set in production')
+  }
+  if (process.env.NODE_ENV === 'production' && (secret === WEAK_QR_FALLBACK || secret.length < 32)) {
+    throw new Error('QR_SECRET_KEY is missing or too weak for production (min 32 chars)')
+  }
+  if (!process.env.QR_SECRET_KEY && process.env.NODE_ENV !== 'production') {
+    console.warn('⚠️  QR_SECRET_KEY not set — using insecure development fallback')
+  }
+  return secret
+}
+
 class QRCodeService {
   constructor() {
-    this.secretKey = process.env.QR_SECRET_KEY || 'grochain-qr-secret-2025'
+    this.secretKey = resolveQrSecret()
   }
 
   // Generate QR code for harvest
@@ -361,7 +377,17 @@ class QRCodeService {
     }
     
     const expectedSignature = this.generateSignature(id, additionalData)
-    return signature === expectedSignature
+    if (typeof signature !== 'string' || typeof expectedSignature !== 'string') {
+      return false
+    }
+    try {
+      const a = Buffer.from(signature)
+      const b = Buffer.from(expectedSignature)
+      if (a.length !== b.length) return false
+      return crypto.timingSafeEqual(a, b)
+    } catch {
+      return false
+    }
   }
 
   // Generate bulk QR codes

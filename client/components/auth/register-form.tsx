@@ -112,15 +112,9 @@ export function RegisterForm() {
     setIsLoading(true)
 
     try {
-      console.log("[REGISTRATION] Starting registration with data:", {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        role: formData.role,
-        location: formData.location,
-      })
+      console.log("[REGISTRATION] Starting registration for role:", formData.role)
 
-      const result = await register({
+      await register({
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
@@ -129,7 +123,7 @@ export function RegisterForm() {
         location: formData.location,
       })
 
-      console.log("[REGISTRATION] Registration successful:", result)
+      console.log("[REGISTRATION] Registration successful")
 
       // Direct redirect to login with verification notice - no toasts
       router.replace("/login?verify=1&email=" + encodeURIComponent(formData.email))
@@ -311,7 +305,7 @@ export function RegisterForm() {
           </form>
 
           <div className="flex space-x-3">
-            <Button variant="outline" onClick={handleBack} className="flex-1 bg-transparent">
+            <Button variant="outline" onClick={handleBack} className="flex-1">
               Back
             </Button>
             <Button onClick={handleNext} className="flex-1">
@@ -391,7 +385,7 @@ export function RegisterForm() {
             </div>
 
             <div className="flex space-x-3">
-              <Button type="button" variant="outline" onClick={handleBack} className="flex-1 bg-transparent">
+              <Button type="button" variant="outline" onClick={handleBack} className="flex-1">
                 Back
               </Button>
               <Button type="submit" className="flex-1" disabled={isLoading}>

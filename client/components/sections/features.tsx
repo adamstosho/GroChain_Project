@@ -66,7 +66,7 @@ export function Features() {
             >
               <CardHeader className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <div className="h-12 w-12 rounded-lg bg-primary-soft flex items-center justify-center group-hover:bg-primary-soft transition-colors">
                     <feature.icon className="h-6 w-6 text-primary" />
                   </div>
                 </div>

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json.schemastore.org/design-tokens.json",
+  "_source": "Synced 2026-08-27 to designed identity (forest #166534). Live CSS: client/app/globals.css.",
+  "color": {
+    "canonical_primary": {
+      "hex": "#166534",
+      "oklch": "oklch(0.42 0.12 145)",
+      "note": "Designed identity forest green. Used for --primary (light), theme_color, charts/certificates/emails. Dark mode --primary is brighter toward #22C55E. Logo is PNG from design masters, not a flat fill of this hex."
+    },
+    "identity": {
+      "deep": "#0B3D1E",
+      "forest": "#166534",
+      "grass": "#22C55E",
+      "lime": "#A3E635",
+      "white": "#FFFFFF",
+      "off_white": "#F3F4F6"
+    },
+    "light": {
+      "background":        { "oklch": "oklch(0.99 0.005 120)", "hex": "#fbfcf9" },
+      "foreground":        { "oklch": "oklch(0.15 0.02 120)",  "hex": "#0a0c04" },
+      "primary":           { "oklch": "oklch(0.42 0.12 145)",  "hex": "#166534" },
+      "primary-foreground":{ "oklch": "oklch(0.98 0.01 120)",  "hex": "#f8faf5" },
+      "secondary":         { "oklch": "oklch(0.64 0.12 85)",   "hex": "#ad8522", "note": "re-tuned 2026-08-26 (was 0.56/#946d00 for one day) — see contrast_fixes_2026-08-26_round4" },
+      "accent":            { "oklch": "oklch(0.5 0.1 45)",     "hex": "#914f2f" },
+      "success":           { "oklch": "oklch(0.42 0.12 145)",  "hex": "#166534" },
+      "success-foreground":{ "oklch": "oklch(0.98 0.01 120)",  "hex": "#f8faf5", "note": "added 2026-08-26 — text-success-foreground was used on solid bg-success badges with no variable previously defined" },
+      "warning":           { "oklch": "oklch(0.56 0.15 85)",   "hex": "#9c6a00", "note": "darkened 2026-08-25 from 0.7 (#c99500) — see contrast_fixes_2026-08-25_round3" },
+      "warning-foreground":{ "oklch": "oklch(0.15 0.02 120)",  "hex": "#0a0c04", "note": "added 2026-08-26 — bg-warning was paired with hardcoded text-white in several components (invisible text)" },
+      "destructive":       { "oklch": "oklch(0.55 0.25 25)",   "hex": "#df000d" }
+    },
+    "dark": {
+      "background":        { "oklch": "oklch(0.08 0.02 120)",  "hex": "#010200" },
+      "foreground":        { "oklch": "oklch(0.95 0.01 120)",  "hex": "#edf0e8" },
+      "primary":           { "oklch": "oklch(0.68 0.16 145)",  "hex": "#22C55E", "note": "brighter brand green for dark surfaces" },
+      "secondary":         { "oklch": "oklch(0.65 0.12 85)",   "hex": "#b18827" },
+      "accent":            { "oklch": "oklch(0.55 0.1 45)",    "hex": "#a15d3e" },
+      "success":           { "oklch": "oklch(0.68 0.16 145)",  "hex": "#22C55E" },
+      "success-foreground":{ "oklch": "oklch(0.08 0.02 120)",  "hex": "#010200" },
+      "warning":           { "oklch": "oklch(0.6 0.15 85)",    "hex": "#a97600" },
+      "warning-foreground":{ "oklch": "oklch(0.15 0.02 120)",  "hex": "#0a0c04" },
+      "destructive":       { "oklch": "oklch(0.45 0.25 25)",   "hex": "#b90000" }
+    },
+    "_formerly_conflicting_greens_resolved_2026-08-25": {
+      "css-token-primary-light-was": "#004b00 (an OKLCH gamut-clipping artifact at L=0.35 — not a deliberate 'very dark green' choice; see resolution log)",
+      "favicon-and-app-icons-were": "#1baf51 (generator read a separate, drifted copy of the icon SVG)",
+      "logo-mark-gradient-was": "#2d5a3d to #1e3d2a (two-stop gradient, plus unrelated blue/QR accent colors)",
+      "manifest-and-viewport-theme-color-was": "#16a34a",
+      "interim_leaf_era_primary": "#398526",
+      "now": "#166534 forest (designed identity 2026-08-27), see canonical_primary above"
+    },
+    "contrast_fixes_2026-08-25_round3": {
+      "method": "Computed WCAG contrast ratios (not eyeballed) for every token used as literal text/icon color, grounded in real usage counts via grep, not assumption. Each fix kept the token's original hue/chroma exactly and only adjusted lightness, the same pattern as the primary-color fix.",
+      "secondary-light": "was 2.23:1 vs white (fails AA; text-secondary used in 12 files, and bg-secondary text-white buttons had literally invisible text) -> darkened to 4.72:1 -> re-tuned again in round 4, see below",
+      "warning-light": "was 2.70:1 vs white (fails AA; text-warning used in 79 files, same invisible-white-text-on-badge bug) -> now 4.69:1",
+      "success-dark": "was 2.73-2.95:1 vs dark background (fails AA; text-success used in 100 files) -> now 4.56:1",
+      "accent-dark_deliberately_unchanged": "text-accent (standalone text, 44 files) wants a lighter value for contrast against the dark page background, but --accent is also the fill half of shadcn's own bg-accent/text-accent-foreground selection-state pattern (menus, calendar, command palette) — lightening it to fix the text case dropped that pairing's contrast from 3.97:1 to 3.22:1, i.e. traded a smaller problem for a bigger one. Left as-is; documented rather than forced through the same fix."
+    },
+    "contrast_fixes_2026-08-26_round4": {
+      "method": "Round 3 fixed contrast by computation alone, without ever looking at the rendered result. Round 4 was a visual QA pass (Playwright screenshots of the actual running app, light and dark) that caught a real regression the math had missed.",
+      "secondary-light_re-tuned": "Round 3's 0.56 (#946d00) passed WCAG math but rendered as a muddy dark-olive color in the dominant real use case — solid Badge fills (bg-secondary text-secondary-foreground), which never needed the darkening since that pairing was always fine (8.82:1 even at the original 0.75). The actual bug (bg-secondary text-white, invisible text) is now fixed at the 6 component call sites directly (swapped to text-secondary-foreground) instead of via the shared token. With that fixed separately, --secondary only needs to satisfy the smaller-stakes standalone-text case (text-secondary/fill-secondary, star ratings and small labels) — re-tuned to 0.64 (#ad8522, 3.41:1 vs white), clearing the 3:1 UI-component bar with margin while reading as gold again, not brown.",
+      "warning-foreground_and_success-foreground_added": "bg-warning and bg-success were being paired with hardcoded text-white (warning) or text-success-foreground with no variable defined (success) in several components — both invisible-text bugs. Added --warning-foreground and --success-foreground tokens and fixed the ~10 component call sites to use them instead of hardcoded/undefined classes.",
+      "agricultural-pattern_fixed": "The .agricultural-pattern decorative background (used on the hero, auth, and profile-hero surfaces) had hardcoded rgba(22,163,74,...) and rgba(255,215,0,...) — the old drifted favicon green and an unrelated pure-gold, neither connected to any token. Only found by looking at the rendered page; a token/text grep would never have caught a raw rgba() in a CSS class. Recolored to the canonical green/gold and reduced density slightly (100px tiles -> 160px, 0.05 opacity -> 0.04) since the original read as a busy checkerboard rather than a subtle texture."
+    }
+  },
+  "radius": {
+    "base": "0.75rem",
+    "sm": "calc(base - 4px)",
+    "md": "calc(base - 2px)",
+    "lg": "base",
+    "xl": "calc(base + 4px)"
+  },
+  "typography": {
+    "sans": { "token": "--font-dm-sans", "family": "DM Sans", "role": "body / UI default, H3 and smaller headings" },
+    "serif": { "token": "--font-fraunces", "family": "Fraunces", "role": "H1/H2 display headings only — fixed 2026-08-25, was incorrectly Nunito (a sans-serif); see audit finding #2" }
+  }
+}

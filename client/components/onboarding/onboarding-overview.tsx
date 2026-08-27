@@ -5,12 +5,12 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { 
+import Link from "next/link"
+import {
   Clock, 
   CheckCircle, 
   TrendingUp, 
   AlertTriangle,
-  MapPin,
   Calendar,
   Users,
   Target
@@ -29,24 +29,6 @@ export function OnboardingOverview() {
     return acc
   }, {} as Record<string, number>)
 
-  // Get next actions for pending onboardings
-  const getNextActions = (stage: string) => {
-    switch (stage) {
-      case 'registration':
-        return ['Collect documents', 'Verify contact info', 'Assign agent']
-      case 'documentation':
-        return ['Review documents', 'Request missing items', 'Schedule training']
-      case 'training':
-        return ['Monitor progress', 'Schedule verification', 'Prepare activation']
-      case 'verification':
-        return ['Complete verification', 'Finalize docs', 'Prepare activation']
-      case 'activation':
-        return ['Create account', 'Send welcome package', 'Begin monitoring']
-      default:
-        return ['Review status', 'Determine next steps']
-    }
-  }
-
   return (
     <div className="space-y-6">
       {/* Quick Actions */}
@@ -57,15 +39,19 @@ export function OnboardingOverview() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
-            <Button variant="outline" className="h-20 flex-col">
-              <Users className="h-6 w-6 mb-2" />
-              <span>Add New Farmer</span>
+            <Button variant="outline" className="h-20 flex-col" asChild>
+              <Link href="/dashboard/farmers/add">
+                <Users className="h-6 w-6 mb-2" />
+                <span>Add New Farmer</span>
+              </Link>
             </Button>
-            <Button variant="outline" className="h-20 flex-col">
-              <TrendingUp className="h-6 w-6 mb-2" />
-              <span>Bulk Upload</span>
+            <Button variant="outline" className="h-20 flex-col" asChild>
+              <Link href="/dashboard/farmers/bulk">
+                <TrendingUp className="h-6 w-6 mb-2" />
+                <span>Bulk Upload</span>
+              </Link>
             </Button>
-            <Button variant="outline" className="h-20 flex-col">
+            <Button variant="outline" className="h-20 flex-col" disabled>
               <Target className="h-6 w-6 mb-2" />
               <span>Set Follow-ups</span>
             </Button>

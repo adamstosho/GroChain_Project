@@ -9,7 +9,7 @@ export function Testimonials() {
       name: "Adunni Adebayo",
       role: "Farmer",
       location: "Ogun State",
-      avatar: "/nigerian-farmer-woman.png",
+      avatar: "/illustration-avatar-farmer.png",
       rating: 5,
       content:
         "GroChain has transformed how I sell my products. The QR codes give my customers confidence, and I can reach buyers directly without middlemen.",
@@ -19,7 +19,7 @@ export function Testimonials() {
       name: "Chidi Okafor",
       role: "Food Buyer",
       location: "Lagos",
-      avatar: "/nigerian-businessman.png",
+      avatar: "/illustration-avatar-buyer.png",
       rating: 5,
       content:
         "As a buyer, I love knowing exactly where my food comes from. The platform gives me confidence in the quality and freshness.",
@@ -29,7 +29,7 @@ export function Testimonials() {
       name: "Ibrahim Garba",
       role: "Partner Agency",
       location: "Kano",
-      avatar: "/nigerian-agricultural-agent.png",
+      avatar: "/illustration-avatar-agent.png",
       rating: 5,
       content:
         "The bulk onboarding feature makes it easy for us to support multiple farmers. The real-time features are a game changer.",

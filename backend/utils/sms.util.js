@@ -112,7 +112,7 @@ class SMSUtil {
     const messageData = {
       body: message,
       from: options.from || this.fromNumber,
-      to: validatedPhone
+      to
     }
     
     if (options.mediaUrl) {
@@ -349,7 +349,7 @@ class SMSUtil {
   async getSMSBalance() {
     try {
       switch (this.provider) {
-        case 'twilio':
+        case 'twilio': {
           if (!this.twilioClient) throw new Error('Twilio not configured')
           const account = await this.twilioClient.api.accounts(this.twilioClient.accountSid).fetch()
           return {
@@ -358,8 +358,9 @@ class SMSUtil {
             currency: account.currency,
             provider: 'twilio'
           }
-        
-        case 'africastalking':
+        }
+
+        case 'africastalking': {
           if (!this.apiKey || !this.username) throw new Error('Africa\'s Talking not configured')
           const response = await axios.get(`${this.baseURL}/user`, {
             headers: { 'apiKey': this.apiKey }
@@ -370,6 +371,7 @@ class SMSUtil {
             currency: 'KES',
             provider: 'africastalking'
           }
+        }
         
         default:
           return {
@@ -391,7 +393,7 @@ class SMSUtil {
   async getDeliveryStatus(messageId) {
     try {
       switch (this.provider) {
-        case 'twilio':
+        case 'twilio': {
           if (!this.twilioClient) throw new Error('Twilio not configured')
           const message = await this.twilioClient.messages(messageId).fetch()
           return {
@@ -400,6 +402,7 @@ class SMSUtil {
             status: message.status,
             provider: 'twilio'
           }
+        }
         
         default:
           return {

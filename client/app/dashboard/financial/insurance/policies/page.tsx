@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
+import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
 import {
   Shield,
@@ -16,28 +17,14 @@ import {
   Eye,
   FileText,
   Download,
-  RefreshCw,
   Search,
-  Filter,
-  Calendar,
   Banknote,
   AlertTriangle,
-  CheckCircle,
-  Clock,
-  XCircle,
   TrendingUp,
-  TrendingDown,
-  MapPin,
   Leaf,
-  Droplets,
-  Thermometer,
-  Wind,
-  Sun,
-  Cloud,
   Zap,
-  ChevronDown,
-  ChevronUp,
-  Minus
+  ArrowUp,
+  ArrowDown
 } from "lucide-react"
 
 interface InsurancePolicy {
@@ -405,15 +392,6 @@ export default function InsurancePoliciesPage() {
     }
   }
 
-  const handleSort = (field: string) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'desc')
-    } else {
-      setSortBy(field)
-      setSortOrder('desc')
-    }
-  }
-
   const getPolicyTypeIcon = (type: string) => {
     switch (type) {
       case 'crop': return <Leaf className="h-4 w-4 text-success" />
@@ -445,14 +423,25 @@ export default function InsurancePoliciesPage() {
   })
 
   const sortedPolicies = [...filteredPolicies].sort((a, b) => {
-    let aValue: any = a[sortBy as keyof InsurancePolicy]
-    let bValue: any = b[sortBy as keyof InsurancePolicy]
-    
+    let aValue: any
+    let bValue: any
+
+    if (sortBy === 'premium') {
+      aValue = a.premium.amount
+      bValue = b.premium.amount
+    } else if (sortBy === 'coverageAmount') {
+      aValue = a.coverage.amount
+      bValue = b.coverage.amount
+    } else {
+      aValue = a[sortBy as keyof InsurancePolicy]
+      bValue = b[sortBy as keyof InsurancePolicy]
+    }
+
     if (sortBy === 'startDate' || sortBy === 'endDate') {
       aValue = new Date(aValue).getTime()
       bValue = new Date(bValue).getTime()
     }
-    
+
     if (sortOrder === 'asc') {
       return aValue > bValue ? 1 : -1
     } else {
@@ -531,7 +520,7 @@ export default function InsurancePoliciesPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-success">
-                  ₦{(stats.totalCoverage / 1000000).toFixed(1)}M
+                  {formatCompactCurrency(stats.totalCoverage)}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <TrendingUp className="h-4 w-4 text-success" />
@@ -546,7 +535,7 @@ export default function InsurancePoliciesPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-warning">
-                  ₦{(stats.totalPremium / 1000).toFixed(0)}K
+                  {formatCompactCurrency(stats.totalPremium)}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <Banknote className="h-4 w-4 text-warning" />
@@ -565,7 +554,7 @@ export default function InsurancePoliciesPage() {
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <AlertTriangle className="h-4 w-4 text-destructive" />
-                  <span className="text-sm text-destructive">₦{(stats.claimsValue / 1000).toFixed(0)}K value</span>
+                  <span className="text-sm text-destructive">{formatCompactCurrency(stats.claimsValue)} value</span>
                 </div>
               </CardContent>
             </Card>
@@ -578,7 +567,7 @@ export default function InsurancePoliciesPage() {
             <CardTitle className="text-base font-medium">Filters</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Policy Type</label>
                 <Select value={filters.type} onValueChange={(value) => setFilters(prev => ({ ...prev, type: value }))}>
@@ -617,6 +606,34 @@ export default function InsurancePoliciesPage() {
                     onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                     className="pl-10"
                   />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Sort By</label>
+                <div className="flex gap-2">
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="startDate">Start Date</SelectItem>
+                      <SelectItem value="endDate">End Date</SelectItem>
+                      <SelectItem value="premium">Premium</SelectItem>
+                      <SelectItem value="coverageAmount">Coverage Amount</SelectItem>
+                      <SelectItem value="policyNumber">Policy Number</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="flex-shrink-0"
+                    onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                    title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                  >
+                    {sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -668,11 +685,11 @@ export default function InsurancePoliciesPage() {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Coverage Amount:</span>
-                        <span className="text-sm font-medium">₦{(policy.coverage.amount / 1000000).toFixed(1)}M</span>
+                        <span className="text-sm font-medium">{formatCompactCurrency(policy.coverage.amount)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Premium:</span>
-                        <span className="text-sm font-medium">₦{(policy.premium.amount / 1000).toFixed(0)}K</span>
+                        <span className="text-sm font-medium">{formatCompactCurrency(policy.premium.amount)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Frequency:</span>

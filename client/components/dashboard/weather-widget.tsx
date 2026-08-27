@@ -15,7 +15,6 @@ export function WeatherWidget() {
   const [forecast, setForecast] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isForecastLoading, setIsForecastLoading] = useState(false)
-  const [currentLocation, setCurrentLocation] = useState<string>("")
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
   const [isForecastOpen, setIsForecastOpen] = useState(false)
   const { toast } = useToast()
@@ -146,19 +145,6 @@ export function WeatherWidget() {
         } else {
           // Only use stored data if geolocation is completely unavailable
           console.log('📁 Using stored location data as last resort')
-          console.log('👤 User data:', {
-            id: user?._id,
-            name: user?.name,
-            location: user?.location,
-            profile: user?.profile ? {
-              city: user.profile.city,
-              state: user.profile.state,
-              country: user.profile.country,
-              coordinates: user.profile.coordinates
-            } : 'No profile data',
-            hasLocation: !!user?.location,
-            hasProfileLocation: !!(user?.profile?.city || user?.profile?.state)
-          })
 
           // Parse user's stored location
           locationData = parseLocation(user)
@@ -175,10 +161,6 @@ export function WeatherWidget() {
         console.log('📍 Final location data:', locationData)
 
         const { lat, lng, city, state, country } = locationData
-
-        // Store current location for comparison
-        const locationKey = `${lat},${lng},${city},${state}`
-        setCurrentLocation(locationKey)
 
         console.log('🌤️ Fetching weather for:', { lat, lng, city, state, country })
 
@@ -516,12 +498,12 @@ export function WeatherWidget() {
                     <div className="h-1 w-1 rounded-full bg-primary mt-1.5 flex-shrink-0" />
                     <span className="break-words leading-relaxed">
                       {weather.current.temperature > 30
-                        ? "🔥 High temps - provide shade and increase irrigation"
+                        ? "High temps — provide shade and increase irrigation"
                         : weather.current.temperature > 25
-                        ? "🌡️ Warm conditions - monitor heat stress in crops"
+                        ? "Warm conditions — monitor heat stress in crops"
                         : weather.current.temperature < 15
-                        ? "❄️ Cool temps - protect frost-sensitive crops"
-                        : "✅ Optimal temperatures for crop growth"
+                        ? "Cool temps — protect frost-sensitive crops"
+                        : "Optimal temperatures for crop growth"
                       }
                     </span>
                   </div>
@@ -529,12 +511,12 @@ export function WeatherWidget() {
                     <div className="h-1 w-1 rounded-full bg-primary mt-1.5 flex-shrink-0" />
                     <span className="break-words leading-relaxed">
                       {weather.current.humidity > 80
-                        ? "💧 High humidity - monitor for fungal diseases"
+                        ? "High humidity — monitor for fungal diseases"
                         : weather.current.humidity > 70
-                        ? "💧 Elevated humidity - watch for pest activity"
+                        ? "Elevated humidity — watch for pest activity"
                         : weather.current.humidity < 40
-                        ? "🏜️ Low humidity - increase irrigation frequency"
-                        : "✅ Good humidity levels for crop health"
+                        ? "Low humidity — increase irrigation frequency"
+                        : "Good humidity levels for crop health"
                       }
                     </span>
                   </div>
@@ -542,10 +524,10 @@ export function WeatherWidget() {
                     <div className="h-1 w-1 rounded-full bg-primary mt-1.5 flex-shrink-0" />
                     <span className="break-words leading-relaxed">
                       {weather.current.windSpeed > 15
-                        ? "🌪️ Strong winds - secure young plants"
+                        ? "Strong winds — secure young plants"
                         : weather.current.windSpeed > 8
-                        ? "💨 Moderate winds - good for pest control"
-                        : "🌬️ Light winds - ideal farming conditions"
+                        ? "Moderate winds — good for pest control"
+                        : "Light winds — ideal farming conditions"
                       }
                     </span>
                   </div>
@@ -564,7 +546,7 @@ export function WeatherWidget() {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full bg-transparent text-xs sm:text-sm"
+                className="w-full text-xs sm:text-sm"
                 onClick={() => {
                   fetchForecast()
                   setIsForecastOpen(true)

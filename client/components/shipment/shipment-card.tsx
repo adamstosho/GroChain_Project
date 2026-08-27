@@ -17,7 +17,6 @@ import { ShipmentStatusBadge } from "./shipment-status-badge"
 import { ShipmentRiskAlert } from "../ai/shipment-risk-alert"
 import { AiTrustBadge } from "../ai/ai-trust-badge"
 import { formatDistanceToNow } from "date-fns"
-import Link from "next/link"
 
 interface ShipmentCardProps {
   shipment: Shipment
@@ -42,14 +41,6 @@ export function ShipmentCard({
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(price)
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
   }
 
   const getEstimatedDeliveryStatus = () => {

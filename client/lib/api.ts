@@ -20,7 +20,7 @@ class ApiService {
   private safeStringify(obj: unknown): string {
     try {
       return JSON.stringify(obj, null, 2)
-    } catch (error) {
+    } catch {
       // Handle circular references
       const seen = new WeakSet()
       return JSON.stringify(obj, (key, value) => {
@@ -92,11 +92,16 @@ class ApiService {
       }
     }
 
-    // Check if this is a public endpoint that shouldn't have Authorization header
-    const publicEndpoints = ['/api/verify', '/api/marketplace/listings']
-    const isPublicEndpoint = publicEndpoints.some(publicEndpoint => endpoint.includes(publicEndpoint))
+    // Public GET-only paths — never strip auth from mutations (POST/PUT/PATCH/DELETE).
+    const method = (options.method || 'GET').toUpperCase()
+    const pathOnly = (endpoint.startsWith('/api/') ? endpoint : `/api${endpoint}`).split('?')[0]
+    const isPublicEndpoint =
+      method === 'GET' &&
+      (pathOnly.startsWith('/api/verify') ||
+        pathOnly === '/api/marketplace/listings' ||
+        /^\/api\/marketplace\/listings\/[^/]+$/.test(pathOnly))
 
-    // Only add Authorization header for non-public endpoints
+    // Always send Authorization for non-public endpoints when a token exists
     if (!isPublicEndpoint) {
       if (this.token && this.token !== 'undefined') {
         headers["Authorization"] = `Bearer ${this.token}`
@@ -388,7 +393,7 @@ class ApiService {
       return await this.request<{ success: boolean; message: string }>("/api/auth/logout", {
         method: "POST",
       })
-    } catch (e) {
+    } catch {
       // Ignore network errors here; we'll still clear local state
       return { success: true, message: "Logged out" } as ApiResponse<any>
     }
@@ -744,7 +749,7 @@ class ApiService {
   }
 
   async getListingForEdit(id: string) {
-    return this.request<Listing>(`/api/marketplace/listings/${id}/edit`)
+    return this.request<Listing>(`/api/marketplace/listings/${id}`)
   }
 
   async updateListing(id: string, listingData: Partial<Listing>) {
@@ -761,10 +766,15 @@ class ApiService {
     })
   }
 
-  async createOrder(orderData: Partial<Order>) {
+  async createOrder(orderData: Partial<Order>, options?: { idempotencyKey?: string }) {
+    const headers: Record<string, string> = {}
+    if (options?.idempotencyKey) {
+      headers['Idempotency-Key'] = options.idempotencyKey.slice(0, 128)
+    }
     return this.request<Order>("/api/marketplace/orders", {
       method: "POST",
       body: JSON.stringify(orderData),
+      headers,
     })
   }
 
@@ -972,8 +982,8 @@ class ApiService {
   }
 
   // Avatar Upload
-  async uploadAvatar(formData: FormData, isAdmin: boolean = false) {
-    const token = localStorage.getItem('grochain_auth_token')
+  async uploadAvatar(formData: FormData, isAdmin: boolean = false, signal?: AbortSignal) {
+    const token = getTokenFromStorage()
     const endpoint = isAdmin ? '/api/admin/profile/avatar' : '/api/users/profile/avatar'
 
     try {
@@ -982,7 +992,8 @@ class ApiService {
         headers: {
           'Authorization': token ? `Bearer ${token}` : ''
         },
-        body: formData
+        body: formData,
+        signal
       })
 
       if (!response.ok) {
@@ -992,6 +1003,9 @@ class ApiService {
 
       return await response.json()
     } catch (error: any) {
+      if (error.name === 'AbortError') {
+        throw error
+      }
       if (error.message.includes('fetch')) {
         throw new Error('Network error: Unable to connect to server')
       }
@@ -1177,14 +1191,12 @@ class ApiService {
   }
 
   async exportHarvests(filters?: Record<string, any>) {
-    const params = new URLSearchParams(filters || {})
-    const url = `/api/harvests/export?${params}`
-    // Create a temporary link to download the file
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `harvests-export.${(filters || {}).format || 'json'}`
-    link.click()
-    return { success: true }
+    const format = (filters || {}).format || 'csv'
+    const exportService = (await import('./export-utils')).getExportService()
+    return exportService.exportHarvests({
+      format: format as any,
+      filters: { ...(filters || {}) },
+    })
   }
 
 
@@ -1363,7 +1375,7 @@ class ApiService {
 
 
   async getWeatherData(params?: any) {
-    const queryString = params ? new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString() : ''
+    const queryString = params ? new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => [k, String(v)])).toString() : ''
     return this.request(`/api/weather${queryString ? '?' + queryString : ''}`)
   }
 
@@ -1452,7 +1464,7 @@ class ApiService {
     status?: string
     search?: string
   }) {
-    const queryString = params ? new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString() : ''
+    const queryString = params ? new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => [k, String(v)])).toString() : ''
     return this.request<{
       farmers: Array<{
         _id: string
@@ -1497,6 +1509,10 @@ class ApiService {
       console.error('❌ getPartnerMetrics error:', error);
       throw error;
     }
+  }
+
+  async syncPartnerFarmers() {
+    return this.request("/api/referrals/sync-partners", { method: "POST" })
   }
 
   async getPartnerCommission() {
@@ -1557,7 +1573,7 @@ class ApiService {
     sortBy?: string
     sortOrder?: string
   }) {
-    const queryString = params ? new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString() : ''
+    const queryString = params ? new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => [k, String(v)])).toString() : ''
     return this.request<{
       commissions: Array<{
         _id: string
@@ -1605,7 +1621,7 @@ class ApiService {
     startDate?: string
     endDate?: string
   }) {
-    const queryString = params ? new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString() : ''
+    const queryString = params ? new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => [k, String(v)])).toString() : ''
     return this.request<{
       totalCommissions: number
       totalAmount: number
@@ -1667,7 +1683,13 @@ class ApiService {
     sortBy?: string
     sortOrder?: string
   }) {
-    const queryString = params ? new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString() : ''
+    const queryString = params
+      ? new URLSearchParams(
+          Object.entries(params)
+            .filter(([, v]) => v !== undefined && v !== null && v !== '')
+            .map(([k, v]) => [k, String(v)])
+        ).toString()
+      : ''
     return this.request<{
       docs: Array<{
         _id: string
@@ -1717,7 +1739,7 @@ class ApiService {
   }
 
   async getReferralPerformanceStats(period: string = 'month') {
-    return this.request(`/api/partners/referrals/stats/performance?period=${period}`)
+    return this.request(`/api/referrals/stats/performance?period=${period}`)
   }
 
   async updateReferral(id: string, data: {
@@ -1746,7 +1768,7 @@ class ApiService {
     limit?: number
     page?: number
   }) {
-    const queryString = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString()
+    const queryString = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => [k, String(v)])).toString()
     return this.request<{
       farmers: Array<{
         _id: string
@@ -1772,8 +1794,9 @@ class ApiService {
   }
 
   async markNotificationAsRead(notificationId: string) {
-    return this.request(`/api/notifications/${notificationId}/read`, {
+    return this.request('/api/notifications/mark-read', {
       method: 'PATCH',
+      body: JSON.stringify({ notificationIds: [notificationId] }),
     })
   }
 
@@ -1920,10 +1943,12 @@ class ApiService {
   }
 
   async exportAnalyticsData(type: string = 'user', period: string = '30d', format: string = 'csv'): Promise<void> {
+    const normalized =
+      format === 'excel' || format === 'xlsx' || format === 'pdf' ? 'xlsx' : format === 'json' ? 'csv' : 'csv'
     const requestBody = {
       type,
       period,
-      format,
+      format: normalized,
       filename: `farmer-analytics-${period}-${new Date().toISOString().split('T')[0]}`
     }
 
@@ -1964,21 +1989,20 @@ class ApiService {
   }
 
   async getApprovals(filters: any = {}): Promise<any> {
-    const queryString = new URLSearchParams(filters).toString()
-    return this.request<any>(`/api/approvals?${queryString}`)
+    return this.getAllHarvests(filters)
   }
 
   async getApprovalById(approvalId: string): Promise<any> {
-    return this.request<any>(`/api/approvals/${approvalId}`)
+    return this.request<any>(`/api/harvests/id/${approvalId}`)
   }
 
   async getPendingHarvests(filters?: any): Promise<any> {
-    const queryString = filters ? new URLSearchParams(Object.entries(filters).map(([k, v]) => [k, String(v)])).toString() : ''
+    const queryString = filters ? new URLSearchParams(Object.entries(filters).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => [k, String(v)])).toString() : ''
     return this.request<any>(`/api/harvest-approval/pending?${queryString}`)
   }
 
   async getAllHarvests(filters?: any): Promise<any> {
-    const queryString = filters ? new URLSearchParams(Object.entries(filters).map(([k, v]) => [k, String(v)])).toString() : ''
+    const queryString = filters ? new URLSearchParams(Object.entries(filters).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => [k, String(v)])).toString() : ''
     return this.request<any>(`/api/harvest-approval/all?${queryString}`)
   }
 
@@ -2004,22 +2028,16 @@ class ApiService {
     }
   }
 
-  async rejectHarvest(approvalId: string, data: { reason: string; notes?: string }): Promise<any> {
-    console.log('=== API SERVICE: rejectHarvest called ===')
-    console.log('Approval ID:', approvalId)
-    console.log('Data:', data)
-    try {
-      const result = await this.request<any>(`/api/harvest-approval/${approvalId}/reject`, {
-        method: 'POST',
-        body: JSON.stringify(data)
+  async rejectHarvest(approvalId: string, data: { reason: string; notes?: string; rejectionReason?: string }): Promise<any> {
+    const rejectionReason = data.rejectionReason || data.reason
+    return this.request<any>(`/api/harvest-approval/${approvalId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({
+        rejectionReason,
+        reason: rejectionReason,
+        notes: data.notes
       })
-      console.log('=== API SERVICE: rejectHarvest success ===')
-      return result
-    } catch (error) {
-      console.log('=== API SERVICE: rejectHarvest failed ===')
-      console.log('Error details:', error)
-      throw error
-    }
+    })
   }
 
   async markForReview(approvalId: string, data: { notes?: string }): Promise<any> {
@@ -2029,32 +2047,36 @@ class ApiService {
     })
   }
 
-  async bulkProcessApprovals(data: { approvalIds: string[]; action: string; notes?: string; reason?: string }): Promise<any> {
+  async bulkProcessApprovals(data: { approvalIds?: string[]; harvestIds?: string[]; action: string; notes?: string; reason?: string; rejectionReason?: string }): Promise<any> {
+    const harvestIds = data.harvestIds || data.approvalIds || []
+    const rejectionReason = data.rejectionReason || data.reason
     return this.request<any>('/api/harvest-approval/bulk-process', {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify({
+        ...data,
+        harvestIds,
+        approvalIds: harvestIds,
+        rejectionReason,
+        reason: rejectionReason
+      })
     })
   }
 
   async batchProcessApprovals(batchAction: any): Promise<any> {
-    return this.request<any>('/api/approvals/batch', {
-      method: 'POST',
-      body: JSON.stringify(batchAction)
-    })
+    return this.bulkProcessApprovals(batchAction)
   }
 
-  async getApprovalMetrics(filters: any = {}): Promise<any> {
-    const queryString = new URLSearchParams(filters).toString()
-    return this.request<any>(`/api/approvals/metrics?${queryString}`)
+  async getApprovalMetrics(_filters: any = {}): Promise<any> {
+    return this.getApprovalStats()
   }
 
   async getApprovalHistory(approvalId: string): Promise<any> {
-    return this.request<any>(`/api/approvals/${approvalId}/history`)
+    return this.getApprovalById(approvalId)
   }
 
   async exportApprovals(filters: any, format: string = 'csv'): Promise<Blob> {
     const queryString = new URLSearchParams({ ...filters, format }).toString()
-    const response = await fetch(`${this.baseUrl}/api/approvals/export?${queryString}`, {
+    const response = await fetch(`${this.baseUrl}/api/harvest-approval/export?${queryString}`, {
       headers: {
         "Authorization": `Bearer ${this.token}`
       }
@@ -2160,7 +2182,7 @@ class ApiService {
       try {
         const errorData = await response.json()
         errorMessage = errorData.message || errorMessage
-      } catch (e) {
+      } catch {
         // If not JSON, use default message
       }
       throw new Error(errorMessage)
@@ -2217,7 +2239,7 @@ class ApiService {
       try {
         const errorData = await response.json()
         errorMessage = errorData.message || errorMessage
-      } catch (e) {}
+      } catch {}
       throw new Error(errorMessage)
     }
 

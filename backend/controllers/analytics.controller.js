@@ -1,4 +1,3 @@
-const Analytics = require('../models/analytics.model')
 const User = require('../models/user.model')
 const Harvest = require('../models/harvest.model')
 const Listing = require('../models/listing.model')
@@ -11,68 +10,11 @@ const mongoose = require('mongoose')
 const ExcelJS = require('exceljs')
 const { createObjectCsvStringifier } = require('csv-writer')
 
-// Helper functions for analytics calculations
-function getCropColor(cropType) {
-  const colors = {
-    'Maize': '#22c55e',
-    'Cassava': '#f59e0b',
-    'Rice': '#ef4444',
-    'Yam': '#8b5cf6',
-    'Vegetables': '#06b6d4',
-    'Fruits': '#ec4899',
-    'default': '#6b7280'
-  }
-  return colors[cropType] || colors.default
-}
-
-function calculateGrowth(data) {
-  if (data.length < 2) return 0
-  const current = data[data.length - 1].harvests
-  const previous = data[data.length - 2].harvests
-  return previous > 0 ? Math.round(((current - previous) / previous) * 100) : 0
-}
-
-function calculateRevenueGrowth(data) {
-  if (data.length < 2) return 0
-  const current = data[data.length - 1].revenue
-  const previous = data[data.length - 2].revenue
-  return previous > 0 ? Math.round(((current - previous) / previous) * 100) : 0
-}
-
-function calculateQualityTrend(data) {
-  if (data.length < 2) return 0
-  const current = data[data.length - 1].quality
-  const previous = data[data.length - 2].quality
-  return previous > 0 ? Math.round(((current - previous) / previous) * 100) : 0
-}
-
-function calculateOrderGrowth(data) {
-  if (data.length < 2) return 0
-  const current = data[data.length - 1].orders
-  const previous = data[data.length - 2].orders
-  return previous > 0 ? Math.round(((current - previous) / previous) * 100) : 0
-}
-
-function calculateSpendingGrowth(data) {
-  if (data.length < 2) return 0
-  const current = data[data.length - 1].spending
-  const previous = data[data.length - 2].spending
-  return previous > 0 ? Math.round(((current - previous) / previous) * 100) : 0
-}
-
-function calculateAvgOrderGrowth(data) {
-  if (data.length < 2) return 0
-  const current = data[data.length - 1].avgOrder
-  const previous = data[data.length - 2].avgOrder
-  return previous > 0 ? Math.round(((current - previous) / previous) * 100) : 0
-}
-
 exports.getDashboardMetrics = async (req, res) => {
   try {
     const today = new Date()
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-    const startOfYear = new Date(today.getFullYear(), 0, 1)
-    
+
     // Get current metrics
     const totalUsers = await User.countDocuments()
     const activeUsers = await User.countDocuments({ status: 'active' })
@@ -117,7 +59,10 @@ exports.getFarmerAnalytics = async (req, res) => {
   try {
     // Support both /farmers/me and /farmers/:farmerId patterns
     const farmerId = req.params.farmerId || req.user.id
-    const { period = 'monthly' } = req.query
+
+    if (req.user.role !== 'admin' && req.user.id !== farmerId) {
+      return res.status(403).json({ status: 'error', message: 'Forbidden' })
+    }
 
     const farmer = await User.findById(farmerId).select('partner role')
     if (!farmer || farmer.role !== 'farmer') {
@@ -269,6 +214,10 @@ exports.getFarmerCropAnalytics = async (req, res) => {
   try {
     const farmerId = req.params.farmerId || req.user.id
     const { period = '30d' } = req.query
+
+    if (req.user.role !== 'admin' && req.user.id !== farmerId) {
+      return res.status(403).json({ status: 'error', message: 'Forbidden' })
+    }
 
     const farmer = await User.findById(farmerId).select('role')
     if (!farmer || farmer.role !== 'farmer') {
@@ -687,6 +636,10 @@ exports.getPartnerAnalytics = async (req, res) => {
     // Support both /partners/me and /partners/:partnerId patterns
     const partnerId = req.params.partnerId || req.user.id
 
+    if (req.user.role !== 'admin' && req.user.id !== partnerId) {
+      return res.status(403).json({ status: 'error', message: 'Forbidden' })
+    }
+
     const partner = await Partner.findById(partnerId)
     if (!partner) {
       return res.status(404).json({ status: 'error', message: 'Partner not found' })
@@ -728,6 +681,10 @@ exports.getBuyerAnalytics = async (req, res) => {
     const buyerId = req.params.buyerId || req.user.id
     const { period = '30d' } = req.query
 
+    if (req.user.role !== 'admin' && req.user.id !== buyerId) {
+      return res.status(403).json({ status: 'error', message: 'Forbidden' })
+    }
+
     const buyer = await User.findById(buyerId)
     if (!buyer || buyer.role !== 'buyer') {
       return res.status(404).json({ status: 'error', message: 'Buyer not found' })
@@ -760,9 +717,7 @@ exports.getBuyerAnalytics = async (req, res) => {
       createdAt: { $gte: startDate }
     }).populate('items.listing').sort({ createdAt: -1 })
 
-    const allOrders = await Order.find({ buyer: buyerId })
     const completedOrders = orders.filter(o => o.status === 'delivered')
-    const allCompletedOrders = allOrders.filter(o => o.status === 'delivered')
 
     // Calculate basic metrics
     const totalSpent = orders.reduce((sum, order) => sum + (order.total || 0), 0)
@@ -886,8 +841,6 @@ exports.getBuyerAnalytics = async (req, res) => {
 
 exports.getHarvestAnalytics = async (req, res) => {
   try {
-    const { period = 'monthly' } = req.query
-    
     const totalHarvests = await Harvest.countDocuments()
     const approvedHarvests = await Harvest.countDocuments({ status: 'approved' })
     const rejectedHarvests = await Harvest.countDocuments({ status: 'rejected' })
@@ -960,6 +913,10 @@ exports.getFarmerMarketplaceAnalytics = async (req, res) => {
   try {
     const farmerId = req.params.farmerId || req.user.id
     const period = req.query.period || '30d' // 30d, 7d, 90d, 1y
+
+    if (req.user.role !== 'admin' && req.user.id !== farmerId) {
+      return res.status(403).json({ status: 'error', message: 'Forbidden' })
+    }
 
     // Calculate date ranges
     const now = new Date()
@@ -1176,6 +1133,13 @@ exports.getFarmerMarketplaceAnalytics = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(5)
       .select('cropName category basePrice quantity availableQuantity location status views rating reviewCount images createdAt')
+
+    // Get recent orders
+    const recentOrders = await Order.find({ 'items.listing': { $in: listingIds } })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('buyer', 'name')
+      .populate('items.listing', 'cropName')
 
     // Format recent orders
     const formattedRecentOrders = recentOrders.map(order => ({
@@ -1523,7 +1487,7 @@ exports.exportAnalytics = async (req, res) => {
 // Advanced analytics: compare data
 exports.compareAnalytics = async (req, res) => {
   try {
-    const { metrics, timeframes, regions } = req.body
+    const { metrics, regions } = req.body
     
     const Order = require('../models/order.model')
     const Harvest = require('../models/harvest.model')
@@ -1811,11 +1775,59 @@ function csvFromRows (rows) {
 
 async function xlsxFromRows (rows, sheetName = 'Report') {
   const workbook = new ExcelJS.Workbook()
-  const sheet = workbook.addWorksheet(sheetName)
-  if (rows.length > 0) {
-    sheet.columns = Object.keys(rows[0]).map(k => ({ header: k, key: k }))
-    sheet.addRows(rows)
+  workbook.creator = 'GroChain'
+  workbook.company = 'GroChain'
+  workbook.created = new Date()
+
+  const sheet = workbook.addWorksheet(sheetName.slice(0, 31) || 'Report', {
+    views: [{ state: 'frozen', ySplit: 2 }]
+  })
+  const forestArgb = 'FF166534'
+  const deepArgb = 'FF0B3D1E'
+  const softArgb = 'FFEEF6EA'
+
+  const headers = rows.length > 0 ? Object.keys(rows[0]) : ['message']
+  sheet.mergeCells(1, 1, 1, Math.max(headers.length, 1))
+  const title = sheet.getCell(1, 1)
+  title.value = 'GroChain — Building Trust in Nigeria\'s Food Chain'
+  title.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 13 }
+  title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: deepArgb } }
+  title.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 }
+  sheet.getRow(1).height = 26
+
+  const headerRow = sheet.addRow(headers)
+  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: forestArgb } }
+  headerRow.alignment = { wrapText: true, vertical: 'middle' }
+
+  if (rows.length === 0) {
+    sheet.addRow(['No records matched this report.'])
+  } else {
+    rows.forEach((row, idx) => {
+      const values = headers.map(h => {
+        const v = row[h]
+        if (v == null) return ''
+        const s = typeof v === 'object' ? JSON.stringify(v) : String(v)
+        return s.length > 32000 ? `${s.slice(0, 31997)}...` : s
+      })
+      const dataRow = sheet.addRow(values)
+      dataRow.alignment = { wrapText: true, vertical: 'top' }
+      if (idx % 2 === 1) {
+        dataRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: softArgb } }
+      }
+    })
   }
+
+  headers.forEach((header, i) => {
+    const col = sheet.getColumn(i + 1)
+    let maxLen = String(header).length
+    for (const row of rows.slice(0, 200)) {
+      const len = row[header] == null ? 0 : String(row[header]).length
+      if (len > maxLen) maxLen = len
+    }
+    col.width = Math.min(42, Math.max(12, maxLen + 2))
+  })
+
   return await workbook.xlsx.writeBuffer()
 }
 

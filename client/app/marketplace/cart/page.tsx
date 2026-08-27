@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft } from "lucide-react"
+import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { useBuyerStore } from "@/hooks/use-buyer-store"
+import { apiService } from "@/lib/api"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -14,62 +15,43 @@ export default function CartPage() {
     cart,
     updateCartQuantity,
     removeFromCart,
-    clearCart,
-    isLoading
+    hasHydrated,
+    setHasHydrated,
   } = useBuyerStore()
 
-  // Initialize cart from localStorage
-
-
-  const [loading, setLoading] = useState(false)
   const [currentProductData, setCurrentProductData] = useState<any>({})
 
-  // Fetch current product data for cart items
+  useEffect(() => {
+    if (useBuyerStore.persist.hasHydrated()) {
+      setHasHydrated(true)
+    }
+  }, [setHasHydrated])
+
   useEffect(() => {
     const fetchCurrentProductData = async () => {
       if (cart.length === 0) return
 
       try {
-        console.log('🔍 Fetching current product data for cart items...')
-
-        // Get unique listing IDs from cart
-        const listingIds = [...new Set(cart.map(item => item.listingId))]
-        console.log('📋 Cart listing IDs:', listingIds)
-
-        // Fetch current data for these products
-        const productPromises = listingIds.map(async (listingId) => {
-          try {
-            console.log(`🌐 Fetching product data for ID: ${listingId}`)
-            const response = await fetch(`http://localhost:5000/api/marketplace/listings/${listingId}`)
-
-            if (response.ok) {
-              const data = await response.json()
-              console.log(`✅ Product ${listingId} data:`, data)
-              return { listingId, data: data.data || data }
-            } else {
-              console.error(`❌ Failed to fetch product ${listingId}:`, response.status, response.statusText)
-              const errorText = await response.text()
-              console.error(`❌ Error details:`, errorText)
+        const listingIds = [...new Set(cart.map((item) => item.listingId).filter(Boolean))]
+        const results = await Promise.all(
+          listingIds.map(async (listingId) => {
+            try {
+              const response = await apiService.getListing(String(listingId))
+              return { listingId, data: (response as any).data || response }
+            } catch (error) {
+              console.error(`Failed to fetch product ${listingId}:`, error)
+              return null
             }
-          } catch (error) {
-            console.error(`❌ Network error fetching product ${listingId}:`, error)
-          }
-          return null
-        })
+          })
+        )
 
-        const results = await Promise.all(productPromises)
         const productData: any = {}
-
-        results.forEach(result => {
-          if (result) {
-            productData[result.listingId] = result.data
-          }
+        results.forEach((result) => {
+          if (result) productData[result.listingId] = result.data
         })
-
-        console.log('📦 Final product data:', productData)
         setCurrentProductData(productData)
       } catch (error) {
-        console.error('❌ Failed to fetch current product data:', error)
+        console.error("Failed to fetch current product data:", error)
       }
     }
 
@@ -78,8 +60,7 @@ export default function CartPage() {
 
   // Calculate totals
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-  const shipping = 0 // Shipping calculated at checkout
-  const tax = 0 // VAT removed
+  const shipping = 0 // VAT removed
   const total = subtotal + shipping
 
   const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
@@ -94,11 +75,7 @@ export default function CartPage() {
     removeFromCart(itemId)
   }
 
-  const handleClearCart = () => {
-    clearCart()
-  }
-
-  if (isLoading) {
+  if (!hasHydrated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10">
         <div className="container mx-auto px-4 py-8">
@@ -256,7 +233,7 @@ export default function CartPage() {
                       <span className="text-muted-foreground font-medium">Shipping</span>
                       <div className="flex items-center gap-1">
                         <span className="text-muted-foreground font-medium">Pending</span>
-                        <span className="text-xs text-muted-foreground">⏳</span>
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
                     </div>
                   )}

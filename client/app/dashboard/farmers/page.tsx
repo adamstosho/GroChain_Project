@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
@@ -17,7 +16,6 @@ import { useToast } from "@/hooks/use-toast"
 import {
   Users,
   Search,
-  Filter,
   Plus,
   MoreHorizontal,
   Phone,
@@ -29,41 +27,19 @@ import {
   CheckCircle,
   XCircle,
   Download,
-  Upload
+  Upload,
+  Eye
 } from "lucide-react"
 import Link from "next/link"
 
-interface Farmer {
-  _id: string
-  name: string
-  email: string
-  phone: string
-  location: string
-  status: 'active' | 'inactive' | 'pending' | 'suspended'
-  joinedDate: string
-  totalHarvests?: number
-  totalSales?: number
-}
-
 export default function FarmersPage() {
   const {
-    farmers,
     filteredFarmers,
     isLoading,
-    filters,
     pagination,
     stats,
     updateFilters,
-    addFarmer,
-    updateFarmer,
-    deleteFarmer,
-    refreshData,
-    exportFarmers,
-    activeFarmers,
-    inactiveFarmers,
-    suspendedFarmers,
-    totalFarmers,
-    totalActiveFarmers
+    exportFarmers
   } = useFarmers()
 
   const [searchTerm, setSearchTerm] = useState("")
@@ -371,7 +347,7 @@ export default function FarmersPage() {
                       <Button variant="ghost" size="sm" asChild className="h-7 w-7 p-0 sm:h-8 sm:w-8 lg:h-9 lg:w-auto lg:p-2">
                         <Link href={`/dashboard/farmers/${farmer._id}`}>
                           <span className="hidden lg:inline">View Details</span>
-                          <span className="lg:hidden">👁️</span>
+                          <Eye className="h-4 w-4 lg:hidden" />
                         </Link>
                       </Button>
                       <Dialog>

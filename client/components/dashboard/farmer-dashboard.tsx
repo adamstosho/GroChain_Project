@@ -13,7 +13,7 @@ import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useDashboardRefresh } from "@/hooks/use-dashboard-refresh"
 import { useStableDataFetch } from "@/hooks/use-stable-data-fetch"
-import { Leaf, Package, TrendingUp, Banknote, Plus, Eye, QrCode, BarChart3, RefreshCw, Store, Activity } from "lucide-react"
+import { Leaf, Package, TrendingUp, Banknote, Plus, Eye, BarChart3, RefreshCw, Store } from "lucide-react"
 import Link from "next/link"
 import { AiTrustBadge } from "@/components/ai/ai-trust-badge"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
@@ -140,7 +140,7 @@ export function FarmerDashboard() {
   }, [toast, begin, finish])
 
   // Smart event-driven refresh system
-  const { refresh } = useDashboardRefresh({
+  useDashboardRefresh({
     onRefresh: fetchDashboardData
   })
 
@@ -157,7 +157,7 @@ export function FarmerDashboard() {
         description: "Your dashboard data has been updated",
         variant: "default",
       })
-    } catch (error) {
+    } catch {
       toast({
         title: "Refresh failed",
         description: "Could not refresh dashboard data",
@@ -213,7 +213,7 @@ export function FarmerDashboard() {
       } else {
         harvestDate = new Date()
       }
-    } catch (error) {
+    } catch {
       harvestDate = new Date()
     }
 

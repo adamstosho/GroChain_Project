@@ -8,21 +8,18 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
+import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
-import { useExportService } from "@/lib/export-utils"
+import { getExportService } from "@/lib/export-utils"
 import {
   Banknote,
   TrendingUp,
   TrendingDown,
   Download,
-  Filter,
   Search,
-  Calendar,
   CreditCard,
-  Wallet,
   ArrowUpRight,
   ArrowDownLeft,
-  MoreHorizontal,
   Eye,
   FileText,
   RefreshCw,
@@ -33,8 +30,6 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  MapPin,
-  User,
   Package,
   Shield
 } from "lucide-react"
@@ -114,7 +109,7 @@ export default function TransactionsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(20)
   const { toast } = useToast()
-  const exportService = useExportService()
+  const exportService = getExportService()
 
 
 
@@ -252,7 +247,18 @@ export default function TransactionsPage() {
   }, [fetchTransactions, filters, sortBy, sortOrder, currentPage])
 
   const handleExport = async () => {
-    await exportService.exportTransactions(filters, 'csv')
+    const result = await exportService.exportTransactions({
+      format: 'csv',
+      filters: filters as any,
+      filename: `grochain-transactions-${new Date().toISOString().slice(0, 10)}.csv`,
+    })
+    if (!result.success) {
+      toast({
+        title: "Export failed",
+        description: result.error || "Could not export transactions",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleSort = (field: string) => {
@@ -385,7 +391,7 @@ export default function TransactionsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-success">
-                  ₦{(stats.totalIncome / 1000).toFixed(0)}K
+                  {formatCompactCurrency(stats.totalIncome)}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <TrendingUp className="h-4 w-4 text-success" />
@@ -400,7 +406,7 @@ export default function TransactionsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-destructive">
-                  ₦{(stats.totalExpenses / 1000).toFixed(0)}K
+                  {formatCompactCurrency(stats.totalExpenses)}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <TrendingDown className="h-4 w-4 text-destructive" />
@@ -415,7 +421,7 @@ export default function TransactionsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-primary">
-                  ₦{(stats.netAmount / 1000).toFixed(0)}K
+                  {formatCompactCurrency(stats.netAmount)}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <TrendingUp className="h-4 w-4 text-primary" />
@@ -430,7 +436,7 @@ export default function TransactionsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-warning">
-                  ₦{(stats.pendingAmount / 1000).toFixed(0)}K
+                  {formatCompactCurrency(stats.pendingAmount)}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <Clock className="h-4 w-4 text-warning" />

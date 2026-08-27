@@ -23,7 +23,7 @@ export function AuthLayout({ children, title, subtitle, showFeatures = false }: 
     {
       icon: Users,
       title: "Community Driven",
-      description: "Join thousands of farmers building trust together",
+      description: "Farmers, buyers, and agencies sharing one set of records",
     },
     {
       icon: TrendingUp,
@@ -38,9 +38,9 @@ export function AuthLayout({ children, title, subtitle, showFeatures = false }: 
   ]
 
   const stats = [
-    { value: "10K+", label: "Active Farmers" },
-    { value: "₦500M+", label: "Total Transactions" },
-    { value: "95%", label: "Satisfaction Rate" },
+    { value: "3", label: "Roles on one platform" },
+    { value: "QR", label: "Harvest traceability" },
+    { value: "NG", label: "Built for Nigeria" },
   ]
 
   return (
@@ -60,7 +60,7 @@ export function AuthLayout({ children, title, subtitle, showFeatures = false }: 
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+              <h1 className="text-2xl font-bold tracking-tight font-serif">{title}</h1>
               <p className="text-muted-foreground">{subtitle}</p>
             </div>
           </div>
@@ -100,7 +100,7 @@ export function AuthLayout({ children, title, subtitle, showFeatures = false }: 
             </>
           ) : (
             <div className="text-center space-y-6">
-              <div className="mx-auto h-32 w-32 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="mx-auto h-32 w-32 rounded-full bg-primary-soft flex items-center justify-center">
                 <GroChainLogo variant="icon" size="xl" />
               </div>
               <div className="space-y-2">

@@ -19,10 +19,10 @@ interface ShipmentTrackingTimelineProps {
   className?: string
 }
 
-export function ShipmentTrackingTimeline({ 
-  trackingEvents, 
-  currentStatus, 
-  className 
+export function ShipmentTrackingTimeline({
+  trackingEvents,
+  currentStatus: _currentStatus,
+  className
 }: ShipmentTrackingTimelineProps) {
   const getEventIcon = (status: string) => {
     switch (status) {
@@ -118,8 +118,7 @@ export function ShipmentTrackingTimeline({
           {sortedEvents.map((event, index) => {
             const Icon = getEventIcon(event.status)
             const isLatest = index === 0
-            const isCompleted = ['delivered', 'confirmed', 'in_transit', 'out_for_delivery'].includes(event.status)
-            
+
             return (
               <div key={index} className="flex items-start gap-4">
                 <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${

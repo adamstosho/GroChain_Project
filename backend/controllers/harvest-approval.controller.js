@@ -62,6 +62,13 @@ const harvestApprovalController = {
         }
 
         console.log('Final query:', JSON.stringify(query, null, 2))
+      } else if (req.user.role === 'farmer') {
+        query.farmer = req.user.id
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Forbidden'
+        })
       }
 
       // Add other filters
@@ -153,6 +160,13 @@ const harvestApprovalController = {
         }
 
         console.log('Final query:', JSON.stringify(query, null, 2))
+      } else if (req.user.role === 'farmer') {
+        query.farmer = req.user.id
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Forbidden'
+        })
       }
 
       // Add other filters
@@ -219,18 +233,6 @@ const harvestApprovalController = {
       console.log('Request params:', { harvestId })
       console.log('Request body:', { quality, notes })
       console.log('User info:', { id: req.user?.id, email: req.user?.email, role: req.user?.role })
-
-      // TEMPORARY: Skip authentication for testing - REMOVE THIS IN PRODUCTION
-      if (!req.user) {
-        console.log('⚠️ TEMPORARY: Skipping authentication for testing')
-        req.user = {
-          _id: '507f1f77bcf86cd799439011', // Mock admin user ID
-          id: '507f1f77bcf86cd799439011',
-          role: 'admin',
-          email: 'test@grochain.com',
-          name: 'Test Admin'
-        }
-      }
 
       if (!['partner', 'admin'].includes(req.user.role)) {
         console.log('Role check failed:', req.user.role)
@@ -355,23 +357,12 @@ const harvestApprovalController = {
     try {
       console.log('=== REJECT HARVEST START ===')
       const { harvestId } = req.params
-      const { rejectionReason, notes } = req.body
+      const { notes } = req.body
+      const rejectionReason = req.body.rejectionReason || req.body.reason
 
       console.log('Request params:', { harvestId })
       console.log('Request body:', { rejectionReason, notes })
       console.log('User info:', { id: req.user?.id, email: req.user?.email, role: req.user?.role })
-
-      // TEMPORARY: Skip authentication for testing - REMOVE THIS IN PRODUCTION
-      if (!req.user) {
-        console.log('⚠️ TEMPORARY: Skipping authentication for testing')
-        req.user = {
-          _id: '507f1f77bcf86cd799439011', // Mock admin user ID
-          id: '507f1f77bcf86cd799439011',
-          role: 'admin',
-          email: 'test@grochain.com',
-          name: 'Test Admin'
-        }
-      }
 
       if (!['partner', 'admin'].includes(req.user.role)) {
         console.log('Role check failed:', req.user.role)
@@ -528,7 +519,7 @@ const harvestApprovalController = {
   // Get harvest approval statistics
   async getApprovalStats(req, res) {
     try {
-      const { partnerId, startDate, endDate } = req.query
+      const { startDate, endDate } = req.query
 
       console.log('=== GET APPROVAL STATS ===')
       console.log('User:', req.user.email, 'Role:', req.user.role)
@@ -1011,7 +1002,9 @@ const harvestApprovalController = {
   // Bulk approve/reject harvests
   async bulkProcessHarvests(req, res) {
     try {
-      const { harvestIds, action, quality, rejectionReason, notes } = req.body
+      const { action, quality } = req.body
+      const harvestIds = req.body.harvestIds || req.body.approvalIds
+      const rejectionReason = req.body.rejectionReason || req.body.reason
       
       if (!['partner', 'admin'].includes(req.user.role)) {
         return res.status(403).json({
@@ -1181,9 +1174,78 @@ const getHarvestStatus = async (req, res) => {
   }
 }
 
+async function exportApprovals(req, res) {
+  try {
+    const format = String(req.query.format || 'csv').toLowerCase()
+    const ExportImportService = require('../services/exportImport.service')
+    const Partner = require('../models/partner.model')
+
+    const query = { status: { $in: ['pending', 'approved', 'rejected', 'revision_requested'] } }
+
+    if (req.user.role === 'partner') {
+      const partner = await Partner.findOne({ email: req.user.email })
+      if (!partner) {
+        return res.status(404).json({ status: 'error', message: 'Partner profile not found' })
+      }
+      const partnerFarmers = await User.find({ partner: partner._id }, '_id')
+      query.farmer = { $in: partnerFarmers.map((f) => f._id) }
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({ status: 'error', message: 'Forbidden' })
+    }
+
+    if (req.query.status) query.status = req.query.status
+    if (req.query.cropType) query.cropType = req.query.cropType
+
+    const harvests = await Harvest.find(query)
+      .populate('farmer', 'name email phone location')
+      .sort({ createdAt: -1 })
+      .lean()
+
+    const rows = harvests.map((h) => ({
+      batchId: h.batchId,
+      cropType: h.cropType,
+      quantity: h.quantity,
+      unit: h.unit,
+      quality: h.quality,
+      status: h.status,
+      farmerName: h.farmer?.name || '',
+      farmerEmail: h.farmer?.email || '',
+      farmerPhone: h.farmer?.phone || '',
+      location: typeof h.location === 'string' ? h.location : h.location?.city || '',
+      harvestDate: h.date,
+      createdAt: h.createdAt,
+    }))
+
+    const result = await ExportImportService.exportData(rows, {
+      format: format === 'xlsx' || format === 'excel' ? 'excel' : format === 'json' ? 'json' : 'csv',
+      filename: `grochain-approvals-${Date.now()}.${format === 'xlsx' || format === 'excel' ? 'xlsx' : format === 'json' ? 'json' : 'csv'}`,
+    })
+
+    const filePath = result.filePath
+    const fs = require('fs')
+    const path = require('path')
+    res.setHeader('Content-Disposition', `attachment; filename="${path.basename(filePath)}"`)
+    if (filePath.endsWith('.xlsx')) {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    } else if (filePath.endsWith('.json')) {
+      res.setHeader('Content-Type', 'application/json')
+    } else {
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+    }
+    return fs.createReadStream(filePath).pipe(res)
+  } catch (error) {
+    console.error('Export approvals error:', error)
+    return res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to export approvals',
+    })
+  }
+}
+
 module.exports = {
   harvestApprovalController,
-  getHarvestStatus
+  getHarvestStatus,
+  exportApprovals,
 }
 
 

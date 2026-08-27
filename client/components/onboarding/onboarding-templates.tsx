@@ -10,8 +10,7 @@ import {
   Plus,
   Edit,
   Copy,
-  Send,
-  Settings
+  Send
 } from "lucide-react"
 import { useOnboarding } from "@/hooks/use-onboarding"
 

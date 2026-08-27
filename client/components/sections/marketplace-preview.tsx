@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useStableDataFetch } from "@/hooks/use-stable-data-fetch"
 import { extractListingsFromResponse } from "@/lib/marketplace-listings"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -89,7 +89,7 @@ export function MarketplacePreview() {
     fetchFeaturedProducts()
   }, [fetchFeaturedProducts])
 
-  const handleAddToCart = (productId: string) => {
+  const handleAddToCart = () => {
     if (!isAuthenticated) {
       toast({
         title: "Authentication Required",
@@ -130,11 +130,10 @@ export function MarketplacePreview() {
         {/* Section Header */}
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-foreground mb-4">
-            Fresh Products from Verified Farmers
+            Produce from verified farmers
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
-            Discover high-quality agricultural products directly from trusted farmers.
-            Browse, verify authenticity, and purchase with confidence.
+            Listings show origin, grade, and a QR code so a buyer can check a batch before they pay.
           </p>
           <Button asChild size="lg">
             <Link href="/marketplace">
@@ -144,10 +143,9 @@ export function MarketplacePreview() {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {isInitialLoading && products.length === 0 ? (
-            // Loading skeletons
-            Array.from({ length: 6 }).map((_, index) => (
+        {isInitialLoading && products.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {Array.from({ length: 6 }).map((_, index) => (
               <Card key={index} className="overflow-hidden">
                 <Skeleton className="h-48 w-full" />
                 <CardContent className="p-4">
@@ -156,9 +154,11 @@ export function MarketplacePreview() {
                   <Skeleton className="h-6 w-1/4" />
                 </CardContent>
               </Card>
-            ))
-          ) : (
-            products.map((product) => (
+            ))}
+          </div>
+        ) : products.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {products.map((product) => (
               <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                 {/* Product Image */}
                 <div className="relative h-48 bg-muted">
@@ -231,7 +231,7 @@ export function MarketplacePreview() {
                   <div className="flex items-center gap-1 mb-3">
                     <Star className="h-4 w-4 fill-warning text-warning" />
                     <span className="text-sm text-muted-foreground">
-                      {typeof product.rating === 'number' ? product.rating.toFixed(1) : '4.5'} ({Math.floor(Math.random() * 50) + 10} reviews)
+                      {typeof product.rating === "number" ? product.rating.toFixed(1) : "—"}
                     </span>
                   </div>
 
@@ -278,7 +278,7 @@ export function MarketplacePreview() {
                     <Button
                       size="sm"
                       className="flex-1"
-                      onClick={() => handleAddToCart(product.id)}
+                      onClick={() => handleAddToCart()}
                     >
                       <ShoppingCart className="h-4 w-4 mr-1" />
                       {isAuthenticated ? 'Add to Cart' : 'Login to Buy'}
@@ -286,18 +286,29 @@ export function MarketplacePreview() {
                   </div>
                 </CardFooter>
               </Card>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <Card className="mb-8 border-dashed">
+            <CardContent className="p-10 text-center space-y-3">
+              <h3 className="text-xl font-semibold text-foreground">No listings on the public market yet</h3>
+              <p className="text-muted-foreground max-w-xl mx-auto">
+                When farmers publish harvests, they will show up here with origin, grade, and a QR code to scan. Until
+                then you can open the marketplace or register to list the first batches.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* View All Products CTA */}
         <div className="text-center">
-          <div className="bg-white rounded-lg shadow-sm p-8">
+          <div className="bg-card rounded-lg shadow-sm p-8">
             <h3 className="text-xl font-semibold text-foreground mb-2">
-              Explore More Products
+              {products.length > 0 ? "See the full marketplace" : "List or browse produce"}
             </h3>
             <p className="text-muted-foreground mb-6">
-              Discover thousands of fresh agricultural products from verified farmers across Nigeria.
+              {products.length > 0
+                ? "Open the marketplace for the full catalogue, or register to sell your own harvest."
+                : "Farmers list batches with a QR trail. Buyers browse and verify before they buy."}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg">

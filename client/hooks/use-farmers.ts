@@ -328,33 +328,23 @@ export function useFarmers() {
           description: `Exported ${farmersData.length} farmers to CSV`,
         })
       } else if (format === 'excel') {
-        // For Excel format, we'll create a more structured CSV that Excel can open
-        const headers = ['Name', 'Email', 'Phone', 'Location', 'Status', 'Joined Date', 'Total Harvests', 'Total Sales']
-        const csvContent = [
-          headers.join('\t'), // Use tab separator for Excel
-          ...farmersData.map(farmer => [
-            farmer.name,
-            farmer.email,
-            farmer.phone,
-            farmer.location,
-            farmer.status,
-            farmer.joinedDate ? new Date(farmer.joinedDate).toLocaleDateString() : 'N/A',
-            farmer.totalHarvests || 0,
-            farmer.totalSales || 0
-          ].join('\t'))
-        ].join('\n')
-
-        // Create and download file
-        const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel' })
-        const link = document.createElement('a')
-        const url = URL.createObjectURL(blob)
-        link.setAttribute('href', url)
-        link.setAttribute('download', `farmers-export-${new Date().toISOString().split('T')[0]}.xls`)
-        link.style.visibility = 'hidden'
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-
+        const { getExportService } = await import('@/lib/export-utils')
+        const exportService = getExportService()
+        const rows = farmersData.map((farmer: any) => ({
+          name: farmer.name,
+          email: farmer.email,
+          phone: farmer.phone,
+          location: typeof farmer.location === 'string' ? farmer.location : farmer.location?.city || '',
+          status: farmer.status,
+          joinedDate: farmer.joinedDate ? new Date(farmer.joinedDate).toLocaleDateString() : 'N/A',
+          totalHarvests: farmer.totalHarvests || 0,
+          totalSales: farmer.totalSales || 0,
+        }))
+        const result = await exportService.exportCustomData(rows, {
+          format: 'excel',
+          filename: `grochain-farmers-${new Date().toISOString().slice(0, 10)}.xlsx`,
+        })
+        if (!result.success) throw new Error(result.error || 'Excel export failed')
         toast({
           title: "Export successful",
           description: `Exported ${farmersData.length} farmers to Excel`,

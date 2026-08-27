@@ -1,5 +1,4 @@
 const WeatherData = require('../models/weather.model')
-const Notification = require('../models/notification.model')
 const User = require('../models/user.model')
 
 // Use node-fetch for consistent behavior across Node.js versions
@@ -9,7 +8,6 @@ const weatherController = {
   // Get current weather data
   async getCurrentWeather(req, res) {
     try {
-      const { location } = req.params
       const { lat, lng, city, state, country } = req.query
       
       // Require coordinates - no fallback to default locations
@@ -646,8 +644,7 @@ const weatherController = {
   generateAgriculturalInsights(current, forecast, cropType) {
     const temp = current.temperature
     const humidity = current.humidity
-    const windSpeed = current.windSpeed
-    
+
     // Calculate growing degree days (simplified)
     const baseTemp = 10 // Base temperature for most crops
     const growingDegreeDays = Math.max(0, temp - baseTemp)
@@ -763,9 +760,9 @@ exports.getWeatherStatistics = async (req, res) => {
         maxTemperature: { $round: ['$maxTemperature', 2] },
         avgHumidity: { $round: ['$avgHumidity', 2] },
         avgWindSpeed: { $round: ['$avgWindSpeed', 2] },
-        totalAlerts,
-        rainyDays,
-        sunnyDays
+        totalAlerts: 1,
+        rainyDays: 1,
+        sunnyDays: 1
       }}
     ])
     

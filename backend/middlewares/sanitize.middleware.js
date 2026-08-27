@@ -10,7 +10,7 @@ const SANITIZE_OPTIONS = {
   ALLOWED_ATTR: [
     'href', 'target', 'rel', 'class', 'id', 'style'
   ],
-  ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
+  ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i
 }
 
 // XSS prevention function
@@ -304,7 +304,7 @@ const sanitizeRateLimit = (req, res, next) => {
 const validateInput = (req, res, next) => {
   try {
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    const phonePattern = /^[\+]?[1-9][\d]{0,15}$/
+    const phonePattern = /^[+]?[1-9][\d]{0,15}$/
     const urlPattern = /^https?:\/\/.+/i
 
     if (req.body) {

@@ -139,8 +139,8 @@ export const useAuthStore = create<AuthState>()(
       register: async (userData: any) => {
         set({ isLoading: true })
         try {
-          const response = await apiService.register(userData)
-          
+          await apiService.register(userData)
+
           // Registration successful - user needs to verify email
           set({
             user: null, // Don't store user until verified
@@ -274,6 +274,7 @@ export const useAuthStore = create<AuthState>()(
           console.log('✅ Auth rehydration completed successfully')
         } catch (error) {
           console.error('❌ Auth rehydration error:', error)
+          state?.setHasHydrated(true)
         }
       },
     },

@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* next-themes toggles class "dark"/"light" on <html>. Without this, Tailwind v4
+   dark: utilities follow prefers-color-scheme and fight the forced light theme. */
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   /* Updated color palette for agricultural theme */
@@ -8,9 +11,17 @@
   --card-foreground: oklch(0.15 0.02 120);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.02 120);
-  --primary: oklch(0.35 0.15 140); /* Deep Green */
+  --primary: oklch(0.42 0.12 145); /* Brand forest green — #166534 from designed identity guidelines */
   --primary-foreground: oklch(0.98 0.01 120);
-  --secondary: oklch(0.75 0.12 85); /* Golden Yellow */
+  /* Opaque mixes — Tailwind /10 /90 utilities blend with transparent and make buttons fade on hover. */
+  --primary-soft: color-mix(in oklab, var(--primary) 12%, var(--background));
+  --primary-hover: color-mix(in oklab, var(--primary), black 10%);
+  --success-soft: color-mix(in oklab, var(--success) 12%, var(--background));
+  --success-hover: color-mix(in oklab, var(--success), black 10%);
+  --warning-soft: color-mix(in oklab, var(--warning) 12%, var(--background));
+  --destructive-soft: color-mix(in oklab, var(--destructive) 12%, var(--background));
+  --destructive-hover: color-mix(in oklab, var(--destructive), black 10%);
+  --secondary: oklch(0.64 0.12 85); /* Golden Yellow — re-tuned 2026-08-26. Round-3 darkened this to 0.56 (4.72:1) purely to pass text contrast, but --secondary's dominant real use is solid Badge fills (bg-secondary text-secondary-foreground, contrast fine at any lightness) and that darkening made every such badge look muddy/olive instead of golden. The actual white-text bug (bg-secondary text-white) is now fixed at the component level (text-secondary-foreground) instead, so this only needs to satisfy standalone text-secondary/fill-secondary use (star ratings, small labels) — 0.64 gives 3.41:1 (clears the 3:1 UI-component bar with margin) while staying visually golden rather than muddy. See design/02-audits round-4. */
   --secondary-foreground: oklch(0.15 0.02 120);
   --muted: oklch(0.96 0.01 120);
   --muted-foreground: oklch(0.35 0.05 120);
@@ -20,10 +31,12 @@
   --destructive-foreground: oklch(0.98 0.01 120);
   --border: oklch(0.9 0.01 120);
   --input: oklch(0.95 0.01 120);
-  --ring: oklch(0.35 0.15 140);
-  --success: oklch(0.55 0.15 140); /* Emerald Green */
-  --warning: oklch(0.7 0.15 85); /* Amber */
-  --chart-1: oklch(0.35 0.15 140);
+  --ring: oklch(0.42 0.12 145);
+  --success: oklch(0.42 0.12 145); /* matches brand forest #166534 */
+  --success-foreground: oklch(0.98 0.01 120); /* added 2026-08-26 — text-success-foreground was used on solid bg-success badges with no variable defined, so the class resolved to nothing (invisible/inherited text) */
+  --warning: oklch(0.56 0.15 85); /* Amber — darkened 2026-08-25 from 0.7 to pass WCAG AA (text-warning is used ~79x) */
+  --warning-foreground: oklch(0.15 0.02 120); /* added 2026-08-26 — bg-warning was paired with hardcoded text-white in several components (invisible text); this is the correct pairing */
+  --chart-1: oklch(0.55 0.15 140);
   --chart-2: oklch(0.75 0.12 85);
   --chart-3: oklch(0.4 0.08 45);
   --chart-4: oklch(0.55 0.15 140);
@@ -31,12 +44,12 @@
   --radius: 0.75rem;
   --sidebar: oklch(0.98 0.01 120);
   --sidebar-foreground: oklch(0.15 0.02 120);
-  --sidebar-primary: oklch(0.35 0.15 140);
+  --sidebar-primary: oklch(0.55 0.15 140);
   --sidebar-primary-foreground: oklch(0.98 0.01 120);
   --sidebar-accent: oklch(0.96 0.01 120);
   --sidebar-accent-foreground: oklch(0.15 0.02 120);
   --sidebar-border: oklch(0.9 0.01 120);
-  --sidebar-ring: oklch(0.35 0.15 140);
+  --sidebar-ring: oklch(0.55 0.15 140);
 }
 
 .dark {
@@ -46,8 +59,15 @@
   --card-foreground: oklch(0.95 0.01 120);
   --popover: oklch(0.1 0.02 120);
   --popover-foreground: oklch(0.95 0.01 120);
-  --primary: oklch(0.55 0.15 140);
+  --primary: oklch(0.68 0.16 145); /* Brighter brand green for dark surfaces — toward #22C55E */
   --primary-foreground: oklch(0.08 0.02 120);
+  --primary-soft: color-mix(in oklab, var(--primary) 18%, var(--background));
+  --primary-hover: color-mix(in oklab, var(--primary), white 8%);
+  --success-soft: color-mix(in oklab, var(--success) 18%, var(--background));
+  --success-hover: color-mix(in oklab, var(--success), white 8%);
+  --warning-soft: color-mix(in oklab, var(--warning) 18%, var(--background));
+  --destructive-soft: color-mix(in oklab, var(--destructive) 18%, var(--background));
+  --destructive-hover: color-mix(in oklab, var(--destructive), white 8%);
   --secondary: oklch(0.65 0.12 85);
   --secondary-foreground: oklch(0.08 0.02 120);
   --muted: oklch(0.15 0.02 120);
@@ -58,9 +78,11 @@
   --destructive-foreground: oklch(0.95 0.01 120);
   --border: oklch(0.2 0.02 120);
   --input: oklch(0.15 0.02 120);
-  --ring: oklch(0.55 0.15 140);
-  --success: oklch(0.45 0.15 140);
+  --ring: oklch(0.68 0.16 145);
+  --success: oklch(0.68 0.16 145);
+  --success-foreground: oklch(0.08 0.02 120);
   --warning: oklch(0.6 0.15 85);
+  --warning-foreground: oklch(0.15 0.02 120);
   --chart-1: oklch(0.55 0.15 140);
   --chart-2: oklch(0.65 0.12 85);
   --chart-3: oklch(0.5 0.08 45);
@@ -79,7 +101,7 @@
 @theme inline {
   --breakpoint-xs: 475px;
   --font-sans: var(--font-dm-sans);
-  --font-serif: var(--font-nunito);
+  --font-serif: var(--font-fraunces);
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -89,6 +111,13 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-hover: var(--primary-hover);
+  --color-success-soft: var(--success-soft);
+  --color-success-hover: var(--success-hover);
+  --color-warning-soft: var(--warning-soft);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-destructive-hover: var(--destructive-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -101,7 +130,9 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -129,11 +160,12 @@
     @apply bg-background text-foreground;
   }
 
-  /* Interactive elements get a smooth transition; hover colors are owned by
-     each component's own variant classes (see components/ui/button.tsx etc.)
-     so background and text always change together with correct contrast. */
+  /* Hover colors are owned by each component's variant classes. Do not use
+     `transition: all` — it animates outline/opacity from the * { outline-ring/50 }
+     rule and makes buttons look like they fade on hover. */
   button, a, [role="button"] {
-    transition: all 0.2s ease-in-out;
+    transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out,
+      border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
   }
 
   /* Added custom scrollbar styling */
@@ -155,19 +187,14 @@
   }
 }
 
-/* Added agricultural pattern background */
-/* .agricultural-pattern {
-  background-image: radial-gradient(circle at 25% 25%, rgba(22, 163, 74, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 75% 75%, rgba(255, 215, 0, 0.05) 0%, transparent 50%);
-  background-size: 100px 100px;
-  background-position: 0 0, 50px 50px;
-} */
-
+/* Decorative background texture for hero/auth/profile-hero surfaces. Colors match the canonical
+   brand palette (#166534 forest, #22C55E grass — see designed identity guidelines)
+   instead of the old #16a34a/#ffd700, which belonged to neither the logo nor the token system. */
 .agricultural-pattern {
-  background-image: radial-gradient(circle at 25% 25%, rgba(22, 163, 74, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 75% 75%, rgba(255, 215, 0, 0.05) 0%, transparent 50%);
-  background-size: 100px 100px;
-  background-position: 0 0, 50px 50px;
+  background-image: radial-gradient(circle at 25% 25%, rgba(57, 133, 38, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(209, 168, 75, 0.04) 0%, transparent 50%);
+  background-size: 160px 160px;
+  background-position: 0 0, 80px 80px;
   animation: movePattern 20s linear infinite alternate;
 }
 

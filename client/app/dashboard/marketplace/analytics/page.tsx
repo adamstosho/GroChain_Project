@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
+import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
 import {
   ArrowLeft,
@@ -19,7 +19,6 @@ import {
   Star,
   Calendar,
   Download,
-  Filter,
   BarChart3,
   PieChart,
   Activity,
@@ -91,7 +90,6 @@ export default function MarketplaceAnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState('30d')
-  const [selectedMetric, setSelectedMetric] = useState('revenue')
 
   const { toast } = useToast()
 
@@ -197,14 +195,7 @@ export default function MarketplaceAnalyticsPage() {
     return trend === 'up' ? 'text-success' : 'text-destructive'
   }
 
-  const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) {
-      return `₦${(amount / 1000000).toFixed(1)}M`
-    } else if (amount >= 1000) {
-      return `₦${(amount / 1000).toFixed(0)}K`
-    }
-    return `₦${amount.toLocaleString()}`
-  }
+  const formatCurrency = (amount: number) => formatCompactCurrency(amount)
 
   // Loading state
   if (loading) {
@@ -277,7 +268,34 @@ export default function MarketplaceAnalyticsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const { getExportService } = await import("@/lib/export-utils")
+                  const exportService = getExportService()
+                  const rows = [
+                    { metric: "Total Revenue", value: analytics?.revenue?.total ?? 0, change: analytics?.revenue?.change ?? 0 },
+                    { metric: "Total Orders", value: analytics?.orders?.total ?? 0, change: analytics?.orders?.change ?? 0 },
+                    { metric: "Customers", value: analytics?.customers?.total ?? 0, change: analytics?.customers?.change ?? 0 },
+                    { metric: "Views", value: analytics?.views?.total ?? 0, change: analytics?.views?.change ?? 0 },
+                    ...(analytics?.topProducts || []).map((p: any, i: number) => ({
+                      metric: `Top Product ${i + 1}`,
+                      value: p.name || p.cropName || "",
+                      change: p.revenue ?? p.sales ?? "",
+                    })),
+                  ]
+                  const result = await exportService.exportCustomData(rows, {
+                    format: "excel",
+                    filename: `grochain-marketplace-analytics-${selectedPeriod}-${new Date().toISOString().slice(0, 10)}.xlsx`,
+                  })
+                  if (!result.success) throw new Error(result.error)
+                  toast({ title: "Export ready", description: "Analytics report downloaded." })
+                } catch (e: any) {
+                  toast({ title: "Export failed", description: e?.message || "Try again", variant: "destructive" })
+                }
+              }}
+            >
               <Download className="h-4 w-4 mr-2" />
               Export Report
             </Button>
@@ -380,7 +398,7 @@ export default function MarketplaceAnalyticsPage() {
                       <div>
                         <div className="font-medium text-foreground">{product?.name || 'Unknown Product'}</div>
                         <div className="text-sm text-muted-foreground">
-                          {product?.orders || 0} orders • ⭐ {product?.rating || 0}
+                          {product?.orders || 0} orders • {product?.rating || 0} rating
                         </div>
                       </div>
                     </div>

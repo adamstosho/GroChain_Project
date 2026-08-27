@@ -14,15 +14,13 @@ import {
   ArrowLeft,
   Plus,
   Upload,
-  Tag,
-  MapPin,
-  Banknote,
   Package,
   Info,
   CheckCircle,
   AlertCircle
 } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { MarketplaceCard, type MarketplaceProduct } from "@/components/agricultural/marketplace-card"
@@ -56,12 +54,12 @@ interface HarvestData {
 }
 
 const categories = [
-  { value: 'grains', label: 'Grains (Rice, Maize, Wheat)', icon: '🌾' },
-  { value: 'tubers', label: 'Tubers (Cassava, Yam, Potato)', icon: '🥔' },
-  { value: 'vegetables', label: 'Vegetables (Tomato, Pepper, Onion)', icon: '🥬' },
-  { value: 'fruits', label: 'Fruits (Mango, Orange, Banana)', icon: '🍎' },
-  { value: 'legumes', label: 'Legumes (Beans, Groundnut)', icon: '🫘' },
-  { value: 'cash_crops', label: 'Cash Crops (Cocoa, Coffee, Tea)', icon: '☕' }
+  { value: 'grains', label: 'Grains (Rice, Maize, Wheat)' },
+  { value: 'tubers', label: 'Tubers (Cassava, Yam, Potato)' },
+  { value: 'vegetables', label: 'Vegetables (Tomato, Pepper, Onion)' },
+  { value: 'fruits', label: 'Fruits (Mango, Orange, Banana)' },
+  { value: 'legumes', label: 'Legumes (Beans, Groundnut)' },
+  { value: 'cash_crops', label: 'Cash Crops (Cocoa, Coffee, Tea)' }
 ]
 
 const units = [
@@ -71,14 +69,6 @@ const units = [
   { value: 'bags', label: 'Bags (50kg)' },
   { value: 'baskets', label: 'Baskets' },
   { value: 'bundles', label: 'Bundles' }
-]
-
-const states = [
-  'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
-  'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'FCT', 'Gombe',
-  'Imo', 'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara',
-  'Lagos', 'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau',
-  'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara'
 ]
 
 const popularTags = [
@@ -110,6 +100,7 @@ function CreateListingPage() {
   })
   const [newTag, setNewTag] = useState("")
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [uploadingImages, setUploadingImages] = useState(false)
 
   const { toast } = useToast()
 
@@ -269,7 +260,7 @@ function CreateListingPage() {
           cropName: formData.cropName,
           category: formData.category,
           description: formData.description,
-          price: formData.basePrice,
+          basePrice: formData.basePrice,
           quantity: formData.quantity,
           unit: formData.unit,
           location: formData.location,
@@ -317,15 +308,30 @@ function CreateListingPage() {
     }))
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
-    if (files) {
-      // Mock image upload - replace with actual image upload logic
-      const imageUrls = Array.from(files).map(file => URL.createObjectURL(file))
+    if (!files || files.length === 0) return
+
+    setUploadingImages(true)
+    try {
+      const uploadedUrls = await apiService.uploadImages(Array.from(files))
+      if (uploadedUrls.length === 0) {
+        throw new Error('No image URLs returned')
+      }
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...imageUrls]
+        images: [...prev.images, ...uploadedUrls]
       }))
+    } catch (error) {
+      console.error('Image upload failed:', error)
+      toast({
+        title: "Image upload failed",
+        description: "Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setUploadingImages(false)
+      e.target.value = ''
     }
   }
 
@@ -334,11 +340,6 @@ function CreateListingPage() {
       ...prev,
       images: prev.images.filter(image => image !== imageToRemove)
     }))
-  }
-
-  const getCategoryIcon = (category: string) => {
-    const found = categories.find(cat => cat.value === category)
-    return found ? found.icon : '🌱'
   }
 
   const previewProduct: MarketplaceProduct = {
@@ -363,7 +364,7 @@ function CreateListingPage() {
       verified: true,
       location: formData.location || 'Nigeria'
     },
-    images: formData.images.length > 0 ? formData.images : ['https://images.unsplash.com/photo-1593113598332-cd288d649433?q=80&w=600'],
+    images: formData.images,
     certifications: [],
     shipping: {
       available: true,
@@ -473,10 +474,7 @@ function CreateListingPage() {
                           <SelectContent>
                             {categories.map((category) => (
                               <SelectItem key={category.value} value={category.value} className="text-xs sm:text-sm">
-                                <span className="flex items-center gap-2">
-                                  <span>{category.icon}</span>
-                                  <span>{category.label}</span>
-                                </span>
+                                {category.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -636,9 +634,9 @@ function CreateListingPage() {
                     <div className="space-y-3 sm:space-y-4">
                       <div className="border-2 border-dashed border-border rounded-lg p-4 sm:p-6 text-center">
                         <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground mx-auto mb-2" />
-                        <Label htmlFor="images" className="cursor-pointer">
+                        <Label htmlFor="images" className={uploadingImages ? "cursor-wait" : "cursor-pointer"}>
                           <span className="text-xs sm:text-sm text-muted-foreground">
-                            Click to upload images or drag and drop
+                            {uploadingImages ? "Uploading..." : "Click to upload images or drag and drop"}
                           </span>
                           <Input
                             id="images"
@@ -646,6 +644,7 @@ function CreateListingPage() {
                             multiple
                             accept="image/*"
                             onChange={handleImageUpload}
+                            disabled={uploadingImages}
                             className="hidden"
                           />
                         </Label>
@@ -658,9 +657,11 @@ function CreateListingPage() {
                         <div className="grid gap-2 sm:gap-3 lg:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
                           {formData.images.map((image, index) => (
                             <div key={index} className="relative">
-                              <img
+                              <Image
                                 src={image}
                                 alt={`Product ${index + 1}`}
+                                width={200}
+                                height={96}
                                 className="w-full h-16 sm:h-20 lg:h-24 object-cover rounded-lg"
                               />
                               <Button
@@ -769,7 +770,7 @@ function CreateListingPage() {
           {/* Sidebar */}
           <div className="space-y-4 sm:space-y-6">
             {/* Listing Preview */}
-            <Card className="border border-border shadow-sm rounded-2xl overflow-hidden bg-white">
+            <Card className="border border-border shadow-sm rounded-2xl overflow-hidden bg-card">
               <CardHeader className="pb-3 px-4 pt-4">
                 <CardTitle className="text-sm font-semibold text-foreground">Listing Preview</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">How your product card will appear live</CardDescription>

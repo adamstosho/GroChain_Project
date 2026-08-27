@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { useReferrals } from "@/hooks/use-referrals"
@@ -27,7 +26,7 @@ interface Farmer {
   location: string
 }
 
-export function ReferralDialog({ open, onOpenChange, referral, onCreateSuccess }: ReferralDialogProps) {
+export function ReferralDialog({ open, onOpenChange, referral: _referral, onCreateSuccess }: ReferralDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")

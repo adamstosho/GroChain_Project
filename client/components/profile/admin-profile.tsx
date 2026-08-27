@@ -260,7 +260,7 @@ export function AdminProfile() {
         title: "Success",
         description: "Profile updated successfully",
       })
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update profile",

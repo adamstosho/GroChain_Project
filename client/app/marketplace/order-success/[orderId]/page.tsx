@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
-import { CheckCircle, Package, Truck, Clock, MapPin, Phone, Copy, ArrowRight, ShoppingBag, Home } from "lucide-react"
+import { CheckCircle, XCircle, Package, Truck, Clock, MapPin, Phone, Copy, ArrowRight, ShoppingBag, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -69,6 +69,7 @@ export default function OrderSuccessPage() {
 
   const orderId = params.orderId as string
   const paymentMethod = searchParams.get('payment_method') || 'paystack'
+  const isPaymentPending = paymentMethod === 'bank_transfer' || paymentMethod === 'cash'
 
   // Generate order number if not available
   const orderNumber = order?.orderNumber || `ORD-${orderId?.slice(-6)?.toUpperCase() || 'UNKNOWN'}`
@@ -81,7 +82,7 @@ export default function OrderSuccessPage() {
         title: "Copied!",
         description: `${label} copied to clipboard`,
       })
-    } catch (err) {
+    } catch {
       toast({
         title: "Copy failed",
         description: "Unable to copy to clipboard",
@@ -90,12 +91,11 @@ export default function OrderSuccessPage() {
     }
   }
 
-  // Payment verification hook
+  // Payment verification hook (autoVerify handles the initial + interval verify)
   const { 
     isVerifying, 
     isVerified, 
-    error: verificationError, 
-    verifyPayment 
+    error: verificationError
   } = usePaymentVerification({
     reference: order?.paymentReference || '',
     orderId: orderId,
@@ -148,14 +148,6 @@ export default function OrderSuccessPage() {
     fetchOrderDetails()
   }, [orderId, toast])
 
-  // Trigger payment verification when order is loaded and has payment reference
-  useEffect(() => {
-    if (order && order.paymentReference && !isVerified && !isVerifying) {
-      console.log('🔄 Triggering payment verification for order:', order._id)
-      verifyPayment()
-    }
-  }, [order, isVerified, isVerifying, verifyPayment])
-
   // Auto-redirect after countdown
   useEffect(() => {
     if (countdown === 0 && order) {
@@ -207,11 +199,15 @@ export default function OrderSuccessPage() {
           </div>
 
           <h1 className="text-3xl font-bold text-foreground mb-4">
-            Payment Successful! 🎉
+            {isPaymentPending ? "Order Placed! 🎉" : "Payment Successful! 🎉"}
           </h1>
 
           <p className="text-lg text-muted-foreground mb-6">
-            Thank you for your purchase! Your payment has been processed successfully.
+            {isPaymentPending
+              ? paymentMethod === 'bank_transfer'
+                ? "Thank you for your order! Please complete your bank transfer using the details below — your order will be processed once payment is confirmed."
+                : "Thank you for your order! Please have the payment ready — you'll pay in cash when your order is delivered."
+              : "Thank you for your purchase! Your payment has been processed successfully."}
           </p>
 
           {/* Payment Verification Status */}
@@ -226,20 +222,20 @@ export default function OrderSuccessPage() {
               {isVerified && (
                 <div className="flex items-center justify-center gap-3">
                   <CheckCircle className="h-5 w-5 text-success" />
-                  <p className="text-success font-medium">✅ Payment verified successfully!</p>
+                  <p className="text-success font-medium">Payment verified successfully!</p>
                 </div>
               )}
               {verificationError && (
                 <div className="flex items-center justify-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-destructive" />
-                  <p className="text-destructive font-medium">❌ Payment verification failed</p>
+                  <XCircle className="h-5 w-5 text-destructive" />
+                  <p className="text-destructive font-medium">Payment verification failed</p>
                 </div>
               )}
             </div>
           )}
 
           {/* Order Number */}
-          <div className="bg-white border border-border rounded-lg p-6 max-w-md mx-auto mb-8">
+          <div className="bg-card border border-border rounded-lg p-6 max-w-md mx-auto mb-8">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Order Number</p>
@@ -400,21 +396,21 @@ export default function OrderSuccessPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="flex items-start gap-3 p-3 bg-white rounded-lg">
+                <div className="flex items-start gap-3 p-3 bg-card rounded-lg">
                   <CheckCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-semibold text-primary">Order Processing</p>
                     <p className="text-sm text-primary">Your order is being processed and prepared for shipment.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-white rounded-lg">
+                <div className="flex items-start gap-3 p-3 bg-card rounded-lg">
                   <Clock className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-semibold text-primary">Shipping Updates</p>
                     <p className="text-sm text-primary">You'll receive email and SMS updates about your shipment status. Track your shipment in real-time.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-white rounded-lg">
+                <div className="flex items-start gap-3 p-3 bg-card rounded-lg">
                   <Truck className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-semibold text-primary">Delivery</p>
@@ -444,6 +440,26 @@ export default function OrderSuccessPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button
+              size="lg"
+              className="flex items-center gap-2"
+              onClick={async () => {
+                try {
+                  const response: any = await apiService.downloadOrderReceipt(orderId)
+                  const receiptData = response?.data || response
+                  const { ReceiptGenerator } = await import("@/lib/receipt-generator")
+                  await ReceiptGenerator.generatePDF(receiptData)
+                } catch (e: any) {
+                  toast({
+                    title: "Receipt unavailable",
+                    description: e?.message || "Could not generate receipt yet.",
+                    variant: "destructive",
+                  })
+                }
+              }}
+            >
+              Download Receipt
+            </Button>
             <Button asChild size="lg" className="flex items-center gap-2">
               <Link href={`/dashboard/orders/${orderId}`}>
                 <Package className="h-4 w-4" />

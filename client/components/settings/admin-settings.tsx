@@ -2,36 +2,19 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
-import { useExportService } from "@/lib/export-utils"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { getExportService } from "@/lib/export-utils"
 import {
-  Settings,
   Globe,
   Shield,
   Download,
-  Upload,
-  Languages,
-  Palette,
-  Database,
-  AlertTriangle,
-  CheckCircle,
-  X,
   Save,
-  RefreshCw,
-  Trash2,
-  FileText,
   Server,
-  Cog,
-  Users,
   Database as DatabaseIcon
 } from "lucide-react"
 
@@ -94,30 +77,9 @@ const currencies = [
   { code: 'NGN', name: 'Nigerian Naira', symbol: '₦' }
 ]
 
-const timezones = [
-  'Africa/Lagos',
-  'Africa/Abidjan',
-  'Africa/Accra',
-  'Africa/Addis_Ababa',
-  'Africa/Cairo',
-  'Africa/Johannesburg'
-]
-
-const dateFormats = [
-  'DD/MM/YYYY',
-  'MM/DD/YYYY',
-  'YYYY-MM-DD',
-  'DD-MM-YYYY'
-]
-
 const dashboardLayouts = [
   'Compact', 'Detailed', 'Minimal', 'Custom', 'Executive',
   'Operational', 'Analytical', 'Developer', 'Security'
-]
-
-const reportFormats = [
-  'PDF', 'Excel', 'Word', 'PowerPoint', 'Web Dashboard',
-  'Printed Report', 'Email Summary', 'API Response'
 ]
 
 const dataRefreshRates = [
@@ -130,19 +92,14 @@ const numberFormats = [
   '1,234,567.89', '1.234.567,89'
 ]
 
-const timeFormats = [
-  '12-hour (AM/PM)', '24-hour', 'ISO 8601', 'Custom'
-]
-
 export function AdminSettings() {
   const [settings, setSettings] = useState<AdminSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [exporting, setExporting] = useState(false)
-  const [importing, setImporting] = useState(false)
 
   const { toast } = useToast()
-  const exportService = useExportService()
+  const exportService = getExportService()
 
   useEffect(() => {
     fetchSettings()
@@ -331,15 +288,23 @@ export function AdminSettings() {
   const handleExportData = async () => {
     setExporting(true)
     try {
-      await exportService.exportCustomData([], {
-        format: (settings?.data?.exportFormat === 'xml' ? 'csv' : settings?.data?.exportFormat) || 'csv',
-        dataType: 'admin-data',
-        filters: {
-          includeUsers: true,
-          includeSystemLogs: true,
-          includeReports: true
-        }
+      const format = (settings?.data?.exportFormat === 'xml' ? 'csv' : settings?.data?.exportFormat) || 'csv'
+      const result = await exportService.exportUsers({
+        format,
+        filename: `grochain-admin-users-${new Date().toISOString().slice(0, 10)}.${format}`,
       })
+      if (!result.success) {
+        toast({
+          title: "Export failed",
+          description: result.error || "Could not export admin data",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Export ready",
+          description: `Downloaded ${result.filename}`,
+        })
+      }
     } finally {
       setExporting(false)
     }

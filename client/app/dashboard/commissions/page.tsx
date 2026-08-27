@@ -12,7 +12,7 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { useCommission } from "@/hooks/use-commission"
 import { useToast } from "@/hooks/use-toast"
-import { useExportService } from "@/lib/export-utils"
+import { getExportService } from "@/lib/export-utils"
 import { 
   Banknote, 
   TrendingUp, 
@@ -63,17 +63,6 @@ interface Commission {
   updatedAt: Date
 }
 
-interface CommissionSummary {
-  totalEarned: number
-  commissionRate: number
-  pendingAmount: number
-  paidAmount: number
-  lastPayout?: Date
-  monthlyEarnings: number[]
-  totalTransactions: number
-  averageCommission: number
-}
-
 export default function CommissionsPage() {
   const {
     commissions,
@@ -96,7 +85,7 @@ export default function CommissionsPage() {
   const [showPayoutDialog, setShowPayoutDialog] = useState(false)
   const [selectedCommission, setSelectedCommission] = useState<Commission | null>(null)
   const { toast } = useToast()
-  const exportService = useExportService()
+  const exportService = getExportService()
 
   // Show loading state if data is still loading
   if (isLoading) {
@@ -118,7 +107,7 @@ export default function CommissionsPage() {
           {/* Stats Cards Skeleton */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg border p-4 sm:p-6">
+              <div key={i} className="bg-card rounded-lg border p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-2">
                     <div className="h-4 w-20 bg-muted rounded animate-pulse"></div>
@@ -131,7 +120,7 @@ export default function CommissionsPage() {
           </div>
 
           {/* Content Skeleton */}
-          <div className="bg-white rounded-lg border p-4 sm:p-6">
+          <div className="bg-card rounded-lg border p-4 sm:p-6">
             <div className="h-6 w-32 bg-muted rounded animate-pulse mb-4"></div>
             <div className="space-y-4">
               {[...Array(3)].map((_, i) => (
@@ -192,6 +181,41 @@ export default function CommissionsPage() {
     setShowDetailsDialog(true)
   }
 
+  const handleDownloadReceipt = (commission: Commission) => {
+    const w = window.open('', '_blank')
+    if (!w) {
+      toast({ title: 'Popup blocked', description: 'Allow popups to download the receipt.', variant: 'destructive' })
+      return
+    }
+    const amount = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(commission.amount || 0)
+    w.document.write(`<!DOCTYPE html><html><head><title>Commission Receipt</title>
+      <style>
+        body{font-family:Segoe UI,Arial,sans-serif;margin:0;color:#1f2937;-webkit-print-color-adjust:exact}
+        .h{background:#0B3D1E;color:#fff;padding:20px 24px;display:flex;gap:14px;align-items:center}
+        .h img{height:48px} .a{height:4px;background:#166534}
+        .c{padding:24px} h2{color:#166534;margin:0 0 12px}
+        table{width:100%;border-collapse:collapse} td{padding:8px;border-bottom:1px solid #e5e7eb;font-size:13px}
+        .f{margin-top:24px;font-size:11px;color:#6b7280;border-top:2px solid #166534;padding-top:10px}
+      </style></head><body>
+      <div class="h"><img src="/logo-full.png" alt="GroChain"/><div><strong>Commission Receipt</strong><div style="font-size:11px;opacity:.9">Building Trust in Nigeria's Food Chain</div></div></div>
+      <div class="a"></div><div class="c">
+      <h2>Payment Summary</h2>
+      <table>
+        <tr><td>Commission ID</td><td>${commission._id}</td></tr>
+        <tr><td>Order</td><td>${commission.order?.orderNumber || '—'}</td></tr>
+        <tr><td>Crop</td><td>${commission.listing?.cropName || '—'}</td></tr>
+        <tr><td>Farmer</td><td>${commission.farmer?.name || '—'}</td></tr>
+        <tr><td>Rate</td><td>${((commission.rate || 0) * 100).toFixed(1)}%</td></tr>
+        <tr><td>Amount</td><td><strong style="color:#166534">${amount}</strong></td></tr>
+        <tr><td>Status</td><td>${commission.status}</td></tr>
+        <tr><td>Paid At</td><td>${commission.paidAt ? new Date(commission.paidAt).toLocaleString('en-NG') : '—'}</td></tr>
+      </table>
+      <div class="f">GroChain · Generated ${new Date().toLocaleString('en-NG')}</div>
+      </div></body></html>`)
+    w.document.close()
+    setTimeout(() => { w.focus(); w.print() }, 500)
+  }
+
   const handleUpdateStatus = async (commissionId: string, newStatus: string) => {
     try {
       await updateCommissionStatus(commissionId, newStatus)
@@ -224,10 +248,6 @@ export default function CommissionsPage() {
     }
   }
 
-  const handleRefresh = () => {
-    refreshData()
-  }
-
   const exportCommissions = async () => {
     await exportService.exportCustomData(commissions, {
       format: 'csv',
@@ -247,7 +267,7 @@ export default function CommissionsPage() {
           description="Track your earnings and manage payouts."
           actions={
             <>
-              <Button variant="outline" size="lg" onClick={exportCommissions}>
+              <Button variant="outline" size="lg" onClick={handleExport}>
                 <Download className="mr-2 h-4 w-4" />
                 Export Report
               </Button>
@@ -533,7 +553,7 @@ export default function CommissionsPage() {
               <TabsContent value="pending" className="space-y-4">
                 <div className="space-y-4">
                   {(pendingCommissions || []).map((commission) => (
-                    <div key={commission._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-warning/10 rounded-lg bg-warning/10 hover:bg-warning/10 transition-colors gap-4 sm:gap-2">
+                    <div key={commission._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-warning/20 rounded-lg bg-warning-soft transition-colors gap-4 sm:gap-2">
                       <div className="flex items-center space-x-4 min-w-0 flex-1">
                         <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center flex-shrink-0">
                           <Clock className="h-5 w-5 text-warning" />
@@ -560,7 +580,7 @@ export default function CommissionsPage() {
                             variant="outline" 
                             size="sm"
                             onClick={() => handleUpdateStatus(commission._id, 'approved')}
-                            className="text-success border-success/10 hover:bg-success/10"
+                            className="text-success border-success/20 hover:bg-success-soft"
                           >
                             Approve
                           </Button>
@@ -599,7 +619,7 @@ export default function CommissionsPage() {
               <TabsContent value="history" className="space-y-4">
                 <div className="space-y-4">
                   {(paidCommissions || []).map((commission) => (
-                    <div key={commission._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-success/10 rounded-lg bg-success/10 hover:bg-success/10 transition-colors gap-4 sm:gap-2">
+                    <div key={commission._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-success/20 rounded-lg bg-success-soft transition-colors gap-4 sm:gap-2">
                       <div className="flex items-center space-x-4 min-w-0 flex-1">
                         <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center flex-shrink-0">
                           <CheckCircle className="h-5 w-5 text-success" />
@@ -632,7 +652,7 @@ export default function CommissionsPage() {
                               <Eye className="mr-2 h-4 w-4" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => console.log('Download receipt')}>
+                            <DropdownMenuItem onClick={() => handleDownloadReceipt(commission)}>
                               <Download className="mr-2 h-4 w-4" />
                               Download Receipt
                             </DropdownMenuItem>
@@ -667,7 +687,7 @@ export default function CommissionsPage() {
                 <Wallet className="h-6 w-6" />
                 <span>Request Payout</span>
               </Button>
-              <Button variant="outline" className="h-20 flex-col space-y-2" onClick={exportCommissions}>
+              <Button variant="outline" className="h-20 flex-col space-y-2" onClick={handleExport}>
                 <Download className="h-6 w-6" />
                 <span>Export Report</span>
               </Button>

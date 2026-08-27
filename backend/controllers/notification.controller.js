@@ -368,7 +368,7 @@ exports.getNotificationPreferences = async (req, res) => {
 exports.updateNotificationPreferences = async (req, res) => {
   try {
     const userId = req.user.id
-    const preferences = req.body
+    const preferences = req.body.notifications || req.body
     
     const user = await User.findByIdAndUpdate(
       userId,
@@ -385,7 +385,7 @@ exports.updateNotificationPreferences = async (req, res) => {
 exports.updatePushToken = async (req, res) => {
   try {
     const userId = req.user.id
-    const { pushToken } = req.body
+    const pushToken = req.body.pushToken || req.body.token
     
     await User.findByIdAndUpdate(userId, { pushToken })
     
@@ -393,25 +393,6 @@ exports.updatePushToken = async (req, res) => {
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Server error' })
   }
-}
-
-// Helper functions for sending notifications
-async function sendEmailNotification(email, title, message, actionUrl) {
-  // Implementation for sending email notifications
-  // This would integrate with your email service (SendGrid, SMTP, etc.)
-  console.log(`Email notification sent to ${email}: ${title} - ${message}`)
-}
-
-async function sendSMSNotification(phone, message) {
-  // Implementation for sending SMS notifications
-  // This would integrate with your SMS service (Twilio, etc.)
-  console.log(`SMS notification sent to ${phone}: ${message}`)
-}
-
-async function sendPushNotification(pushToken, title, message, data) {
-  // Implementation for sending push notifications
-  // This would integrate with Firebase Cloud Messaging or similar
-  console.log(`Push notification sent to ${pushToken}: ${title} - ${message}`)
 }
 
 // Specialized notification functions

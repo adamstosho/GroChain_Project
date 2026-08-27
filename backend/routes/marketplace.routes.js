@@ -106,6 +106,7 @@ router.post('/upload-image', authenticate, authorize('farmer','partner','admin')
 
 // Import marketplace controller
 const marketplaceController = require('../controllers/marketplace.controller')
+const { calculateShippingCost, resolveSellerLocation } = require('../utils/shipping-calculator.util')
 
 // Use the full marketplace controller for listings
 router.get('/listings', marketplaceController.getListings)
@@ -257,6 +258,10 @@ router.get('/favorites/:userId', authenticate, async (req, res) => {
     })
   }
 
+  if (req.user.id !== userId && req.user.role !== 'admin') {
+    return res.status(403).json({ status: 'error', message: 'Forbidden' })
+  }
+
   try {
     // Use lean() to avoid circular references
     const favorites = await Favorite.find({ user: userId })
@@ -360,9 +365,9 @@ router.post('/favorites', authenticate, async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Validation error: ' + (e?.message || 'Invalid data') })
     }
 
-    // Generic error handling - avoid serializing the error object
-    console.log('❌ Favorites POST - Generic server error')
+    // Generic error handling - avoid serializing the error object to the client
     const errorMessage = e?.message || 'Unknown server error'
+    console.log('❌ Favorites POST - Generic server error:', errorMessage)
     return res.status(500).json({
       status: 'error',
       message: 'Server error occurred while adding to favorites'
@@ -372,13 +377,17 @@ router.post('/favorites', authenticate, async (req, res) => {
 
 router.delete('/favorites/:userId/:listingId', authenticate, async (req, res) => {
   const { userId, listingId } = req.params
+  if (req.user.id !== userId && req.user.role !== 'admin') {
+    return res.status(403).json({ status: 'error', message: 'Forbidden' })
+  }
   await Favorite.deleteOne({ user: userId, listing: listingId })
   return res.json({ status: 'success', message: 'Removed from favorites' })
 })
 
 router.post('/listings', authenticate, authorize('farmer','partner','admin'), async (req, res) => {
-  // Minimal validation for test: expect cropName and price
-  const { cropName, basePrice, category, description, unit, quantity, location } = req.body || {}
+  // Accept basePrice or legacy price alias
+  const { cropName, category, description, unit, quantity, location } = req.body || {}
+  const basePrice = req.body.basePrice ?? req.body.price
   if (!cropName || basePrice == null || !category || !description || !unit || !quantity || !location) {
     return res.status(400).json({ status: 'error', message: 'Missing required listing fields' })
   }
@@ -394,16 +403,50 @@ router.post('/listings', authenticate, authorize('farmer','partner','admin'), as
     location,
     status: 'draft'
   })
-  return res.status(201).json(listing)
+  return res.status(201).json({ status: 'success', data: listing })
 })
 
 router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin'), async (req, res) => {
+  const rawIdempotencyKey = req.get('Idempotency-Key') || req.body?.idempotencyKey || ''
+  const idempotencyKey = String(rawIdempotencyKey).trim().slice(0, 128) || null
+
+  // Fast path: replay an earlier create for this buyer + key (multi-tab / retry safe)
+  if (idempotencyKey) {
+    try {
+      const existing = await Order.findOne({ buyer: req.user.id, idempotencyKey })
+      if (existing) {
+        const populatedOrder = await Order.findById(existing._id)
+          .populate({
+            path: 'buyer',
+            select: 'name email phone profile.phone'
+          })
+          .populate({
+            path: 'items.listing',
+            select: 'cropName images farmer',
+            populate: {
+              path: 'farmer',
+              select: 'name email phone location profile.phone profile.farmName'
+            }
+          })
+
+        return res.status(200).json({
+          status: 'success',
+          data: populatedOrder,
+          message: 'Order already created',
+          idempotent: true
+        })
+      }
+    } catch (lookupError) {
+      console.error('Idempotency lookup failed:', lookupError)
+      // Continue to create — unique index still protects against duplicates
+    }
+  }
+
   const session = await mongoose.startSession()
   session.startTransaction()
 
   try {
     const {
-      buyer,
       items,
       shippingAddress,
       deliveryInstructions,
@@ -429,6 +472,7 @@ router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin
     // Validate inventory and source prices from the listing itself — never
     // trust a client-submitted price or skip stock validation.
     const listingPriceById = new Map()
+    let sellerOriginListing = null
     for (const item of items) {
       const listing = await Listing.findById(item.listing).session(session)
       if (!listing) {
@@ -445,6 +489,9 @@ router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin
         })
       }
       listingPriceById.set(item.listing.toString(), listing.basePrice)
+      if (!sellerOriginListing) {
+        sellerOriginListing = listing
+      }
     }
 
     // Calculate totals from the authoritative listing price, not the client-submitted one
@@ -453,45 +500,12 @@ router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin
     // Use provided shipping cost or calculate it
     let shippingCost = shipping || 0
     if (shippingCost === 0 && shippingMethod && shippingAddress) {
-      // Calculate shipping based on method and location
-      const calculateShippingCost = (origin, destination, weight, methodId) => {
-        const SHIPPING_METHODS = {
-          'road_standard': { baseRate: 0.5, weightMultiplier: 0.3, timeMultiplier: 1.0, minCost: 200, maxCost: 2000 },
-          'road_express': { baseRate: 0.8, weightMultiplier: 0.5, timeMultiplier: 1.2, minCost: 300, maxCost: 3000 },
-          'air': { baseRate: 2.0, weightMultiplier: 1.0, timeMultiplier: 1.5, minCost: 500, maxCost: 5000 },
-          'courier': { baseRate: 1.5, weightMultiplier: 0.8, timeMultiplier: 1.3, minCost: 400, maxCost: 4000 }
-        }
-        
-        const calculateDistance = (location1, location2) => {
-          // Simplified distance calculation - in real app, use proper geocoding
-          const stateDistance = {
-            'Lagos': { 'Lagos': 0, 'Abuja': 500, 'Kano': 800, 'Kwara': 300, 'Ogun': 50, 'Oyo': 100 },
-            'Abuja': { 'Lagos': 500, 'Abuja': 0, 'Kano': 400, 'Kwara': 200, 'Ogun': 450, 'Oyo': 400 },
-            'Kano': { 'Lagos': 800, 'Abuja': 400, 'Kano': 0, 'Kwara': 600, 'Ogun': 750, 'Oyo': 700 },
-            'Kwara': { 'Lagos': 300, 'Abuja': 200, 'Kano': 600, 'Kwara': 0, 'Ogun': 250, 'Oyo': 200 },
-            'Ogun': { 'Lagos': 50, 'Abuja': 450, 'Kano': 750, 'Kwara': 250, 'Ogun': 0, 'Oyo': 50 },
-            'Oyo': { 'Lagos': 100, 'Abuja': 400, 'Kano': 700, 'Kwara': 200, 'Ogun': 50, 'Oyo': 0 }
-          }
-          
-          const distance = stateDistance[location1.state]?.[location2.state] || 200
-          return distance
-        }
-        
-        const method = SHIPPING_METHODS[methodId] || SHIPPING_METHODS['road_standard']
-        const distance = calculateDistance(origin, destination)
-        
-        const baseCost = distance * method.baseRate
-        const weightCost = weight * method.weightMultiplier
-        let totalCost = baseCost + weightCost
-        
-        totalCost *= method.timeMultiplier
-        totalCost = Math.max(method.minCost, Math.min(method.maxCost, totalCost))
-        
-        return Math.round(totalCost)
-      }
-      
+      // Derive the shipping origin from the actual seller's listing location
+      // rather than assuming a single city — farmers list from across Nigeria.
+      const originLocation = resolveSellerLocation(null, sellerOriginListing?.location)
+
       shippingCost = calculateShippingCost(
-        { city: 'Lagos', state: 'Lagos', country: 'Nigeria' }, // Default seller location
+        originLocation,
         { city: shippingAddress.city, state: shippingAddress.state, country: shippingAddress.country || 'Nigeria' },
         items.reduce((sum, item) => sum + Number(item.quantity), 0), // Total weight
         shippingMethod
@@ -545,7 +559,8 @@ router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin
         phone: shippingAddress.phone
       },
       deliveryInstructions: deliveryInstructions || '',
-      notes: notes || ''
+      notes: notes || '',
+      ...(idempotencyKey ? { idempotencyKey } : {})
     }
 
     // Create the order
@@ -582,6 +597,39 @@ router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin
       await session.abortTransaction()
     }
     session.endSession()
+
+    // Concurrent creates with the same Idempotency-Key hit the unique index —
+    // return the winner's order instead of a 500.
+    if (error?.code === 11000 && idempotencyKey) {
+      try {
+        const existing = await Order.findOne({ buyer: req.user.id, idempotencyKey })
+        if (existing) {
+          const populatedOrder = await Order.findById(existing._id)
+            .populate({
+              path: 'buyer',
+              select: 'name email phone profile.phone'
+            })
+            .populate({
+              path: 'items.listing',
+              select: 'cropName images farmer',
+              populate: {
+                path: 'farmer',
+                select: 'name email phone location profile.phone profile.farmName'
+              }
+            })
+
+          return res.status(200).json({
+            status: 'success',
+            data: populatedOrder,
+            message: 'Order already created',
+            idempotent: true
+          })
+        }
+      } catch (replayError) {
+        console.error('Idempotency replay after duplicate key failed:', replayError)
+      }
+    }
+
     return res.status(500).json({
       status: 'error',
       message: error.message || 'Failed to create order'
@@ -889,14 +937,12 @@ router.get('/orders/:id/receipt', authenticate, async (req, res) => {
 
     console.log('✅ Receipt data generated successfully for order:', receiptData.orderNumber)
 
-    // For now, return JSON data that can be used to generate PDF on frontend
-    // In production, you'd use a library like pdfkit or puppeteer
+    // Receipt payload for client-side branded PDF (ReceiptGenerator)
     res.setHeader('Content-Type', 'application/json')
-    res.setHeader('Content-Disposition', `attachment; filename=receipt-${receiptData.orderNumber}-${Date.now()}.json`)
     return res.json({
       status: 'success',
       data: receiptData,
-      message: 'Receipt data generated successfully'
+      message: 'Receipt data ready for PDF generation'
     })
   } catch (error) {
     console.error('❌ Receipt generation error:', error)
@@ -925,7 +971,11 @@ router.patch('/orders/:id/status', authenticate, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
       .populate('seller', 'name email phone profile.phone profile.farmName')
-      .populate('items.listing', 'farmer')
+      .populate({
+        path: 'items.listing',
+        select: 'farmer',
+        populate: { path: 'farmer', select: 'partner' }
+      })
     if (!order) return res.status(404).json({ status: 'error', message: 'Order not found' })
     
     const { status } = req.body || {}
@@ -934,8 +984,18 @@ router.patch('/orders/:id/status', authenticate, async (req, res) => {
     // Check permissions based on user role and status change
     if (req.user.role === 'farmer') {
       // Farmers can only update orders for their listings
-      const hasListing = order.items.some(i => i.listing?.farmer?.toString() === req.user.id)
+      const hasListing = order.items.some(i => {
+        const farmerId = i.listing?.farmer?._id || i.listing?.farmer
+        return farmerId?.toString() === req.user.id
+      })
       if (!hasListing) return res.status(403).json({ status: 'error', message: 'Forbidden' })
+    } else if (req.user.role === 'partner') {
+      // Partners can only update orders involving their referred farmers' listings
+      const hasRelatedFarmer = order.items.some(i => {
+        const farmer = i.listing?.farmer
+        return farmer?.partner?.toString() === req.user.id
+      })
+      if (!hasRelatedFarmer) return res.status(403).json({ status: 'error', message: 'Forbidden' })
     } else if (req.user.role === 'buyer') {
       // Buyers can only cancel their own orders (and only if status is pending)
       if (order.buyer.toString() !== req.user.id) {
@@ -954,11 +1014,38 @@ router.patch('/orders/:id/status', authenticate, async (req, res) => {
           message: 'Buyers can only cancel orders' 
         })
       }
-    } else if (req.user.role !== 'admin' && req.user.role !== 'partner') {
+    } else if (req.user.role !== 'admin') {
       return res.status(403).json({ status: 'error', message: 'Insufficient permissions' })
     }
     
-    // Update order status
+    // When cancelling a paid order, restore listing inventory (stock was decremented on payment)
+    const wasPaid = order.paymentStatus === 'paid' || ['paid', 'processing', 'shipped', 'delivered'].includes(order.status)
+    if (status === 'cancelled' && wasPaid && order.status !== 'cancelled') {
+      const session = await mongoose.startSession()
+      session.startTransaction()
+      try {
+        for (const item of order.items) {
+          const listingId = item.listing?._id || item.listing
+          if (!listingId) continue
+          await Listing.findByIdAndUpdate(
+            listingId,
+            { $inc: { availableQuantity: Number(item.quantity) || 0 } },
+            { session }
+          )
+        }
+        order.status = status
+        order.updatedAt = new Date()
+        await order.save({ session })
+        await session.commitTransaction()
+        session.endSession()
+        return res.json({ status: 'success', data: order })
+      } catch (txErr) {
+        await session.abortTransaction()
+        session.endSession()
+        throw txErr
+      }
+    }
+
     order.status = status
     order.updatedAt = new Date()
     await order.save()

@@ -1,4 +1,5 @@
 const inventoryService = require('../services/inventory.service')
+const Listing = require('../models/listing.model')
 
 const inventoryController = {
   // Get inventory statistics
@@ -48,6 +49,20 @@ const inventoryController = {
     try {
       const { listingId } = req.params
       const { newQuantity = 0 } = req.body
+
+      const listing = await Listing.findById(listingId).select('farmer')
+      if (!listing) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Listing not found'
+        })
+      }
+      if (req.user.role !== 'admin' && listing.farmer.toString() !== req.user.id) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Forbidden'
+        })
+      }
       
       const restoredProduct = await inventoryService.restoreSoldOutProduct(listingId, newQuantity)
       
@@ -71,6 +86,20 @@ const inventoryController = {
   async markAsSoldOut(req, res) {
     try {
       const { listingId } = req.params
+
+      const listing = await Listing.findById(listingId).select('farmer')
+      if (!listing) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Listing not found'
+        })
+      }
+      if (req.user.role !== 'admin' && listing.farmer.toString() !== req.user.id) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Forbidden'
+        })
+      }
       
       const soldOutProduct = await inventoryService.markAsSoldOut(listingId)
       
@@ -92,4 +121,3 @@ const inventoryController = {
 }
 
 module.exports = inventoryController
-

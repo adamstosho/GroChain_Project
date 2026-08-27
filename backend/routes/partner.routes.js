@@ -1,4 +1,5 @@
 const express = require('express')
+const mongoose = require('mongoose')
 const router = express.Router()
 
 // Simple test route - no authentication required
@@ -73,6 +74,7 @@ router.get('/dashboard', async (req, res) => {
       });
       await partner.save();
     }
+    const partnerId = new mongoose.Types.ObjectId(partner._id.toString());
     // Get REAL farmer statistics
     const totalFarmers = await User.countDocuments({
       partner: partner._id,
@@ -113,8 +115,6 @@ router.get('/dashboard', async (req, res) => {
 
     try {
       // Simple commission calculation with explicit ObjectId conversion
-      const mongoose = require('mongoose');
-      const partnerId = new mongoose.Types.ObjectId(partner._id.toString());
       console.log('🔍 Using partner ID for commission query:', partnerId);
       
       // First, let's check how many commission records exist
@@ -156,7 +156,6 @@ router.get('/dashboard', async (req, res) => {
       // Use simple fallback with explicit ObjectId
       try {
         // The error might be due to invalid ObjectId, so make a simpler query
-        const partnerId = new mongoose.Types.ObjectId(partner._id.toString());
         console.log('🔍 Using partner ID for fallback commission query:', partnerId);
         
         const monthlyCommissions = await Commission.find({

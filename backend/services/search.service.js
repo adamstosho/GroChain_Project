@@ -26,7 +26,6 @@ class SearchService {
         includeDeleted = false
       } = options
 
-      let searchQuery = {}
       let results = []
 
       // Build search query based on type

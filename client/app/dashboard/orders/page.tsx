@@ -11,44 +11,28 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { Skeleton } from "@/components/ui/skeleton"
-import { SkeletonCard, SkeletonStats, SkeletonFilters } from "@/components/ui/enhanced-skeleton"
 import { Separator } from "@/components/ui/separator"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { ReceiptGenerator } from "@/lib/receipt-generator"
 import { ShipmentTrackingWidget } from "@/components/shipment/shipment-tracking-widget"
 import {
   Package,
-  Search,
-  Filter,
   MapPin,
-  Star,
   Eye,
-  Calendar,
   Clock,
   Truck,
   CheckCircle,
   XCircle,
-  AlertCircle,
   RefreshCw,
-  Download,
   MessageCircle,
   Phone,
   Mail,
   FileText,
-  TrendingUp,
   Banknote,
   ShoppingBag,
-  ArrowRight,
-  ChevronRight,
   ChevronDown,
-  TruckIcon,
-  MapPinIcon,
-  ClockIcon,
   CheckCircle2,
-  AlertTriangle,
-  Plus,
   Loader2,
   Receipt,
   User,
@@ -139,17 +123,6 @@ interface OrderStats {
   totalSpent: number
 }
 
-interface OrdersResponse {
-  orders: Order[]
-  stats: OrderStats
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    pages: number
-  }
-}
-
 type OrderStatus = 'pending' | 'confirmed' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
 type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded'
 
@@ -200,12 +173,6 @@ export default function OrdersPage() {
     cancelled: 0,
     totalSpent: 0
   })
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    pages: 0
-  })
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState<string>("all")
@@ -215,6 +182,8 @@ export default function OrdersPage() {
     dateRange: "all",
     searchQuery: ""
   })
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [exporting, setExporting] = useState(false)
   const { toast } = useToast()
 
@@ -250,16 +219,14 @@ export default function OrdersPage() {
           statsData = calculateStatsFromOrders(ordersData)
         }
 
-        const paginationData = (response.data as any).pagination || {
-          page: 1,
-          limit: 20,
-          total: 0,
-          pages: 0
-        }
-
         setOrders(ordersData)
         setStats(statsData)
-        setPagination(paginationData)
+
+        const paginationData = (response.data as any).pagination
+        if (paginationData) {
+          setCurrentPage(paginationData.page || page)
+          setTotalPages(paginationData.pages || 1)
+        }
 
         console.log('✅ Orders loaded successfully:', ordersData?.length || 0, 'orders')
         console.log('📊 Stats:', statsData)
@@ -360,14 +327,9 @@ export default function OrdersPage() {
     )
 
     // Recalculate stats using the updated orders
-    setStats(prevStats => {
-      // Re-calculate based on current orders + the one update
-      // This is safer than using the 'orders' closure which might be stale
-      // But simpler: just use compute from current orders state
-      return calculateStatsFromOrders(orders.map(order =>
-        order._id === orderId ? { ...order, status: newStatus as OrderStatus } : order
-      ))
-    })
+    setStats(calculateStatsFromOrders(orders.map(order =>
+      order._id === orderId ? { ...order, status: newStatus as OrderStatus } : order
+    )))
   }, [orders])
 
   const exportOrders = async (format: 'csv' | 'json' | 'pdf' = 'csv') => {
@@ -541,69 +503,101 @@ export default function OrdersPage() {
   }
 
   const exportToPDF = async (orders: Order[], filename: string) => {
-    // For PDF export, we'll create a simple HTML table and convert it
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>GroChain Orders Export</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          h1 { color: #2563eb; margin-bottom: 20px; }
-          .summary { background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
-          th { background-color: #f1f5f9; font-weight: bold; }
-          .status-verified { color: #059669; }
-          .status-pending { color: #d97706; }
-          .status-cancelled { color: #dc2626; }
-        </style>
-      </head>
-      <body>
-        <h1>GroChain Orders Export</h1>
-        <div class="summary">
-          <p><strong>Export Date:</strong> ${new Date().toLocaleDateString()}</p>
-          <p><strong>Total Orders:</strong> ${orders.length}</p>
-          <p><strong>Filter Applied:</strong> ${activeTab !== 'all' ? activeTab : 'All orders'}</p>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Order Number</th>
-              <th>Status</th>
-              <th>Payment Status</th>
-              <th>Total Amount</th>
-              <th>Order Date</th>
-              <th>Items</th>
-              <th>Seller</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${orders.map(order => `
-              <tr>
-                <td>${order.orderNumber || `ORD-${order._id.slice(-6).toUpperCase()}`}</td>
-                <td class="status-${order.status}">${order.status}</td>
-                <td>${order.paymentStatus}</td>
-                <td>₦${order.total.toLocaleString()}</td>
-                <td>${new Date(order.createdAt).toLocaleDateString()}</td>
-                <td>${order.items.length} items</td>
-                <td>${order.items[0]?.listing?.farmer?.name || 'Unknown'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </body>
-      </html>
-    `
+    const { default: jsPDF } = await import("jspdf")
+    const { docBrand, getLogoIconDataUrl, hexToRgb } = await import("@/lib/brand/document-brand")
 
-    // Create a blob and download
-    const blob = new Blob([htmlContent], { type: 'text/html' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${filename}.html`
-    link.click()
-    URL.revokeObjectURL(url)
+    const doc = new jsPDF("l", "mm", "a4")
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const margin = 12
+    const [forestR, forestG, forestB] = hexToRgb(docBrand.forest)
+    const [deepR, deepG, deepB] = hexToRgb(docBrand.deep)
+
+    const logo = await getLogoIconDataUrl()
+
+    const drawHeader = (pageNum: number, totalPages: number) => {
+      doc.setFillColor(deepR, deepG, deepB)
+      doc.rect(0, 0, pageWidth, 22, "F")
+      if (logo) {
+        try {
+          doc.addImage(logo, "PNG", margin, 3, 16, 16)
+        } catch {
+          /* ignore */
+        }
+      }
+      doc.setTextColor(255, 255, 255)
+      doc.setFont("helvetica", "bold")
+      doc.setFontSize(14)
+      doc.text("GroChain Orders Export", logo ? margin + 20 : margin, 10)
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(8)
+      doc.text(docBrand.tagline, logo ? margin + 20 : margin, 16)
+      doc.text(`Page ${pageNum}/${totalPages}`, pageWidth - margin, 12, { align: "right" })
+    }
+
+    const colX = [margin, 42, 68, 100, 130, 158, 200]
+    const headers = ["Order #", "Status", "Payment", "Total (NGN)", "Date", "Items", "Seller"]
+    const rowH = 8
+    let y = 36
+
+    const drawTableHeader = () => {
+      doc.setFillColor(forestR, forestG, forestB)
+      doc.rect(margin, y - 5, pageWidth - margin * 2, 8, "F")
+      doc.setTextColor(255, 255, 255)
+      doc.setFont("helvetica", "bold")
+      doc.setFontSize(8)
+      headers.forEach((h, i) => doc.text(h, colX[i], y))
+      y += 6
+      doc.setFont("helvetica", "normal")
+      doc.setTextColor(30, 30, 30)
+    }
+
+    // Estimate pages for header page numbers (approx)
+    const rowsPerPage = Math.floor((pageHeight - 50) / rowH)
+    const totalPages = Math.max(1, Math.ceil(orders.length / Math.max(rowsPerPage, 1)))
+    let pageNum = 1
+
+    drawHeader(pageNum, totalPages)
+    doc.setFontSize(9)
+    doc.setTextColor(60, 60, 60)
+    doc.text(`Exported: ${new Date().toLocaleString("en-NG")}  ·  ${orders.length} order(s)`, margin, 30)
+    drawTableHeader()
+
+    const truncate = (s: string, max: number) => {
+      const t = String(s || "")
+      return t.length > max ? `${t.slice(0, max - 1)}…` : t
+    }
+
+    for (const order of orders) {
+      if (y > pageHeight - 16) {
+        doc.setFillColor(forestR, forestG, forestB)
+        doc.rect(0, pageHeight - 5, pageWidth, 5, "F")
+        doc.addPage()
+        pageNum += 1
+        y = 36
+        drawHeader(pageNum, totalPages)
+        drawTableHeader()
+      }
+
+      const orderNo = order.orderNumber || `ORD-${String(order._id).slice(-6).toUpperCase()}`
+      const seller = order.items[0]?.listing?.farmer?.name || "Unknown"
+      const cells = [
+        truncate(orderNo, 18),
+        truncate(order.status, 12),
+        truncate(order.paymentStatus, 12),
+        truncate(Number(order.total || 0).toLocaleString("en-NG"), 14),
+        truncate(new Date(order.createdAt).toLocaleDateString("en-NG"), 12),
+        truncate(String(order.items?.length ?? 0), 6),
+        truncate(seller, 22),
+      ]
+      doc.setFontSize(8)
+      cells.forEach((c, i) => doc.text(c, colX[i], y))
+      y += rowH
+    }
+
+    doc.setFillColor(forestR, forestG, forestB)
+    doc.rect(0, pageHeight - 5, pageWidth, 5, "F")
+    doc.save(`${filename}.pdf`)
   }
 
   const downloadFile = (content: string, filename: string, mimeType: string) => {
@@ -756,7 +750,7 @@ export default function OrdersPage() {
           {/* Enhanced Loading Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="bg-white border border-border rounded-lg p-4 space-y-2">
+              <div key={i} className="bg-card border border-border rounded-lg p-4 space-y-2">
                 <div className="flex items-center space-x-2">
                   <Skeleton className="h-5 w-5 rounded" />
                   <Skeleton className="h-4 w-20" />
@@ -768,7 +762,7 @@ export default function OrdersPage() {
           </div>
 
           {/* Enhanced Loading Filters */}
-          <div className="bg-white border border-border rounded-lg p-6 space-y-4">
+          <div className="bg-card border border-border rounded-lg p-6 space-y-4">
             <Skeleton className="h-10 w-full" />
             <div className="flex gap-2">
               <Skeleton className="h-10 w-32" />
@@ -780,7 +774,7 @@ export default function OrdersPage() {
           {/* Enhanced Loading Orders */}
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="bg-white border border-border rounded-lg p-6 space-y-4">
+              <div key={i} className="bg-card border border-border rounded-lg p-6 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="space-y-2 flex-1">
                     <Skeleton className="h-6 w-32" />
@@ -1118,6 +1112,32 @@ export default function OrdersPage() {
                         onOrderUpdate={handleOrderUpdate}
                       />
                     ))}
+
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between pt-4 border-t">
+                        <p className="text-sm text-muted-foreground">
+                          Page {currentPage} of {totalPages}
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={currentPage <= 1 || loading}
+                            onClick={() => fetchOrdersData(currentPage - 1)}
+                          >
+                            Previous
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={currentPage >= totalPages || loading}
+                            onClick={() => fetchOrdersData(currentPage + 1)}
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </TabsContent>
@@ -1455,7 +1475,7 @@ function OrderCard({
 
           {order.trackingNumber && (
             <Button variant="outline" size="sm" asChild className="h-8 sm:h-9 text-xs sm:text-sm">
-              <Link href={`/dashboard/orders/${order._id}/tracking`}>
+              <Link href={`/dashboard/orders/${order._id}`}>
                 <Truck className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Track Package</span>
                 <span className="sm:hidden">Track</span>

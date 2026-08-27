@@ -1,6 +1,5 @@
 const Review = require('../models/review.model')
 const Listing = require('../models/listing.model')
-const User = require('../models/user.model')
 const Order = require('../models/order.model')
 
 const reviewController = {
@@ -207,84 +206,6 @@ const reviewController = {
   },
 
   // Update a review (only by the reviewer)
-  async updateReview(req, res) {
-    try {
-      const { reviewId } = req.params
-      const { rating, comment, images } = req.body
-      const userId = req.user.id
-
-      const review = await Review.findOne({ 
-        _id: reviewId, 
-        buyer: userId 
-      })
-
-      if (!review) {
-        return res.status(404).json({
-          status: 'error',
-          message: 'Review not found or you are not authorized to update it'
-        })
-      }
-
-      // Update fields
-      if (rating !== undefined) review.rating = rating
-      if (comment !== undefined) review.comment = comment
-      if (images !== undefined) review.images = images
-
-      await review.save()
-
-      // Update listing stats
-      await updateListingStats(review.listing)
-
-      res.json({
-        status: 'success',
-        data: review,
-        message: 'Review updated successfully'
-      })
-    } catch (error) {
-      console.error('Error updating review:', error)
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to update review'
-      })
-    }
-  },
-
-  // Delete a review (only by the reviewer)
-  async deleteReview(req, res) {
-    try {
-      const { reviewId } = req.params
-      const userId = req.user.id
-
-      const review = await Review.findOne({ 
-        _id: reviewId, 
-        buyer: userId 
-      })
-
-      if (!review) {
-        return res.status(404).json({
-          status: 'error',
-          message: 'Review not found or you are not authorized to delete it'
-        })
-      }
-
-      await Review.findByIdAndDelete(reviewId)
-
-      // Update listing stats
-      await updateListingStats(review.listing)
-
-      res.json({
-        status: 'success',
-        message: 'Review deleted successfully'
-      })
-    } catch (error) {
-      console.error('Error deleting review:', error)
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to delete review'
-      })
-    }
-  },
-
   // Farmer response to review
   async respondToReview(req, res) {
     try {

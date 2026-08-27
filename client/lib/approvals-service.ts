@@ -3,7 +3,6 @@ import {
   HarvestApproval, 
   ApprovalStats, 
   ApprovalFilters, 
-  ApprovalAction, 
   BatchApprovalAction,
   QualityAssessment,
   ApprovalMetrics
@@ -52,7 +51,6 @@ export class ApprovalsService {
     }
 
     // If no cache, try to fetch fresh data with retry logic
-    let lastError: any = null
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
         console.log(`Fetching approvals from API (attempt ${attempt}) with filters:`, filters)
@@ -110,7 +108,6 @@ export class ApprovalsService {
       return approvals
 
       } catch (apiError: any) {
-        lastError = apiError
         console.error(`API call failed (attempt ${attempt}), error details:`, {
           message: apiError.message,
           status: apiError.status,
@@ -226,131 +223,23 @@ export class ApprovalsService {
 
   // Approve a harvest
   async approveHarvest(approvalId: string, notes?: string, qualityAssessment?: QualityAssessment): Promise<HarvestApproval> {
-    try {
-      console.log('=== FRONTEND APPROVAL START ===')
-      console.log('Approving harvest:', approvalId, 'with notes:', notes)
-      console.log('Quality assessment:', qualityAssessment)
-
-      // Use the API service which handles authentication correctly
-      const requestData = {
-        quality: qualityAssessment?.overallScore?.toString() || 'excellent',
-        notes: notes,
-        agriculturalData: qualityAssessment
-      }
-
-      console.log('Sending approval request with data:', requestData)
-      const result = await apiService.approveHarvest(approvalId, requestData)
-
-      console.log('Approval API response:', result)
-      console.log('=== FRONTEND APPROVAL SUCCESS ===')
-      // Don't clear cache immediately - let the hook handle data refresh
-      return result
-    } catch (apiError: any) {
-      console.error('=== FRONTEND APPROVAL ERROR ===')
-      console.error('Approval failed with details:', {
-        message: apiError?.message || 'Unknown error',
-        status: apiError?.status || 'Unknown status',
-        response: apiError?.response || 'No response',
-        details: apiError || 'No error details'
-      })
-
-      // Try a direct fetch as fallback
-      console.log('Trying direct fetch as fallback...')
-      try {
-        const directResponse = await fetch(`http://localhost:5000/api/harvest-approval/${approvalId}/approve`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            quality: 'excellent',
-            notes: notes || 'Approved via direct fetch'
-          })
-        })
-
-        if (directResponse.ok) {
-          const directResult = await directResponse.json()
-          console.log('Direct fetch succeeded:', directResult)
-          // Don't clear cache immediately - let the hook handle data refresh
-          return directResult
-        } else {
-          console.error('Direct fetch also failed:', directResponse.status, directResponse.statusText)
-        }
-      } catch (directError) {
-        console.error('Direct fetch error:', directError)
-      }
-
-      // Return a basic success response for UI stability
-      return {
-        _id: approvalId,
-        status: 'approved',
-        approvalNotes: notes,
-        reviewedAt: new Date(),
-        message: 'Approval recorded (using fallback)',
-        error: apiError?.message || 'Unknown error'
-      } as any
+    const requestData = {
+      quality: qualityAssessment?.overallScore?.toString() || 'excellent',
+      notes: notes,
+      agriculturalData: qualityAssessment
     }
+    const result = await apiService.approveHarvest(approvalId, requestData)
+    return result
   }
 
   // Reject a harvest
   async rejectHarvest(approvalId: string, reason: string, notes?: string): Promise<HarvestApproval> {
-    try {
-      console.log('Rejecting harvest:', approvalId, 'with reason:', reason)
-
-      // Use the API service which handles authentication correctly
-      const result = await apiService.rejectHarvest(approvalId, {
-        reason: reason,
-          notes: notes
-      })
-
-      console.log('Rejection successful:', result)
-      // Don't clear cache immediately - let the hook handle data refresh
-      return result
-    } catch (apiError: any) {
-      console.error('=== FRONTEND REJECTION ERROR ===')
-      console.error('Rejection failed with details:', {
-        message: apiError?.message || 'Unknown error',
-        status: apiError?.status || 'Unknown status',
-        response: apiError?.response || 'No response',
-        details: apiError || 'No error details'
-      })
-
-      // Try a direct fetch as fallback for rejection
-      console.log('Trying direct fetch as fallback for rejection...')
-      try {
-        const directResponse = await fetch(`http://localhost:5000/api/harvest-approval/${approvalId}/reject`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            rejectionReason: reason,
-            notes: notes || 'Rejected via direct fetch'
-          })
-        })
-
-        if (directResponse.ok) {
-          const directResult = await directResponse.json()
-          console.log('Direct fetch rejection succeeded:', directResult)
-          // Don't clear cache immediately - let the hook handle data refresh
-          return directResult
-        } else {
-          console.error('Direct fetch rejection also failed:', directResponse.status, directResponse.statusText)
-        }
-      } catch (directError) {
-        console.error('Direct fetch rejection error:', directError)
-      }
-
-      // Return a basic success response for UI stability
-      return {
-        _id: approvalId,
-        status: 'rejected',
-        rejectionReason: reason,
-        reviewedAt: new Date(),
-        message: 'Rejection recorded (using fallback)',
-        error: apiError?.message || 'Unknown error'
-      } as any
-    }
+    const result = await apiService.rejectHarvest(approvalId, {
+      rejectionReason: reason,
+      reason: reason,
+      notes: notes
+    })
+    return result
   }
 
   // Mark harvest for review
@@ -435,9 +324,13 @@ export class ApprovalsService {
       )
     }
 
-    // Status filter
+    // Status filter (under_review is a display alias for revision_requested)
     if (filters.status && filters.status !== 'all') {
-      filtered = filtered.filter(approval => approval.status === filters.status)
+      const statusAliases =
+        filters.status === 'revision_requested' || filters.status === 'under_review'
+          ? ['revision_requested', 'under_review']
+          : [filters.status]
+      filtered = filtered.filter(approval => statusAliases.includes(approval.status))
     }
 
     // Priority filter
@@ -538,7 +431,7 @@ export class ApprovalsService {
     const pending = approvals.filter(a => a.status === 'pending').length
     const approved = approvals.filter(a => a.status === 'approved').length
     const rejected = approvals.filter(a => a.status === 'rejected').length
-    const underReview = approvals.filter(a => a.status === 'under_review').length
+    const underReview = approvals.filter(a => a.status === 'revision_requested' || a.status === 'under_review').length
     
     const qualityScores = approvals
       .filter(a => a.harvest.qualityScore)
@@ -569,9 +462,9 @@ export class ApprovalsService {
 
   // Get quality score color based on score
   getQualityScoreColor(score: number): string {
-    if (score >= 8) return "text-green-600"
-    if (score >= 6) return "text-yellow-600"
-    return "text-red-600"
+    if (score >= 8) return "text-success"
+    if (score >= 6) return "text-warning"
+    return "text-destructive"
   }
 
   // Get quality score label

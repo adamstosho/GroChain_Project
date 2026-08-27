@@ -117,19 +117,6 @@ export function PriceAlertDialog({
     }
   }
 
-  const getAlertTypeIcon = (type: string) => {
-    switch (type) {
-      case 'price_drop':
-        return <TrendingDown className="h-4 w-4" />
-      case 'price_increase':
-        return <TrendingUp className="h-4 w-4" />
-      case 'both':
-        return <Activity className="h-4 w-4" />
-      default:
-        return <Bell className="h-4 w-4" />
-    }
-  }
-
   const getAlertTypeDescription = (type: string) => {
     switch (type) {
       case 'price_drop':

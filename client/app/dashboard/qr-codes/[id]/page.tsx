@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -17,24 +18,17 @@ import {
   ExternalLink, 
   Trash2, 
   AlertCircle, 
-  CheckCircle, 
   Clock, 
   MapPin, 
   Calendar, 
   Package, 
   Activity, 
-  Eye, 
-  Smartphone, 
-  Printer, 
   FileText,
-  Share2,
-  RefreshCw,
   BarChart3,
   History,
   Info
 } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
 import { Label } from "@/components/ui/label"
 
@@ -201,12 +195,14 @@ export default function QRCodeDetailPage() {
 
   const handleDownload = async (format: 'png' | 'svg' | 'pdf' = 'png') => {
     if (!qrCode) return
-    
+
     try {
-      await apiService.downloadQRCode(qrCode._id)
+      const response = await apiService.downloadQRCode(qrCode._id)
+      const { saveQrDownload } = await import("@/lib/qr-download")
+      await saveQrDownload(response, qrCode.batchId || qrCode._id, format)
       toast({
         title: "Download Started",
-        description: `QR code downloaded as ${format.toUpperCase()}`,
+        description: `QR code saved as ${format.toUpperCase()}`,
         variant: "default"
       })
     } catch (error) {
@@ -334,9 +330,12 @@ export default function QRCodeDetailPage() {
             <CardContent className="text-center">
               {qrCode.image ? (
                 <div className="inline-block p-4 bg-white border rounded-lg">
-                  <img 
-                    src={qrCode.image} 
-                    alt={`QR Code for ${qrCode.cropType}`} 
+                  <Image
+                    src={qrCode.image}
+                    alt={`QR Code for ${qrCode.cropType}`}
+                    width={192}
+                    height={192}
+                    unoptimized
                     className="w-48 h-48 object-contain"
                   />
                 </div>

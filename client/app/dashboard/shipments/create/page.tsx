@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { useCreateShipment } from "@/hooks/use-shipments"
 import { ShipmentCreationForm } from "@/components/shipment/shipment-creation-form"
 import { apiService } from "@/lib/api"
 import { 
@@ -15,7 +14,6 @@ import {
   ArrowLeft,
   ShoppingCart,
   User,
-  Calendar,
   Banknote,
   RefreshCw
 } from "lucide-react"
@@ -81,8 +79,6 @@ function CreateShipmentContent() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loadingOrders, setLoadingOrders] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
-  
-  const { createShipment, loading } = useCreateShipment()
 
   // Get orderId from URL params if provided
   const orderIdFromParams = searchParams.get('orderId')
@@ -139,8 +135,8 @@ function CreateShipmentContent() {
             unit: product.unit || 'kg',
             total: Number(product.quantity || 0) * Number(product.price || 0)
           })) || [],
-          total: order.totalAmount || 0,
-          subtotal: order.subtotal || order.totalAmount || 0,
+          total: order.total ?? order.totalAmount ?? 0,
+          subtotal: order.subtotal || order.total || order.totalAmount || 0,
           shipping: order.shipping || 0,
           shippingMethod: order.shippingMethod || 'road_standard',
           discount: 0,
@@ -221,19 +217,19 @@ function CreateShipmentContent() {
     <DashboardLayout>
       <div className="space-y-6 max-w-[1400px] mx-auto pb-10">
         {/* Premium Header */}
-        <div className="bg-white/40 backdrop-blur-md p-6 rounded-3xl border border-white/20 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-background/40 backdrop-blur-md p-6 rounded-3xl border border-border/40 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => router.back()} 
-              className="bg-white/80 border-border hover:bg-muted shadow-sm"
+              className="bg-background/80 border-border hover:bg-muted shadow-sm"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
             <div className="space-y-1">
-              <h1 className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight">Create Shipment</h1>
+              <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground tracking-tight">Create Shipment</h1>
               <p className="text-muted-foreground font-medium">Initialize fulfillment for your paid farmer orders</p>
             </div>
           </div>
@@ -242,7 +238,7 @@ function CreateShipmentContent() {
             size="sm" 
             onClick={fetchOrders}
             disabled={loadingOrders}
-            className="bg-white/80 border-border hover:bg-muted text-foreground shadow-sm"
+            className="bg-background/80 border-border hover:bg-muted text-foreground shadow-sm"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${loadingOrders ? 'animate-spin' : ''}`} />
             Refresh Orders

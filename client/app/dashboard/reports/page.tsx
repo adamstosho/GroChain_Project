@@ -80,25 +80,44 @@ export default function ReportsPage() {
 
     const html = `
       <!DOCTYPE html>
-      <html>
+      <html lang="en">
       <head>
-        <title>${title}</title>
+        <title>${title} · GroChain</title>
         <meta charset="utf-8" />
         <style>
-          body { font-family: Arial, sans-serif; padding: 32px; color: #111827; }
-          h1 { font-size: 22px; margin-bottom: 4px; }
-          h2 { font-size: 16px; margin-top: 28px; margin-bottom: 8px; }
-          .meta { color: #6b7280; font-size: 13px; margin-bottom: 20px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-          th, td { text-align: left; padding: 8px; border-bottom: 1px solid #e5e7eb; font-size: 12px; }
-          th { background: #f9fafb; }
+          * { box-sizing: border-box; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; padding: 0; margin: 0; color: #1f2937; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .brand { background: #0B3D1E; color: #fff; padding: 16px 28px; display: flex; align-items: center; gap: 14px; }
+          .brand img { height: 48px; width: auto; object-fit: contain; }
+          .brand h1 { margin: 0; font-size: 18px; }
+          .brand p { margin: 2px 0 0; font-size: 11px; opacity: 0.9; }
+          .accent { height: 4px; background: #166534; }
+          .content { padding: 24px 28px 32px; overflow-wrap: anywhere; }
+          h2 { font-size: 15px; margin: 22px 0 8px; color: #166534; }
+          .meta { color: #6b7280; font-size: 12px; margin-bottom: 16px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 8px; table-layout: fixed; }
+          th, td { text-align: left; padding: 8px; border-bottom: 1px solid #e5e7eb; font-size: 12px; word-break: break-word; }
+          th { background: #166534; color: #fff; }
+          tr:nth-child(even) td { background: #eef6ea; }
           p.empty { color: #6b7280; font-size: 13px; }
+          .footer { margin-top: 28px; padding-top: 12px; border-top: 2px solid #166534; font-size: 11px; color: #6b7280; }
+          @media print { .brand { -webkit-print-color-adjust: exact; } }
         </style>
       </head>
       <body>
-        <h1>${title}</h1>
-        <div class="meta">Generated ${formatDate(new Date().toISOString())}</div>
-        ${bodyHtml}
+        <div class="brand">
+          <img src="/logo-full.png" alt="GroChain" />
+          <div>
+            <h1>${title}</h1>
+            <p>Building Trust in Nigeria's Food Chain</p>
+          </div>
+        </div>
+        <div class="accent"></div>
+        <div class="content">
+          <div class="meta">Generated ${formatDate(new Date().toISOString())}</div>
+          ${bodyHtml}
+          <div class="footer">GroChain Report · For support contact support@grochain.com</div>
+        </div>
       </body>
       </html>
     `
@@ -110,7 +129,7 @@ export default function ReportsPage() {
     window.setTimeout(() => {
       printWindow.focus()
       printWindow.print()
-    }, 400)
+    }, 600)
   }
 
   const generateHarvestReport = async () => {

@@ -66,16 +66,15 @@ export default function BulkOnboardPage() {
   }
 
   const downloadTemplate = () => {
-    // Create CSV template
     const csvContent = `name,email,phone,location,gender,age,education
-John Doe,john@example.com,+2348012345678,"Lagos, Nigeria",Male,35,Secondary
-Jane Smith,jane@example.com,+2348087654321,"Kano, Nigeria",Female,28,Tertiary`
-
-    const blob = new Blob([csvContent], { type: "text/csv" })
+John Doe,john.doe@farmer.ng,+2348012345678,"Lagos, Nigeria",Male,35,Secondary
+Jane Smith,jane.smith@farmer.ng,+2348087654321,"Kano, Nigeria",Female,28,Tertiary
+`
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = "farmer_template.csv"
+    a.download = "grochain_farmer_template.csv"
     a.click()
     window.URL.revokeObjectURL(url)
   }
@@ -156,6 +155,8 @@ Jane Smith,jane@example.com,+2348087654321,"Kano, Nigeria",Female,28,Tertiary`
                 <li>• First row should contain column headers</li>
                 <li>• Required columns: name, email, phone, location</li>
                 <li>• Optional columns: gender, age, education</li>
+                <li>• Use quotes for locations with commas, e.g. "Lagos, Nigeria"</li>
+                <li>• Phone format: +234… or 0… (Nigerian mobile)</li>
                 <li>• Maximum file size: 5MB</li>
                 <li>• Maximum rows: 1000 farmers per upload</li>
               </ul>

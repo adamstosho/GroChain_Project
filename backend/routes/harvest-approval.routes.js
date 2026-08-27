@@ -1,12 +1,19 @@
 const express = require('express')
 const router = express.Router()
-const { harvestApprovalController, getHarvestStatus } = require('../controllers/harvest-approval.controller')
+const { harvestApprovalController, getHarvestStatus, exportApprovals } = require('../controllers/harvest-approval.controller')
 const { authenticate, authorize } = require('../middlewares/auth.middleware')
 
 // Get harvests pending approval
 router.get('/pending',
   authenticate,
   harvestApprovalController.getPendingHarvests
+)
+
+// Export approvals (CSV / Excel / JSON)
+router.get('/export',
+  authenticate,
+  authorize('admin', 'partner'),
+  exportApprovals
 )
 
 // Get all harvests for approvals dashboard (pending, approved, rejected)

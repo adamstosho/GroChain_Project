@@ -2,7 +2,6 @@ const User = require('../models/user.model')
 const Harvest = require('../models/harvest.model')
 const Order = require('../models/order.model')
 const Listing = require('../models/listing.model')
-const { sendSMS } = require('../utils/sms.util')
 
 // USSD session management
 const ussdSessions = new Map()
@@ -328,11 +327,11 @@ async function collectHarvestData(session) {
     const step = session.getData('harvest_step')
     
     switch (step) {
-      case 'crop_type':
+      case 'crop_type': {
         // Handle crop type selection
         const cropTypes = ['maize', 'rice', 'cassava', 'yam', 'other']
         const cropIndex = parseInt(session.getData('last_input')) - 1
-        
+
         if (cropIndex >= 0 && cropIndex < cropTypes.length) {
           session.setData('crop_type', cropTypes[cropIndex])
           session.setData('harvest_step', 'quantity')
@@ -346,8 +345,9 @@ async function collectHarvestData(session) {
             sessionId: session.sessionId
           }
         }
+      }
 
-      case 'quantity':
+      case 'quantity': {
         const quantity = parseFloat(session.getData('last_input'))
         if (isNaN(quantity) || quantity <= 0) {
           return {
@@ -355,23 +355,24 @@ async function collectHarvestData(session) {
             sessionId: session.sessionId
           }
         }
-        
+
         session.setData('quantity', quantity)
         session.setData('harvest_step', 'quality')
         return {
           response: 'CON Please select quality:\n\n1. Grade A (Premium)\n2. Grade B (Good)\n3. Grade C (Standard)\n\n0. Back',
           sessionId: session.sessionId
         }
+      }
 
-      case 'quality':
+      case 'quality': {
         const qualityIndex = parseInt(session.getData('last_input')) - 1
         const qualities = ['Grade A', 'Grade B', 'Grade C']
-        
+
         if (qualityIndex >= 0 && qualityIndex < qualities.length) {
           session.setData('quality', qualities[qualityIndex])
           session.setData('harvest_step', 'confirm')
           return {
-            response: 'CON Please confirm harvest details:\n\nCrop: ' + session.getData('crop_type') + 
+            response: 'CON Please confirm harvest details:\n\nCrop: ' + session.getData('crop_type') +
                      '\nQuantity: ' + session.getData('quantity') + ' kg' +
                      '\nQuality: ' + session.getData('quality') +
                      '\n\n1. Confirm\n2. Cancel\n\n0. Back',
@@ -383,10 +384,11 @@ async function collectHarvestData(session) {
             sessionId: session.sessionId
           }
         }
+      }
 
-      case 'confirm':
+      case 'confirm': {
         const confirmChoice = session.getData('last_input')
-        
+
         if (confirmChoice === '1') {
           // Save harvest
           try {
@@ -429,6 +431,7 @@ async function collectHarvestData(session) {
             sessionId: session.sessionId
           }
         }
+      }
 
       default:
         session.clearData()
@@ -636,7 +639,6 @@ async function handleContactSupport(session) {
 
 // Clean up expired sessions
 function cleanupExpiredSessions() {
-  const now = new Date()
   for (const [sessionId, session] of ussdSessions.entries()) {
     if (session.isExpired()) {
       ussdSessions.delete(sessionId)

@@ -67,7 +67,7 @@ export interface Harvest {
   geoLocation: { lat: number; lng: number }
   batchId: string
   qrData: string
-  status: "pending" | "verified" | "rejected" | "approved"
+  status: "pending" | "verified" | "rejected" | "approved" | "listed" | "revision_requested"
   verifiedBy?: string
   verifiedAt?: Date
   rejectionReason?: string
@@ -120,7 +120,7 @@ export interface Listing {
   availableQuantity: number
   description: string
   images: string[]
-  status: "active" | "inactive" | "sold_out"
+  status: "draft" | "active" | "inactive" | "sold_out" | "expired"
   location: string
   geoLocation: { lat: number; lng: number }
   qualityGrade: string
@@ -135,9 +135,11 @@ export interface Order {
   buyer: string
   listing: string
   quantity: number
+  /** Backend field is `total`; `totalAmount` is a client alias — prefer `order.total ?? order.totalAmount` */
+  total?: number
   totalAmount: number
-  status: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled"
-  paymentStatus: "pending" | "completed" | "failed" | "refunded"
+  status: "pending" | "confirmed" | "paid" | "processing" | "shipped" | "delivered" | "cancelled" | "refunded"
+  paymentStatus: "pending" | "completed" | "failed" | "refunded" | "paid"
   deliveryAddress: Address
   trackingNumber?: string
   notes?: string

@@ -2,13 +2,12 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { HarvestForm, type HarvestFormData } from "@/components/agricultural"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
-import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useOfflineApi } from "@/hooks/use-offline-api"
-import { ArrowLeft, Leaf } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -16,7 +15,7 @@ export default function NewHarvestPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
-  const { createHarvest, isOffline } = useOfflineApi()
+  const { createHarvest } = useOfflineApi()
 
   const handleSubmit = async (data: HarvestFormData) => {
     try {
@@ -104,7 +103,7 @@ export default function NewHarvestPage() {
         </div>
 
         {/* Harvest Form */}
-        <Card className="border border-border shadow-sm bg-white overflow-hidden rounded-2xl">
+        <Card className="border border-border shadow-sm bg-card overflow-hidden rounded-2xl">
           <CardContent className="p-4 sm:p-6 lg:p-8">
             <HarvestForm
               onSubmit={handleSubmit}
@@ -126,12 +125,12 @@ export default function NewHarvestPage() {
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <Button variant="outline" asChild size="sm" className="h-9 text-xs font-semibold bg-white border-border">
+              <Button variant="outline" asChild size="sm" className="h-9 text-xs font-semibold bg-card border-border">
                 <Link href="/dashboard/analytics">
                   View Analytics Hub
                 </Link>
               </Button>
-              <Button variant="outline" asChild size="sm" className="h-9 text-xs font-semibold bg-white border-border">
+              <Button variant="outline" asChild size="sm" className="h-9 text-xs font-semibold bg-card border-border">
                 <Link href="/dashboard/qr-codes">
                   Manage Active QRs
                 </Link>

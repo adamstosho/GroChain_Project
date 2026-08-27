@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const priceAlertController = require('../controllers/price-alert.controller')
-const { authenticate } = require('../middlewares/auth.middleware')
+const { authenticate, authorize } = require('../middlewares/auth.middleware')
 const { validatePriceAlert } = require('../middlewares/validation.middleware')
 
 // All routes require authentication
@@ -35,7 +35,7 @@ router.put('/:alertId',
 router.delete('/:alertId', priceAlertController.deletePriceAlert)
 
 // Admin route to check all price alerts (for scheduled jobs)
-router.post('/check-all', priceAlertController.checkPriceAlerts)
+router.post('/check-all', authorize('admin'), priceAlertController.checkPriceAlerts)
 
 module.exports = router
 

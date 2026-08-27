@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { RefreshCw, CheckCircle, AlertCircle } from 'lucide-react'
 import { usePaymentVerification } from '@/hooks/use-payment-verification'
 import { useToast } from '@/hooks/use-toast'
+import { apiService } from '@/lib/api'
 
 interface PaymentVerificationButtonProps {
   reference: string
@@ -25,6 +26,7 @@ export function PaymentVerificationButton({
 }: PaymentVerificationButtonProps) {
   const { isVerifying, isVerified, error, verifyPayment } = usePaymentVerification({
     reference,
+    orderId,
     autoVerify: false // Manual verification only
   })
   const { toast } = useToast()
@@ -116,38 +118,34 @@ export function BatchVerificationButton({
     setIsVerifying(true)
 
     try {
-      const response = await fetch('/api/payments/batch-verify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ references })
+      const batchResults = await Promise.all(
+        references.map(async (ref) => {
+          try {
+            const result = await apiService.verifyPayment(ref)
+            return { reference: ref, success: result.status === 'success', data: result.data }
+          } catch (err) {
+            return {
+              reference: ref,
+              success: false,
+              message: err instanceof Error ? err.message : 'Verification failed'
+            }
+          }
+        })
+      )
+
+      setResults(batchResults)
+
+      const verifiedCount = batchResults.filter((r) => r.success).length
+
+      toast({
+        title: "Batch Verification Complete",
+        description: `Successfully verified ${verifiedCount}/${references.length} payments.`,
       })
 
-      const result = await response.json()
-
-      setResults(result.results || [])
-
-      if (result.success) {
-        const verifiedCount = result.results.filter((r: any) => r.success).length
-
-        toast({
-          title: "Batch Verification Complete",
-          description: `Successfully verified ${verifiedCount}/${references.length} payments.`,
-        })
-
-        if (onComplete) {
-          onComplete(result.results)
-        }
-      } else {
-        toast({
-          title: "Batch Verification Failed",
-          description: result.message || "Could not verify payments.",
-          variant: "destructive"
-        })
+      if (onComplete) {
+        onComplete(batchResults)
       }
-
-    } catch (error) {
+    } catch {
       toast({
         title: "Verification Error",
         description: "An error occurred during verification.",

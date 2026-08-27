@@ -1,7 +1,6 @@
 const User = require('../models/user.model')
-const { 
-  languageMiddleware, 
-  SUPPORTED_LANGUAGES, 
+const {
+  SUPPORTED_LANGUAGES,
   DEFAULT_LANGUAGE,
   getTranslatedText,
   formatTextDirection,
@@ -437,8 +436,8 @@ exports.detectLanguage = async (req, res) => {
       detectedLanguage = 'ar' // Arabic
     } else if (/[àáâãäåçèéêëìíîïñòóôõöùúûüýÿ]/.test(text)) {
       detectedLanguage = 'fr' // French
-    } else if (/[àáâãäåçèéêëìíîïñòóôõöùúûüýÿ]/.test(text)) {
-      detectedLanguage = 'ha' // Hausa (basic detection)
+    } else if (/[ɓɗƙƴ]/i.test(text)) {
+      detectedLanguage = 'ha' // Hausa (basic detection - hooked consonants are distinctive)
     }
 
     res.json({

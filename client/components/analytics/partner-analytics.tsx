@@ -8,11 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   TrendingUp,
-  TrendingDown,
   Banknote,
   Users,
-  Handshake,
-  Calendar,
   BarChart3,
   PieChart,
   Activity,
@@ -24,12 +21,13 @@ import {
   Building,
   AlertCircle
 } from "lucide-react"
-import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart as RechartsPieChart, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Pie, Legend, ComposedChart } from "recharts"
+import { LineChart, Line, Area, BarChart, Bar, PieChart as RechartsPieChart, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Pie, Legend, ComposedChart } from "recharts"
 import { LineChart as LineChartIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { useExportService } from "@/lib/export-utils"
+import { getExportService } from "@/lib/export-utils"
+import { brandColors, chartSeries } from "@/lib/brand/colors"
+import { formatCompactCurrency, formatCompactNumber } from "@/lib/format"
 
 interface PartnerAnalyticsData {
   // Basic farmer stats
@@ -100,19 +98,13 @@ interface PartnerAnalyticsData {
   period?: string
 }
 
-interface ChartData {
-  name: string
-  value: number
-  [key: string]: any
-}
-
 export function PartnerAnalytics() {
   const [analyticsData, setAnalyticsData] = useState<PartnerAnalyticsData | null>(null)
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d" | "1y">("30d")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
-  const exportService = useExportService()
+  const exportService = getExportService()
 
   const fetchAnalytics = useCallback(async () => {
     try {
@@ -169,21 +161,8 @@ export function PartnerAnalytics() {
     }
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      notation: 'compact',
-      maximumFractionDigits: 1
-    }).format(value)
-  }
-
-  const formatNumber = (value: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      notation: 'compact',
-      maximumFractionDigits: 1
-    }).format(value)
-  }
+  const formatCurrency = formatCompactCurrency
+  const formatNumber = formatCompactNumber
 
   // Ensure data is valid before rendering charts
   const isValidData = (data: any[]) => {
@@ -245,8 +224,8 @@ export function PartnerAnalytics() {
               yAxisId="left"
               type="monotone"
               dataKey="farmers"
-              stroke="#3b82f6"
-              fill="#3b82f6"
+              stroke={brandColors.chartEarth}
+              fill={brandColors.chartEarth}
               fillOpacity={0.1}
               name="Farmers"
             />
@@ -254,7 +233,7 @@ export function PartnerAnalytics() {
               yAxisId="left"
               type="monotone"
               dataKey="harvests"
-              stroke="#22c55e"
+              stroke="#166534"
               strokeWidth={2}
               name="Harvests"
               dot={{ r: 3 }}
@@ -263,7 +242,7 @@ export function PartnerAnalytics() {
               yAxisId="right"
               type="monotone"
               dataKey="revenue"
-              stroke="#8b5cf6"
+              stroke={brandColors.chartGold}
               strokeWidth={2}
               name="Revenue"
               dot={{ r: 3 }}
@@ -305,11 +284,11 @@ export function PartnerAnalytics() {
               labelLine={false}
               label={({ name, value }) => `${name} ${value}%`}
               outerRadius="70%"
-              fill="#8884d8"
+              fill={brandColors.primary}
               dataKey="value"
             >
               {analyticsData.regionalDistribution.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color || '#6b7280'} />
+                <Cell key={`cell-${index}`} fill={entry.color || chartSeries[index % chartSeries.length]} />
               ))}
             </Pie>
             <Tooltip
@@ -378,7 +357,7 @@ export function PartnerAnalytics() {
                 fontSize: '12px'
               }}
             />
-            <Bar dataKey="farmers" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="farmers" fill={brandColors.chartEarth} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       )
@@ -435,10 +414,10 @@ export function PartnerAnalytics() {
             <Line
               type="monotone"
               dataKey="harvests"
-              stroke="#22c55e"
+              stroke="#166534"
               strokeWidth={2}
-              dot={{ r: 4, fill: '#22c55e' }}
-              activeDot={{ r: 6, fill: '#22c55e' }}
+              dot={{ r: 4, fill: '#166534' }}
+              activeDot={{ r: 6, fill: '#166534' }}
             />
           </LineChart>
         </ResponsiveContainer>
@@ -493,7 +472,7 @@ export function PartnerAnalytics() {
                 fontSize: '12px'
               }}
             />
-            <Bar dataKey="value" fill="#22c55e" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="value" fill="#166534" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       )
@@ -723,29 +702,28 @@ export function PartnerAnalytics() {
             value="overview"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
-            <span className="hidden xs:inline">Overview</span>
-            <span className="xs:hidden">📊</span>
+            Overview
           </TabsTrigger>
           <TabsTrigger
             value="farmers"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Farmer Network</span>
-            <span className="xs:hidden">👥</span>
+            <span className="xs:hidden">Farmers</span>
           </TabsTrigger>
           <TabsTrigger
             value="regional"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Regional Analysis</span>
-            <span className="xs:hidden">🗺️</span>
+            <span className="xs:hidden">Regions</span>
           </TabsTrigger>
           <TabsTrigger
             value="performance"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Performance Metrics</span>
-            <span className="xs:hidden">📈</span>
+            <span className="xs:hidden">Performance</span>
           </TabsTrigger>
         </TabsList>
 
@@ -872,7 +850,7 @@ export function PartnerAnalytics() {
                       </tr>
                     </thead>
                     <tbody>
-                      {analyticsData.topFarmers.map((farmer, index) => (
+                      {analyticsData.topFarmers.map((farmer) => (
                         <tr key={farmer.name} className="border-b hover:bg-muted/30">
                           <td className="p-2 font-medium">{farmer.name}</td>
                           <td className="p-2">{farmer.location}</td>
@@ -958,7 +936,7 @@ export function PartnerAnalytics() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {analyticsData.regionalDistribution.map((region, index) => (
+                  {analyticsData.regionalDistribution.map((region) => (
                     <div key={region.name} className="p-4 border rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-medium">{region.name}</h4>

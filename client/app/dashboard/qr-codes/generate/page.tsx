@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { ArrowLeft, QrCode, Package, Download, Copy, Share2, Smartphone, Printer, FileText, Info, CheckCircle, Plus, ExternalLink } from "lucide-react"
+import { ArrowLeft, QrCode, Package, Download, Copy, Smartphone, Printer, FileText, CheckCircle, Plus, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -125,30 +126,6 @@ export default function GenerateQRCodePage() {
 
     try {
       setLoading(true)
-      
-      const payload = {
-        type: formData.qrCodeType,
-        itemId: selectedHarvest._id,
-        metadata: formData.includeMetadata ? {
-          ...formData.metadata,
-          harvestId: selectedHarvest._id,
-          batchId: formData.customBatchId,
-          cropType: formData.cropType,
-          quantity: formData.quantity,
-          unit: formData.unit,
-          location: formData.location,
-          harvestDate: formData.harvestDate,
-          expiryDate: formData.expiryDate
-        } : {
-          harvestId: selectedHarvest._id,
-          batchId: formData.customBatchId,
-          cropType: formData.cropType,
-          quantity: formData.quantity,
-          unit: formData.unit,
-          location: formData.location,
-          harvestDate: formData.harvestDate
-        }
-      }
 
       const response = await apiService.generateQRCodeForHarvest(selectedHarvest._id, formData.includeMetadata ? formData.metadata : undefined)
       setGeneratedQR(response)
@@ -172,12 +149,14 @@ export default function GenerateQRCodePage() {
 
   const handleDownload = async (format: 'png' | 'svg' | 'pdf' = 'png') => {
     if (!generatedQR) return
-    
+
     try {
-      await apiService.downloadQRCode(generatedQR._id)
+      const response = await apiService.downloadQRCode(generatedQR._id)
+      const { saveQrDownload } = await import("@/lib/qr-download")
+      await saveQrDownload(response, generatedQR.code || generatedQR.batchId || generatedQR._id, format)
       toast({
         title: "Download Started",
-        description: `QR code downloaded as ${format.toUpperCase()}`,
+        description: `QR code saved as ${format.toUpperCase()}`,
         variant: "default"
       })
     } catch (error) {
@@ -487,9 +466,12 @@ export default function GenerateQRCodePage() {
                   <div className="text-center">
                     {generatedQR.qrData ? (
                       <div className="inline-block p-4 bg-white border rounded-lg">
-                        <img 
-                          src={generatedQR.qrData} 
-                          alt="Generated QR Code" 
+                        <Image
+                          src={generatedQR.qrData}
+                          alt="Generated QR Code"
+                          width={192}
+                          height={192}
+                          unoptimized
                           className="w-48 h-48 object-contain"
                         />
                       </div>

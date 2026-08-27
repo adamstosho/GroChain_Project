@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuthStore } from "@/lib/auth"
 import { ReviewForm } from "@/components/reviews/review-form"
 import { ReviewList } from "@/components/reviews/review-list"
-import type { Product, Review } from "@/lib/types"
+import type { Review } from "@/lib/types"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -496,7 +496,7 @@ export default function ProductDetailPage() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 p-4 bg-success/10 rounded-lg">
-                    <div className="h-8 w-8 bg-success rounded-full flex items-center justify-center text-white font-bold">
+                    <div className="h-8 w-8 bg-success rounded-full flex items-center justify-center text-success-foreground font-bold">
                       1
                     </div>
                     <div>
@@ -512,7 +512,7 @@ export default function ProductDetailPage() {
                   
                   {product.harvest && (
                     <div className="flex items-center gap-4 p-4 bg-success/10 rounded-lg">
-                      <div className="h-8 w-8 bg-success rounded-full flex items-center justify-center text-white font-bold">
+                      <div className="h-8 w-8 bg-success rounded-full flex items-center justify-center text-success-foreground font-bold">
                         2
                       </div>
                       <div>
@@ -528,7 +528,7 @@ export default function ProductDetailPage() {
                   )}
                   
                   <div className="flex items-center gap-4 p-4 bg-success/10 rounded-lg">
-                    <div className="h-8 w-8 bg-success rounded-full flex items-center justify-center text-white font-bold">
+                    <div className="h-8 w-8 bg-success rounded-full flex items-center justify-center text-success-foreground font-bold">
                       3
                     </div>
                     <div>
@@ -541,7 +541,7 @@ export default function ProductDetailPage() {
                   </div>
                   
                   <div className="flex items-center gap-4 p-4 bg-warning/10 rounded-lg">
-                    <div className="h-8 w-8 bg-warning rounded-full flex items-center justify-center text-white font-bold">
+                    <div className="h-8 w-8 bg-warning rounded-full flex items-center justify-center text-warning-foreground font-bold">
                       4
                     </div>
                     <div>

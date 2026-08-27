@@ -167,22 +167,16 @@ export class ReferralService {
   // Utility methods
   getReferralStatusColor(status: string): string {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'active': return 'bg-blue-100 text-blue-800'
-      case 'completed': return 'bg-green-100 text-green-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'pending': return 'bg-warning-soft text-warning'
+      case 'active': return 'bg-primary-soft text-primary'
+      case 'completed': return 'bg-success-soft text-success'
+      case 'cancelled': return 'bg-destructive-soft text-destructive'
+      default: return 'bg-muted text-muted-foreground'
     }
   }
 
-  getReferralStatusIcon(status: string): string {
-    switch (status) {
-      case 'pending': return '⏳'
-      case 'active': return '✅'
-      case 'completed': return '💰'
-      case 'cancelled': return '❌'
-      default: return '❓'
-    }
+  getReferralStatusIcon(_status: string): string {
+    return ''
   }
 
   formatCurrency(amount: number): string {

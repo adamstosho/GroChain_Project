@@ -10,41 +10,8 @@ const Partner = require('../../models/partner.model')
 const Referral = require('../../models/referral.model')
 const multer = require('multer')
 const cloudinary = require('cloudinary').v2
-const fs = require('fs')
 const path = require('path')
 const bcrypt = require('bcryptjs')
-
-// Ensure uploads directory exists
-const uploadsDir = 'uploads/avatars'
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true })
-}
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir)
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-    cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname))
-  }
-})
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    // Check if file is an image
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true)
-    } else {
-      cb(new Error('Only image files are allowed'), false)
-    }
-  }
-})
 
 // Configure Cloudinary
 cloudinary.config({
@@ -666,30 +633,6 @@ router.post('/profile/password', async (req, res) => {
     })
   }
 })
-
-// Multer error handler
-const multerErrorHandler = (error, req, res, next) => {
-  if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({
-        status: 'error',
-        message: 'File size too large. Maximum 5MB allowed.'
-      })
-    } else if (error.code === 'LIMIT_UNEXPECTED_FILE') {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Invalid file field name. Expected "avatar".'
-      })
-    }
-  } else if (error.message === 'Only image files are allowed') {
-    return res.status(400).json({
-      status: 'error',
-      message: 'Only image files are allowed'
-    })
-  }
-
-  next(error)
-}
 
 // Create a separate multer instance without body parsers interference
 const uploadAvatar = multer({
@@ -1681,7 +1624,7 @@ router.get('/analytics/export', async (req, res) => {
         ])
         break
         
-      default:
+      default: {
         // Export all data
         const [users, harvests, orders] = await Promise.all([
           User.aggregate([
@@ -1697,8 +1640,9 @@ router.get('/analytics/export', async (req, res) => {
             { $group: { _id: null, revenue: { $sum: '$total' }, count: { $sum: 1 } } }
           ])
         ])
-        
+
         exportData = { users, harvests, orders }
+      }
     }
     
     const response = {
@@ -1735,32 +1679,24 @@ router.get('/analytics/export', async (req, res) => {
 // Admin System Management - System Status
 router.get('/system/status', async (req, res) => {
   try {
-    const [dbStatus, apiStatus, servicesStatus] = await Promise.all([
-      // Database status
-      User.findOne().then(() => ({ status: 'healthy', responseTime: Date.now() % 100 }))
-        .catch(() => ({ status: 'unhealthy', responseTime: null })),
-      
-      // API status
-      Promise.resolve({ status: 'healthy', responseTime: Date.now() % 50 }),
-      
-      // Services status
-      Promise.all([
-        // Mock service checks
-        Promise.resolve({ name: 'Authentication', status: 'healthy', uptime: process.uptime() }),
-        Promise.resolve({ name: 'File Upload', status: 'healthy', uptime: process.uptime() }),
-        Promise.resolve({ name: 'Notifications', status: 'healthy', uptime: process.uptime() }),
-        Promise.resolve({ name: 'Payment Gateway', status: 'healthy', uptime: process.uptime() }),
-        Promise.resolve({ name: 'SMS Service', status: 'healthy', uptime: process.uptime() })
-      ])
-    ])
+    // Measure real DB round-trip time rather than fabricating one
+    const dbCheckStart = Date.now()
+    const dbStatus = await User.findOne()
+      .then(() => ({ status: 'healthy', responseTime: Date.now() - dbCheckStart }))
+      .catch(() => ({ status: 'unhealthy', responseTime: null }))
+
+    const apiStatus = { status: 'healthy', responseTime: 0 }
 
     res.json({
       status: 'success',
       data: {
-        overall: 'healthy',
+        overall: dbStatus.status === 'healthy' ? 'healthy' : 'degraded',
         database: dbStatus,
         api: apiStatus,
-        services: servicesStatus,
+        // Per-service health checks (auth, file upload, notifications, payment
+        // gateway, SMS) are not implemented yet — omitted rather than reporting
+        // a fabricated "healthy" for services that were never actually probed.
+        services: [],
         uptime: process.uptime(),
         timestamp: new Date().toISOString()
       }
@@ -1979,32 +1915,25 @@ router.post('/system/maintenance', async (req, res) => {
 // Admin System Management - Create Backup
 router.post('/system/backup', async (req, res) => {
   try {
-    const { type = 'full', description } = req.body
-    
-    // Mock backup creation
-    const backupId = `backup_${Date.now()}`
-    const backup = {
-      id: backupId,
+    const backupService = require('../../services/backup.service')
+    const { type = 'full', description, collections } = req.body
+    const backup = await backupService.createBackup({
       type,
-      description: description || `${type} backup created on ${new Date().toLocaleDateString()}`,
-      status: 'completed',
-      size: '1.2GB',
-      createdAt: new Date().toISOString(),
-      createdBy: req.user.id,
-      collections: ['users', 'harvests', 'orders', 'listings', 'transactions'],
-      downloadUrl: `/api/admin/system/backups/${backupId}/download`
-    }
+      description,
+      collections,
+      createdBy: req.user?.id || req.user?.email || 'admin',
+    })
 
     res.json({
       status: 'success',
       message: 'Backup created successfully',
-      data: backup
+      data: backup,
     })
   } catch (error) {
     console.error('Create backup error:', error)
     res.status(500).json({
       status: 'error',
-      message: 'Failed to create backup'
+      message: error.message || 'Failed to create backup',
     })
   }
 })
@@ -2012,52 +1941,45 @@ router.post('/system/backup', async (req, res) => {
 // Admin System Management - List Backups
 router.get('/system/backups', async (req, res) => {
   try {
-    // Mock backup list
-    const backups = [
-      {
-        id: 'backup_1703001234567',
-        type: 'full',
-        description: 'Weekly full backup',
-        status: 'completed',
-        size: '1.2GB',
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-        createdBy: 'admin',
-        collections: ['users', 'harvests', 'orders', 'listings', 'transactions']
-      },
-      {
-        id: 'backup_1702987654321',
-        type: 'incremental',
-        description: 'Daily incremental backup',
-        status: 'completed',
-        size: '256MB',
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
-        createdBy: 'admin',
-        collections: ['users', 'harvests', 'orders']
-      },
-      {
-        id: 'backup_1702974321098',
-        type: 'full',
-        description: 'Pre-update backup',
-        status: 'completed',
-        size: '1.1GB',
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(), // 3 days ago
-        createdBy: 'admin',
-        collections: ['users', 'harvests', 'orders', 'listings', 'transactions']
-      }
-    ]
-
+    const backupService = require('../../services/backup.service')
+    const backups = backupService.listBackups()
     res.json({
       status: 'success',
       data: {
         backups,
-        total: backups.length
-      }
+        total: backups.length,
+      },
     })
   } catch (error) {
     console.error('List backups error:', error)
     res.status(500).json({
       status: 'error',
-      message: 'Failed to list backups'
+      message: 'Failed to list backups',
+    })
+  }
+})
+
+// Download a stored backup archive
+router.get('/system/backups/:backupId/download', async (req, res) => {
+  try {
+    const backupService = require('../../services/backup.service')
+    const filePath = backupService.getBackupFilePath(req.params.backupId)
+    if (!filePath) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Backup not found',
+      })
+    }
+
+    const filename = `grochain-backup-${req.params.backupId}.json`
+    res.setHeader('Content-Type', 'application/json')
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+    return res.sendFile(path.resolve(filePath))
+  } catch (error) {
+    console.error('Backup download error:', error)
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to download backup',
     })
   }
 })
@@ -2065,34 +1987,30 @@ router.get('/system/backups', async (req, res) => {
 // Admin System Management - Restore Backup
 router.post('/system/restore', async (req, res) => {
   try {
+    const backupService = require('../../services/backup.service')
     const { backupId, collections = [] } = req.body
-    
+
     if (!backupId) {
       return res.status(400).json({
         status: 'error',
-        message: 'Backup ID is required'
+        message: 'Backup ID is required',
       })
     }
 
-    // Mock restore process
+    const result = await backupService.restoreBackup(backupId, collections)
     res.json({
       status: 'success',
-      message: 'Backup restore initiated',
+      message: 'Backup restored successfully',
       data: {
-        restoreId: `restore_${Date.now()}`,
-        backupId,
-        collections: collections.length > 0 ? collections : ['users', 'harvests', 'orders', 'listings', 'transactions'],
-        status: 'in_progress',
-        startedAt: new Date().toISOString(),
-        startedBy: req.user.id,
-        estimatedDuration: '15-30 minutes'
-      }
+        ...result,
+        startedBy: req.user?.id,
+      },
     })
   } catch (error) {
     console.error('Restore backup error:', error)
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       status: 'error',
-      message: 'Failed to restore backup'
+      message: error.message || 'Failed to restore backup',
     })
   }
 })
@@ -2194,11 +2112,19 @@ router.get('/reports/templates', async (req, res) => {
   }
 })
 
+// In-memory registry for generated admin reports (file-backed)
+const generatedAdminReports = new Map()
+
 // Admin Reports Management - Generate Report
 router.post('/reports/generate', async (req, res) => {
   try {
     const { templateId, parameters = {} } = req.body
-    
+    const ExportImportService = require('../../services/exportImport.service')
+    const User = require('../../models/user.model')
+    const Harvest = require('../../models/harvest.model')
+    const Listing = require('../../models/listing.model')
+    const Order = require('../../models/order.model')
+
     if (!templateId) {
       return res.status(400).json({
         status: 'error',
@@ -2206,32 +2132,120 @@ router.post('/reports/generate', async (req, res) => {
       })
     }
 
-    // Mock report generation
     const reportId = `report_${Date.now()}`
+    let rows = []
+    let format = 'excel'
+    let title = templateId
+
+    switch (templateId) {
+      case 'harvest-summary': {
+        const harvests = await Harvest.find({}).populate('farmer', 'name email').limit(5000).lean()
+        rows = harvests.map((h) => ({
+          batchId: h.batchId,
+          cropType: h.cropType,
+          quantity: h.quantity,
+          unit: h.unit,
+          quality: h.quality,
+          status: h.status,
+          farmer: h.farmer?.name || '',
+          date: h.date,
+        }))
+        title = 'Harvest Summary'
+        format = 'excel'
+        break
+      }
+      case 'financial-performance': {
+        const orders = await Order.find({}).limit(5000).lean()
+        rows = orders.map((o) => ({
+          orderNumber: o.orderNumber,
+          total: o.total,
+          subtotal: o.subtotal,
+          tax: o.tax,
+          shipping: o.shipping,
+          paymentStatus: o.paymentStatus,
+          status: o.status,
+          createdAt: o.createdAt,
+        }))
+        title = 'Financial Performance'
+        format = 'excel'
+        break
+      }
+      case 'marketplace-analytics': {
+        const listings = await Listing.find({}).populate('farmer', 'name').limit(5000).lean()
+        rows = listings.map((l) => ({
+          cropName: l.cropName,
+          price: l.price,
+          quantity: l.quantity,
+          status: l.status,
+          farmer: l.farmer?.name || '',
+          createdAt: l.createdAt,
+        }))
+        title = 'Marketplace Analytics'
+        format = 'excel'
+        break
+      }
+      case 'user-analytics': {
+        const users = await User.find({}).select('-password -pin').limit(5000).lean()
+        rows = users.map((u) => ({
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          status: u.status,
+          emailVerified: u.emailVerified,
+          createdAt: u.createdAt,
+        }))
+        title = 'User Analytics'
+        format = 'csv'
+        break
+      }
+      default: {
+        const users = await User.countDocuments()
+        const harvests = await Harvest.countDocuments()
+        const listings = await Listing.countDocuments()
+        const orders = await Order.countDocuments()
+        rows = [
+          { metric: 'Users', value: users },
+          { metric: 'Harvests', value: harvests },
+          { metric: 'Listings', value: listings },
+          { metric: 'Orders', value: orders },
+          { metric: 'Generated At', value: new Date().toISOString() },
+          { metric: 'Template', value: templateId },
+        ]
+        title = 'Comprehensive Dashboard'
+        format = 'excel'
+      }
+    }
+
+    const result = await ExportImportService.exportData(rows, {
+      format,
+      filename: `grochain-${templateId}-${reportId}.${format === 'excel' ? 'xlsx' : 'csv'}`,
+    })
+
     const report = {
       id: reportId,
       templateId,
-      status: 'processing',
+      title,
+      status: 'completed',
+      format: format === 'excel' ? 'xlsx' : format,
+      fileName: result.filename,
+      filePath: result.filePath,
+      recordCount: rows.length,
       createdAt: new Date().toISOString(),
-      parameters
+      parameters,
+      downloadUrl: `/api/admin/reports/${reportId}/download`,
     }
-
-    // Simulate processing time
-    setTimeout(() => {
-      // In a real implementation, you would update the report status in the database
-      console.log(`Report ${reportId} generated successfully`)
-    }, 3000)
+    generatedAdminReports.set(reportId, report)
 
     res.json({
       status: 'success',
-      message: 'Report generation started',
+      message: 'Report generated successfully',
       data: report
     })
   } catch (error) {
     console.error('Generate report error:', error)
     res.status(500).json({
       status: 'error',
-      message: 'Failed to generate report'
+      message: error.message || 'Failed to generate report'
     })
   }
 })
@@ -2240,53 +2254,15 @@ router.post('/reports/generate', async (req, res) => {
 router.get('/reports/generated', async (req, res) => {
   try {
     const { page = 1, limit = 10, status, format } = req.query
-    
-    // Mock generated reports
-    const reports = [
-      {
-        id: '1',
-        templateName: 'Harvest Summary Report',
-        fileName: `harvest_summary_${new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0].replace(/-/g, '_')}.pdf`,
-        generatedDate: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-        fileSize: '2.4 MB',
-        format: 'pdf',
-        status: 'completed',
-        downloadUrl: '/api/admin/reports/1/download'
-      },
-      {
-        id: '2',
-        templateName: 'Financial Performance Report',
-        fileName: `financial_performance_${new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0].replace(/-/g, '_')}.xlsx`,
-        generatedDate: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-        fileSize: '1.8 MB',
-        format: 'excel',
-        status: 'completed',
-        downloadUrl: '/api/admin/reports/2/download'
-      },
-      {
-        id: '3',
-        templateName: 'User Analytics Report',
-        fileName: `user_analytics_${new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0].replace(/-/g, '_')}.csv`,
-        generatedDate: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
-        fileSize: '856 KB',
-        format: 'csv',
-        status: 'completed',
-        downloadUrl: '/api/admin/reports/3/download'
-      }
-    ]
+    let reports = Array.from(generatedAdminReports.values()).sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    )
 
-    // Apply filters
-    let filteredReports = reports
-    if (status) {
-      filteredReports = filteredReports.filter(r => r.status === status)
-    }
-    if (format) {
-      filteredReports = filteredReports.filter(r => r.format === format)
-    }
+    if (status) reports = reports.filter((r) => r.status === status)
+    if (format) reports = reports.filter((r) => r.format === format)
 
-    // Pagination
     const startIndex = (parseInt(page) - 1) * parseInt(limit)
-    const paginatedReports = filteredReports.slice(startIndex, startIndex + parseInt(limit))
+    const paginatedReports = reports.slice(startIndex, startIndex + parseInt(limit))
 
     res.json({
       status: 'success',
@@ -2295,8 +2271,8 @@ router.get('/reports/generated', async (req, res) => {
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
-          total: filteredReports.length,
-          pages: Math.ceil(filteredReports.length / parseInt(limit))
+          total: reports.length,
+          pages: Math.ceil(reports.length / parseInt(limit)) || 1
         }
       }
     })
@@ -2313,18 +2289,26 @@ router.get('/reports/generated', async (req, res) => {
 router.get('/reports/:id/download', async (req, res) => {
   try {
     const { id } = req.params
-    
-    // Mock file download
-    const report = {
-      id,
-      fileName: `report_${id}.pdf`,
-      contentType: 'application/pdf'
+    const report = generatedAdminReports.get(id)
+    if (!report || !report.filePath) {
+      return res.status(404).json({ status: 'error', message: 'Report not found' })
     }
 
-    // In a real implementation, you would stream the actual file
-    res.setHeader('Content-Type', report.contentType)
-    res.setHeader('Content-Disposition', `attachment; filename="${report.fileName}"`)
-    res.send('Mock file content for report ' + id)
+    const fs = require('fs')
+    const path = require('path')
+    if (!fs.existsSync(report.filePath)) {
+      return res.status(404).json({ status: 'error', message: 'Report file missing on disk' })
+    }
+
+    const contentType = report.fileName.endsWith('.xlsx')
+      ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      : report.fileName.endsWith('.json')
+        ? 'application/json'
+        : 'text/csv; charset=utf-8'
+
+    res.setHeader('Content-Type', contentType)
+    res.setHeader('Content-Disposition', `attachment; filename="${path.basename(report.fileName)}"`)
+    return fs.createReadStream(report.filePath).pipe(res)
   } catch (error) {
     console.error('Download report error:', error)
     res.status(500).json({
@@ -2338,8 +2322,14 @@ router.get('/reports/:id/download', async (req, res) => {
 router.delete('/reports/:id', async (req, res) => {
   try {
     const { id } = req.params
-    
-    // Mock report deletion
+    const report = generatedAdminReports.get(id)
+    if (report?.filePath) {
+      try {
+        const fs = require('fs')
+        if (fs.existsSync(report.filePath)) fs.unlinkSync(report.filePath)
+      } catch (_) { /* ignore */ }
+    }
+    generatedAdminReports.delete(id)
     res.json({
       status: 'success',
       message: 'Report deleted successfully',

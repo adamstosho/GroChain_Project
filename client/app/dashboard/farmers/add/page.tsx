@@ -7,20 +7,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { useToast } from "@/hooks/use-toast"
 import { APP_CONFIG } from "@/lib/constants"
-import { 
-  ArrowLeft, 
-  UserPlus, 
-  CheckCircle, 
-  AlertCircle,
-  MapPin,
-  Phone,
-  Mail,
-  Calendar,
-  Building
+import {
+  ArrowLeft,
+  UserPlus,
+  CheckCircle,
+  AlertCircle
 } from "lucide-react"
 import Link from "next/link"
 

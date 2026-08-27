@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { useAuthStore } from "@/lib/auth"
+import { getTokenFromStorage } from "@/lib/auth-storage"
 import { ArrowLeft, CreditCard, MapPin, Phone, Mail, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,14 +17,37 @@ import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import { processOrderPayment, loadPaystackScript } from "@/lib/paystack"
 import { processFlutterwaveOrderPayment, loadFlutterwaveScript } from "@/lib/flutterwave"
-import { calculateShippingCost, getAllShippingOptions, SHIPPING_METHODS, type ShippingLocation } from "@/lib/shipping-calculator"
+import { calculateShippingCost, SHIPPING_METHODS, type ShippingLocation } from "@/lib/shipping-calculator"
 import Link from "next/link"
 import Image from "next/image"
+
+// Listing location is stored as a free-text string like "City, State, Country".
+// Falls back to "Unknown" rather than a specific city so shipping estimates
+// don't silently misrepresent a farmer's real location.
+function parseSellerLocation(location: unknown): ShippingLocation {
+  if (typeof location === "string" && location.trim()) {
+    const parts = location.split(",").map(part => part.trim())
+    return {
+      city: parts[0] || "Unknown City",
+      state: parts[1] || "Unknown State",
+      country: parts[2] || "Nigeria",
+    }
+  }
+  if (location && typeof location === "object") {
+    const loc = location as { city?: string; state?: string; country?: string }
+    return {
+      city: loc.city || "Unknown City",
+      state: loc.state || "Unknown State",
+      country: loc.country || "Nigeria",
+    }
+  }
+  return { city: "Unknown City", state: "Unknown State", country: "Nigeria" }
+}
 
 export default function CheckoutPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { cart, clearCart } = useBuyerStore()
+  const { cart, clearCart, hasHydrated, setHasHydrated } = useBuyerStore()
   const { user } = useAuthStore()
 
   const [processing, setProcessing] = useState(false)
@@ -41,14 +65,19 @@ export default function CheckoutPage() {
   const [mounted, setMounted] = useState(false)
   // Reused across retries (cancel/fail/script-error then "Place Order" again) so a single
   // checkout attempt can't pile up multiple unpaid orders for the same cart.
-  const [pendingOrder, setPendingOrder] = useState<{ id: string; signature: string } | null>(null)
+  // Ref is the source of truth (survives double-click before React re-renders).
+  const pendingOrderRef = useRef<{ id: string; signature: string } | null>(null)
+  const processingRef = useRef(false)
+  const creatingOrderRef = useRef(false)
 
   // Handle hydration and cart initialization
   useEffect(() => {
     setMounted(true)
+    if (useBuyerStore.persist.hasHydrated()) {
+      setHasHydrated(true)
+    }
 
-    // Check if user is authenticated
-    const token = localStorage.getItem('grochain_auth_token')
+    const token = getTokenFromStorage()
     if (!token || token === 'undefined') {
       toast({
         title: "Authentication Required",
@@ -91,10 +120,10 @@ export default function CheckoutPage() {
 
   // Redirect if cart is empty (only on client after mount)
   useEffect(() => {
-    if (mounted && cart.length === 0) {
+    if (mounted && hasHydrated && cart.length === 0) {
       router.push('/marketplace')
     }
-  }, [cart, router, mounted])
+  }, [cart, router, mounted, hasHydrated])
 
   const handleInputChange = (field: string, value: string) => {
     setShippingInfo((prev) => ({ ...prev, [field]: value }))
@@ -108,26 +137,89 @@ export default function CheckoutPage() {
       paymentMethod,
     })
 
+  // Stable key for the same cart/shipping/payment across tabs and retries.
+  // Server scopes uniqueness per buyer, so the hash alone is enough.
+  const buildIdempotencyKey = async (signature: string) => {
+    const input = `${user?.id || user?._id || 'anon'}:${signature}`
+    try {
+      if (typeof crypto !== 'undefined' && crypto.subtle) {
+        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input))
+        const hex = Array.from(new Uint8Array(digest))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('')
+        return `ord_${hex.slice(0, 48)}`
+      }
+    } catch {
+      // fall through to sync hash
+    }
+    let hash = 0
+    for (let i = 0; i < input.length; i++) {
+      hash = ((hash << 5) - hash) + input.charCodeAt(i)
+      hash |= 0
+    }
+    return `ord_${Math.abs(hash).toString(36)}_${input.length}`
+  }
+
   // Creates an order, or reuses the one from a previous attempt in this same session if
   // nothing about the cart/shipping/payment method has changed since — avoids leaving a
   // trail of duplicate unpaid orders when a user cancels/fails and retries.
+  // Also sends Idempotency-Key so multi-tab / concurrent creates return the same order.
   const getOrCreateOrder = async (orderData: any) => {
     const signature = getOrderSignature()
-    if (pendingOrder && pendingOrder.signature === signature) {
-      return { _id: pendingOrder.id }
+    const existing = pendingOrderRef.current
+    if (existing && existing.signature === signature) {
+      return { _id: existing.id }
     }
 
-    const orderResponse = await apiService.createOrder(orderData)
-    if (!orderResponse || orderResponse.status !== 'success' || !orderResponse.data) {
-      throw new Error(orderResponse?.message || 'Failed to create order')
+    // Another create is already in flight for this session — wait briefly for it
+    // rather than opening a second unpaid order.
+    if (creatingOrderRef.current) {
+      for (let i = 0; i < 40; i++) {
+        await new Promise((r) => setTimeout(r, 50))
+        const waited = pendingOrderRef.current
+        if (waited && waited.signature === signature) {
+          return { _id: waited.id }
+        }
+        if (!creatingOrderRef.current) break
+      }
+      const afterWait = pendingOrderRef.current
+      if (afterWait && afterWait.signature === signature) {
+        return { _id: afterWait.id }
+      }
+      // Still in flight after wait — do not start a second create
+      if (creatingOrderRef.current) {
+        throw new Error('Order creation already in progress. Please wait a moment and try again.')
+      }
     }
 
-    const order = orderResponse.data
-    setPendingOrder({ id: order._id, signature })
-    return order
+    creatingOrderRef.current = true
+    try {
+      const again = pendingOrderRef.current
+      if (again && again.signature === signature) {
+        return { _id: again.id }
+      }
+
+      const idempotencyKey = await buildIdempotencyKey(signature)
+      const orderResponse = await apiService.createOrder(orderData, { idempotencyKey })
+      if (!orderResponse || orderResponse.status !== 'success' || !orderResponse.data) {
+        throw new Error(orderResponse?.message || 'Failed to create order')
+      }
+
+      const order = orderResponse.data
+      pendingOrderRef.current = { id: order._id, signature }
+      return order
+    } finally {
+      creatingOrderRef.current = false
+    }
+  }
+
+  const clearPendingOrder = () => {
+    pendingOrderRef.current = null
   }
 
   const handlePlaceOrder = async () => {
+    if (processingRef.current) return
+    processingRef.current = true
     try {
       setProcessing(true)
 
@@ -195,6 +287,7 @@ export default function CheckoutPage() {
         variant: "destructive",
       })
     } finally {
+      processingRef.current = false
       setProcessing(false)
     }
   }
@@ -233,9 +326,7 @@ export default function CheckoutPage() {
         total, // Use the calculated total
         shippingInfo.email,
         // Success callback
-        async (response) => {
-
-
+        async () => {
           toast({
             title: "Payment successful!",
             description: "Your payment has been processed. Redirecting to order confirmation...",
@@ -243,7 +334,7 @@ export default function CheckoutPage() {
 
           // Clear cart after successful payment
           clearCart()
-          setPendingOrder(null)
+          clearPendingOrder()
 
           // Force refresh of marketplace products by clearing cache
           try {
@@ -317,9 +408,7 @@ export default function CheckoutPage() {
         total, // Use the calculated total
         shippingInfo.email,
         // Success callback
-        async (response) => {
-
-
+        async () => {
           toast({
             title: "Payment successful!",
             description: "Your payment has been processed. Redirecting to order confirmation...",
@@ -327,7 +416,7 @@ export default function CheckoutPage() {
 
           // Clear cart after successful payment
           clearCart()
-          setPendingOrder(null)
+          clearPendingOrder()
 
           // Force refresh of marketplace products by clearing cache
           try {
@@ -368,7 +457,6 @@ export default function CheckoutPage() {
   }
 
   const handleBankTransferOrder = async () => {
-    // Create order for bank transfer
     const orderData = {
       items: cart.map((item) => ({
         listing: item.listingId || item.id,
@@ -385,30 +473,25 @@ export default function CheckoutPage() {
       },
       deliveryInstructions: shippingInfo.notes,
       paymentMethod: paymentMethod,
-      notes: shippingInfo.notes
+      notes: shippingInfo.notes,
+      shipping,
+      shippingMethod
     }
 
-    const response = await apiService.createOrder(orderData)
+    // Same reuse path as card checkout — prevents duplicate unpaid orders on retry/double-click
+    const order = await getOrCreateOrder(orderData)
 
-    if (response && response.status === 'success' && response.data) {
-      toast({
-        title: "Order created successfully!",
-        description: "Please make bank transfer to the provided account details. Your order will be processed once payment is confirmed.",
-      })
+    toast({
+      title: "Order created successfully!",
+      description: "Please make bank transfer to the provided account details. Your order will be processed once payment is confirmed.",
+    })
 
-      // Clear cart after successful order creation
-      clearCart()
-      setPendingOrder(null)
-
-      // Redirect to order success page with bank transfer instructions
-      router.push(`/marketplace/order-success/${response.data._id}?payment_method=bank_transfer`)
-    } else {
-      throw new Error(response?.message || 'Failed to create order')
-    }
+    clearCart()
+    clearPendingOrder()
+    router.push(`/marketplace/order-success/${order._id}?payment_method=bank_transfer`)
   }
 
   const handleCashOnDeliveryOrder = async () => {
-    // Create order for cash on delivery
     const orderData = {
       items: cart.map((item) => ({
         listing: item.listingId || item.id,
@@ -425,26 +508,21 @@ export default function CheckoutPage() {
       },
       deliveryInstructions: shippingInfo.notes,
       paymentMethod: paymentMethod,
-      notes: shippingInfo.notes
+      notes: shippingInfo.notes,
+      shipping,
+      shippingMethod
     }
 
-    const response = await apiService.createOrder(orderData)
+    const order = await getOrCreateOrder(orderData)
 
-    if (response && response.status === 'success' && response.data) {
-      toast({
-        title: "Order created successfully!",
-        description: "You will pay cash upon delivery. Your order will be processed shortly.",
-      })
+    toast({
+      title: "Order created successfully!",
+      description: "You will pay cash upon delivery. Your order will be processed shortly.",
+    })
 
-      // Clear cart after successful order creation
-      clearCart()
-      setPendingOrder(null)
-
-      // Redirect to order success page
-      router.push(`/marketplace/order-success/${response.data._id}?payment_method=cash`)
-    } else {
-      throw new Error(response?.message || 'Failed to create order')
-    }
+    clearCart()
+    clearPendingOrder()
+    router.push(`/marketplace/order-success/${order._id}?payment_method=cash`)
   }
 
   // Calculate totals (matching backend calculations)
@@ -456,13 +534,9 @@ export default function CheckoutPage() {
       return 0
     }
     
-    // Get seller location (assuming first item's seller location)
-    // In a real app, this would come from the seller's profile
-    const sellerLocation: ShippingLocation = {
-      city: "Lagos", // Default seller location - in real app, get from seller profile
-      state: "Lagos",
-      country: "Nigeria"
-    }
+    // Derive the seller's origin from the first cart item's actual listing
+    // location rather than assuming a single city — sellers list from across Nigeria.
+    const sellerLocation: ShippingLocation = parseSellerLocation(cart[0]?.location)
     
     const buyerLocation: ShippingLocation = {
       city: shippingInfo.city,
@@ -489,7 +563,7 @@ export default function CheckoutPage() {
   const total = subtotal + shipping
 
   // Show loading state only after component has mounted and cart is empty
-  if (mounted && cart.length === 0) {
+  if (!mounted || !hasHydrated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10" suppressHydrationWarning>
         <div className="container mx-auto px-4 py-8">
@@ -505,8 +579,7 @@ export default function CheckoutPage() {
     )
   }
 
-  // Show loading skeleton during hydration
-  if (!mounted) {
+  if (cart.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10" suppressHydrationWarning>
         <div className="container mx-auto px-4 py-8">
@@ -670,10 +743,10 @@ export default function CheckoutPage() {
               <CardContent>
                 <RadioGroup value={shippingMethod} onValueChange={setShippingMethod}>
                   {SHIPPING_METHODS.map((method) => {
-                    const shippingCost = calculateShippingCostForOrder()
+                    const sellerLocation = parseSellerLocation(cart[0]?.location)
                     const methodCost = calculateShippingCost(
-                      { city: "Lagos", state: "Lagos", country: "Nigeria" },
-                      { city: shippingInfo.city || "Lagos", state: shippingInfo.state || "Lagos", country: "Nigeria" },
+                      sellerLocation,
+                      { city: shippingInfo.city || sellerLocation.city, state: shippingInfo.state || sellerLocation.state, country: "Nigeria" },
                       cart.reduce((sum, item) => sum + item.quantity, 0),
                       method.id
                     )
@@ -702,11 +775,11 @@ export default function CheckoutPage() {
                   <div className="mt-4 p-3 bg-primary/10 border border-primary/10 rounded-md">
                     <p className="text-sm text-primary">
                       <strong>Shipping Details:</strong><br/>
-                      From: Lagos, Lagos<br/>
+                      From: {parseSellerLocation(cart[0]?.location).city}, {parseSellerLocation(cart[0]?.location).state}<br/>
                       To: {shippingInfo.city}, {shippingInfo.state}<br/>
                       Weight: {cart.reduce((sum, item) => sum + item.quantity, 0)}kg<br/>
                       Distance: {calculateShippingCost(
-                        { city: "Lagos", state: "Lagos", country: "Nigeria" },
+                        parseSellerLocation(cart[0]?.location),
                         { city: shippingInfo.city, state: shippingInfo.state, country: "Nigeria" },
                         cart.reduce((sum, item) => sum + item.quantity, 0),
                         shippingMethod

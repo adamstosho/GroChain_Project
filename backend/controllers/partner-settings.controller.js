@@ -1,6 +1,4 @@
 const Partner = require('../models/partner.model')
-const User = require('../models/user.model')
-const Commission = require('../models/commission.model')
 
 // Get partner settings
 exports.getPartnerSettings = async (req, res) => {

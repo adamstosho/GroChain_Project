@@ -12,13 +12,12 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import {
-  Shield,
   Database,
   Activity,
   Server,
@@ -26,33 +25,18 @@ import {
   CheckCircle,
   RefreshCw,
   Download,
-  Upload,
   Settings,
-  Trash2,
-  Play,
-  Pause,
   RotateCcw,
-  HardDrive,
   Cpu,
-  MemoryStick,
   Globe,
-  Lock,
-  Bell,
   FileText,
-  Calendar,
-  Clock,
-  User,
-  Info,
   AlertCircle,
   XCircle,
   Monitor,
   Zap,
   Wrench,
   Archive,
-  Search,
-  Filter,
-  Eye,
-  Power
+  Search
 } from "lucide-react"
 
 interface SystemStatus {
@@ -138,7 +122,7 @@ export function SystemManagement() {
   const fetchSystemData = async () => {
     try {
       setIsLoading(true)
-      const [statusResponse, healthResponse] = await Promise.allSettled([
+      const [statusResponse] = await Promise.allSettled([
         apiService.getAdminSystemStatus(),
         apiService.getAdminSystemHealth()
       ])
@@ -146,7 +130,7 @@ export function SystemManagement() {
       if (statusResponse.status === 'fulfilled' && statusResponse.value.status === 'success') {
         setSystemStatus(statusResponse.value.data as any)
       }
-    } catch (error: any) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to load system data",
@@ -169,7 +153,7 @@ export function SystemManagement() {
       if (response.status === 'success') {
         setSystemLogs((response.data as any).logs)
       }
-    } catch (error: any) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to load system logs",
@@ -184,7 +168,7 @@ export function SystemManagement() {
       if (response.status === 'success') {
         setSystemConfig(response.data as any)
       }
-    } catch (error: any) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to load system configuration",
@@ -199,7 +183,7 @@ export function SystemManagement() {
       if (response.status === 'success') {
         setBackups((response.data as any).backups)
       }
-    } catch (error: any) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to load backups",
@@ -218,7 +202,7 @@ export function SystemManagement() {
           description: response.message
         })
       }
-    } catch (error: any) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to toggle maintenance mode",
@@ -238,7 +222,7 @@ export function SystemManagement() {
           description: "Backup created successfully"
         })
       }
-    } catch (error: any) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to create backup",
@@ -252,14 +236,14 @@ export function SystemManagement() {
       const response = await apiService.restoreSystemBackup(backupId)
       if (response.status === 'success') {
         toast({
-          title: "Success",
-          description: "Backup restore initiated"
+          title: "Restore completed",
+          description: "Database collections were restored from the selected backup.",
         })
       }
     } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to restore backup",
+        description: error?.message || "Failed to restore backup",
         variant: "destructive"
       })
     }
@@ -321,13 +305,6 @@ export function SystemManagement() {
     const hours = Math.floor((seconds % 86400) / 3600)
     const minutes = Math.floor((seconds % 3600) / 60)
     return `${days}d ${hours}h ${minutes}m`
-  }
-
-  const formatBytes = (bytes: number) => {
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
-    if (bytes === 0) return '0 Bytes'
-    const i = Math.floor(Math.log(bytes) / Math.log(1024))
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
   }
 
   if (isLoading) {
@@ -467,7 +444,9 @@ export function SystemManagement() {
             </CardHeader>
             <CardContent>
               <div className="text-lg font-bold text-foreground">
-                {systemStatus.services.filter(s => s.status === 'healthy').length} / {systemStatus.services.length}
+                {systemStatus.services.length > 0
+                  ? `${systemStatus.services.filter(s => s.status === 'healthy').length} / ${systemStatus.services.length}`
+                  : "N/A"}
               </div>
               <div className="text-sm text-muted-foreground">Services Running</div>
             </CardContent>
@@ -497,7 +476,12 @@ export function SystemManagement() {
               <CardDescription>Current status of all system services</CardDescription>
             </CardHeader>
             <CardContent>
-              {systemStatus?.services && (
+              {systemStatus?.services && systemStatus.services.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Per-service health checks are not yet implemented.
+                </p>
+              )}
+              {systemStatus?.services && systemStatus.services.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {systemStatus.services.map((service, index) => (
                     <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
@@ -533,25 +517,44 @@ export function SystemManagement() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
+                <Button
+                  variant="outline"
+                  className="h-auto p-4 flex flex-col items-center space-y-2"
+                  onClick={() => handleCreateBackup('full')}
+                >
                   <Archive className="h-8 w-8 text-primary" />
                   <span className="text-sm font-medium">Create Backup</span>
                   <span className="text-xs text-muted-foreground">Full system backup</span>
                 </Button>
                 
-                <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
+                <Button
+                  variant="outline"
+                  className="h-auto p-4 flex flex-col items-center space-y-2"
+                  onClick={() => {
+                    setActiveTab('monitoring')
+                    fetchSystemData()
+                  }}
+                >
                   <Activity className="h-8 w-8 text-success" />
                   <span className="text-sm font-medium">Health Check</span>
                   <span className="text-xs text-muted-foreground">Run diagnostics</span>
                 </Button>
                 
-                <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
+                <Button
+                  variant="outline"
+                  className="h-auto p-4 flex flex-col items-center space-y-2"
+                  onClick={() => setActiveTab('config')}
+                >
                   <Settings className="h-8 w-8 text-accent" />
                   <span className="text-sm font-medium">System Config</span>
                   <span className="text-xs text-muted-foreground">Manage settings</span>
                 </Button>
                 
-                <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
+                <Button
+                  variant="outline"
+                  className="h-auto p-4 flex flex-col items-center space-y-2"
+                  onClick={() => setActiveTab('logs')}
+                >
                   <FileText className="h-8 w-8 text-warning" />
                   <span className="text-sm font-medium">View Logs</span>
                   <span className="text-xs text-muted-foreground">System activity</span>
@@ -811,7 +814,38 @@ export function SystemManagement() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const response = await apiService.getRaw(
+                              `/api/admin/system/backups/${backup.id}/download`
+                            )
+                            if (!response.ok) {
+                              throw new Error(await response.text() || `HTTP ${response.status}`)
+                            }
+                            const blob = await response.blob()
+                            const url = URL.createObjectURL(blob)
+                            const a = document.createElement("a")
+                            a.href = url
+                            a.download = `grochain-backup-${backup.id}.json`
+                            a.click()
+                            URL.revokeObjectURL(url)
+                            toast({
+                              title: "Download started",
+                              description: "Stored backup archive downloaded.",
+                            })
+                          } catch (error) {
+                            console.error("Backup download failed:", error)
+                            toast({
+                              title: "Download failed",
+                              description: "Could not download the stored backup archive.",
+                              variant: "destructive",
+                            })
+                          }
+                        }}
+                      >
                         <Download className="h-4 w-4 mr-2" />
                         Download
                       </Button>
@@ -826,7 +860,9 @@ export function SystemManagement() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Restore Backup</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This will restore the system from the selected backup. This action cannot be undone.
+                              This replaces live database collections with data from this backup.
+                              Current data in those collections will be overwritten and cannot be undone.
+                              Create a fresh backup first if you may need to roll forward again.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

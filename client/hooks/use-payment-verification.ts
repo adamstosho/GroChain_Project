@@ -34,6 +34,7 @@ export function usePaymentVerification(options: UsePaymentVerificationOptions = 
   })
   const { toast } = useToast()
   const isVerifiedRef = useRef(false)
+  const isVerifyingRef = useRef(false)
 
   useEffect(() => {
     isVerifiedRef.current = state.isVerified
@@ -50,6 +51,12 @@ export function usePaymentVerification(options: UsePaymentVerificationOptions = 
     if (isVerifiedRef.current) {
       return true
     }
+
+    // Prevent concurrent duplicate verify calls (Strict Mode / overlapping intervals)
+    if (isVerifyingRef.current) {
+      return false
+    }
+    isVerifyingRef.current = true
 
     setState(prev => ({ ...prev, isVerifying: true, error: null }))
 
@@ -101,6 +108,8 @@ export function usePaymentVerification(options: UsePaymentVerificationOptions = 
       }
 
       return false
+    } finally {
+      isVerifyingRef.current = false
     }
   }, [reference, testMode, toast])
 
@@ -110,46 +119,46 @@ export function usePaymentVerification(options: UsePaymentVerificationOptions = 
     setState(prev => ({ ...prev, isVerifying: true, error: null }))
 
     try {
-      const response = await fetch(`${apiService.getBaseUrl()}/api/payments/batch-verify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ references })
-      })
+      const results = await Promise.all(
+        references.map(async (ref) => {
+          try {
+            const result = await apiService.verifyPayment(ref, { testMode })
+            return {
+              reference: ref,
+              success: result.status === 'success',
+              data: result.data,
+              message: result.message
+            }
+          } catch (err) {
+            return {
+              reference: ref,
+              success: false,
+              message: err instanceof Error ? err.message : 'Verification failed'
+            }
+          }
+        })
+      )
 
-      const result = await response.json()
-
-      if (result.status === 'success') {
-        const verifiedCount = result.results.filter((r: { success?: boolean }) => r.success).length
-        if (verifiedCount > 0) {
-          isVerifiedRef.current = true
-        }
-
-        setState(prev => ({
-          ...prev,
-          isVerifying: false,
-          isVerified: verifiedCount > 0 || prev.isVerified,
-          lastVerified: new Date()
-        }))
-
-        if (verifiedCount > 0) {
-          toast({
-            title: "Payments Verified",
-            description: `${verifiedCount} payment(s) have been confirmed.`,
-          })
-        }
-
-        return result.results
+      const verifiedCount = results.filter((r) => r.success).length
+      if (verifiedCount > 0) {
+        isVerifiedRef.current = true
       }
 
       setState(prev => ({
         ...prev,
         isVerifying: false,
-        error: result.message
+        isVerified: verifiedCount > 0 || prev.isVerified,
+        lastVerified: new Date()
       }))
-      return []
 
+      if (verifiedCount > 0) {
+        toast({
+          title: "Payments Verified",
+          description: `${verifiedCount} payment(s) have been confirmed.`,
+        })
+      }
+
+      return results
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Batch verification failed'
       setState(prev => ({
@@ -159,7 +168,7 @@ export function usePaymentVerification(options: UsePaymentVerificationOptions = 
       }))
       return []
     }
-  }, [toast])
+  }, [testMode, toast])
 
   useEffect(() => {
     if (!autoVerify || (!reference && !orderId)) return

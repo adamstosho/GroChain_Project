@@ -9,7 +9,6 @@ const User = require('../models/user.model')
 const Partner = require('../models/partner.model')
 const Shipment = require('../models/shipment.model')
 const Transaction = require('../models/transaction.model')
-const Payment = require('../models/payment.model')
 const Analytics = require('../models/analytics.model')
 
 class ExportImportService {
@@ -355,16 +354,16 @@ class ExportImportService {
   async exportBuyerData(userId, filters = {}, format = 'csv', options = {}) {
     try {
       const Order = require('../models/order.model')
-      const Payment = require('../models/payment.model')
-      
+
       // Get buyer's orders
       const orders = await Order.find({ buyer: userId })
         .populate('items.listing', 'cropName price')
         .sort({ createdAt: -1 })
         .lean()
 
-      // Get buyer's payments
-      const payments = await Payment.find({ userId })
+      // Get buyer's payments — this app records payments as Transaction docs
+      // (type: 'payment'), not the separate (unused) Payment model.
+      const payments = await Transaction.find({ userId, type: 'payment' })
         .sort({ createdAt: -1 })
         .lean()
 
@@ -400,7 +399,7 @@ class ExportImportService {
           amount: payment.amount,
           currency: payment.currency,
           status: payment.status,
-          method: payment.paymentMethod,
+          method: payment.paymentProvider,
           reference: payment.reference,
           createdAt: payment.createdAt
         })
@@ -565,21 +564,18 @@ class ExportImportService {
   // Export to CSV format
   async exportToCSV(data, filename, includeHeaders = true) {
     try {
-      if (!data || data.length === 0) {
-        throw new Error('No data to export')
-      }
-
       const filePath = path.join(this.exportDir, filename)
-      
-      // Flatten complex objects for CSV export
-      const flattenedData = data.map(item => this.flattenObject(item))
+      const flattenedData = Array.isArray(data) && data.length > 0
+        ? data.map(item => this.flattenObject(item))
+        : [{ message: 'No records matched this export.' }]
+
       const headers = Object.keys(flattenedData[0])
 
       const csvWriter = createCsvWriter({
         path: filePath,
         header: headers.map(header => ({
           id: header,
-          title: header.charAt(0).toUpperCase() + header.slice(1)
+          title: header.charAt(0).toUpperCase() + header.slice(1).replace(/_/g, ' ')
         }))
       })
 
@@ -601,9 +597,9 @@ class ExportImportService {
     const flattened = {}
     
     for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
+      if (Object.hasOwn(obj, key)) {
         const newKey = prefix ? `${prefix}_${key}` : key
-        
+
         if (obj[key] !== null && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
           // Recursively flatten nested objects
           Object.assign(flattened, this.flattenObject(obj[key], newKey))
@@ -620,48 +616,91 @@ class ExportImportService {
     return flattened
   }
 
-  // Export to Excel format
+  // Export to Excel format (GroChain-branded, overflow-safe)
   async exportToExcel(data, filename, includeHeaders = true) {
     try {
-      if (!data || data.length === 0) {
-        throw new Error('No data to export')
-      }
-
       const filePath = path.join(this.exportDir, filename)
       const workbook = new ExcelJS.Workbook()
-      const worksheet = workbook.addWorksheet('Data')
+      workbook.creator = 'GroChain'
+      workbook.lastModifiedBy = 'GroChain'
+      workbook.created = new Date()
+      workbook.modified = new Date()
+      workbook.company = 'GroChain'
 
-      // Flatten complex objects for Excel export
-      const flattenedData = data.map(item => this.flattenObject(item))
+      const worksheet = workbook.addWorksheet('GroChain Export', {
+        views: [{ state: 'frozen', ySplit: 2 }],
+        properties: { defaultRowHeight: 18 }
+      })
 
-      // Add headers
-      if (includeHeaders && flattenedData.length > 0) {
-        const headers = Object.keys(flattenedData[0])
-        worksheet.addRow(headers)
-        
-        // Style headers
-        const headerRow = worksheet.getRow(1)
-        headerRow.font = { bold: true }
-        headerRow.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFE0E0E0' }
-        }
+      const forestArgb = 'FF166534'
+      const deepArgb = 'FF0B3D1E'
+      const softArgb = 'FFEEF6EA'
+
+      const flattenedData = Array.isArray(data) && data.length > 0
+        ? data.map(item => this.flattenObject(item))
+        : []
+
+      const headers = flattenedData.length > 0
+        ? Object.keys(flattenedData[0])
+        : ['message']
+
+      // Brand title row
+      worksheet.mergeCells(1, 1, 1, Math.max(headers.length, 1))
+      const titleCell = worksheet.getCell(1, 1)
+      titleCell.value = 'GroChain — Building Trust in Nigeria\'s Food Chain'
+      titleCell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 13, name: 'Calibri' }
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: deepArgb } }
+      titleCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 }
+      worksheet.getRow(1).height = 28
+
+      if (includeHeaders) {
+        const headerRow = worksheet.addRow(headers.map(h =>
+          String(h).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        ))
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11, name: 'Calibri' }
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: forestArgb } }
+        headerRow.alignment = { vertical: 'middle', wrapText: true }
+        headerRow.height = 22
       }
 
-      // Add data rows
-      flattenedData.forEach(row => {
-        const values = Object.values(row)
-        worksheet.addRow(values)
+      if (flattenedData.length === 0) {
+        const emptyRow = worksheet.addRow(['No records matched this export.'])
+        emptyRow.font = { italic: true, color: { argb: 'FF6B7280' } }
+      } else {
+        flattenedData.forEach((row, idx) => {
+          const values = headers.map(h => {
+            const v = row[h]
+            if (v == null) return ''
+            if (typeof v === 'object') return JSON.stringify(v)
+            const s = String(v)
+            // Cap cell length to keep Excel stable
+            return s.length > 32000 ? `${s.slice(0, 31997)}...` : s
+          })
+          const dataRow = worksheet.addRow(values)
+          dataRow.alignment = { vertical: 'top', wrapText: true }
+          if (idx % 2 === 1) {
+            dataRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: softArgb } }
+          }
+        })
+      }
+
+      // Safe column widths (Excel max ~255; keep readable 12–42)
+      headers.forEach((header, i) => {
+        const col = worksheet.getColumn(i + 1)
+        let maxLen = String(header).length
+        for (const row of flattenedData.slice(0, 200)) {
+          const cell = row[header]
+          const len = cell == null ? 0 : String(cell).length
+          if (len > maxLen) maxLen = len
+        }
+        col.width = Math.min(42, Math.max(12, maxLen + 2))
+        col.alignment = { wrapText: true, vertical: 'top' }
       })
 
-      // Auto-fit columns
-      worksheet.columns.forEach(column => {
-        column.width = Math.max(
-          column.header ? column.header.length : 10,
-          ...column.values.map(v => v ? v.toString().length : 0)
-        )
-      })
+      // Footer note
+      worksheet.addRow([])
+      const noteRow = worksheet.addRow([`Exported ${new Date().toISOString()} · GroChain`])
+      noteRow.font = { size: 9, color: { argb: 'FF6B7280' }, italic: true }
 
       await workbook.xlsx.writeFile(filePath)
 
@@ -1258,7 +1297,7 @@ class ExportImportService {
     return data.map(item => {
       const filtered = {}
       customFields.forEach(field => {
-        if (item.hasOwnProperty(field)) {
+        if (Object.hasOwn(item, field)) {
           filtered[field] = item[field]
         }
       })
@@ -1284,7 +1323,8 @@ class ExportImportService {
   // Generate filename
   generateFilename(format) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-    return `export-${timestamp}.${format}`
+    const ext = format === 'excel' ? 'xlsx' : format
+    return `grochain-export-${timestamp}.${ext}`
   }
 
   // Get export statistics

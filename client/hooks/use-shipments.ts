@@ -129,7 +129,6 @@ export function useCreateShipment() {
       setLoading(true)
       
       console.log("🚚 Sending shipment data to API:", data)
-      console.log("🔑 Current token:", apiService.getToken())
       console.log("🌐 API Base URL:", apiService.getBaseUrl())
       
       const response = await apiService.post('/shipments', data)
@@ -390,33 +389,32 @@ export function useExportShipments() {
     try {
       setLoading(true)
       
-      const response = await apiService.post('/export/shipments', { format, filters })
-      
-      if (response.status === 'success' && response.data.filename) {
+      const response: any = await apiService.post('/export-import/export/shipments', { format, filters })
+      const ok = response?.success === true || response?.status === 'success'
+      const filename = response?.data?.filename
+
+      if (ok && filename) {
         toast({
           title: "Preparing Download",
           description: "Your file is ready. Starting download...",
         })
-        
-        // Fetch the file using getRaw (authenticated)
-        const downloadResponse = await apiService.getRaw(`/export/download/${response.data.filename}`)
+
+        const downloadResponse = await apiService.getRaw(`/export-import/download/${filename}`)
         const blob = await downloadResponse.blob()
-        
-        // Create download link
+
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        link.setAttribute('download', response.data.filename)
+        link.setAttribute('download', filename)
         document.body.appendChild(link)
         link.click()
-        
-        // Cleanup
+
         document.body.removeChild(link)
         window.URL.revokeObjectURL(url)
-        
+
         return response.data
       } else {
-        throw new Error(response.message || 'Failed to export shipments')
+        throw new Error(response?.message || 'Failed to export shipments')
       }
     } catch (err: any) {
       console.error('Error exporting shipments:', err)

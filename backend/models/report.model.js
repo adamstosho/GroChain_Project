@@ -146,15 +146,21 @@ ReportSchema.methods.addTable = function(title, headers, rows, totals) {
 // Static methods
 ReportSchema.statics.getActiveReports = function(userId) {
   return this.find({
-    $or: [
-      { generatedBy: userId },
-      { requestedBy: userId },
-      { isPublic: true }
-    ],
     status: { $in: ['completed', 'generating'] },
-    $or: [
-      { expiresAt: { $gt: new Date() } },
-      { expiresAt: { $exists: false } }
+    $and: [
+      {
+        $or: [
+          { generatedBy: userId },
+          { requestedBy: userId },
+          { isPublic: true }
+        ]
+      },
+      {
+        $or: [
+          { expiresAt: { $gt: new Date() } },
+          { expiresAt: { $exists: false } }
+        ]
+      }
     ]
   }).sort({ createdAt: -1 })
 }

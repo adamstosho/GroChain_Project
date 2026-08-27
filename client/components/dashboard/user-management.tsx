@@ -10,7 +10,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { apiService } from "@/lib/api"
@@ -18,7 +17,6 @@ import {
   Users,
   Search,
   Filter,
-  MoreHorizontal,
   Eye,
   Edit,
   Trash2,
@@ -32,22 +30,10 @@ import {
   Upload,
   RefreshCw,
   Plus,
-  AlertTriangle,
   CheckCircle,
   Clock,
-  Ban,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  Activity,
-  TrendingUp,
-  Banknote,
-  Package,
-  Settings,
-  MoreVertical
+  Ban
 } from "lucide-react"
-import Link from "next/link"
 
 interface User {
   _id: string
@@ -114,6 +100,7 @@ export function UserManagement() {
   })
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [usersPerPage] = useState(20)
   const [activeTab, setActiveTab] = useState('all')
   const [stats, setStats] = useState<UserStats>({
@@ -136,7 +123,7 @@ export function UserManagement() {
 
   useEffect(() => {
     fetchUsers()
-  }, [])
+  }, [currentPage])
 
   useEffect(() => {
     applyFilters()
@@ -156,6 +143,11 @@ export function UserManagement() {
         const usersData = (response.data as any)?.users || []
         setUsers(usersData)
         calculateStats(usersData)
+
+        const paginationData = (response.data as any)?.pagination
+        if (paginationData) {
+          setTotalPages(paginationData.pages || 1)
+        }
       } else {
         throw new Error(response.message || 'Failed to fetch users')
       }
@@ -309,24 +301,23 @@ export function UserManagement() {
 
   const handleUserAction = async (userId: string, action: string) => {
     try {
-      let response
       let message = ''
-      
+
       switch (action) {
         case 'activate':
-          response = await apiService.activateAdminUser(userId)
+          await apiService.activateAdminUser(userId)
           message = 'User activated successfully'
           break
         case 'suspend':
-          response = await apiService.suspendAdminUser(userId)
+          await apiService.suspendAdminUser(userId)
           message = 'User suspended successfully'
           break
         case 'delete':
-          response = await apiService.deleteAdminUser(userId)
+          await apiService.deleteAdminUser(userId)
           message = 'User deleted successfully'
           break
         case 'verify':
-          response = await apiService.verifyAdminUser(userId)
+          await apiService.verifyAdminUser(userId)
           message = 'User verified successfully'
           break
         default:
@@ -462,7 +453,34 @@ export function UserManagement() {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button variant="outline">
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                const { getExportService } = await import("@/lib/export-utils")
+                const exportService = getExportService()
+                const result = await exportService.exportUsers({ format: "excel" })
+                if (!result.success) {
+                  // Fallback to filtered local users
+                  await exportService.exportCustomData(
+                    filteredUsers.map((u) => ({
+                      name: u.name,
+                      email: u.email,
+                      role: u.role,
+                      status: u.status,
+                      phone: u.phone || "",
+                      emailVerified: u.emailVerified,
+                      createdAt: u.createdAt,
+                    })),
+                    { format: "csv", filename: `grochain-users-${new Date().toISOString().slice(0, 10)}.csv` }
+                  )
+                }
+                toast({ title: "Export ready", description: "Users file downloaded." })
+              } catch (e: any) {
+                toast({ title: "Export failed", description: e?.message || "Try again", variant: "destructive" })
+              }
+            }}
+          >
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
@@ -765,7 +783,7 @@ export function UserManagement() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-border">
+                  <tbody className="bg-card divide-y divide-border">
                     {filteredUsers.map((user) => (
                       <tr key={user._id} className="hover:bg-muted">
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
@@ -882,6 +900,32 @@ export function UserManagement() {
                   })}>
                     Clear Filters
                   </Button>
+                </div>
+              )}
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage <= 1 || loading}
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage >= totalPages || loading}
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>

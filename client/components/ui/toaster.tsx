@@ -1,7 +1,7 @@
 "use client"
 
 import { useToaster } from "@/hooks/use-toast"
-import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from "lucide-react"
+import { X, CheckCircle, AlertCircle, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface ToastItemProps {
@@ -87,7 +87,7 @@ export function Toaster() {
         >
           <ToastItem
             toast={toast}
-            onClose={(id) => {
+            onClose={() => {
               // The toast will auto-remove via the timeout in the manager
               // We don't need to manually remove it here
             }}

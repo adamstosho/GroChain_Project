@@ -1,5 +1,4 @@
 const Listing = require('../models/listing.model')
-const mongoose = require('mongoose')
 
 class InventoryService {
   constructor() {

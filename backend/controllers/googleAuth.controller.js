@@ -1,7 +1,7 @@
 const { OAuth2Client } = require('google-auth-library')
-const jwt = require('jsonwebtoken')
-const User = require('../models/user.model')
 const bcrypt = require('bcryptjs')
+const User = require('../models/user.model')
+const { signAccess, signRefresh } = require('../utils/jwt')
 
 const client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
@@ -9,22 +9,119 @@ const client = new OAuth2Client(
   process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/auth/google/callback'
 )
 
+function buildAuthUser(user) {
+  return {
+    _id: user._id,
+    id: user._id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    avatar: user.profile?.avatar,
+    emailVerified: !!user.emailVerified,
+    // Legacy alias for older clients
+    isEmailVerified: !!user.emailVerified,
+    status: user.status,
+    phone: user.phone,
+    location: user.location
+  }
+}
+
+function setAuthCookies(res, accessToken, refreshToken) {
+  res.cookie('auth_token', accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 1000,
+    path: '/'
+  })
+  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+    path: '/'
+  })
+}
+
+function issueTokens(user) {
+  const payload = {
+    id: user._id.toString(),
+    role: user.role,
+    email: user.email,
+    name: user.name
+  }
+  return {
+    accessToken: signAccess(payload),
+    refreshToken: signRefresh(payload)
+  }
+}
+
+function sendAuthSuccess(res, user, message = 'Google authentication successful') {
+  const { accessToken, refreshToken } = issueTokens(user)
+  setAuthCookies(res, accessToken, refreshToken)
+  const authUser = buildAuthUser(user)
+
+  return res.json({
+    status: 'success',
+    message,
+    // Canonical shape (matches email login)
+    data: { user: authUser, accessToken, refreshToken },
+    // Backward-compatible flat fields for older Google callback clients
+    token: accessToken,
+    user: authUser
+  })
+}
+
+async function findOrCreateGoogleUser({ googleId, email, name, picture }) {
+  let user = await User.findOne({
+    $or: [{ email }, { googleId }]
+  })
+
+  if (user) {
+    let dirty = false
+    if (!user.googleId) {
+      user.googleId = googleId
+      dirty = true
+    }
+    if (picture && !user.profile?.avatar) {
+      user.profile = user.profile || {}
+      user.profile.avatar = picture
+      dirty = true
+    }
+    if (!user.emailVerified) {
+      user.emailVerified = true
+      dirty = true
+    }
+    if (dirty) await user.save()
+    return user
+  }
+
+  user = new User({
+    email,
+    name: name || email.split('@')[0],
+    googleId,
+    profile: { avatar: picture },
+    role: 'buyer',
+    emailVerified: true,
+    status: 'active',
+    password: await bcrypt.hash(`${googleId}-${Date.now()}-${Math.random()}`, 12)
+  })
+  await user.save()
+  return user
+}
+
 const googleAuthController = {
-  // Handle Google OAuth callback
   async handleGoogleCallback(req, res) {
     try {
-      console.log('Google OAuth callback received:', req.body)
-      const { code, state, redirectUri } = req.body
+      const { code, redirectUri } = req.body
 
       if (!code) {
-        console.log('No authorization code provided')
         return res.status(400).json({
           status: 'error',
           message: 'Authorization code is required'
         })
       }
 
-      // Exchange code for tokens
       const { tokens } = await client.getToken({
         code,
         redirect_uri: redirectUri || process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/auth/google/callback'
@@ -32,7 +129,6 @@ const googleAuthController = {
 
       client.setCredentials(tokens)
 
-      // Get user info from Google
       const ticket = await client.verifyIdToken({
         idToken: tokens.id_token,
         audience: process.env.GOOGLE_CLIENT_ID
@@ -41,78 +137,20 @@ const googleAuthController = {
       const payload = ticket.getPayload()
       const { sub: googleId, email, name, picture } = payload
 
-      // Check if user exists
-      let user = await User.findOne({ 
-        $or: [
-          { email },
-          { googleId }
-        ]
-      })
-
-      if (user) {
-        // Update existing user with Google info if not already set
-        if (!user.googleId) {
-          user.googleId = googleId
-          user.avatar = picture
-          await user.save()
-        }
-      } else {
-        // Create new user
-        user = new User({
-          email,
-          name,
-          googleId,
-          avatar: picture,
-          role: 'buyer', // Default role for Google sign-ups
-          isEmailVerified: true, // Google emails are pre-verified
-          isActive: true,
-          password: await bcrypt.hash(googleId + Date.now(), 12) // Random password for Google users
-        })
-
-        await user.save()
-      }
-
-      // Generate JWT token
-      const token = jwt.sign(
-        { 
-          id: user._id, 
-          email: user.email, 
-          role: user.role 
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
-      )
-
-      res.json({
-        status: 'success',
-        message: 'Google authentication successful',
-        token,
-        user: {
-          id: user._id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          avatar: user.avatar,
-          isEmailVerified: user.isEmailVerified
-        }
-      })
-
+      const user = await findOrCreateGoogleUser({ googleId, email, name, picture })
+      return sendAuthSuccess(res, user)
     } catch (error) {
-      console.error('Google OAuth callback error:', error)
-      console.error('Error details:', error.message)
-      console.error('Error stack:', error.stack)
-      res.status(500).json({
+      console.error('Google OAuth callback error:', error.message)
+      return res.status(500).json({
         status: 'error',
-        message: 'Google authentication failed',
-        error: error.message
+        message: 'Google authentication failed'
       })
     }
   },
 
-  // Handle direct Google OAuth (for testing)
   async handleGoogleAuth(req, res) {
     try {
-      const { googleId, email, name, image, accessToken, refreshToken } = req.body
+      const { googleId, email, name, image, accessToken } = req.body
 
       if (!googleId || !email) {
         return res.status(400).json({
@@ -121,68 +159,51 @@ const googleAuthController = {
         })
       }
 
-      // Check if user exists
-      let user = await User.findOne({ 
-        $or: [
-          { email },
-          { googleId }
-        ]
-      })
-
-      if (user) {
-        // Update existing user with Google info if not already set
-        if (!user.googleId) {
-          user.googleId = googleId
-          user.avatar = image
-          await user.save()
-        }
-      } else {
-        // Create new user
-        user = new User({
-          email,
-          name,
-          googleId,
-          avatar: image,
-          role: 'buyer', // Default role for Google sign-ups
-          isEmailVerified: true, // Google emails are pre-verified
-          isActive: true,
-          password: await bcrypt.hash(googleId + Date.now(), 12) // Random password for Google users
+      if (!accessToken) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Google access token is required'
         })
-
-        await user.save()
       }
 
-      // Generate JWT token
-      const token = jwt.sign(
-        { 
-          id: user._id, 
-          email: user.email, 
-          role: user.role 
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
-      )
-
-      res.json({
-        status: 'success',
-        message: 'Google authentication successful',
-        token,
-        user: {
-          id: user._id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          avatar: user.avatar,
-          isEmailVerified: user.isEmailVerified
+      let googleProfile
+      try {
+        const verifyResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        })
+        if (!verifyResponse.ok) {
+          throw new Error(`Google userinfo request failed: ${verifyResponse.status}`)
         }
-      })
+        googleProfile = await verifyResponse.json()
+      } catch (verifyError) {
+        console.error('Google access token verification failed:', verifyError.message)
+        return res.status(401).json({
+          status: 'error',
+          message: 'Invalid or expired Google access token'
+        })
+      }
 
+      const verifiedEmail = (googleProfile.email || '').toLowerCase()
+      const claimedEmail = (email || '').toLowerCase()
+      if (googleProfile.sub !== googleId || verifiedEmail !== claimedEmail) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'Google identity verification failed'
+        })
+      }
+
+      const user = await findOrCreateGoogleUser({
+        googleId,
+        email,
+        name,
+        picture: image || googleProfile.picture
+      })
+      return sendAuthSuccess(res, user)
     } catch (error) {
-      console.error('Google OAuth error:', error)
-      res.status(500).json({
+      console.error('Google OAuth error:', error.message)
+      return res.status(500).json({
         status: 'error',
-        message: 'Google authentication failed',
-        error: error.message
+        message: 'Google authentication failed'
       })
     }
   }

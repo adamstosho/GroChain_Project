@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -278,10 +279,12 @@ export function ReviewList({ listingId, className }: ReviewListProps) {
                     {review.images && review.images.length > 0 && (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
                         {review.images.map((image, index) => (
-                          <img
+                          <Image
                             key={index}
                             src={image}
                             alt={`Review image ${index + 1}`}
+                            width={150}
+                            height={80}
                             className="w-full h-20 object-cover rounded-lg"
                           />
                         ))}

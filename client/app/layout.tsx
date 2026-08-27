@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { DM_Sans, Nunito } from "next/font/google"
+import { DM_Sans, Fraunces } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
@@ -21,13 +21,14 @@ const dmSans = DM_Sans({
   variable: "--font-dm-sans",
 })
 
-const nunito = Nunito({
+const fraunces = Fraunces({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-nunito",
+  variable: "--font-fraunces",
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://grochain.com"),
   title: "GroChain - Building Trust in Nigeria's Food Chain",
   description:
     "Digital agricultural platform connecting farmers, buyers, and agencies through transparent supply chain management with QR code traceability.",
@@ -35,20 +36,24 @@ export const metadata: Metadata = {
   keywords: ["agriculture", "farming", "supply chain", "Nigeria", "food security", "traceability"],
   authors: [{ name: "GroChain Team" }],
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
     shortcut: "/favicon.ico",
-    apple: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
   },
   manifest: "/manifest.json",
   openGraph: {
-    title: "GroChain - Digital Agriculture Platform",
+    title: "GroChain - Building Trust in Nigeria's Food Chain",
     description: "Building trust in Nigeria's food chain through transparent digital platform",
     type: "website",
     locale: "en_US",
     siteName: "GroChain",
     images: [
       {
-        url: "/logo.svg",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "GroChain Platform",
@@ -57,9 +62,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "GroChain - Digital Agriculture Platform",
+    title: "GroChain - Building Trust in Nigeria's Food Chain",
     description: "Building trust in Nigeria's food chain through transparent digital platform",
-    images: ["/logo.svg"],
+    images: ["/og-image.png"],
   },
   appleWebApp: {
     capable: true,
@@ -76,7 +81,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 5, // Improved accessibility
   userScalable: true,
-  themeColor: "#16a34a",
+  themeColor: "#166534",
 }
 
 export default function RootLayout({
@@ -86,7 +91,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`font-sans ${dmSans.variable} ${nunito.variable} antialiased`}>
+      <body className={`font-sans ${dmSans.variable} ${fraunces.variable} antialiased`}>
+        <a
+          href="#main-content"
+          className="absolute left-4 top-4 z-[100] -translate-y-[200%] rounded-md bg-primary px-4 py-2 text-primary-foreground shadow-md transition-transform focus:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Skip to main content
+        </a>
         <ErrorBoundary>
           <DatadogSuppressor />
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
@@ -94,7 +105,7 @@ export default function RootLayout({
               <NotificationProvider>
                 <NotificationContainer>
                   {process.env.NODE_ENV === 'production' && <OfflineBanner />}
-                  {children}
+                  <div id="main-content">{children}</div>
                 </NotificationContainer>
               </NotificationProvider>
             </TokenRefreshProvider>

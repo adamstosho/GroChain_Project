@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,20 +18,13 @@ import {
   Eye,
   Trash2,
   Search,
-  Filter,
   RefreshCw,
   CheckCircle,
   XCircle,
   Clock,
-  AlertTriangle,
-  FileText,
   MapPin,
-  Calendar,
-  Package,
   Leaf,
   TrendingUp,
-  TrendingDown,
-  Minus,
   ChevronDown,
   ChevronUp
 } from "lucide-react"
@@ -124,7 +118,6 @@ export default function QRCodesPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [selectedQRCode, setSelectedQRCode] = useState<QRCode | null>(null)
   const [showQRDetails, setShowQRDetails] = useState(false)
-  const [statsLoading, setStatsLoading] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -132,13 +125,6 @@ export default function QRCodesPage() {
   }, [filters, sortBy, sortOrder])
 
   // Ensure stats are fetched when component mounts
-  useEffect(() => {
-    if (!loading) {
-      console.log("🔄 Component mounted, ensuring stats are loaded...")
-      fetchStats()
-    }
-  }, [])
-
   useEffect(() => {
     fetchStats()
   }, [])
@@ -232,7 +218,6 @@ export default function QRCodesPage() {
 
   const fetchStats = async () => {
     try {
-      setStatsLoading(true)
       console.log("🔄 Fetching QR stats...")
       const statsResponse = await apiService.getQRCodeStats()
 
@@ -283,8 +268,6 @@ export default function QRCodesPage() {
         monthlyTrend: []
       }
       setStats(fallbackStats)
-    } finally {
-      setStatsLoading(false)
     }
   }
 
@@ -836,7 +819,7 @@ export default function QRCodesPage() {
         {/* QR Code Details Modal */}
         {showQRDetails && selectedQRCode && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="bg-card rounded-lg max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
               <div className="p-4 sm:p-6 border-b border-border">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg sm:text-xl font-semibold text-foreground truncate mr-4">
@@ -895,9 +878,12 @@ export default function QRCodesPage() {
                     </CardHeader>
                     <CardContent className="flex justify-center">
                       <div className="p-2 sm:p-4 bg-white border border-border rounded-lg">
-                        <img
+                        <Image
                           src={(selectedQRCode as any).qrImage}
                           alt={`QR Code ${selectedQRCode.code}`}
+                          width={192}
+                          height={192}
+                          unoptimized
                           className="w-32 h-32 sm:w-48 sm:h-48"
                         />
                       </div>

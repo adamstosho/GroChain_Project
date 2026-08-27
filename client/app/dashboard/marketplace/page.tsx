@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { apiService } from "@/lib/api"
+import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
 import {
   Store,
@@ -18,20 +20,25 @@ import {
   TrendingUp,
   Eye,
   Edit,
-  Trash2,
   ShoppingCart,
   Banknote,
   Users,
   Calendar,
-  MapPin,
   Star,
-  Filter,
   Search,
-  MoreHorizontal,
   RefreshCw,
   UserCheck,
   Activity,
-  Plus
+  Wheat,
+  Leaf,
+  Apple,
+  Coffee,
+  Sprout,
+  Plus,
+  MoreVertical,
+  PlayCircle,
+  PauseCircle,
+  FileEdit
 } from "lucide-react"
 import Link from "next/link"
 
@@ -147,12 +154,16 @@ export default function MarketplacePage() {
         const dashboardData = farmerDashboard.data
         console.log('🔍 Farmer Dashboard Data:', dashboardData)
 
+        // Prefer the farmer-analytics endpoint's revenue figure when available —
+        // it's computed strictly from the farmer's own sales, vs. the dashboard's.
+        const analyticsRevenue = (farmerAnalytics?.data as any)?.totalRevenue
+
         processedStats = {
           totalListings: (dashboardData as any).activeListings || 0,
           activeListings: (dashboardData as any).activeListings || 0,
           totalOrders: 0, // Will be calculated from orders
           pendingOrders: (dashboardData as any).pendingApprovals || 0,
-          totalRevenue: (dashboardData as any).totalRevenue || 0,
+          totalRevenue: analyticsRevenue ?? ((dashboardData as any).totalRevenue || 0),
           monthlyRevenue: (dashboardData as any).monthlyRevenue || 0,
           totalCustomers: 0, // Will be calculated from orders
           averageRating: 0, // Not available in dashboard
@@ -220,7 +231,7 @@ export default function MarketplacePage() {
             phone: order.customer?.phone || ''
           },
           products: order.products || [],
-          totalAmount: order.totalAmount,
+          totalAmount: order.total ?? order.totalAmount,
           status: order.status,
           orderDate: order.orderDate,
           expectedDelivery: order.expectedDelivery || '',
@@ -331,14 +342,15 @@ export default function MarketplacePage() {
   }
 
   const getCategoryIcon = (category: string) => {
+    const iconClass = "h-5 w-5 text-primary"
     switch (category) {
-      case 'grains': return '🌾'
-      case 'tubers': return '🥔'
-      case 'vegetables': return '🥬'
-      case 'fruits': return '🍎'
-      case 'legumes': return '🫘'
-      case 'cash_crops': return '☕'
-      default: return '🌱'
+      case "grains": return <Wheat className={iconClass} />
+      case "tubers": return <Package className={iconClass} />
+      case "vegetables": return <Leaf className={iconClass} />
+      case "fruits": return <Apple className={iconClass} />
+      case "legumes": return <Sprout className={iconClass} />
+      case "cash_crops": return <Coffee className={iconClass} />
+      default: return <Leaf className={iconClass} />
     }
   }
 
@@ -502,8 +514,8 @@ export default function MarketplacePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">₦{(stats.totalRevenue / 1000000).toFixed(1)}M</div>
-              <p className="text-xs text-muted-foreground">₦{(stats.monthlyRevenue / 1000).toFixed(0)}K this month</p>
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{formatCompactCurrency(stats.totalRevenue)}</div>
+              <p className="text-xs text-muted-foreground">{formatCompactCurrency(stats.monthlyRevenue)} this month</p>
             </CardContent>
           </Card>
 
@@ -516,7 +528,9 @@ export default function MarketplacePage() {
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
               <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{stats.totalCustomers}</div>
-              <p className="text-xs text-muted-foreground">⭐ {stats.averageRating} avg rating</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Star className="h-3 w-3 text-secondary" /> {stats.averageRating} avg rating
+              </p>
             </CardContent>
           </Card>
 
@@ -564,7 +578,7 @@ export default function MarketplacePage() {
                     {listings.slice(0, 3).map((listing) => (
                       <div key={listing._id} className="flex items-center justify-between p-2 sm:p-3 border border-border rounded-lg">
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                          <div className="text-lg sm:text-xl lg:text-2xl flex-shrink-0">{getCategoryIcon(listing.category)}</div>
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-soft flex-shrink-0">{getCategoryIcon(listing.category)}</div>
                           <div className="min-w-0 flex-1">
                             <div className="font-medium text-foreground text-xs sm:text-sm truncate">{listing.cropName}</div>
                             <div className="text-xs text-muted-foreground truncate">
@@ -649,10 +663,10 @@ export default function MarketplacePage() {
                 </CardHeader>
                 <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg border border-success/10">
+                    <div className="flex items-center justify-between p-3 bg-success-soft rounded-lg border border-success/20">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-success rounded-full flex items-center justify-center">
-                          <Activity className="h-4 w-4 text-white" />
+                          <Activity className="h-4 w-4 text-success-foreground" />
                         </div>
                         <div>
                           <p className="font-medium text-sm text-success">Active Buyers Today</p>
@@ -717,7 +731,7 @@ export default function MarketplacePage() {
               </CardHeader>
               <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
                 <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3">
-                  <Button variant="outline" className="h-16 sm:h-20 flex-col gap-1 sm:gap-2 text-xs sm:text-sm border-primary/10 hover:bg-primary/10" asChild>
+                  <Button variant="outline" className="h-16 sm:h-20 flex-col gap-1 sm:gap-2 text-xs sm:text-sm border-primary/20 hover:bg-primary-soft" asChild>
                     <Link href="/marketplace">
                       <Store className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
                       <span className="text-center">Browse Marketplace</span>
@@ -796,7 +810,7 @@ export default function MarketplacePage() {
                     <div className="flex items-start justify-between">
                       <div className="space-y-2 min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-lg sm:text-xl lg:text-2xl flex-shrink-0">{getCategoryIcon(listing.category)}</span>
+                          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-soft flex-shrink-0">{getCategoryIcon(listing.category)}</span>
                           <Badge className={`${getStatusColor(listing.status)} text-xs`}>
                             {listing.status.replace('_', ' ')}
                           </Badge>
@@ -859,6 +873,33 @@ export default function MarketplacePage() {
                         <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         Edit
                       </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0 flex-shrink-0">
+                            <MoreVertical className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {listing.status !== 'active' && (
+                            <DropdownMenuItem onClick={() => handleUpdateListingStatus(listing._id, 'active')}>
+                              <PlayCircle className="mr-2 h-4 w-4" />
+                              Activate
+                            </DropdownMenuItem>
+                          )}
+                          {listing.status === 'active' && (
+                            <DropdownMenuItem onClick={() => handleUpdateListingStatus(listing._id, 'inactive')}>
+                              <PauseCircle className="mr-2 h-4 w-4" />
+                              Pause
+                            </DropdownMenuItem>
+                          )}
+                          {listing.status !== 'draft' && (
+                            <DropdownMenuItem onClick={() => handleUpdateListingStatus(listing._id, 'draft')}>
+                              <FileEdit className="mr-2 h-4 w-4" />
+                              Move to Draft
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </CardContent>
                 </Card>

@@ -24,9 +24,7 @@ import {
   Moon,
   Sun,
   Lock,
-  ShoppingCart,
-  Upload,
-  Camera
+  ShoppingCart
 } from "lucide-react"
 
 interface BuyerSettings {

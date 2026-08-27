@@ -5,21 +5,25 @@ import Image from "next/image"
 export function About() {
   const stats = [
     {
-      value: "10K+",
-      label: "Registered Farmers",
-      description: "Farmers have joined our platform to showcase their products",
+      value: "3 roles",
+      label: "One platform",
+      description: "Farmers, buyers, and partner agencies work from the same records",
     },
     {
-      value: "100%",
-      label: "Community Driven",
-      description: "Built by Nigerians, for Nigerians, with platform governance",
+      value: "QR",
+      label: "Batch traceability",
+      description: "Each harvest can carry a code buyers scan before they pay",
     },
     {
-      value: "₦500M+",
-      label: "Total Transactions",
-      description: "Value of transactions processed through our platform",
+      value: "Farm → buyer",
+      label: "One trail",
+      description: "Onboarding, harvest, listing, and payment stay on a single record",
     },
-    { value: "95%", label: "Satisfaction Rate", description: "Customer satisfaction rate across all user categories" },
+    {
+      value: "NG",
+      label: "Built here",
+      description: "Designed for Nigerian produce, agencies, and payment rails",
+    },
   ]
 
   return (
@@ -41,9 +45,8 @@ export function About() {
 
             <div className="space-y-6">
               <p className="text-muted-foreground">
-                We're bringing together farmers and modern technology to create a more transparent, efficient, and
-                trustworthy agricultural supply chain. Our platform enables end-to-end traceability, supports local
-                farmers, and ensures food quality for consumers.
+                The platform covers onboarding, harvest records, QR traceability, marketplace sales, and payments so
+                each batch can be followed from farm to buyer without a separate paper trail.
               </p>
 
               <div className="grid grid-cols-2 gap-6">
@@ -64,11 +67,12 @@ export function About() {
 
           {/* Image */}
           <div className="relative">
-            <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-muted">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted">
               <Image
-                src="/nigerian-agricultural-landscape-with-modern-farmin.png"
-                alt="Nigerian agricultural landscape showcasing modern farming techniques and traditional practices"
+                src="/illustration-about.png"
+                alt="Illustration of maize fields beside a farm storehouse, produce crate, and a tablet showing a leaf mark"
                 fill
+                sizes="(min-width: 1024px) 50vw, 100vw"
                 className="object-cover"
               />
             </div>
@@ -76,12 +80,11 @@ export function About() {
             {/* Overlay Stats */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent rounded-2xl" />
             <div className="absolute bottom-6 left-6 right-6">
-              <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4">
+              <div className="bg-card/90 backdrop-blur-sm rounded-lg p-4">
                 <p className="text-sm font-semibold text-foreground">
-                  "GroChain has transformed how I sell my products. The QR codes give my customers confidence, and I can
-                  reach buyers directly without middlemen."
+                  Field records, a labelled crate, and a scan at the stall — the same batch, end to end.
                 </p>
-                <p className="text-xs text-muted-foreground mt-2">- Adunni Adebayo, Farmer from Ogun</p>
+                <p className="text-xs text-muted-foreground mt-2">What GroChain is built to show</p>
               </div>
             </div>
           </div>

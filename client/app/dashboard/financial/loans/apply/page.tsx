@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { ArrowLeft, CreditCard, Calculator, FileText, CheckCircle, AlertCircle, Info, Upload, X, Loader2, User } from "lucide-react"
+import { ArrowLeft, CreditCard, Calculator, FileText, CheckCircle, Info, Upload, X, Loader2, User } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -378,11 +378,11 @@ export default function LoanApplicationPage() {
 
           {/* User Profile Card */}
           {userProfile && (
-            <Card className="bg-gradient-to-r from-primary/10 to-primary/10 border-primary/10">
+            <Card className="bg-primary-soft border-primary/20">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
-                    <User className="h-5 w-5 text-white" />
+                    <User className="h-5 w-5 text-primary-foreground" />
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-foreground">{userProfile.name}</p>

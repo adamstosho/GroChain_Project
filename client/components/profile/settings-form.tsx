@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
+import { AvatarUpload } from "@/components/ui/avatar-upload"
 import { useToast } from "@/hooks/use-toast"
 import { useAuthStore } from "@/lib/auth"
 import { apiService } from "@/lib/api"
@@ -24,11 +25,7 @@ import {
   Moon,
   Sun,
   Lock,
-  MapPin,
-  Wheat,
-  Banknote,
-  Upload,
-  Camera
+  Wheat
 } from "lucide-react"
 
 interface FarmerSettings {
@@ -131,8 +128,6 @@ export function SettingsForm() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [avatarFile, setAvatarFile] = useState<File | null>(null)
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
   // Load settings on component mount
   useEffect(() => {
@@ -233,15 +228,15 @@ export function SettingsForm() {
     })
   }
 
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      setAvatarFile(file)
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setAvatarPreview(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
+  const handleAvatarUpdate = (avatarUrl: string) => {
+    if (user) {
+      updateUser({
+        ...user,
+        profile: {
+          ...user.profile,
+          avatar: avatarUrl
+        }
+      })
     }
   }
 
@@ -400,61 +395,6 @@ export function SettingsForm() {
     }
   }
 
-  const handleAvatarUpload = async () => {
-    if (!avatarFile) return
-
-    try {
-      setIsSaving(true)
-      console.log('Starting avatar upload...')
-
-      // Upload avatar using the API service
-      const formData = new FormData()
-      formData.append('avatar', avatarFile)
-      const response = await apiService.uploadAvatar(formData)
-      console.log('Avatar upload response:', response)
-
-      if (response.status === 'success') {
-        // Update the auth store with the new avatar
-        const avatarUrl = response.data?.avatarUrl
-        console.log('New avatar URL:', avatarUrl)
-
-        if (avatarUrl && user) {
-          const updatedUser = {
-            ...user,
-            profile: {
-              ...user.profile,
-              avatar: avatarUrl
-            }
-          }
-          console.log('Updating user in auth store:', updatedUser)
-          updateUser(updatedUser)
-        }
-
-        toast({
-          title: "Avatar updated",
-          description: "Your avatar has been updated successfully",
-          variant: "default"
-        })
-
-        // Clear the file and preview
-        setAvatarFile(null)
-        setAvatarPreview(null)
-
-        // Refresh settings to show updated avatar
-        await loadSettings()
-      }
-    } catch (error: any) {
-      console.error('Error uploading avatar:', error)
-      toast({
-        title: "Error uploading avatar",
-        description: error.message || "Failed to upload avatar",
-        variant: "destructive"
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -500,79 +440,16 @@ export function SettingsForm() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Avatar Section */}
+          {/* Avatar Section - shared component, same upload/display behavior everywhere in the app */}
           <div className="space-y-4">
             <Label className="text-base font-medium">Profile Picture</Label>
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-                  {avatarPreview ? (
-                    <img
-                      src={avatarPreview}
-                      alt="Profile Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : user?.profile?.avatar ? (
-                    <img
-                      src={user.profile.avatar.startsWith('http')
-                        ? `${user.profile.avatar}?t=${Date.now()}`
-                        : `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/users/avatar/${user.profile.avatar}?t=${Date.now()}`
-                      }
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                      key={`${user.profile.avatar}-${Date.now()}`} // Force re-render when avatar changes
-                      onError={(e) => {
-                        console.error('Avatar failed to load:', e.currentTarget.src)
-                        const target = e.currentTarget as HTMLImageElement
-
-                        // If it's already a Cloudinary URL, don't try fallback
-                        if (user?.profile?.avatar?.startsWith('http') && target.src.includes('cloudinary')) {
-                          console.log('Cloudinary URL failed, no fallback available')
-                          return
-                        }
-
-                        // Try fallback to direct static URL if it's not already a full URL
-                        if (!user?.profile?.avatar?.startsWith('http') && !target.src.includes('/api/users/avatar/')) {
-                          const fallbackSrc = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/users/avatar/${user?.profile?.avatar}?t=${Date.now()}`
-                          console.log('Trying fallback URL:', fallbackSrc)
-                          target.src = fallbackSrc
-                        }
-                      }}
-                      onLoad={() => {
-                        console.log('Avatar loaded successfully:', user?.profile?.avatar)
-                      }}
-                    />
-                  ) : null}
-                  {!avatarPreview && !user?.profile?.avatar && (
-                    <User className="w-8 h-8 text-muted-foreground" />
-                  )}
-                  {/* Hidden fallback avatar for error cases */}
-                  <div className="avatar-fallback absolute inset-0 w-full h-full rounded-full bg-muted items-center justify-center hidden">
-                    <User className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                </div>
-                <label className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1 cursor-pointer">
-                  <Camera className="w-4 h-4" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  Upload a new profile picture
-                </p>
-                {avatarFile && (
-                  <Button onClick={handleAvatarUpload} disabled={isSaving} size="sm">
-                    <Upload className="w-4 h-4 mr-2" />
-                    {isSaving ? 'Uploading...' : 'Upload Avatar'}
-                  </Button>
-                )}
-              </div>
-            </div>
+            <AvatarUpload
+              currentAvatar={user?.profile?.avatar}
+              userName={user?.name}
+              onAvatarUpdate={handleAvatarUpdate}
+              size="lg"
+              compact
+            />
           </div>
 
           <Separator />

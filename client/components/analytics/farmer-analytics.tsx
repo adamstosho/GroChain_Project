@@ -29,8 +29,10 @@ import {
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart as RechartsPieChart, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Pie, Legend } from "recharts"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { useExportService } from "@/lib/export-utils"
+import { getExportService } from "@/lib/export-utils"
 import { AiAnalyticsInsights } from "@/components/ai/ai-analytics-insights"
+import { brandColors, chartSeries } from "@/lib/brand/colors"
+import { formatCompactCurrency, formatCompactNumber } from "@/lib/format"
 
 interface FarmerAnalyticsData {
   totalHarvests: number
@@ -106,12 +108,6 @@ interface FarmerAnalyticsData {
   }
 }
 
-interface ChartData {
-  name: string
-  value: number
-  [key: string]: any
-}
-
 export function FarmerAnalytics() {
   const [analyticsData, setAnalyticsData] = useState<FarmerAnalyticsData | null>(null)
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d" | "1y">("30d")
@@ -121,7 +117,7 @@ export function FarmerAnalytics() {
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
-  const exportService = useExportService()
+  const exportService = getExportService()
 
   // Fetch analytics data from backend
   const fetchAnalytics = useCallback(async (period?: string) => {
@@ -218,144 +214,8 @@ export function FarmerAnalytics() {
     }
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      notation: 'compact',
-      maximumFractionDigits: 1
-    }).format(value)
-  }
-
-  const formatNumber = (value: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      notation: 'compact',
-      maximumFractionDigits: 1
-    }).format(value)
-  }
-
-  // Ensure data is valid before rendering charts
-  const isValidData = (data: any[]) => {
-    return Array.isArray(data) && data.length > 0 && data.every(item => item !== null && item !== undefined)
-  }
-
-  // Safe chart rendering with error boundaries
-  const renderChart = (chartType: string, data: any[], fallback: React.ReactNode) => {
-    if (!isValidData(data)) {
-      return fallback
-    }
-
-    try {
-      switch (chartType) {
-        case 'line':
-          return (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="harvests"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  name="Harvests"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  name="Revenue (₦)"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          )
-        case 'area':
-          return (
-            <ResponsiveContainer width="100%" height={400}>
-              <AreaChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Area
-                  type="monotone"
-                  dataKey="harvests"
-                  stackId="1"
-                  stroke="#3b82f6"
-                  fill="#3b82f6"
-                  fillOpacity={0.6}
-                  name="Harvests"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  stackId="2"
-                  stroke="#10b981"
-                  fill="#10b981"
-                  fillOpacity={0.6}
-                  name="Revenue (₦)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          )
-        case 'bar':
-          return (
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="value" fill="#3b82f6" name="Harvest Count" />
-                <Bar dataKey="quantity" fill="#10b981" name="Total Quantity" />
-              </BarChart>
-            </ResponsiveContainer>
-          )
-        case 'pie':
-          return (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: 'Excellent', value: analyticsData?.qualityMetrics?.excellent, color: '#10b981' },
-                    { name: 'Good', value: analyticsData?.qualityMetrics?.good, color: '#3b82f6' },
-                    { name: 'Fair', value: analyticsData?.qualityMetrics?.fair, color: '#f59e0b' },
-                    { name: 'Poor', value: analyticsData?.qualityMetrics?.poor, color: '#ef4444' }
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
-                >
-                  {[
-                    { name: 'Excellent', value: analyticsData?.qualityMetrics?.excellent, color: '#10b981' },
-                    { name: 'Good', value: analyticsData?.qualityMetrics?.good, color: '#3b82f6' },
-                    { name: 'Fair', value: analyticsData?.qualityMetrics?.fair, color: '#f59e0b' },
-                    { name: 'Poor', value: analyticsData?.qualityMetrics?.poor, color: '#ef4444' }
-                  ].map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          )
-        default:
-          return fallback
-      }
-    } catch (error) {
-      console.error(`Error rendering ${chartType} chart:`, error)
-      return fallback
-    }
-  }
+  const formatCurrency = formatCompactCurrency
+  const formatNumber = formatCompactNumber
 
   // Loading skeleton component
   const LoadingSkeleton = () => (
@@ -560,7 +420,7 @@ export function FarmerAnalytics() {
             </div>
             {(analyticsData?.totalRevenue || 0) === 0 && (
               <div className="text-xs text-warning mt-1">
-                💡 Start selling to see revenue here
+                Start selling to see revenue here
               </div>
             )}
           </CardContent>
@@ -609,29 +469,25 @@ export function FarmerAnalytics() {
             value="overview"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
-            <span className="hidden xs:inline">Overview</span>
-            <span className="xs:hidden">📊</span>
+            Overview
           </TabsTrigger>
           <TabsTrigger
             value="harvests"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
-            <span className="hidden xs:inline">Harvests</span>
-            <span className="xs:hidden">🌾</span>
+            Harvests
           </TabsTrigger>
           <TabsTrigger
             value="crops"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
-            <span className="hidden xs:inline">Crops</span>
-            <span className="xs:hidden">🥕</span>
+            Crops
           </TabsTrigger>
           <TabsTrigger
             value="quality"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
-            <span className="hidden xs:inline">Quality</span>
-            <span className="xs:hidden">⭐</span>
+            Quality
           </TabsTrigger>
         </TabsList>
 
@@ -679,7 +535,7 @@ export function FarmerAnalytics() {
                     <Tooltip
                       contentStyle={{
                         backgroundColor: 'white',
-                        border: '1px solid #e5e7eb',
+                        border: '1px solid var(--border)',
                         borderRadius: '8px',
                         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                         fontSize: '12px'
@@ -693,8 +549,8 @@ export function FarmerAnalytics() {
                       yAxisId="left"
                       type="monotone"
                       dataKey="harvests"
-                      stroke="#3b82f6"
-                      fill="#3b82f6"
+                      stroke={brandColors.chartEarth}
+                      fill={brandColors.chartEarth}
                       fillOpacity={0.1}
                       name="Harvests"
                       strokeWidth={2}
@@ -703,8 +559,8 @@ export function FarmerAnalytics() {
                       yAxisId="right"
                       type="monotone"
                       dataKey="revenue"
-                      stroke="#22c55e"
-                      fill="#22c55e"
+                      stroke="#166534"
+                      fill="#166534"
                       fillOpacity={0.1}
                       name="Revenue"
                       strokeWidth={2}
@@ -713,8 +569,8 @@ export function FarmerAnalytics() {
                       yAxisId="left"
                       type="monotone"
                       dataKey="quality"
-                      stroke="#8b5cf6"
-                      fill="#8b5cf6"
+                      stroke={brandColors.chartGold}
+                      fill={brandColors.chartGold}
                       fillOpacity={0.1}
                       name="Quality Score"
                       strokeWidth={2}
@@ -834,7 +690,7 @@ export function FarmerAnalytics() {
                       <Tooltip
                         contentStyle={{
                           backgroundColor: 'white',
-                          border: '1px solid #e5e7eb',
+                          border: '1px solid var(--border)',
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           fontSize: '12px'
@@ -843,7 +699,7 @@ export function FarmerAnalytics() {
                       />
                       <Bar
                         dataKey="harvests"
-                        fill="#3b82f6"
+                        fill={brandColors.chartEarth}
                         radius={[4, 4, 0, 0]}
                       />
                     </BarChart>
@@ -884,7 +740,7 @@ export function FarmerAnalytics() {
                       <Tooltip
                         contentStyle={{
                           backgroundColor: 'white',
-                          border: '1px solid #e5e7eb',
+                          border: '1px solid var(--border)',
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           fontSize: '12px'
@@ -894,10 +750,10 @@ export function FarmerAnalytics() {
                       <Line
                         type="monotone"
                         dataKey="revenue"
-                        stroke="#22c55e"
+                        stroke="#166534"
                         strokeWidth={2}
-                        dot={{ fill: '#22c55e', strokeWidth: 2, r: 3 }}
-                        activeDot={{ r: 5, stroke: '#22c55e', strokeWidth: 2 }}
+                        dot={{ fill: '#166534', strokeWidth: 2, r: 3 }}
+                        activeDot={{ r: 5, stroke: '#166534', strokeWidth: 2 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -938,7 +794,7 @@ export function FarmerAnalytics() {
                     <Tooltip
                       contentStyle={{
                         backgroundColor: 'white',
-                        border: '1px solid #e5e7eb',
+                        border: '1px solid var(--border)',
                         borderRadius: '8px',
                         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                       }}
@@ -947,8 +803,8 @@ export function FarmerAnalytics() {
                     <Area
                       type="monotone"
                       dataKey="quality"
-                      stroke="#f59e0b"
-                      fill="#f59e0b"
+                      stroke="#9c6a00"
+                      fill="#9c6a00"
                       fillOpacity={0.2}
                       strokeWidth={2}
                     />
@@ -1018,19 +874,19 @@ export function FarmerAnalytics() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={(props) => `${(props as any).name} ${((props as any).percent * 100).toFixed(0)}%`}
+                        label={(props) => `${(props as any).name} ${((((props as any).percent || 0) * 100).toFixed(0))}%`}
                         outerRadius={80}
-                        fill="#8884d8"
+                        fill={brandColors.primary}
                         dataKey="quantity"
                       >
                         {analyticsData.cropDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                          <Cell key={`cell-${index}`} fill={entry.color || chartSeries[index % chartSeries.length]} />
                         ))}
                       </Pie>
                       <Tooltip
                         contentStyle={{
                           backgroundColor: 'white',
-                          border: '1px solid #e5e7eb',
+                          border: '1px solid var(--border)',
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           fontSize: '12px'
@@ -1091,7 +947,7 @@ export function FarmerAnalytics() {
                       <Tooltip
                         contentStyle={{
                           backgroundColor: 'white',
-                          border: '1px solid #e5e7eb',
+                          border: '1px solid var(--border)',
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           fontSize: '12px'
@@ -1106,7 +962,7 @@ export function FarmerAnalytics() {
                       />
                       <Bar
                         dataKey="totalValue"
-                        fill="#22c55e"
+                        fill="#166534"
                         radius={[4, 4, 0, 0]}
                         name="Revenue"
                       />
@@ -1139,7 +995,7 @@ export function FarmerAnalytics() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  {analyticsData.cropDistribution.slice(0, 6).map((crop, index) => (
+                  {analyticsData.cropDistribution.slice(0, 6).map((crop) => (
                     <div key={crop.name} className="p-3 sm:p-4 border rounded-lg bg-gradient-to-br from-background to-muted/20">
                       <div className="flex items-start justify-between mb-2 sm:mb-3">
                         <div className="flex items-center gap-2 sm:gap-3">
@@ -1181,9 +1037,9 @@ export function FarmerAnalytics() {
                       <div className="mt-2 sm:mt-3 p-2 bg-muted/30 rounded text-xs">
                         <p className="text-muted-foreground">
                           {crop.value >= 20
-                            ? "💡 Consider expanding production of this high-performing crop"
+                            ? "Consider expanding production of this high-performing crop"
                             : crop.value >= 10
-                              ? "📈 This crop shows good performance, monitor for growth opportunities"
+                              ? "This crop shows good performance, monitor for growth opportunities"
                               : "🔍 Evaluate market demand and consider optimizing production"
                           }
                         </p>
@@ -1248,7 +1104,7 @@ export function FarmerAnalytics() {
               <CardContent>
                 {analyticsData?.qualityDistribution?.distribution && analyticsData.qualityDistribution.distribution.length > 0 ? (
                   <div className="space-y-4">
-                    {analyticsData.qualityDistribution.distribution.map((quality, index) => (
+                    {analyticsData.qualityDistribution.distribution.map((quality) => (
                       <div key={quality.name} className="space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -1321,7 +1177,7 @@ export function FarmerAnalytics() {
                       <Tooltip
                         contentStyle={{
                           backgroundColor: 'white',
-                          border: '1px solid #e5e7eb',
+                          border: '1px solid var(--border)',
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           fontSize: '12px'
@@ -1342,8 +1198,8 @@ export function FarmerAnalytics() {
                         type="monotone"
                         dataKey="excellent_count"
                         stackId="1"
-                        stroke="#22c55e"
-                        fill="#22c55e"
+                        stroke="#166534"
+                        fill="#166534"
                         fillOpacity={0.6}
                         strokeWidth={2}
                         name="Excellent"
@@ -1352,8 +1208,8 @@ export function FarmerAnalytics() {
                         type="monotone"
                         dataKey="good_count"
                         stackId="1"
-                        stroke="#84cc16"
-                        fill="#84cc16"
+                        stroke={brandColors.secondary}
+                        fill={brandColors.secondary}
                         fillOpacity={0.6}
                         strokeWidth={2}
                         name="Good"
@@ -1362,8 +1218,8 @@ export function FarmerAnalytics() {
                         type="monotone"
                         dataKey="fair_count"
                         stackId="1"
-                        stroke="#f59e0b"
-                        fill="#f59e0b"
+                        stroke="#9c6a00"
+                        fill="#9c6a00"
                         fillOpacity={0.6}
                         strokeWidth={2}
                         name="Fair"
@@ -1372,8 +1228,8 @@ export function FarmerAnalytics() {
                         type="monotone"
                         dataKey="poor_count"
                         stackId="1"
-                        stroke="#ef4444"
-                        fill="#ef4444"
+                        stroke="#df000d"
+                        fill="#df000d"
                         fillOpacity={0.6}
                         strokeWidth={2}
                         name="Poor"
@@ -1407,14 +1263,14 @@ export function FarmerAnalytics() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  {analyticsData.qualityDistribution.insights.map((insight, index) => (
+                  {analyticsData.qualityDistribution.insights.map((insight) => (
                     <div key={insight.quality} className="p-3 sm:p-4 border rounded-lg bg-gradient-to-br from-background to-muted/20">
                       <div className="flex items-start justify-between mb-2 sm:mb-3">
                         <div className="flex items-center gap-2 sm:gap-3">
                           <div
                             className="w-3 h-3 sm:w-4 sm:h-4 rounded-full flex-shrink-0"
                             style={{
-                              backgroundColor: insight.isHighQuality ? '#22c55e' : '#f59e0b'
+                              backgroundColor: insight.isHighQuality ? '#166534' : '#9c6a00'
                             }}
                           />
                           <div>
@@ -1450,7 +1306,7 @@ export function FarmerAnalytics() {
 
                       <div className="mt-2 sm:mt-3 p-2 bg-muted/30 rounded text-xs">
                         <p className="text-muted-foreground">
-                          💡 {insight.recommendation}
+                          {insight.recommendation}
                         </p>
                       </div>
                     </div>
@@ -1605,7 +1461,7 @@ export function FarmerAnalytics() {
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {analyticsData?.totalHarvests === 0 && (
-                <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-md">
+                <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-card rounded-md">
                   <Package className="h-4 w-4 sm:h-5 sm:w-5 text-warning mt-0.5 flex-shrink-0" />
                   <div className="min-w-0">
                     <p className="font-medium text-xs sm:text-sm">Start Logging Harvests</p>
@@ -1614,7 +1470,7 @@ export function FarmerAnalytics() {
                 </div>
               )}
               {analyticsData?.totalListings === 0 && (
-                <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-md">
+                <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-card rounded-md">
                   <Leaf className="h-4 w-4 sm:h-5 sm:w-5 text-warning mt-0.5 flex-shrink-0" />
                   <div className="min-w-0">
                     <p className="font-medium text-xs sm:text-sm">Create Marketplace Listings</p>
@@ -1623,7 +1479,7 @@ export function FarmerAnalytics() {
                 </div>
               )}
               {analyticsData?.marketplaceStats?.totalViews && analyticsData.marketplaceStats.totalViews > analyticsData.totalOrders * 2 && (
-                <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-md">
+                <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-card rounded-md">
                   <Target className="h-4 w-4 sm:h-5 sm:w-5 text-warning mt-0.5 flex-shrink-0" />
                   <div className="min-w-0">
                     <p className="font-medium text-xs sm:text-sm">Improve Product Descriptions</p>
@@ -1632,7 +1488,7 @@ export function FarmerAnalytics() {
                 </div>
               )}
               {analyticsData?.approvalRate && analyticsData.approvalRate < 80 && (
-                <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-md">
+                <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-card rounded-md">
                   <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-warning mt-0.5 flex-shrink-0" />
                   <div className="min-w-0">
                     <p className="font-medium text-xs sm:text-sm">Focus on Quality Standards</p>

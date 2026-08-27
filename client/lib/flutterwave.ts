@@ -1,4 +1,5 @@
 import { APP_CONFIG } from "@/lib/constants"
+import { getTokenFromStorage } from "@/lib/auth-storage"
 
 // Flutterwave payment integration utilities
 
@@ -114,7 +115,7 @@ export const initializeFlutterwavePayment = async (
         customizations: {
           title: 'GroChain Payment',
           description: `Payment for order ${paymentData.orderId}`,
-          logo: 'https://your-domain.com/logo.png'
+          logo: `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/logo-icon.png`
         },
         meta: {
           order_id: paymentData.orderId,
@@ -174,9 +175,9 @@ export const processFlutterwaveOrderPayment = async (
 
     // Initialize payment with backend
     console.log('💳 Initializing Flutterwave payment with backend...')
-    console.log('📤 Payment init data:', { orderId, amount, email, paymentProvider: 'flutterwave' })
+    console.log('📤 Payment init data:', { orderId, amount, email: email ? '[redacted]' : undefined, paymentProvider: 'flutterwave' })
 
-    const token = localStorage.getItem('grochain_auth_token')
+    const token = getTokenFromStorage()
     const initResponse = await fetch(`${APP_CONFIG.api.baseUrl}/api/payments/initialize`, {
       method: 'POST',
       headers: {
@@ -205,12 +206,16 @@ export const processFlutterwaveOrderPayment = async (
         throw new Error('Server returned HTML instead of JSON. Check API endpoint.')
       }
 
+      let errorData: { message?: string } | null = null
       try {
-        const errorData = JSON.parse(responseText)
-        throw new Error(errorData.message || 'Failed to initialize Flutterwave payment')
-      } catch (parseError) {
-        throw new Error(`Server error: ${initResponse.status} - ${responseText.substring(0, 100)}`)
+        errorData = JSON.parse(responseText)
+      } catch {
+        // responseText wasn't valid JSON — fall through to the generic message below
       }
+      if (errorData?.message) {
+        throw new Error(errorData.message)
+      }
+      throw new Error(`Server error: ${initResponse.status} - ${responseText.substring(0, 100)}`)
     }
 
     const initData = await initResponse.json()

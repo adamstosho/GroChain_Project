@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -15,10 +15,8 @@ import {
   Package,
   Truck,
   CheckCircle,
-  XCircle,
   Clock,
   Search,
-  Filter,
   RefreshCw,
   Calendar,
   Banknote,
@@ -26,8 +24,7 @@ import {
   Phone,
   Mail,
   ArrowLeft,
-  Download,
-  MoreHorizontal
+  Download
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -208,8 +205,8 @@ export default function MarketplaceOrdersPage() {
             unit: product.unit || 'kg',
             total: (product.quantity || 0) * (product.price || 0)
           })) || [],
-          total: order.totalAmount || 0,
-          subtotal: order.subtotal || order.totalAmount || 0,
+          total: order.total ?? order.totalAmount ?? 0,
+          subtotal: order.subtotal || order.total || order.totalAmount || 0,
           shipping: order.shipping || 0,
           shippingMethod: order.shippingMethod || 'road_standard',
           discount: 0,
@@ -458,7 +455,32 @@ export default function MarketplaceOrdersPage() {
               <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               {refreshing ? 'Refreshing...' : 'Refresh'}
             </Button>
-            <Button variant="outline">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const { getExportService } = await import("@/lib/export-utils")
+                  const exportService = getExportService()
+                  const rows = filteredOrders.map((o) => ({
+                    orderNumber: o.orderNumber,
+                    status: o.status,
+                    paymentStatus: (o as any).paymentStatus,
+                    total: o.total,
+                    buyer: o.buyer?.name,
+                    createdAt: o.createdAt,
+                    items: o.items?.length || 0,
+                  }))
+                  const result = await exportService.exportCustomData(rows, {
+                    format: "excel",
+                    filename: `grochain-marketplace-orders-${new Date().toISOString().slice(0, 10)}.xlsx`,
+                  })
+                  if (!result.success) throw new Error(result.error)
+                  toast({ title: "Export ready", description: "Orders file downloaded." })
+                } catch (e: any) {
+                  toast({ title: "Export failed", description: e?.message || "Try again", variant: "destructive" })
+                }
+              }}
+            >
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
@@ -729,7 +751,7 @@ export default function MarketplaceOrdersPage() {
         {/* Order Details Modal */}
         {showOrderDetails && selectedOrder && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="bg-card rounded-lg max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
               <div className="p-4 sm:p-6 border-b border-border">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg sm:text-xl font-semibold text-foreground">
@@ -790,7 +812,7 @@ export default function MarketplaceOrdersPage() {
                       {selectedOrder.items.map((item, index) => (
                         <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 border border-border rounded-lg gap-3">
                           <div className="flex items-center gap-3">
-                            <div className="text-2xl">🌾</div>
+                            <Package className="h-5 w-5 text-primary" />
                             <div>
                               <div className="font-medium">{item.listing.cropName}</div>
                               <div className="text-sm text-muted-foreground">

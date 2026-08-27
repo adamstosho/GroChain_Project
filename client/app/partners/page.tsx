@@ -9,9 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuthStore } from "@/lib/auth"
-import { useNotifications } from "@/hooks/use-notifications"
 import { NotificationBell } from "@/components/notifications/notification-bell"
-import { Users, Plus, Search, Download, TrendingUp, Banknote, CheckCircle, Clock, Bell, Settings, LogOut, Home, BarChart3, FileText, User, ChevronDown, RefreshCw, XCircle } from "lucide-react"
+import { Users, Search, Download, TrendingUp, Banknote, CheckCircle, Clock, Settings, LogOut, Home, BarChart3, FileText, User, ChevronDown, RefreshCw, XCircle } from "lucide-react"
 import { api } from "@/lib/api"
 import Link from "next/link"
 import { GroChainLogo } from "@/components/ui/grochain-logo"
@@ -62,9 +61,8 @@ export default function PartnersPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
 
-  // Auth and notifications
+  // Auth
   const { user, logout } = useAuthStore()
-  const { unreadCount } = useNotifications()
 
   useEffect(() => {
     fetchPartnerData()
@@ -116,80 +114,70 @@ export default function PartnersPage() {
 
   const handleExport = async () => {
     try {
-      alert('Export functionality temporarily disabled')
-      return
-      /*
-      const response = await api.request('/api/partners/farmers/export', {
-        method: 'POST',
-        data: {
-          status: statusFilter !== 'all' ? statusFilter : undefined,
-          search: searchTerm || undefined,
-          format: 'csv'
-        }
+      const { getExportService } = await import("@/lib/export-utils")
+      const exportService = getExportService()
+      const rows = filteredFarmers.map((farmer) => ({
+        name: farmer.name,
+        email: farmer.email,
+        phone: farmer.phone,
+        location: farmer.location,
+        status: farmer.status,
+        joinedDate: farmer.joinedDate ? new Date(farmer.joinedDate).toLocaleDateString() : "N/A",
+        totalHarvests: farmer.totalHarvests || 0,
+        totalSales: farmer.totalSales || 0,
+      }))
+      const result = await exportService.exportCustomData(rows, {
+        format: "excel",
+        filename: `grochain-partner-farmers-${new Date().toISOString().slice(0, 10)}.xlsx`,
       })
-      */
-
-      /*
-      // Create and download CSV file
-      const blob = new Blob([response.data], { type: 'text/csv' })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `farmers_export_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(url)
-      */
+      if (!result.success) {
+        // CSV fallback
+        const csv = [
+          "Name,Email,Phone,Location,Status,Joined Date,Total Harvests,Total Sales",
+          ...rows.map((r) =>
+            [r.name, r.email, r.phone, r.location, r.status, r.joinedDate, r.totalHarvests, r.totalSales]
+              .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`)
+              .join(",")
+          ),
+        ].join("\n")
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `grochain-partner-farmers-${new Date().toISOString().slice(0, 10)}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+      }
     } catch (error) {
-      console.error('Export failed:', error)
-      // Fallback: export current filtered data
-      const csvData = [
-        ['Name', 'Email', 'Phone', 'Location', 'Status', 'Joined Date', 'Total Harvests', 'Total Sales'],
-        ...filteredFarmers.map(farmer => [
-          farmer.name || '',
-          farmer.email || '',
-          farmer.phone || '',
-          farmer.location || '',
-          farmer.status || '',
-          farmer.joinedDate || farmer.joinedAt ? new Date(farmer.joinedDate || farmer.joinedAt || Date.now()).toLocaleDateString() : '',
-          farmer.totalHarvests || 0,
-          farmer.totalSales || 0
-        ])
-      ].map(row => row.join(',')).join('\n')
+      console.error("Export failed:", error)
+      alert("Export failed. Please try again.")
+    }
+  }
 
-      const blob = new Blob([csvData], { type: 'text/csv' })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `farmers_export_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(url)
+  const handleExportApprovals = async () => {
+    try {
+      const { getExportService } = await import("@/lib/export-utils")
+      const exportService = getExportService()
+      const result = await exportService.exportHarvestApprovals({ format: "csv" })
+      if (!result.success) throw new Error(result.error)
+    } catch (error) {
+      console.error("Approvals export failed:", error)
+      alert("Failed to export approvals. Please try again.")
     }
   }
 
   const handleSyncFarmers = async () => {
     try {
-      alert('Sync functionality temporarily disabled')
-      return
-      /*
-      const response = await api.request('/api/referrals/sync-partners', {
-        method: 'POST'
-      })
-      */
-
-      /*
-      console.log('Sync response:', response.data)
-      alert(`Sync completed! ${response.data.message || 'Farmers synchronized successfully'}`)
-
-      // Refresh the data
+      const response = await api.syncPartnerFarmers()
+      const message =
+        (response as any)?.message ||
+        (response as any)?.data?.message ||
+        "Farmers synchronized successfully"
+      alert(`Sync completed! ${message}`)
       await fetchPartnerData()
-      */
     } catch (error) {
-      console.error('Sync failed:', error)
-      alert('Failed to sync farmers. Please try again.')
+      console.error("Sync failed:", error)
+      alert("Failed to sync farmers. Please try again.")
     }
   }
 
@@ -211,7 +199,7 @@ export default function PartnersPage() {
   return (
     <div className="min-h-screen bg-muted">
       {/* Navigation Header */}
-      <nav className="bg-white shadow-sm border-b">
+      <nav className="bg-card shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             {/* Logo and Brand */}
@@ -294,7 +282,7 @@ export default function PartnersPage() {
         </div>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden border-t bg-white">
+        <div className="md:hidden border-t bg-card">
           <div className="px-2 pt-2 pb-3 space-y-1">
             <Link href="/dashboard" className="text-muted-foreground hover:text-primary block px-3 py-2 rounded-md text-base font-medium transition-colors">
               Dashboard
@@ -483,7 +471,7 @@ export default function PartnersPage() {
                         <td className="py-3 px-4">₦{(farmer.totalSales || 0).toLocaleString()}</td>
                         <td className="py-3 px-4">
                           <Button variant="outline" size="sm" asChild>
-                            <Link href={`/partners/farmers/${farmer._id}`}>View</Link>
+                            <Link href={`/dashboard/farmers/${farmer._id}`}>View</Link>
                           </Button>
                         </td>
                       </tr>
@@ -513,7 +501,7 @@ export default function PartnersPage() {
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleExportApprovals}>
                     <Download className="h-4 w-4 mr-2" />
                     Export
                   </Button>

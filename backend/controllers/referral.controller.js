@@ -512,6 +512,41 @@ const referralController = {
         ? ((thisMonthReferrals - lastMonthReferrals) / lastMonthReferrals * 100)
         : (thisMonthReferrals > 0 ? 100 : 0) // If no referrals last month but some this month, show 100% growth
 
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      const fourMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1)
+      const monthlyPerformance = await Referral.aggregate([
+        {
+          $match: {
+            partner: partner._id,
+            createdAt: { $gte: fourMonthsAgo }
+          }
+        },
+        {
+          $group: {
+            _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
+            referrals: { $sum: 1 },
+            completed: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1 } }
+      ])
+
+      const performanceData = []
+      for (let i = 3; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+        const found = monthlyPerformance.find(
+          (m) => m._id.year === d.getFullYear() && m._id.month === d.getMonth() + 1
+        )
+        const referrals = found?.referrals || 0
+        const completed = found?.completed || 0
+        performanceData.push({
+          month: monthNames[d.getMonth()],
+          referrals,
+          completed,
+          conversion: referrals > 0 ? Math.round((completed / referrals) * 1000) / 10 : 0
+        })
+      }
+
       const overview = {
         totalReferrals,
         activeReferrals,
@@ -524,12 +559,7 @@ const referralController = {
           _id: stat._id,
           count: stat.count
         })),
-        performanceData: [
-          { month: 'Jan', referrals: 8, completed: 3, conversion: 37.5 },
-          { month: 'Feb', referrals: 12, completed: 4, conversion: 33.3 },
-          { month: 'Mar', referrals: 15, completed: 5, conversion: 33.3 },
-          { month: 'Apr', referrals: 10, completed: 3, conversion: 30.0 }
-        ], // TODO: Replace with real performance data
+        performanceData,
         lastUpdated: new Date()
       }
 
@@ -661,8 +691,6 @@ const referralController = {
 // Sync farmer-partner relationships for active referrals
 referralController.syncFarmerPartners = async (req, res) => {
   try {
-    const userId = req.user.id;
-
     // Get the user's partner profile
     const partner = await Partner.findOne({ email: req.user.email });
     if (!partner) {

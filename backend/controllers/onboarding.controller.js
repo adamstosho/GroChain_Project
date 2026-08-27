@@ -111,14 +111,23 @@ exports.getOnboardingById = async (req, res) => {
     }
 
     // Check if user has permission to view this onboarding
-    if (req.user.role === 'partner' && onboarding.assignedPartner.toString() !== req.user.id) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Access denied'
-      })
-    }
-
-    if (req.user.role === 'farmer' && onboarding.farmer._id.toString() !== req.user.id) {
+    if (req.user.role === 'admin') {
+      // admins can view any onboarding
+    } else if (req.user.role === 'partner') {
+      if (onboarding.assignedPartner.toString() !== req.user.id) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Access denied'
+        })
+      }
+    } else if (req.user.role === 'farmer') {
+      if (onboarding.farmer._id.toString() !== req.user.id) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Access denied'
+        })
+      }
+    } else {
       return res.status(403).json({
         status: 'error',
         message: 'Access denied'
@@ -141,9 +150,10 @@ exports.getOnboardingById = async (req, res) => {
 
 // Create new onboarding
 exports.createOnboarding = async (req, res) => {
+  let session
   try {
     const mongoose = require('mongoose')
-    const session = await mongoose.startSession()
+    session = await mongoose.startSession()
     session.startTransaction()
     const {
       farmerId,
@@ -158,6 +168,8 @@ exports.createOnboarding = async (req, res) => {
     // Verify farmer exists and is a farmer
     const farmer = await User.findById(farmerId).session(session)
     if (!farmer || farmer.role !== 'farmer') {
+      await session.abortTransaction()
+      session.endSession()
       return res.status(400).json({
         status: 'error',
         message: 'Invalid farmer'
@@ -167,6 +179,8 @@ exports.createOnboarding = async (req, res) => {
     // Verify partner exists
     const partner = await Partner.findById(assignedPartner).session(session)
     if (!partner) {
+      await session.abortTransaction()
+      session.endSession()
       return res.status(400).json({
         status: 'error',
         message: 'Invalid partner'
@@ -176,6 +190,8 @@ exports.createOnboarding = async (req, res) => {
     // Check if onboarding already exists for this farmer
     const existingOnboarding = await Onboarding.findOne({ farmer: farmerId }).session(session)
     if (existingOnboarding) {
+      await session.abortTransaction()
+      session.endSession()
       return res.status(400).json({
         status: 'error',
         message: 'Onboarding already exists for this farmer'
@@ -237,7 +253,23 @@ exports.updateOnboarding = async (req, res) => {
     }
 
     // Check permissions
-    if (req.user.role === 'partner' && onboarding.assignedPartner.toString() !== req.user.id) {
+    if (req.user.role === 'admin') {
+      // admins can update any onboarding
+    } else if (req.user.role === 'partner') {
+      if (onboarding.assignedPartner.toString() !== req.user.id) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Access denied'
+        })
+      }
+    } else if (req.user.role === 'farmer') {
+      if (onboarding.farmer.toString() !== req.user.id) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Access denied'
+        })
+      }
+    } else {
       return res.status(403).json({
         status: 'error',
         message: 'Access denied'
@@ -337,7 +369,16 @@ exports.deleteOnboarding = async (req, res) => {
     }
 
     // Only allow deletion by partner who owns it or admin
-    if (req.user.role === 'partner' && onboarding.assignedPartner.toString() !== req.user.id) {
+    if (req.user.role === 'admin') {
+      // admins can delete any onboarding
+    } else if (req.user.role === 'partner') {
+      if (onboarding.assignedPartner.toString() !== req.user.id) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Access denied'
+        })
+      }
+    } else {
       return res.status(403).json({
         status: 'error',
         message: 'Access denied'
@@ -639,15 +680,47 @@ exports.exportOnboardings = async (req, res) => {
 
     if (format === 'csv') {
       const csvData = generateOnboardingCSV(onboardings)
-      res.setHeader('Content-Type', 'text/csv')
-      res.setHeader('Content-Disposition', 'attachment; filename="onboardings.csv"')
-      res.send(csvData)
-    } else {
-      res.json({
-        status: 'success',
-        data: onboardings
-      })
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+      res.setHeader('Content-Disposition', 'attachment; filename="grochain-onboardings.csv"')
+      return res.send(csvData)
     }
+
+    if (format === 'excel' || format === 'xlsx') {
+      const ExportImportService = require('../services/exportImport.service')
+      const rows = onboardings.map((onboarding) => ({
+        id: onboarding._id,
+        farmerName: onboarding.farmer?.name || '',
+        email: onboarding.farmer?.email || '',
+        phone: onboarding.farmer?.phone || '',
+        state: onboarding.location?.state || '',
+        lga: onboarding.location?.lga || '',
+        village: onboarding.location?.village || '',
+        farmSize: onboarding.farmer?.farmSize || '',
+        primaryCrops: onboarding.farmer?.primaryCrops?.join('; ') || '',
+        status: onboarding.status,
+        stage: onboarding.stage,
+        priority: onboarding.priority,
+        assignedAgent: onboarding.assignedAgent?.name || '',
+        createdAt: onboarding.createdAt,
+        estimatedCompletion: onboarding.estimatedCompletionDate || '',
+        trainingProgress: onboarding.training?.progress || 0,
+        documentsUploaded: onboarding.metrics?.documentsUploaded || 0,
+      }))
+      const result = await ExportImportService.exportData(rows, {
+        format: 'excel',
+        filename: `grochain-onboardings-${Date.now()}.xlsx`,
+      })
+      const fs = require('fs')
+      const path = require('path')
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      res.setHeader('Content-Disposition', `attachment; filename="${path.basename(result.filePath)}"`)
+      return fs.createReadStream(result.filePath).pipe(res)
+    }
+
+    res.json({
+      status: 'success',
+      data: onboardings
+    })
   } catch (error) {
     console.error('Error exporting onboardings:', error)
     res.status(500).json({

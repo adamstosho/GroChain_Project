@@ -1,5 +1,3 @@
-const crypto = require('crypto')
-
 class RateLimitMiddleware {
   constructor() {
     this.enabled = process.env.RATE_LIMIT_ENABLED !== 'false'
@@ -51,6 +49,11 @@ class RateLimitMiddleware {
         windowMs: 5 * 60 * 1000, // 5 minutes
         max: 20, // 20 USSD requests per 5 minutes
         message: 'Too many USSD requests, please try again later.'
+      },
+      ai: {
+        windowMs: 15 * 60 * 1000,
+        max: relaxedSecurity ? 300 : 60,
+        message: 'Too many AI insight requests, please try again later.'
       },
       api: {
         windowMs: apiWindowMs,
@@ -360,7 +363,7 @@ class RateLimitMiddleware {
     }
 
     // Count keys by endpoint
-    for (const [key, data] of this.memoryStore.entries()) {
+    for (const key of this.memoryStore.keys()) {
       const [endpoint] = key.split(':')
       if (!stats.endpoints[endpoint]) {
         stats.endpoints[endpoint] = 0

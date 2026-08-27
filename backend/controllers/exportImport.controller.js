@@ -1,5 +1,4 @@
 const ExportImportService = require('../services/exportImport.service')
-const { validateExportRequest, validateImportRequest } = require('../middlewares/validation.middleware')
 const path = require('path')
 const fs = require('fs')
 const fsPromises = require('fs').promises
@@ -763,7 +762,7 @@ class ExportImportController {
     // Check required fields
     if (template.requiredFields) {
       for (const field of template.requiredFields) {
-        if (!data.some(item => item.hasOwnProperty(field))) {
+        if (!data.some(item => Object.hasOwn(item, field))) {
           errors.push(`Required field '${field}' is missing from all data items`)
         }
       }
@@ -773,7 +772,7 @@ class ExportImportController {
     if (template.fieldTypes && data.length > 0) {
       const sample = data[0]
       for (const [field, expectedType] of Object.entries(template.fieldTypes)) {
-        if (sample.hasOwnProperty(field)) {
+        if (Object.hasOwn(sample, field)) {
           const actualType = typeof sample[field]
           if (actualType !== expectedType) {
             warnings.push(`Field '${field}' has type '${actualType}' but expected '${expectedType}'`)
@@ -796,7 +795,7 @@ class ExportImportController {
         }
         
         for (const key of firstKeys) {
-          if (!item.hasOwnProperty(key)) {
+          if (!Object.hasOwn(item, key)) {
             warnings.push(`Data item ${i} is missing field '${key}'`)
           }
         }

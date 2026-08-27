@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,8 +13,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useApprovals } from "@/hooks/use-approvals"
 import { HarvestApproval, ApprovalFilters } from "@/lib/types/approvals"
-import { useAuthStore } from "@/lib/auth"
-import { approvalsService } from "@/lib/approvals-service"
 import { useToast } from "@/hooks/use-toast"
 import { 
   Shield, 
@@ -34,9 +33,6 @@ import {
   Star,
   RefreshCw,
   Download,
-  Upload,
-  Users,
-  TrendingUp,
   FileText
 } from "lucide-react"
 
@@ -60,7 +56,6 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
   const [approvalNotes, setApprovalNotes] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const { user } = useAuthStore()
   const { toast } = useToast()
 
   const {
@@ -68,12 +63,12 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
     stats,
     isLoading,
     error,
-    filters,
     setFilters,
     refreshData,
     approveHarvest,
     rejectHarvest,
-    markForReview,
+    // Reserved for a future "mark for review" action — not yet wired to any UI control.
+    markForReview: _markForReview,
     batchProcess,
     exportData,
     clearCache
@@ -99,8 +94,9 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
         return <Badge variant="default" className="bg-success/10 text-success text-xs whitespace-nowrap"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>
       case "rejected":
         return <Badge variant="destructive" className="text-xs whitespace-nowrap"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>
+      case "revision_requested":
       case "under_review":
-        return <Badge variant="outline" className="text-xs whitespace-nowrap"><AlertTriangle className="w-3 h-3 mr-1" />Under Review</Badge>
+        return <Badge variant="outline" className="text-xs whitespace-nowrap"><AlertTriangle className="w-3 h-3 mr-1" />Revision Requested</Badge>
       default:
         return <Badge variant="secondary" className="text-xs whitespace-nowrap">{status}</Badge>
     }
@@ -492,7 +488,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
-                <SelectItem value="under_review">Under Review</SelectItem>
+                <SelectItem value="revision_requested">Revision Requested</SelectItem>
               </SelectContent>
             </Select>
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
@@ -561,7 +557,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                 Rejected ({stats.rejected || 0})
               </TabsTrigger>
               <TabsTrigger 
-                value="under_review" 
+                value="revision_requested" 
                 className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
               >
                 Review ({stats.underReview || 0})
@@ -793,10 +789,12 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                   <h4 className="font-medium mb-2">Harvest Photos</h4>
                   <div className="grid grid-cols-2 gap-2">
                     {selectedApproval.harvest.photos.map((photo, index) => (
-                      <img
+                      <Image
                         key={index}
                         src={photo}
                         alt={`Harvest photo ${index + 1}`}
+                        width={300}
+                        height={128}
                         className="w-full h-32 object-cover rounded-lg"
                       />
                     ))}

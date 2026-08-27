@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useDashboardRefresh } from "@/hooks/use-dashboard-refresh"
 import { useCommissionUpdates } from "@/hooks/use-commission-updates"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
-import { Users, Shield, TrendingUp, Banknote, UserPlus, FileCheck, BarChart3, Upload, RefreshCw, AlertCircle } from "lucide-react"
+import { Users, Shield, TrendingUp, Banknote, FileCheck, BarChart3, RefreshCw, AlertCircle, Eye } from "lucide-react"
 import Link from "next/link"
 
 interface PartnerDashboardData {
@@ -94,7 +94,7 @@ export function PartnerDashboard() {
 
     // Show success toast
     toast({
-      title: "New Commission Earned! 💰",
+      title: "New Commission Earned",
       description: `You earned ₦${update.amount.toLocaleString()} from ${update.farmerName}'s sale of ${update.productName}`,
       variant: "default",
     });
@@ -119,9 +119,7 @@ export function PartnerDashboard() {
 
   // Real-time commission updates
   const {
-    isConnected: isCommissionConnected,
-    lastUpdate: lastCommissionUpdate,
-    error: commissionError
+    isConnected: isCommissionConnected
   } = useCommissionUpdates({
     onCommissionUpdate: handleCommissionUpdate,
     onError: handleCommissionError
@@ -273,7 +271,7 @@ export function PartnerDashboard() {
   }, [fetchDashboardData]);
 
   // Smart event-driven refresh system
-  const { refresh } = useDashboardRefresh({
+  useDashboardRefresh({
     onRefresh: fetchDashboardData
   })
 
@@ -631,9 +629,9 @@ export function PartnerDashboard() {
                           {farmer.status || 'active'}
                         </Badge>
                         <Button variant="ghost" size="sm" asChild className="h-8 w-8 p-0 sm:h-9 sm:w-auto sm:p-2">
-                          <Link href={`/partners/farmers/${farmer.id || farmer._id}`}>
+                          <Link href={`/dashboard/farmers/${farmer.id || farmer._id}`}>
                             <span className="hidden sm:inline">View</span>
-                            <span className="sm:hidden">👁️</span>
+                            <Eye className="h-4 w-4 sm:hidden" />
                           </Link>
                         </Button>
                       </div>
@@ -746,7 +744,7 @@ export function PartnerDashboard() {
                     <span className="font-medium text-sm sm:text-base">₦{((dashboardData?.totalCommission || commissionData?.totalEarned || dashboardData?.commissionBreakdown?.total || 0)).toLocaleString()}</span>
                   </div>
                   <Button variant="outline" size="sm" className="w-full mt-3" asChild>
-                    <Link href="/partners/commissions">View Details</Link>
+                    <Link href="/dashboard/commissions">View Details</Link>
                   </Button>
                 </div>
               ) : (

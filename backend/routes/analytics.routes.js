@@ -1,13 +1,14 @@
 const express = require('express')
 const router = express.Router()
 const ctrl = require('../controllers/analytics.controller')
-const { authenticate } = require('../middlewares/auth.middleware')
+const { authenticate, authorize } = require('../middlewares/auth.middleware')
 
-// Public routes
-router.get('/dashboard', ctrl.getDashboardMetrics)
-router.get('/harvests', ctrl.getHarvestAnalytics)
-router.get('/marketplace', ctrl.getMarketplaceAnalytics)
-router.get('/financial', ctrl.getFinancialAnalytics)
+// Platform totals (users/revenue) — admin only
+router.get('/dashboard', authenticate, authorize('admin'), ctrl.getDashboardMetrics)
+router.get('/financial', authenticate, authorize('admin'), ctrl.getFinancialAnalytics)
+// Aggregate marketplace/harvest stats — any authenticated role (no longer public)
+router.get('/harvests', authenticate, ctrl.getHarvestAnalytics)
+router.get('/marketplace', authenticate, ctrl.getMarketplaceAnalytics)
 
 // Advanced analytics - all now fully aggregated
 router.get('/transactions', authenticate, ctrl.getTransactionAnalytics)

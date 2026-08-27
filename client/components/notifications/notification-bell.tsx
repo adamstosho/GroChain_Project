@@ -1,18 +1,14 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { Bell, Check, CheckCheck, Trash2, ExternalLink } from "lucide-react"
+import { useState } from "react"
+import { Bell, CheckCheck, ExternalLink, CheckCircle2, AlertTriangle, XCircle, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useNotifications } from "@/hooks/use-notifications"
@@ -33,28 +29,16 @@ export function NotificationBell() {
   const displayNotifications = notifications || []
 
   const getNotificationIcon = (type: string) => {
+    const className = "h-4 w-4"
     switch (type) {
       case "success":
-        return "✅"
+        return <CheckCircle2 className={`${className} text-success`} />
       case "warning":
-        return "⚠️"
+        return <AlertTriangle className={`${className} text-warning`} />
       case "error":
-        return "❌"
+        return <XCircle className={`${className} text-destructive`} />
       default:
-        return "ℹ️"
-    }
-  }
-
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case "success":
-        return "text-success"
-      case "warning":
-        return "text-warning"
-      case "error":
-        return "text-destructive"
-      default:
-        return "text-primary"
+        return <Info className={`${className} text-primary`} />
     }
   }
 
@@ -81,17 +65,6 @@ export function NotificationBell() {
       window.location.href = notification.actionUrl
       setIsOpen(false)
     }
-  }
-
-  const handleMarkAsRead = (e: React.MouseEvent, notificationId: string) => {
-    e.stopPropagation() // Prevent triggering the notification click
-    markAsRead([notificationId])
-  }
-
-  const handleDeleteNotification = (e: React.MouseEvent, notificationId: string) => {
-    e.stopPropagation() // Prevent triggering the notification click
-    // Note: Delete functionality not implemented in current backend
-    console.log('Delete notification not implemented:', notificationId)
   }
 
   return (
@@ -178,16 +151,14 @@ export function NotificationBell() {
                   {displayNotifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`p-2 hover:bg-muted/50 cursor-pointer transition-colors ${
-                        !notification.isRead ? "bg-primary/50" : ""
+                      className={`p-2 hover:bg-primary-soft cursor-pointer transition-colors ${
+                        !notification.isRead ? "bg-primary-soft" : ""
                       }`}
                       onClick={() => handleNotificationClick(notification)}
                     >
                       <div className="flex items-start gap-2">
                         <div className="flex-shrink-0 mt-0">
-                          <span className="text-sm">
-                            {getNotificationIcon(notification.type)}
-                          </span>
+                          {getNotificationIcon(notification.type)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">

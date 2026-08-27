@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { CheckCircle, XCircle, Loader2, CreditCard, Package, Eye, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import Link from "next/link"
@@ -194,7 +194,6 @@ function PaymentVerificationContent() {
               const retryResponse = await apiService.verifyPayment(trxref, { testMode })
               if (retryResponse && retryResponse.status === 'success') {
                 const transaction = (retryResponse.data as any)?.transaction
-                const orderData = (retryResponse.data as any)?.order
                 const orderId = transaction?.orderId || transaction?.metadata?.order_id
 
 

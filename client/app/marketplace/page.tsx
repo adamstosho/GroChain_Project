@@ -7,26 +7,19 @@ import {
   Grid, 
   List, 
   MapPin, 
-  Star, 
-  Heart, 
-  ShoppingCart, 
   UserCheck, 
   RefreshCw,
   ArrowLeft, 
   Home, 
-  QrCode, 
   Shield, 
   CheckCircle, 
-  Flame, 
   Sparkles, 
-  TrendingUp, 
-  Info, 
   Activity, 
   Clock 
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
@@ -42,6 +35,7 @@ import { extractListingsFromResponse } from "@/lib/marketplace-listings"
 import { useToast } from "@/hooks/use-toast"
 import { useOfflineApi } from "@/hooks/use-offline-api"
 import { useAuthStore } from "@/lib/auth"
+import { getTokenFromStorage } from "@/lib/auth-storage"
 import type { Product } from "@/lib/types"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -158,7 +152,7 @@ export default function MarketplacePage() {
   // Load favorites on hydration & authentication
   useEffect(() => {
     if (hasHydrated && isAuthenticated && user) {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('grochain_auth_token') : null
+      const token = typeof window !== 'undefined' ? getTokenFromStorage() : null
       if (token && token !== 'undefined' && token !== 'null' && token.length > 10) {
         fetchFavorites().catch((error) => {
           console.log('❌ Failed to fetch favorites (non-critical):', error.message)
@@ -233,7 +227,7 @@ export default function MarketplacePage() {
       const listings = extractListingsFromResponse(response.data ?? response)
 
       const convertedProducts = listings.map((listing: Record<string, unknown>) => ({
-        id: listing._id,
+        id: String(listing._id ?? listing.id ?? ""),
         name: listing.cropName,
         category: listing.category,
         description: listing.description,
@@ -296,45 +290,56 @@ export default function MarketplacePage() {
         description: "Please log in to add items to your cart.",
         variant: "destructive",
       })
-      router.push('/login')
+      router.push("/login?redirect=/marketplace")
       return
     }
 
     try {
-      const product = products.find(p => (p as any).id === productId)
-      if (product) {
-        if ((product as any).availableQuantity <= 0) {
-          toast({
-            title: "Out of Stock",
-            description: "This product is currently out of stock.",
-            variant: "destructive",
-          })
-          return
-        }
-
-        const cartItem = {
-          id: (product as any).id,
-          listingId: (product as any).id,
-          cropName: (product as any).name,
-          quantity: 1,
-          unit: (product as any).unit,
-          price: (product as any).price,
-          image: (product as any).images?.[0] || "/placeholder.svg",
-          farmer: (product as any).farmerName || 'Local Farmer',
-          category: (product as any).category,
-          location: (product as any).location,
-          availableQuantity: (product as any).availableQuantity
-        }
-
-        await addToCart(cartItem, 1)
-
+      const product = products.find((p) => {
+        const id = String((p as any).id ?? (p as any)._id ?? "")
+        return id === String(productId)
+      })
+      if (!product) {
         toast({
-          title: isOffline ? "Added to cart (offline)" : "Added to cart!",
-          description: isOffline 
-            ? `${(product as any).name} added to cart. Will sync when online.`
-            : `${(product as any).name} has been added to your cart.`,
+          title: "Could not add to cart",
+          description: "That listing is no longer in the current results. Refresh and try again.",
+          variant: "destructive",
         })
+        return
       }
+
+      const stock = Number((product as any).availableQuantity ?? (product as any).quantity ?? 0)
+      if (Number.isFinite(stock) && stock <= 0) {
+        toast({
+          title: "Out of Stock",
+          description: "This product is currently out of stock.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const cartItem = {
+        id: String((product as any).id ?? productId),
+        listingId: String((product as any).id ?? productId),
+        cropName: (product as any).name,
+        quantity: 1,
+        unit: (product as any).unit,
+        price: (product as any).price,
+        image: (product as any).images?.[0] || "/placeholder.svg",
+        farmer: (product as any).farmerName || "Local Farmer",
+        category: (product as any).category,
+        location: (product as any).location,
+        availableQuantity: stock,
+      }
+
+      addToCart(cartItem, 1)
+
+      toast({
+        title: isOffline ? "Added to cart (offline)" : "Added to cart!",
+        description: isOffline
+          ? `${(product as any).name} added to cart. Will sync when online.`
+          : `${(product as any).name} has been added to your cart.`,
+      })
     } catch (error) {
       console.error("❌ Failed to add to cart:", error)
       toast({
@@ -368,8 +373,8 @@ export default function MarketplacePage() {
       description: product.description || "Fresh agricultural product from verified farmers",
       price: (product as any).price,
       unit: (product as any).unit,
-      quantity: (product as any).quantity || 100,
-      availableQuantity: (product as any).availableQuantity || 100,
+      quantity: Number((product as any).quantity ?? 0) || 0,
+      availableQuantity: Number((product as any).availableQuantity ?? (product as any).quantity ?? 0) || 0,
       quality: (product as any).quality || "good",
       grade: (product as any).grade || "A",
       organic: (product as any).organic || false,
@@ -467,39 +472,39 @@ export default function MarketplacePage() {
           </div>
 
           {/* Premium Hero Banner */}
-          <div className="relative overflow-hidden bg-gradient-to-r from-primary via-primary to-success text-white py-12 px-6 sm:px-12 rounded-2xl shadow-xl mb-10 border border-primary">
+          <div className="relative overflow-hidden bg-primary text-primary-foreground py-12 px-6 sm:px-12 rounded-2xl shadow-xl mb-10">
             <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-lime-500/10 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
 
             <div className="relative z-10 max-w-3xl">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-semibold text-white mb-4 tracking-wider uppercase">
-                <span className="h-1.5 w-1.5 rounded-full bg-lime-300 animate-pulse" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-foreground/10 border border-primary-foreground/20 text-xs font-semibold text-primary-foreground mb-4 tracking-wider uppercase">
+                <span className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse" />
                 Zero Middlemen & Blockchain Verified
               </div>
-              <h1 className="text-3xl sm:text-5xl font-black tracking-tight mb-4 text-white leading-tight">
-                {greeting}, welcome to the <span className="bg-gradient-to-r from-lime-300 via-lime-200 to-lime-300 bg-clip-text text-transparent">GroChain Marketplace</span>
+              <h1 className="text-3xl sm:text-5xl font-bold tracking-tight mb-4 text-primary-foreground leading-tight font-serif">
+                {greeting}{user?.name ? ` ${user.name.split(" ")[0]}` : ""}, welcome to the <span className="underline decoration-secondary decoration-2 underline-offset-4">GroChain Marketplace</span>
               </h1>
-              <p className="text-white/90 text-sm sm:text-base leading-relaxed mb-6 font-medium">
+              <p className="text-primary-foreground/90 text-sm sm:text-base leading-relaxed mb-6 font-medium">
                 Source premium, traceably verified farm products directly from certified Nigerian smallholders. Safe escrow payments and integrated cold-chain logistics.
               </p>
 
               {/* Stats Strip */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-5 border-t border-white/20">
                 <div className="flex flex-col">
-                  <span className="text-2xl font-black text-white">5,000+</span>
-                  <span className="text-xs text-white/70 font-medium">Verified Farmers</span>
+                  <span className="text-2xl font-bold text-primary-foreground">5,000+</span>
+                  <span className="text-xs text-primary-foreground/70 font-medium">Verified Farmers</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-2xl font-black text-white">12,000+</span>
-                  <span className="text-xs text-white/70 font-medium">Tons Traced</span>
+                  <span className="text-2xl font-bold text-primary-foreground">12,000+</span>
+                  <span className="text-xs text-primary-foreground/70 font-medium">Tons Traced</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-2xl font-black text-white">₦0</span>
-                  <span className="text-xs text-white/70 font-medium">Broker Commission</span>
+                  <span className="text-2xl font-bold text-primary-foreground">₦0</span>
+                  <span className="text-xs text-primary-foreground/70 font-medium">Broker Commission</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-2xl font-black text-white">100%</span>
-                  <span className="text-xs text-white/70 font-medium">Escrow Protected</span>
+                  <span className="text-2xl font-bold text-primary-foreground">100%</span>
+                  <span className="text-xs text-primary-foreground/70 font-medium">Escrow Protected</span>
                 </div>
               </div>
             </div>
@@ -508,21 +513,21 @@ export default function MarketplacePage() {
           {/* Quick Categories Bar */}
           <div className="flex gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
             {[
-              { id: "all", label: "🌱 All Products" },
-              { id: "grains", label: "🌾 Grains & Cereals" },
-              { id: "tubers", label: "🥔 Tubers & Roots" },
-              { id: "vegetables", label: "🥬 Vegetables" },
-              { id: "fruits", label: "🍎 Fresh Fruits" },
-              { id: "legumes", label: "🫘 Legumes & Pods" }
+              { id: "all", label: "All Products" },
+              { id: "grains", label: "Grains & Cereals" },
+              { id: "tubers", label: "Tubers & Roots" },
+              { id: "vegetables", label: "Vegetables" },
+              { id: "fruits", label: "Fresh Fruits" },
+              { id: "legumes", label: "Legumes & Pods" }
             ].map(cat => (
               <Button
                 key={cat.id}
                 variant={filters.category === cat.id ? "default" : "outline"}
                 onClick={() => setFilters(prev => ({ ...prev, category: cat.id }))}
-                className={`rounded-full px-5 py-1.5 h-auto text-xs font-semibold whitespace-nowrap transition-transform duration-200 hover:scale-105 flex-shrink-0 ${
+                className={`rounded-full px-5 py-1.5 h-auto text-xs font-semibold whitespace-nowrap flex-shrink-0 ${
                   filters.category === cat.id 
-                    ? "bg-success hover:bg-success text-white shadow-md shadow-emerald-600/10 border-none" 
-                    : "bg-white text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+                    ? "bg-success hover:bg-success-hover text-success-foreground border-none"
+                    : "bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground"
                 }`}
               >
                 {cat.label}
@@ -546,12 +551,12 @@ export default function MarketplacePage() {
                   onKeyDown={handleKeyDown}
                   onFocus={() => setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  className="pl-10 bg-white border-border focus-visible:ring-success h-11 shadow-sm rounded-xl"
+                  className="pl-10 bg-card border-border focus-visible:ring-success h-11 shadow-sm rounded-xl"
                 />
                 
                 {/* Autocomplete List */}
                 {showSuggestions && suggestions.length > 0 && (
-                  <Card className="absolute top-12 left-0 right-0 z-50 shadow-lg border border-border/80 rounded-xl overflow-hidden bg-white max-h-60 overflow-y-auto">
+                  <Card className="absolute top-12 left-0 right-0 z-50 shadow-lg border border-border/80 rounded-xl overflow-hidden bg-card max-h-60 overflow-y-auto">
                     <CardContent className="p-1">
                       {suggestions.map((suggestion, index) => (
                         <button
@@ -560,8 +565,8 @@ export default function MarketplacePage() {
                             setSearchQuery(suggestion)
                             setShowSuggestions(false)
                           }}
-                          className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm text-foreground hover:bg-success/10 hover:text-success transition-colors flex items-center gap-2 ${
-                            index === focusedSuggestionIndex ? "bg-success/10 text-success font-semibold" : ""
+                          className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm text-foreground hover:bg-primary-soft hover:text-primary transition-colors flex items-center gap-2 ${
+                            index === focusedSuggestionIndex ? "bg-primary-soft text-primary font-semibold" : ""
                           }`}
                         >
                           <Search className="h-3.5 w-3.5 text-muted-foreground" />
@@ -576,7 +581,7 @@ export default function MarketplacePage() {
               <div className="flex gap-2">
                 <Sheet>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="flex items-center gap-2 bg-white border-border hover:bg-muted h-11 lg:hidden rounded-xl">
+                    <Button variant="outline" className="flex items-center gap-2 bg-card border-border hover:bg-muted h-11 lg:hidden rounded-xl">
                       <Filter className="h-4 w-4 text-muted-foreground" />
                       Filters
                     </Button>
@@ -655,7 +660,7 @@ export default function MarketplacePage() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">
             
             {/* Desktop Sticky Filters Sidebar */}
-            <div className="col-span-1 hidden lg:block h-fit sticky top-24 bg-white p-6 rounded-2xl border border-border shadow-sm space-y-6">
+            <div className="col-span-1 hidden lg:block h-fit sticky top-24 bg-card p-6 rounded-2xl border border-border shadow-sm space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-border">
                 <h3 className="font-bold text-foreground flex items-center gap-2">
                   <Filter className="h-4 w-4 text-success" />
@@ -677,11 +682,11 @@ export default function MarketplacePage() {
                 <div className="space-y-2">
                   {[
                     { id: "all", label: "All Products" },
-                    { id: "grains", label: "🌾 Grains" },
-                    { id: "tubers", label: "🥔 Tubers & Roots" },
-                    { id: "vegetables", label: "🥬 Vegetables" },
-                    { id: "fruits", label: "🍎 Fruits" },
-                    { id: "legumes", label: "🫘 Legumes" }
+                    { id: "grains", label: "Grains" },
+                    { id: "tubers", label: "Tubers & Roots" },
+                    { id: "vegetables", label: "Vegetables" },
+                    { id: "fruits", label: "Fruits" },
+                    { id: "legumes", label: "Legumes" }
                   ].map((cat) => (
                     <label key={cat.id} className="flex items-center gap-2.5 text-xs sm:text-sm text-muted-foreground hover:text-foreground cursor-pointer py-0.5">
                       <input 
@@ -749,7 +754,7 @@ export default function MarketplacePage() {
             <div className="col-span-1 lg:col-span-3 space-y-6">
               
               {/* Desktop Sorting Toolbar */}
-              <div className="bg-white p-4 rounded-xl border border-border shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="bg-card p-4 rounded-xl border border-border shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="text-xs sm:text-sm font-semibold text-foreground">
                   Showing <span className="text-success">{products.length}</span> verified results
                 </div>
@@ -775,7 +780,7 @@ export default function MarketplacePage() {
                       variant={viewMode === "grid" ? "default" : "ghost"}
                       size="sm"
                       onClick={() => setViewMode("grid")}
-                      className={`h-7 w-7 p-0 rounded-md ${viewMode === "grid" ? "bg-white text-success shadow-sm border border-border" : "text-muted-foreground hover:text-muted-foreground"}`}
+                      className={`h-7 w-7 p-0 rounded-md ${viewMode === "grid" ? "bg-card text-success shadow-sm border border-border" : "text-muted-foreground hover:text-muted-foreground"}`}
                     >
                       <Grid className="h-4 w-4" />
                     </Button>
@@ -783,7 +788,7 @@ export default function MarketplacePage() {
                       variant={viewMode === "list" ? "default" : "ghost"}
                       size="sm"
                       onClick={() => setViewMode("list")}
-                      className={`h-7 w-7 p-0 rounded-md ${viewMode === "list" ? "bg-white text-success shadow-sm border border-border" : "text-muted-foreground hover:text-muted-foreground"}`}
+                      className={`h-7 w-7 p-0 rounded-md ${viewMode === "list" ? "bg-card text-success shadow-sm border border-border" : "text-muted-foreground hover:text-muted-foreground"}`}
                     >
                       <List className="h-4 w-4" />
                     </Button>
@@ -796,19 +801,19 @@ export default function MarketplacePage() {
                 <div className="flex flex-wrap gap-2 items-center">
                   <span className="text-xs text-muted-foreground font-semibold">Active:</span>
                   {filters.category !== "all" && (
-                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1 bg-success/10 hover:bg-success/20 text-success border border-success/40 rounded-full transition-colors font-medium text-[11px]">
+                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1 bg-primary-soft text-primary border border-primary/30 rounded-full font-medium text-[11px]">
                       <span className="capitalize">Category: {filters.category}</span>
                       <button onClick={() => setFilters(prev => ({ ...prev, category: "all" }))} className="text-success hover:text-success font-bold ml-0.5">×</button>
                     </Badge>
                   )}
                   {filters.location && (
-                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1 bg-success/10 hover:bg-success/20 text-success border border-success/40 rounded-full transition-colors font-medium text-[11px]">
+                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1 bg-primary-soft text-primary border border-primary/30 rounded-full font-medium text-[11px]">
                       <span>Loc: {filters.location}</span>
                       <button onClick={() => setFilters(prev => ({ ...prev, location: "" }))} className="text-success hover:text-success font-bold ml-0.5">×</button>
                     </Badge>
                   )}
                   {(filters.priceRange[0] > 0 || filters.priceRange[1] < 10000) && (
-                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1 bg-success/10 hover:bg-success/20 text-success border border-success/40 rounded-full transition-colors font-medium text-[11px]">
+                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1 bg-primary-soft text-primary border border-primary/30 rounded-full font-medium text-[11px]">
                       <span>Price: ₦{filters.priceRange[0]} - ₦{filters.priceRange[1]}</span>
                       <button onClick={() => setFilters(prev => ({ ...prev, priceRange: [0, 10000] }))} className="text-success hover:text-success font-bold ml-0.5">×</button>
                     </Badge>
@@ -825,7 +830,7 @@ export default function MarketplacePage() {
               {/* Products Listings Grid */}
               <div className="relative">
                 {isRefreshing && (
-                  <div className="absolute right-0 -top-12 z-10 flex items-center gap-2 rounded-md bg-white/95 px-2.5 py-1 text-xs text-success border border-success/10 shadow-sm">
+                  <div className="absolute right-0 -top-12 z-10 flex items-center gap-2 rounded-md bg-card/95 px-2.5 py-1 text-xs text-success border border-success/10 shadow-sm">
                     <RefreshCw className="h-3.5 w-3.5 animate-spin text-success" />
                     Syncing database…
                   </div>
@@ -854,7 +859,7 @@ export default function MarketplacePage() {
 
               {/* Empty state */}
               {products.length === 0 && !isInitialLoading && !isRefreshing && (
-                <div className="text-center py-16 bg-white border border-border rounded-2xl shadow-sm">
+                <div className="text-center py-16 bg-card border border-border rounded-2xl shadow-sm">
                   <div className="text-muted-foreground mb-4">
                     <Search className="h-16 w-16 mx-auto" />
                   </div>
@@ -863,7 +868,7 @@ export default function MarketplacePage() {
                   <Button 
                     onClick={() => setFilters({ category: "all", location: "", priceRange: [0, 10000], sortBy: "newest" })}
                     variant="outline"
-                    className="border-success text-success hover:bg-success/10 rounded-xl"
+                    className="border-primary text-primary hover:bg-primary-soft"
                   >
                     Reset All Filters
                   </Button>
@@ -879,7 +884,7 @@ export default function MarketplacePage() {
                 <Badge className="bg-success/10 text-success border-none font-semibold mb-2">
                   Live Market Intelligence
                 </Badge>
-                <h3 className="text-xl sm:text-2xl font-black text-foreground">
+                <h3 className="text-xl sm:text-2xl font-serif font-bold text-foreground">
                   Real-time Trade Activity & Verified Volume
                 </h3>
                 <p className="text-muted-foreground text-sm">
@@ -897,40 +902,40 @@ export default function MarketplacePage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               {/* Column 1: Live Stats */}
-              <Card className="bg-gradient-to-br from-success/80 to-success text-white shadow-lg border-none overflow-hidden relative rounded-2xl h-full">
+              <Card className="bg-success text-success-foreground shadow-lg border-none overflow-hidden relative rounded-2xl h-full">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-success/10 rounded-full blur-2xl pointer-events-none" />
                 <CardHeader>
-                  <CardTitle className="text-sm font-semibold tracking-wider text-success uppercase flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-success" />
+                  <CardTitle className="text-sm font-semibold tracking-wider text-success-foreground uppercase flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-success-foreground" />
                     Market Ticker
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-5 pt-0">
-                  <div className="bg-success/40 p-4 rounded-xl border border-success/30">
-                    <div className="text-3xl font-extrabold text-white mb-0.5">
+                  <div className="bg-black/15 p-4 rounded-xl border border-white/20">
+                    <div className="text-3xl font-bold text-success-foreground mb-0.5">
                       {buyerActivity.activeBuyers}
                     </div>
-                    <div className="text-xs text-success font-semibold">Active Buyers Last 30 Days</div>
+                    <div className="text-xs text-success-foreground/80 font-semibold">Active Buyers Last 30 Days</div>
                   </div>
 
-                  <div className="bg-success/40 p-4 rounded-xl border border-success/30">
-                    <div className="text-3xl font-extrabold text-white mb-0.5">
+                  <div className="bg-black/15 p-4 rounded-xl border border-white/20">
+                    <div className="text-3xl font-bold text-success-foreground mb-0.5">
                       {buyerActivity.todaysTransactions}
                     </div>
-                    <div className="text-xs text-success font-semibold">Trades Settled Today</div>
+                    <div className="text-xs text-success-foreground/80 font-semibold">Trades Settled Today</div>
                   </div>
 
-                  <div className="bg-success/40 p-4 rounded-xl border border-success/30">
-                    <div className="text-3xl font-extrabold text-white mb-0.5">
+                  <div className="bg-black/15 p-4 rounded-xl border border-white/20">
+                    <div className="text-3xl font-bold text-success-foreground mb-0.5">
                       {buyerActivity.averageRating > 0 ? `${buyerActivity.averageRating} ★` : "—"}
                     </div>
-                    <div className="text-xs text-success font-semibold">Average Farmer Quality Score</div>
+                    <div className="text-xs text-success-foreground/80 font-semibold">Average Farmer Quality Score</div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Column 2: Recently Listed (real data) */}
-              <Card className="bg-white border border-border shadow-sm rounded-2xl h-full flex flex-col">
+              <Card className="bg-card border border-border shadow-sm rounded-2xl h-full flex flex-col">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
                     <Clock className="h-4 w-4 text-success" />
@@ -963,7 +968,7 @@ export default function MarketplacePage() {
               </Card>
 
               {/* Column 3: Trust & Testimonials */}
-              <Card className="bg-white border border-border shadow-sm rounded-2xl h-full flex flex-col justify-between">
+              <Card className="bg-card border border-border shadow-sm rounded-2xl h-full flex flex-col justify-between">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
                     <Shield className="h-4 w-4 text-success" />

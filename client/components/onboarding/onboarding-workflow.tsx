@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { 
   CheckCircle, 
-  Clock, 
   AlertTriangle,
   ArrowRight,
   Settings,
@@ -137,7 +136,7 @@ export function OnboardingWorkflow() {
             {/* Arrow to next stage */}
             {index < stageStats.length - 1 && (
               <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2">
-                <div className="w-6 h-6 bg-white border-2 border-border rounded-full flex items-center justify-center">
+                <div className="w-6 h-6 bg-card border-2 border-border rounded-full flex items-center justify-center">
                   <ArrowRight className="w-3 h-3 text-muted-foreground" />
                 </div>
               </div>

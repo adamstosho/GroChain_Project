@@ -1,9 +1,7 @@
 const User = require('../models/user.model')
 const Harvest = require('../models/harvest.model')
-const Transaction = require('../models/transaction.model')
 const Listing = require('../models/listing.model')
 const Order = require('../models/order.model')
-const Partner = require('../models/partner.model')
 
 const userController = {
   // Get user overview (Admin/Manager)
@@ -188,7 +186,7 @@ const userController = {
         })
       }
       
-      const { name, email, phone, password, role, location, partner } = req.body
+      const { name, email, password, role } = req.body
       
       if (!name || !email || !password || !role) {
         return res.status(400).json({

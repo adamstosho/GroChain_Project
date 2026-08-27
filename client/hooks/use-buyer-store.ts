@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { apiService } from '@/lib/api'
+import { getTokenFromStorage } from '@/lib/auth-storage'
 
 interface BuyerState {
   profile: any
@@ -10,8 +11,10 @@ interface BuyerState {
   notifications: any[]
   isLoading: boolean
   error: string | null
+  hasHydrated: boolean
 
   // Actions
+  setHasHydrated: (hydrated: boolean) => void
   fetchProfile: () => Promise<void>
   updateProfile: (data: any) => Promise<void>
   fetchFavorites: () => Promise<void>
@@ -30,6 +33,48 @@ interface BuyerState {
   getCurrentUserId: () => string | null
 }
 
+function asListingId(value: unknown): string {
+  if (value == null) return ""
+  if (typeof value === "string" || typeof value === "number") return String(value)
+  if (typeof value === "object" && value !== null && "_id" in value) {
+    return String((value as { _id?: unknown })._id ?? "")
+  }
+  return String(value)
+}
+
+function farmerLabel(farmer: unknown): string {
+  if (typeof farmer === "string" && farmer.trim()) return farmer
+  if (farmer && typeof farmer === "object" && "name" in farmer) {
+    const name = (farmer as { name?: unknown }).name
+    if (typeof name === "string" && name.trim()) return name
+  }
+  return "Local Farmer"
+}
+
+function normalizeCartItem(cartItem: any, quantity?: number) {
+  const listingId = asListingId(
+    cartItem?.listingId || cartItem?._id || cartItem?.id
+  )
+  const id = asListingId(cartItem?.id || listingId)
+  const qty = Math.max(1, Number(quantity ?? cartItem?.quantity ?? 1) || 1)
+  const price = Number(cartItem?.price ?? cartItem?.basePrice ?? 0) || 0
+
+  return {
+    id,
+    listingId: listingId || id,
+    cropName: cartItem?.cropName || cartItem?.name || "Agricultural product",
+    quantity: qty,
+    unit: cartItem?.unit || "unit",
+    price,
+    total: price * qty,
+    image: cartItem?.image || cartItem?.images?.[0] || "/placeholder.svg",
+    farmer: farmerLabel(cartItem?.farmer || cartItem?.farmerName),
+    category: cartItem?.category,
+    location: cartItem?.location,
+    availableQuantity: Number(cartItem?.availableQuantity ?? cartItem?.quantity ?? 0) || 0,
+  }
+}
+
 const CART_STORAGE_KEY = 'grochain-buyer-cart'
 
 export const useBuyerStore = create<BuyerState>()(
@@ -42,11 +87,13 @@ export const useBuyerStore = create<BuyerState>()(
       notifications: [],
       isLoading: false,
       error: null,
+      hasHydrated: false,
+      setHasHydrated: (hydrated: boolean) => set({ hasHydrated: hydrated }),
 
       fetchProfile: async () => {
         set({ isLoading: true, error: null })
         try {
-          const token = typeof window !== 'undefined' ? localStorage.getItem('grochain_auth_token') : null
+          const token = typeof window !== 'undefined' ? getTokenFromStorage() : null
           if (!token || token === 'undefined' || token === 'null') {
             set({ profile: null, isLoading: false, error: null })
             return
@@ -79,7 +126,7 @@ export const useBuyerStore = create<BuyerState>()(
       },
 
       fetchFavorites: async () => {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('grochain_auth_token') : null
+        const token = typeof window !== 'undefined' ? getTokenFromStorage() : null
         if (!token || token === 'undefined' || token === 'null' || token.length < 10) {
           set({ favorites: [], isLoading: false, error: null })
           return
@@ -138,42 +185,41 @@ export const useBuyerStore = create<BuyerState>()(
 
       addToCart: async (cartItem: any, quantity?: number) => {
         try {
-          const itemToAdd = cartItem.id ? cartItem : {
-            id: cartItem._id || cartItem.id,
-            listingId: cartItem._id || cartItem.listingId || cartItem.id,
-            cropName: cartItem.cropName || cartItem.name,
-            quantity: quantity || cartItem.quantity || 1,
-            unit: cartItem.unit,
-            price: cartItem.price || cartItem.basePrice,
-            total: (cartItem.price || cartItem.basePrice) * (quantity || cartItem.quantity || 1),
-            farmer: cartItem.farmer || 'Unknown Farmer',
-            location: cartItem.location,
-            image: cartItem.image || "/placeholder.svg",
-            availableQuantity: cartItem.availableQuantity || 0
+          const itemToAdd = normalizeCartItem(cartItem, quantity)
+          if (!itemToAdd.id) {
+            throw new Error("Product is missing an id")
           }
 
-          const existingItem = get().cart.find(item => item.id === itemToAdd.id)
+          const existingItem = get().cart.find(
+            (item) => String(item.id) === itemToAdd.id || String(item.listingId) === itemToAdd.listingId
+          )
           if (existingItem) {
             const newQuantity = existingItem.quantity + itemToAdd.quantity
-            get().updateCartQuantity(itemToAdd.id, newQuantity)
-          } else {
-            const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
-            
-            if (!isOffline) {
-              try {
-                await apiService.reserveCartQuantity([{
-                  listingId: itemToAdd.listingId,
-                  quantity: itemToAdd.quantity
-                }])
-              } catch (error) {
-                console.error('Failed to reserve cart quantity:', error)
-              }
-            }
+            set((state) => ({
+              cart: state.cart.map((item) =>
+                String(item.id) === String(existingItem.id)
+                  ? { ...item, quantity: newQuantity, total: item.price * newQuantity }
+                  : item
+              ),
+            }))
+            apiService
+              .updateCartItemQuantity(existingItem.listingId, existingItem.quantity, newQuantity)
+              .catch((error) => console.error("Failed to update reserved cart quantity:", error))
+            return
+          }
 
-            set(state => ({ cart: [...state.cart, itemToAdd] }))
+          set((state) => ({ cart: [...state.cart, itemToAdd] }))
+
+          if (typeof navigator === "undefined" || navigator.onLine) {
+            apiService
+              .reserveCartQuantity([{
+                listingId: itemToAdd.listingId,
+                quantity: itemToAdd.quantity,
+              }])
+              .catch((error) => console.error("Failed to reserve cart quantity:", error))
           }
         } catch (error) {
-          console.error('Error adding to cart:', error)
+          console.error("Error adding to cart:", error)
           throw error
         }
       },
@@ -278,9 +324,16 @@ export const useBuyerStore = create<BuyerState>()(
       },
 
       createOrder: async (orderData: any) => {
+        if (get().isLoading) {
+          throw new Error('An order is already being created. Please wait.')
+        }
         set({ isLoading: true, error: null })
         try {
-          const response = await apiService.createOrder(orderData)
+          const { idempotencyKey, ...payload } = orderData || {}
+          const response = await apiService.createOrder(
+            payload,
+            idempotencyKey ? { idempotencyKey: String(idempotencyKey) } : undefined
+          )
           if (response?.status === 'success' && response?.data) {
             set(state => ({ 
               orders: [...state.orders, response.data],
@@ -326,8 +379,25 @@ export const useBuyerStore = create<BuyerState>()(
       name: CART_STORAGE_KEY,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ cart: state.cart }),
+      onRehydrateStorage: () => (_state, error) => {
+        if (error) {
+          console.error("Cart rehydration failed:", error)
+        }
+        queueMicrotask(() => useBuyerStore.setState({ hasHydrated: true }))
+      },
     }
   )
 )
+
+if (typeof window !== "undefined") {
+  useBuyerStore.persist.onFinishHydration(() => {
+    useBuyerStore.setState({ hasHydrated: true })
+  })
+  window.setTimeout(() => {
+    if (!useBuyerStore.getState().hasHydrated) {
+      useBuyerStore.setState({ hasHydrated: true })
+    }
+  }, 2000)
+}
 
 

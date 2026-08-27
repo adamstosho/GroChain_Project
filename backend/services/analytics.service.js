@@ -67,8 +67,10 @@ class AnalyticsService {
         },
         breakdown: await this.generateBreakdown(),
         trends: await this.calculateTrends(),
-        agriculturalInsights: await this.generateAgriculturalInsights(),
-        performanceMetrics: await this.getPerformanceMetrics()
+        agriculturalInsights: await this.generateAgriculturalInsights()
+        // performanceMetrics intentionally omitted - no real request/uptime
+        // instrumentation exists yet to source it from; defaults to 0s rather
+        // than a fabricated "system health" snapshot.
       })
 
       return analytics
@@ -358,22 +360,15 @@ class AnalyticsService {
 
   async calculateTrends() {
     try {
-      // Calculate trends based on historical data
+      // New-user count over the last 7 days. conversionRate/retentionRate/
+      // churnRate/revenueGrowth/userEngagement are intentionally omitted —
+      // no real instrumentation exists yet to compute them, and they default
+      // to 0 on the schema rather than showing a fabricated trend.
       const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      const lastMonth = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-
-      const [weeklyGrowth, monthlyGrowth] = await Promise.all([
-        User.countDocuments({ createdAt: { $gte: lastWeek } }),
-        User.countDocuments({ createdAt: { $gte: lastMonth } })
-      ])
+      const weeklyGrowth = await User.countDocuments({ createdAt: { $gte: lastWeek } })
 
       return {
-        growthRate: weeklyGrowth,
-        conversionRate: 0.75, // Placeholder
-        retentionRate: 0.85, // Placeholder
-        churnRate: 0.15, // Placeholder
-        revenueGrowth: 0.12, // Placeholder
-        userEngagement: 0.68 // Placeholder
+        growthRate: weeklyGrowth
       }
     } catch (error) {
       console.error('Error calculating trends:', error)
@@ -399,20 +394,6 @@ class AnalyticsService {
       }
     } catch (error) {
       console.error('Error generating agricultural insights:', error)
-      return {}
-    }
-  }
-
-  async getPerformanceMetrics() {
-    try {
-      return {
-        responseTime: 150, // ms
-        uptime: 99.9, // percentage
-        errorRate: 0.1, // percentage
-        throughput: 1000 // requests per second
-      }
-    } catch (error) {
-      console.error('Error getting performance metrics:', error)
       return {}
     }
   }

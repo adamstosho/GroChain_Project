@@ -72,7 +72,7 @@ export function NotificationDemo() {
 
         <div className="pt-2 border-t">
           <p className="text-xs text-muted-foreground">
-            💡 <strong>Features:</strong>
+            <strong>Features:</strong>
             <br />• Real-time WebSocket notifications
             <br />• Browser notification support
             <br />• Toast notifications overlay

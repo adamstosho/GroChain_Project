@@ -18,7 +18,7 @@ export interface HarvestApproval {
     photos: string[]
     description: string
   }
-  status: 'pending' | 'approved' | 'rejected' | 'under_review'
+  status: 'pending' | 'approved' | 'rejected' | 'revision_requested' | 'under_review' | 'listed' | 'verified'
   submittedAt: Date
   reviewedAt?: Date
   reviewedBy?: string

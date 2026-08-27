@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { StatsCard } from "@/components/dashboard/stats-card"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
@@ -18,9 +17,7 @@ import { extractListingsFromResponse } from "@/lib/marketplace-listings"
 import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { ShoppingCart, Package, Heart, TrendingUp, Search, QrCode, Eye, RefreshCw, Brain, Sparkles, ShieldCheck } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image"
 import { useAuthStore } from "@/lib/auth"
-import { AiTrustBadge } from "@/components/ai/ai-trust-badge"
 
 interface DashboardStats {
   totalOrders: number
@@ -241,7 +238,7 @@ export function BuyerDashboard() {
   }, [toast, begin, finish])
 
   // Smart event-driven refresh system
-  const { refresh, optimisticUpdate } = useDashboardRefresh({
+  const { optimisticUpdate } = useDashboardRefresh({
     onRefresh: fetchDashboardData,
     onOptimisticUpdate: handleOptimisticUpdate
   })
@@ -259,7 +256,7 @@ export function BuyerDashboard() {
         description: "Your dashboard data has been updated",
         variant: "default",
       })
-    } catch (error) {
+    } catch {
       toast({
         title: "Refresh failed",
         description: "Could not refresh dashboard data",
@@ -375,13 +372,8 @@ export function BuyerDashboard() {
         break
       case "addToWishlist":
         console.log("Adding to wishlist:", productId)
-        // Optimistic update for favorite addition
+        // MarketplaceCard already shows its own success/error toast for this action.
         optimisticUpdate('favorite_added', { productId })
-        toast({
-          title: "Added to favorites",
-          description: "Product has been added to your favorites",
-          variant: "default",
-        })
         break
       case "view":
         window.location.href = `/dashboard/products/${productId}`

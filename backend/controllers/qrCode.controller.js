@@ -1,7 +1,6 @@
 const QRCodeLib = require('qrcode')
 const QRCodeModel = require('../models/qrcode.model')
 const Harvest = require('../models/harvest.model')
-const User = require('../models/user.model')
 
 const qrCodeController = {
   // Get user's QR codes with detailed information

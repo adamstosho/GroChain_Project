@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { 
   ArrowLeft, 
   AlertCircle, 
@@ -13,20 +12,15 @@ import {
   Share2, 
   Eye, 
   Package, 
-  Calendar, 
   MapPin, 
-  Scale, 
   CheckCircle2, 
   Navigation,
   Plus,
   Clock,
   ExternalLink,
-  ChevronRight,
   Shield,
   FileText,
   Activity,
-  Droplet,
-  Info,
   Edit,
   Loader2,
   Camera
@@ -128,9 +122,9 @@ export default function HarvestDetailPage() {
 
   const getQualityBadge = (quality: string) => {
     const q = quality.toLowerCase()
-    if (q === 'excellent') return <Badge className="bg-success/10 hover:bg-success/10 text-success border-success/10 font-semibold px-2.5 py-0.5 capitalize">Excellent Grade</Badge>
-    if (q === 'good') return <Badge className="bg-primary/10 hover:bg-primary/10 text-primary border-primary/10 font-semibold px-2.5 py-0.5 capitalize">Good Grade</Badge>
-    if (q === 'fair') return <Badge className="bg-warning/10 hover:bg-warning/10 text-warning border-warning/10 font-semibold px-2.5 py-0.5 capitalize">Fair Grade</Badge>
+    if (q === 'excellent') return <Badge className="bg-success-soft text-success border-success/20 font-semibold px-2.5 py-0.5 capitalize">Excellent Grade</Badge>
+    if (q === 'good') return <Badge className="bg-primary-soft text-primary border-primary/20 font-semibold px-2.5 py-0.5 capitalize">Good Grade</Badge>
+    if (q === 'fair') return <Badge className="bg-warning-soft text-warning border-warning/20 font-semibold px-2.5 py-0.5 capitalize">Fair Grade</Badge>
     return <Badge className="bg-muted hover:bg-muted text-foreground border-border font-semibold px-2.5 py-0.5 capitalize">{quality}</Badge>
   }
 
@@ -138,7 +132,7 @@ export default function HarvestDetailPage() {
     const s = status.toLowerCase()
     if (s === 'approved' || s === 'verified') {
       return (
-        <Badge className="bg-success text-white font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
+        <Badge className="bg-success text-success-foreground font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
           <CheckCircle2 className="h-3.5 w-3.5" />
           <span>Verified Batch</span>
         </Badge>
@@ -146,7 +140,7 @@ export default function HarvestDetailPage() {
     }
     if (s === 'listed') {
       return (
-        <Badge className="bg-primary text-white font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
+        <Badge className="bg-primary text-primary-foreground font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
           <ExternalLink className="h-3.5 w-3.5" />
           <span>Listed Market</span>
         </Badge>
@@ -154,14 +148,14 @@ export default function HarvestDetailPage() {
     }
     if (s === 'rejected') {
       return (
-        <Badge className="bg-destructive text-white font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
+        <Badge className="bg-destructive text-destructive-foreground font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
           <AlertCircle className="h-3.5 w-3.5" />
           <span>Rejected Batch</span>
         </Badge>
       )
     }
     return (
-      <Badge className="bg-warning text-white font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
+      <Badge className="bg-warning text-warning-foreground font-bold px-3 py-1 gap-1 border-none shadow-sm rounded-full">
         <Clock className="h-3.5 w-3.5 animate-pulse" />
         <span>Pending Review</span>
       </Badge>
@@ -265,7 +259,7 @@ export default function HarvestDetailPage() {
           </Button>
 
           {isApproved && (
-            <Button asChild size="sm" className="bg-success hover:bg-success text-white h-9 text-xs shadow-md shadow-emerald-600/10">
+            <Button asChild size="sm" className="bg-success hover:bg-success-hover text-success-foreground h-9 text-xs">
               <Link href={`/dashboard/marketplace/new?harvestId=${harvest._id}`} className="flex items-center gap-1">
                 <Plus className="h-3.5 w-3.5" />
                 <span>List on Marketplace</span>
@@ -291,7 +285,7 @@ export default function HarvestDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Produce Details Card */}
-          <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-white">
+          <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-card">
             <CardHeader className="bg-muted/40 border-b border-border px-4 sm:px-6 py-4">
               <CardTitle className="text-sm sm:text-base font-semibold text-foreground flex items-center gap-2">
                 <Package className="h-4 w-4 text-success" />
@@ -341,7 +335,7 @@ export default function HarvestDetailPage() {
                     </span>
                   </div>
                   {harvest.geoLocation && (
-                    <div className="flex items-center gap-1.5 text-xs text-success bg-white border border-success/10 rounded-lg px-2.5 py-1 font-mono shadow-sm self-start sm:self-auto">
+                    <div className="flex items-center gap-1.5 text-xs text-success bg-card border border-success/10 rounded-lg px-2.5 py-1 font-mono shadow-sm self-start sm:self-auto">
                       <Navigation className="h-3 w-3" />
                       <span>{harvest.geoLocation.lat.toFixed(6)}, {harvest.geoLocation.lng.toFixed(6)}</span>
                     </div>
@@ -361,7 +355,7 @@ export default function HarvestDetailPage() {
 
               {/* Sustainability Indicators */}
               {(harvest.organic || harvest.sustainability?.organicCertified) && (
-                <div className="bg-success/40 border border-success/50 rounded-xl p-3.5 flex items-start gap-2.5">
+                <div className="bg-success/10 border border-success/30 rounded-xl p-3.5 flex items-start gap-2.5">
                   <Shield className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                   <div>
                     <h5 className="text-xs font-semibold text-success">Certified Organic Produce</h5>
@@ -374,7 +368,7 @@ export default function HarvestDetailPage() {
 
           {/* Visual Photographs Card */}
           {harvest.images && harvest.images.length > 0 && (
-            <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-white">
+            <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-card">
               <CardHeader className="bg-muted/40 border-b border-border px-4 sm:px-6 py-4">
                 <CardTitle className="text-sm sm:text-base font-semibold text-foreground flex items-center gap-2">
                   <Camera className="h-4 w-4 text-success" />
@@ -404,7 +398,7 @@ export default function HarvestDetailPage() {
 
           {/* Agronomic Conditions Card */}
           {harvest.agriculturalData && (
-            <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-white">
+            <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-card">
               <CardHeader className="bg-muted/40 border-b border-border px-4 sm:px-6 py-4">
                 <CardTitle className="text-sm sm:text-base font-semibold text-foreground flex items-center gap-2">
                   <Activity className="h-4 w-4 text-success" />
@@ -436,7 +430,7 @@ export default function HarvestDetailPage() {
           
           {/* Visual QR Passport Card */}
           {(harvest.qrCode || harvest.qrCodeData) && (
-            <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-white">
+            <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-card">
               <CardHeader className="bg-muted/40 border-b border-border px-4 sm:px-5 py-4">
                 <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <QrCode className="h-4 w-4 text-success" />
@@ -486,7 +480,7 @@ export default function HarvestDetailPage() {
           )}
 
           {/* On-Chain Verification Timeline */}
-          <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-white">
+          <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-card">
             <CardHeader className="bg-muted/40 border-b border-border px-4 sm:px-5 py-4">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <FileText className="h-4 w-4 text-success" />
@@ -498,7 +492,7 @@ export default function HarvestDetailPage() {
                 
                 {/* Milestone 1: Harvest Logged */}
                 <div className="relative">
-                  <div className="absolute -left-[21px] top-0.5 bg-success text-white rounded-full p-0.5 border-4 border-white">
+                  <div className="absolute -left-[21px] top-0.5 bg-success text-success-foreground rounded-full p-0.5 border-4 border-background">
                     <CheckCircle2 className="h-3 w-3" />
                   </div>
                   <div>
@@ -510,7 +504,7 @@ export default function HarvestDetailPage() {
 
                 {/* Milestone 2: Quality Inspection */}
                 <div className="relative">
-                  <div className="absolute -left-[21px] top-0.5 bg-success text-white rounded-full p-0.5 border-4 border-white">
+                  <div className="absolute -left-[21px] top-0.5 bg-success text-success-foreground rounded-full p-0.5 border-4 border-background">
                     <CheckCircle2 className="h-3 w-3" />
                   </div>
                   <div>
@@ -525,8 +519,8 @@ export default function HarvestDetailPage() {
                   <div className={cn(
                     "absolute -left-[21px] top-0.5 rounded-full p-0.5 border-4 border-white",
                     isApproved || isListed
-                      ? "bg-success text-white"
-                      : "bg-warning text-white animate-pulse"
+                      ? "bg-success text-success-foreground"
+                      : "bg-warning text-warning-foreground animate-pulse"
                   )}>
                     {isApproved || isListed ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                   </div>
@@ -546,7 +540,7 @@ export default function HarvestDetailPage() {
                   <div className={cn(
                     "absolute -left-[21px] top-0.5 rounded-full p-0.5 border-4 border-white",
                     isListed
-                      ? "bg-success text-white"
+                      ? "bg-success text-success-foreground"
                       : "bg-muted text-muted-foreground"
                   )}>
                     <ExternalLink className="h-3 w-3" />

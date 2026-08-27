@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
+import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
 import {
   Plus,
@@ -18,13 +19,11 @@ import {
   AlertCircle,
   TrendingUp,
   Banknote,
-  Calendar,
   FileText,
   Download,
   Eye,
   RefreshCw,
-  Calculator,
-  ArrowRight
+  Calculator
 } from "lucide-react"
 import Link from "next/link"
 
@@ -194,9 +193,7 @@ export default function LoansPage() {
     return <IconComponent className="h-4 w-4" />
   }
 
-  const formatCurrency = (amount: number) => {
-    return `₦${(amount / 1000).toFixed(0)}K`
-  }
+  const formatCurrency = (amount: number) => formatCompactCurrency(amount)
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -289,7 +286,7 @@ export default function LoansPage() {
               <CardContent>
                 <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalRepaid)}</div>
                 <div className="text-sm text-muted-foreground mt-1">
-                  {((stats.totalRepaid / stats.totalBorrowed) * 100).toFixed(1)}% of total
+                  {stats.totalBorrowed > 0 ? ((stats.totalRepaid / stats.totalBorrowed) * 100).toFixed(1) : '0'}% of total
                 </div>
               </CardContent>
             </Card>
@@ -434,7 +431,38 @@ export default function LoansPage() {
                     <span>Loan Calculator</span>
                   </Button>
 
-                  <Button variant="outline" className="h-auto p-4 flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    className="h-auto p-4 flex-col gap-2"
+                    onClick={async () => {
+                      const { getExportService } = await import("@/lib/export-utils")
+                      const exportService = getExportService()
+                      const rows = [
+                        ...applications.map((a) => ({
+                          type: "application",
+                          id: a.id,
+                          amount: a.amount,
+                          status: a.status,
+                          purpose: a.purpose,
+                          term: a.term,
+                          appliedAt: a.submittedDate,
+                        })),
+                        ...activeLoans.map((l) => ({
+                          type: "active_loan",
+                          id: l.id,
+                          amount: l.amount,
+                          outstanding: l.remainingBalance,
+                          monthlyPayment: l.monthlyPayment,
+                          status: l.status,
+                          nextPayment: l.nextPaymentDate,
+                        })),
+                      ]
+                      await exportService.exportCustomData(rows, {
+                        format: "excel",
+                        filename: `grochain-loan-statement-${new Date().toISOString().slice(0, 10)}.xlsx`,
+                      })
+                    }}
+                  >
                     <Download className="h-6 w-6 text-accent" />
                     <span>Download Statement</span>
                   </Button>
@@ -631,7 +659,32 @@ export default function LoansPage() {
                             <Banknote className="h-4 w-4 mr-2" />
                             Make Payment
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              const { getExportService } = await import("@/lib/export-utils")
+                              const exportService = getExportService()
+                              await exportService.exportCustomData(
+                                [
+                                  {
+                                    id: loan.id,
+                                    amount: loan.amount,
+                                    remainingBalance: loan.remainingBalance,
+                                    monthlyPayment: loan.monthlyPayment,
+                                    interestRate: loan.interestRate,
+                                    status: loan.status,
+                                    nextPaymentDate: loan.nextPaymentDate,
+                                    endDate: loan.endDate,
+                                  },
+                                ],
+                                {
+                                  format: "excel",
+                                  filename: `grochain-loan-statement-${loan.id}.xlsx`,
+                                }
+                              )
+                            }}
+                          >
                             <Download className="h-4 w-4 mr-2" />
                             Statement
                           </Button>

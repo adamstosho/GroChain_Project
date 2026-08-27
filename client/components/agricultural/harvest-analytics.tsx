@@ -8,18 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   TrendingUp,
-  TrendingDown,
-  Calendar,
   Scale,
   Banknote,
-  Leaf,
   BarChart3,
   PieChart,
   Target,
   Award,
   AlertTriangle,
   CheckCircle2,
-  Clock,
   Package
 } from "lucide-react"
 import { apiService } from "@/lib/api"
@@ -140,31 +136,33 @@ export function HarvestAnalytics({ farmerId, className }: HarvestAnalyticsProps)
       console.error('Analytics fetch error:', err)
       setError('Failed to load harvest analytics')
 
-      // Only set fallback data if we have no data at all
-      if (!analytics) {
-        setAnalytics({
-          totalHarvests: 0,
-          totalQuantity: 0,
-          totalValue: 0,
-          averageQuality: "poor",
-          topCrop: "N/A",
-          monthlyTrend: [],
-          cropDistribution: [],
-          qualityDistribution: [],
-          seasonalInsights: {
-            bestSeason: "N/A",
-            peakMonth: "N/A",
-            yieldPrediction: 0,
-            recommendations: ["No harvest data available yet"]
-          },
-          performanceMetrics: {
-            yieldEfficiency: 0,
-            qualityConsistency: 0,
-            marketReadiness: 0,
-            growthRate: 0
-          }
-        })
-      }
+      // Only set fallback data if we have no data at all. Uses the functional
+      // update form so this doesn't need `analytics` in the dependency array —
+      // adding it would recreate this callback on every fetch and, combined
+      // with the effect below that re-runs whenever this callback identity
+      // changes, cause an infinite fetch loop.
+      setAnalytics(prev => prev ?? {
+        totalHarvests: 0,
+        totalQuantity: 0,
+        totalValue: 0,
+        averageQuality: "poor",
+        topCrop: "N/A",
+        monthlyTrend: [],
+        cropDistribution: [],
+        qualityDistribution: [],
+        seasonalInsights: {
+          bestSeason: "N/A",
+          peakMonth: "N/A",
+          yieldPrediction: 0,
+          recommendations: ["No harvest data available yet"]
+        },
+        performanceMetrics: {
+          yieldEfficiency: 0,
+          qualityConsistency: 0,
+          marketReadiness: 0,
+          growthRate: 0
+        }
+      })
     } finally {
       setLoading(false)
     }
@@ -380,7 +378,7 @@ export function HarvestAnalytics({ farmerId, className }: HarvestAnalyticsProps)
             <CardContent>
               {analytics.monthlyTrend.length > 0 ? (
                 <div className="h-48 sm:h-64 flex items-end justify-between space-x-1 sm:space-x-2 overflow-x-auto">
-                  {analytics.monthlyTrend.map((month, index) => (
+                  {analytics.monthlyTrend.map((month) => (
                     <div key={month.month} className="flex flex-col items-center flex-1 min-w-0">
                       <div
                         className="bg-primary rounded-t w-full mb-2 transition-all hover:bg-primary"

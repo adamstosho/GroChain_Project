@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -15,7 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import { useShipment, useUpdateShipmentStatus, useConfirmDelivery, useReportIssue } from "@/hooks/use-shipments"
 import { ShipmentStatusBadge } from "@/components/shipment/shipment-status-badge"
-import { ShipmentTrackingTimeline } from "@/components/shipment/shipment-tracking-timeline"
 import { 
   Package, 
   Truck, 
@@ -23,9 +22,7 @@ import {
   Calendar, 
   Clock,
   Banknote,
-  User,
   Phone,
-  Mail,
   AlertTriangle,
   CheckCircle,
   RefreshCw,
@@ -39,13 +36,11 @@ import Image from "next/image"
 import Link from "next/link"
 import { AiTrustBadge } from "@/components/ai/ai-trust-badge"
 import { ShipmentRiskAlert } from "@/components/ai/shipment-risk-alert"
-import { useAuth } from "@/hooks/use-auth"
 
 export default function ShipmentDetailsPage() {
   const params = useParams()
   const router = useRouter()
   const { toast } = useToast()
-  const { user } = useAuth()
   const shipmentId = params.shipmentId as string
 
   const { shipment, loading, error, refreshShipment } = useShipment(shipmentId)
@@ -54,8 +49,8 @@ export default function ShipmentDetailsPage() {
   const { reportIssue, loading: reportingIssue } = useReportIssue()
 
   const [showStatusUpdate, setShowStatusUpdate] = useState(false)
-  const [showDeliveryConfirm, setShowDeliveryConfirm] = useState(false)
-  const [showIssueReport, setShowIssueReport] = useState(false)
+  const [_showDeliveryConfirm, setShowDeliveryConfirm] = useState(false)
+  const [_showIssueReport, setShowIssueReport] = useState(false)
   
   // Status update form state
   const [statusForm, setStatusForm] = useState({
@@ -126,7 +121,8 @@ export default function ShipmentDetailsPage() {
     }
   }
 
-  const handleDeliveryConfirm = async (proof: any) => {
+  // Fully implemented but not yet wired to any confirm/report UI trigger.
+  const _handleDeliveryConfirm = async (proof: any) => {
     try {
       await confirmDelivery(shipmentId, proof)
       setShowDeliveryConfirm(false)
@@ -136,7 +132,7 @@ export default function ShipmentDetailsPage() {
     }
   }
 
-  const handleIssueReport = async (type: string, description: string) => {
+  const _handleIssueReport = async (type: string, description: string) => {
     try {
       await reportIssue(shipmentId, { type: type as any, description })
       setShowIssueReport(false)
@@ -195,20 +191,20 @@ export default function ShipmentDetailsPage() {
     <DashboardLayout>
       <div className="space-y-6 max-w-[1400px] mx-auto pb-10">
         {/* Header with Glassmorphism */}
-        <div className="bg-white/40 backdrop-blur-md p-6 rounded-3xl border border-white/20 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-background/40 backdrop-blur-md p-6 rounded-3xl border border-border/40 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => router.back()} 
-              className="bg-white/80 border-border hover:bg-muted shadow-sm"
+              className="bg-background/80 border-border hover:bg-muted shadow-sm"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight">
+                <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground tracking-tight">
                   {shipment.shipmentNumber}
                 </h1>
                 <AiTrustBadge userId={(typeof shipment.seller === 'string' ? shipment.seller : (shipment.seller._id || shipment.seller)) as string} className="scale-90" />
@@ -225,7 +221,7 @@ export default function ShipmentDetailsPage() {
               variant="outline" 
               size="sm" 
               onClick={refreshShipment}
-              className="bg-white/80 border-border hover:bg-muted text-foreground shadow-sm"
+              className="bg-background/80 border-border hover:bg-muted text-foreground shadow-sm"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
@@ -233,7 +229,7 @@ export default function ShipmentDetailsPage() {
             <Button 
               size="sm" 
               onClick={() => setShowStatusUpdate(true)}
-              className="bg-primary hover:bg-primary/90 shadow-md"
+              className="bg-primary hover:bg-primary-hover shadow-md"
             >
               <Edit className="h-4 w-4 mr-2" />
               Update
@@ -312,7 +308,7 @@ export default function ShipmentDetailsPage() {
                           </div>
                         </div>
                         <div className="mt-3 flex items-center gap-2">
-                          <Badge variant="secondary" className="bg-white/80 border-border text-muted-foreground text-[10px]">
+                          <Badge variant="secondary" className="bg-background/80 border-border text-muted-foreground text-[10px]">
                             {item.quantity} {item.unit}
                           </Badge>
                         </div>
@@ -325,7 +321,7 @@ export default function ShipmentDetailsPage() {
 
             {/* Issues */}
             {shipment.issues && shipment.issues.length > 0 && (
-              <Card className="border-destructive/10 shadow-lg shadow-red-500/5">
+              <Card className="border-destructive/10">
                 <CardHeader className="bg-destructive/50 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
                   <CardTitle className="flex items-center gap-2 text-destructive">
                     <AlertTriangle className="h-5 w-5" />
@@ -353,7 +349,7 @@ export default function ShipmentDetailsPage() {
                           {formatDistanceToNow(new Date(issue.reportedAt), { addSuffix: true })}
                         </div>
                         {issue.resolution && (
-                          <div className="mt-3 p-3 bg-white rounded-2xl border border-success/10">
+                          <div className="mt-3 p-3 bg-card rounded-2xl border border-success/10">
                             <p className="text-xs text-success leading-relaxed">
                               <span className="font-bold">RESOLUTION:</span> {issue.resolution}
                             </p>

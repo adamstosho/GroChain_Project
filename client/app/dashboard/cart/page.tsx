@@ -6,17 +6,21 @@ import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Minus, Plus, Trash2, ShoppingCart, Package } from "lucide-react"
+import { Minus, Plus, Trash2, ShoppingCart } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 export default function CartPage() {
-  const { cart, updateCartQuantity, removeFromCart, clearCart } = useBuyerStore()
-
-  // Initialize cart from localStorage
-
+  const { cart, updateCartQuantity, removeFromCart, clearCart, hasHydrated, setHasHydrated } = useBuyerStore()
   const router = useRouter()
+
+  useEffect(() => {
+    if (useBuyerStore.persist.hasHydrated()) {
+      setHasHydrated(true)
+    }
+  }, [setHasHydrated])
 
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0)
   const subtotal = cart.reduce((sum, item) => sum + item.total, 0)
@@ -40,6 +44,17 @@ export default function CartPage() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(price)
+  }
+
+  if (!hasHydrated) {
+    return (
+      <DashboardLayout pageTitle="Shopping Cart">
+        <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+          <div className="h-16 w-16 bg-muted animate-pulse rounded-full mb-4" />
+          <div className="h-6 w-48 bg-muted animate-pulse rounded" />
+        </div>
+      </DashboardLayout>
+    )
   }
 
   if (cart.length === 0) {

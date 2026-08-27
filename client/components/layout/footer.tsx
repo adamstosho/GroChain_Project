@@ -11,23 +11,22 @@ export function Footer() {
   ]
 
   const supportLinks = [
-    { name: "Help Center", href: "/dashboard" },
-    { name: "Training Videos", href: "/dashboard" },
-    { name: "Contact Support", href: "/dashboard" },
+    { name: "How it works", href: "/help" },
+    { name: "Contact Support", href: "mailto:hello@grochain.ng" },
     { name: "+234 800 GROCHAIN", href: "tel:+2348004762424" },
   ]
 
   return (
-    <footer className="bg-muted/50 border-t">
+    <footer id="contact" className="bg-muted/50 border-t">
       <div className="container px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Brand */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center">
               <GroChainLogo variant="full" size="md" />
             </Link>
             <p className="text-sm text-muted-foreground max-w-xs">
-              Nigeria's leading agricultural supply chain through transparency and blockchain technology.
+              A digital agriculture platform connecting farmers, buyers, and agencies through transparent supply-chain
+              records.
             </p>
             <div className="flex items-center space-x-2 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4" />
@@ -35,7 +34,6 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Platform */}
           <div className="space-y-4">
             <h3 className="font-semibold">Platform</h3>
             <ul className="space-y-2">
@@ -49,7 +47,6 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Support */}
           <div className="space-y-4">
             <h3 className="font-semibold">Support</h3>
             <ul className="space-y-2">
@@ -63,18 +60,23 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Contact */}
           <div className="space-y-4">
             <h3 className="font-semibold">Contact</h3>
             <div className="space-y-2">
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+              <a
+                href="mailto:hello@grochain.ng"
+                className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
                 <Mail className="h-4 w-4" />
                 <span>hello@grochain.ng</span>
-              </div>
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+              </a>
+              <a
+                href="tel:+2348004762424"
+                className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
                 <Phone className="h-4 w-4" />
                 <span>+234 800 GROCHAIN</span>
-              </div>
+              </a>
             </div>
           </div>
         </div>
@@ -82,10 +84,10 @@ export function Footer() {
         <div className="mt-12 pt-8 border-t flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
           <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} GroChain. All rights reserved.</p>
           <div className="flex space-x-6">
-            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link href="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Terms of Service
             </Link>
           </div>

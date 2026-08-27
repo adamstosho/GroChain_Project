@@ -1,8 +1,6 @@
-const axios = require('axios')
 const crypto = require('crypto')
 const User = require('../models/user.model')
 const Transaction = require('../models/transaction.model')
-const Payment = require('../models/payment.model')
 
 class USSDService {
   constructor() {
@@ -31,6 +29,14 @@ class USSDService {
     
     this.sessionTimeout = 300000 // 5 minutes
     this.activeSessions = new Map()
+    this.secretKey = process.env.USSD_PIN_SECRET || process.env.JWT_SECRET
+    if (!this.secretKey) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('USSD_PIN_SECRET or JWT_SECRET must be set in production')
+      }
+      this.secretKey = 'ussd-dev-pin-secret-change-me'
+      console.warn('⚠️  USSD_PIN_SECRET/JWT_SECRET not set — using insecure development fallback')
+    }
   }
 
   // Initialize USSD session
@@ -362,7 +368,7 @@ class USSDService {
           'Enter amount to send (₦):',
           'CON'
         )
-      case 'amount':
+      case 'amount': {
         const amount = parseFloat(userInput)
         if (isNaN(amount) || amount <= 0) {
           return this.generateResponse(
@@ -370,13 +376,14 @@ class USSDService {
             'CON'
           )
         }
-        
+
         session.data.amount = amount
         session.data.step = 'pin'
         return this.generateResponse(
           `Send ₦${amount} to ${session.data.recipient}?\n\nEnter your PIN to confirm:`,
           'CON'
         )
+      }
       case 'pin':
         try {
           const user = await User.findById(session.userId)
@@ -442,7 +449,7 @@ class USSDService {
           'Enter airtime amount (₦):',
           'CON'
         )
-      case 'amount':
+      case 'amount': {
         const amount = parseFloat(userInput)
         if (isNaN(amount) || amount < 50 || amount > 10000) {
           return this.generateResponse(
@@ -450,13 +457,14 @@ class USSDService {
             'CON'
           )
         }
-        
+
         session.data.amount = amount
         session.data.step = 'pin'
         return this.generateResponse(
           `Buy ₦${amount} airtime for ${session.data.phone}?\n\nEnter your PIN to confirm:`,
           'CON'
         )
+      }
       case 'pin':
         try {
           const user = await User.findById(session.userId)
@@ -508,23 +516,24 @@ class USSDService {
     }
 
     switch (session.data.step) {
-      case 'bill_type':
+      case 'bill_type': {
         const billTypes = ['electricity', 'water', 'internet', 'tv']
         const selectedType = billTypes[parseInt(userInput) - 1]
-        
+
         if (!selectedType) {
           return this.generateResponse(
             'Invalid option. Please select 1-4:',
             'CON'
           )
         }
-        
+
         session.data.billType = selectedType
         session.data.step = 'meter_number'
         return this.generateResponse(
           `Enter ${selectedType} meter/account number:`,
           'CON'
         )
+      }
       case 'meter_number':
         session.data.meterNumber = userInput
         session.data.step = 'amount'
@@ -532,7 +541,7 @@ class USSDService {
           'Enter bill amount (₦):',
           'CON'
         )
-      case 'amount':
+      case 'amount': {
         const amount = parseFloat(userInput)
         if (isNaN(amount) || amount <= 0) {
           return this.generateResponse(
@@ -540,13 +549,14 @@ class USSDService {
             'CON'
           )
         }
-        
+
         session.data.amount = amount
         session.data.step = 'pin'
         return this.generateResponse(
           `Pay ₦${amount} for ${session.data.billType}?\n\nMeter/Account: ${session.data.meterNumber}\n\nEnter your PIN to confirm:`,
           'CON'
         )
+      }
       case 'pin':
         try {
           const user = await User.findById(session.userId)
@@ -668,13 +678,21 @@ class USSDService {
 
   // Hash PIN for security
   hashPIN(pin) {
-    return crypto.createHash('sha256').update(pin + this.secretKey).digest('hex')
+    return crypto.createHash('sha256').update(String(pin) + this.secretKey).digest('hex')
   }
 
   // Verify PIN
   verifyPIN(inputPin, hashedPIN) {
+    if (!hashedPIN || typeof hashedPIN !== 'string') return false
     const inputHash = this.hashPIN(inputPin)
-    return inputHash === hashedPIN
+    try {
+      const a = Buffer.from(inputHash, 'hex')
+      const b = Buffer.from(hashedPIN, 'hex')
+      if (a.length !== b.length) return false
+      return crypto.timingSafeEqual(a, b)
+    } catch {
+      return false
+    }
   }
 
   // Validate phone number

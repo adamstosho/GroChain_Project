@@ -146,13 +146,52 @@ class OfflineApiService {
   }
 
   async createOrder(data: any, offlineHook: ReturnType<typeof useOffline>) {
-    return this.makeRequest({
-      endpoint: '/marketplace/orders',
-      data,
-      method: 'POST',
-      type: 'order',
-      action: 'create'
-    }, offlineHook);
+    const { idempotencyKey, ...payload } = data || {}
+
+    if (offlineHook.isOffline) {
+      const offlineAction = {
+        id: this.generateId(),
+        type: 'order' as const,
+        data: { ...payload, idempotencyKey },
+        timestamp: Date.now(),
+        action: 'create' as const
+      }
+      offlineHook.addOfflineAction(offlineAction)
+      return {
+        success: true,
+        queued: true,
+        message: 'order create queued for sync when online',
+        offlineAction
+      }
+    }
+
+    try {
+      const response = await apiService.createOrder(
+        payload,
+        idempotencyKey ? { idempotencyKey: String(idempotencyKey) } : undefined
+      )
+      return {
+        success: true,
+        queued: false,
+        data: response.data,
+        message: 'order create completed successfully'
+      }
+    } catch (error: any) {
+      const offlineAction = {
+        id: this.generateId(),
+        type: 'order' as const,
+        data: { ...payload, idempotencyKey },
+        timestamp: Date.now(),
+        action: 'create' as const
+      }
+      offlineHook.addOfflineAction(offlineAction)
+      return {
+        success: false,
+        queued: true,
+        error: error.message,
+        message: 'order create failed, queued for retry'
+      }
+    }
   }
 
   async updateOrder(orderId: string, data: any, offlineHook: ReturnType<typeof useOffline>) {

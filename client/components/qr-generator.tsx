@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { QrCode, Download, Copy, Check } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import QRCodeLib from "qrcode"
 
 interface QRGeneratorProps {
   onQRGenerated?: (qrData: string) => void
@@ -69,17 +70,13 @@ export default function QRGenerator({ onQRGenerated }: QRGeneratorProps) {
         timestamp: new Date().toISOString()
       }
 
-      // Create a simple QR code representation
+      // Generate a real, scannable QR code encoding the batch data
       const qrString = JSON.stringify(qrCodeData)
-      const qrImageData = `data:image/svg+xml;base64,${btoa(`
-        <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-          <rect width="200" height="200" fill="white"/>
-          <text x="100" y="100" text-anchor="middle" font-family="monospace" font-size="12" fill="black">
-            ${data}
-          </text>
-        </svg>
-      `)}`
-      
+      const qrImageData = await QRCodeLib.toDataURL(qrString, {
+        width: 200,
+        margin: 2
+      })
+
       setQrImage(qrImageData)
       setQrData(data)
       
@@ -122,7 +119,7 @@ export default function QRGenerator({ onQRGenerated }: QRGeneratorProps) {
     
     const link = document.createElement('a')
     link.href = qrImage
-    link.download = `qr-code-${qrData}.svg`
+    link.download = `qr-code-${qrData}.png`
     link.click()
   }
 
@@ -177,9 +174,12 @@ export default function QRGenerator({ onQRGenerated }: QRGeneratorProps) {
         {qrImage && (
           <div className="space-y-4">
             <div className="text-center">
-              <img 
-                src={qrImage} 
-                alt="Generated QR Code" 
+              <Image
+                src={qrImage}
+                alt="Generated QR Code"
+                width={200}
+                height={200}
+                unoptimized
                 className="mx-auto border rounded-lg"
                 style={{ maxWidth: '200px', maxHeight: '200px' }}
               />

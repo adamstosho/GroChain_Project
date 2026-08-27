@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { apiService } from "@/lib/api"
+import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
 import {
   CreditCard,
@@ -20,8 +21,6 @@ import {
   Plus,
   Eye,
   Download,
-  Calendar,
-  MapPin,
   Activity,
   Users,
   Building,
@@ -293,7 +292,7 @@ export default function FinancialServicesPage() {
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
               <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">
-                ₦{(overview.totalEarnings / 1000000).toFixed(1)}M
+                {formatCompactCurrency(overview.totalEarnings)}
               </div>
               <p className="text-xs text-muted-foreground">Lifetime earnings</p>
             </CardContent>
@@ -308,7 +307,7 @@ export default function FinancialServicesPage() {
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
               <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">
-                ₦{(overview.totalSavings / 1000000).toFixed(1)}M
+                {formatCompactCurrency(overview.totalSavings)}
               </div>
               <p className="text-xs text-muted-foreground">Current savings</p>
             </CardContent>
@@ -389,10 +388,12 @@ export default function FinancialServicesPage() {
                     <span className="font-medium text-foreground">{overview.financialGoals}</span>
                   </div>
                   <div className="pt-2">
-                    <Button variant="outline" size="sm" className="w-full">
-                      <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                      <span className="hidden sm:inline">View Full Report</span>
-                      <span className="sm:hidden">View Report</span>
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/dashboard/financial/credit">
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                        <span className="hidden sm:inline">View Full Report</span>
+                        <span className="sm:hidden">View Report</span>
+                      </Link>
                     </Button>
                   </div>
                 </CardContent>
@@ -428,7 +429,48 @@ export default function FinancialServicesPage() {
                       <span className="sm:hidden">Goals</span>
                     </Link>
                   </Button>
-                  <Button variant="outline" className="w-full justify-start" size="sm">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    size="sm"
+                    onClick={async () => {
+                      const { getExportService } = await import("@/lib/export-utils")
+                      const exportService = getExportService()
+                      const rows = [
+                        { section: "Overview", metric: "Credit Score", value: overview.creditScore },
+                        { section: "Overview", metric: "Total Earnings", value: overview.totalEarnings },
+                        { section: "Overview", metric: "Pending Payments", value: overview.pendingPayments },
+                        { section: "Overview", metric: "Active Loans", value: overview.activeLoans },
+                        { section: "Overview", metric: "Insurance Policies", value: overview.insurancePolicies },
+                        { section: "Overview", metric: "Total Savings", value: overview.totalSavings },
+                        ...recentTransactions.map((t) => ({
+                          section: "Transaction",
+                          metric: t.description || t.type,
+                          value: t.amount,
+                          status: t.status,
+                          date: t.date,
+                        })),
+                        ...activeLoans.map((l) => ({
+                          section: "Loan",
+                          metric: l.purpose || l._id,
+                          value: l.amount,
+                          outstanding: l.remainingBalance,
+                          status: l.status,
+                        })),
+                        ...insurancePolicies.map((p) => ({
+                          section: "Insurance",
+                          metric: p.provider || p.policyNumber || p._id,
+                          value: p.coverageAmount,
+                          premium: p.premium,
+                          status: p.status,
+                        })),
+                      ]
+                      await exportService.exportCustomData(rows, {
+                        format: "excel",
+                        filename: `grochain-financial-statement-${new Date().toISOString().slice(0, 10)}.xlsx`,
+                      })
+                    }}
+                  >
                     <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                     <span className="hidden sm:inline">Download Statement</span>
                     <span className="sm:hidden">Download</span>
@@ -453,9 +495,11 @@ export default function FinancialServicesPage() {
                   <div className="text-xs sm:text-sm text-muted-foreground">
                     Next payment due in 5 days
                   </div>
-                  <Button size="sm" className="w-full sm:w-auto">
-                    <span className="hidden sm:inline">View Details</span>
-                    <span className="sm:hidden">Details</span>
+                  <Button size="sm" className="w-full sm:w-auto" asChild>
+                    <Link href="/dashboard/financial/transactions">
+                      <span className="hidden sm:inline">View Details</span>
+                      <span className="sm:hidden">Details</span>
+                    </Link>
                   </Button>
                 </div>
               </CardContent>

@@ -34,24 +34,26 @@ export function Hero() {
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="group bg-transparent">
-                <Play className="mr-2 h-4 w-4" />
-                Verify Products
+              <Button size="lg" variant="outline" className="group" asChild>
+                <Link href="/marketplace">
+                  <Play className="mr-2 h-4 w-4" />
+                  Browse Marketplace
+                </Link>
               </Button>
             </div>
 
             <div className="flex items-center space-x-8 text-sm text-muted-foreground">
               <div className="flex items-center space-x-2">
                 <div className="h-2 w-2 rounded-full bg-success" />
-                <span>10K+ Farmers</span>
+                <span>Farmers, buyers, agencies</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="h-2 w-2 rounded-full bg-secondary" />
-                <span>100% Verified</span>
+                <span>QR traceability</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="h-2 w-2 rounded-full bg-primary" />
-                <span>Community Driven</span>
+                <span>Built in Nigeria</span>
               </div>
             </div>
           </div>
@@ -60,9 +62,10 @@ export function Hero() {
           <div className="relative">
             <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted">
               <Image
-                src="/herosection-image.png"
-                alt="Nigerian farmers with fresh produce showcasing agricultural products"
+                src="/illustration-hero.png"
+                alt="Illustration of a farmer with a crate of harvested produce, maize, and a phone showing a traceability code"
                 fill
+                sizes="(min-width: 1024px) 50vw, 100vw"
                 className="object-cover"
                 priority
               />

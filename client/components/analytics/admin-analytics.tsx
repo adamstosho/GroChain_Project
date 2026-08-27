@@ -2,18 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import {
   TrendingUp,
-  TrendingDown,
   Banknote,
   Users,
   Package,
-  Calendar,
   BarChart3,
   PieChart,
   Activity,
@@ -21,15 +18,10 @@ import {
   RefreshCw,
   MapPin,
   Target,
-  Shield,
-  Globe,
-  AlertTriangle,
-  CheckCircle
+  Shield
 } from "lucide-react"
 import {
-  LineChart,
   Line,
-  AreaChart,
   Area,
   BarChart,
   Bar,
@@ -47,7 +39,9 @@ import {
 import { cn } from "@/lib/utils"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { useExportService } from "@/lib/export-utils"
+import { getExportService } from "@/lib/export-utils"
+import { brandColors } from "@/lib/brand/colors"
+import { formatCompactCurrency, formatCompactNumber } from "@/lib/format"
 
 interface AdminAnalyticsData {
   totalUsers: number
@@ -66,12 +60,6 @@ interface AdminAnalyticsData {
     partners: number;
     admins: number;
   };
-}
-
-interface ChartData {
-  name: string
-  value: number
-  [key: string]: any
 }
 
 interface OverviewData {
@@ -109,7 +97,7 @@ export function AdminAnalytics() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
   const { toast } = useToast()
-  const exportService = useExportService()
+  const exportService = getExportService()
 
   const fetchAllAnalytics = useCallback(async () => {
     try {
@@ -188,7 +176,7 @@ export function AdminAnalytics() {
           }
           break
       }
-    } catch (error: any) {
+    } catch {
       toast({
         title: "Error",
         description: `Failed to load ${tab} data`,
@@ -214,21 +202,8 @@ export function AdminAnalytics() {
     await exportService.exportAnalytics('all', timeRange, 'json')
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      notation: 'compact',
-      maximumFractionDigits: 1
-    }).format(value)
-  }
-
-  const formatNumber = (value: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      notation: 'compact',
-      maximumFractionDigits: 1
-    }).format(value)
-  }
+  const formatCurrency = formatCompactCurrency
+  const formatNumber = formatCompactNumber
 
   const processChartData = (data: any[], format: 'monthly' | 'combined' = 'monthly') => {
     if (!Array.isArray(data) || data.length === 0) return []
@@ -269,10 +244,10 @@ export function AdminAnalytics() {
     if (total === 0) return []
 
     return [
-      { name: 'Farmers', value: Math.round((farmers / total) * 100), count: farmers, color: '#22c55e' },
-      { name: 'Buyers', value: Math.round((buyers / total) * 100), count: buyers, color: '#3b82f6' },
-      { name: 'Partners', value: Math.round((partners / total) * 100), count: partners, color: '#8b5cf6' },
-      { name: 'Admins', value: Math.round((admins / total) * 100), count: admins, color: '#ef4444' }
+      { name: 'Farmers', value: Math.round((farmers / total) * 100), count: farmers, color: '#166534' },
+      { name: 'Buyers', value: Math.round((buyers / total) * 100), count: buyers, color: brandColors.chartEarth },
+      { name: 'Partners', value: Math.round((partners / total) * 100), count: partners, color: brandColors.chartGold },
+      { name: 'Admins', value: Math.round((admins / total) * 100), count: admins, color: '#df000d' }
     ]
   }
 
@@ -429,29 +404,28 @@ export function AdminAnalytics() {
             value="overview"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
-            <span className="hidden xs:inline">Overview</span>
-            <span className="xs:hidden">📊</span>
+            Overview
           </TabsTrigger>
           <TabsTrigger
             value="users"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">User Analytics</span>
-            <span className="xs:hidden">👥</span>
+            <span className="xs:hidden">Users</span>
           </TabsTrigger>
           <TabsTrigger
             value="regional"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Regional Data</span>
-            <span className="xs:hidden">🗺️</span>
+            <span className="xs:hidden">Regions</span>
           </TabsTrigger>
           <TabsTrigger
             value="quality"
             className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 min-h-[40px]"
           >
             <span className="hidden xs:inline">Quality Metrics</span>
-            <span className="xs:hidden">⭐</span>
+            <span className="xs:hidden">Quality</span>
           </TabsTrigger>
         </TabsList>
 
@@ -493,8 +467,8 @@ export function AdminAnalytics() {
                       yAxisId="left"
                       type="monotone"
                       dataKey="users"
-                      stroke="#3b82f6"
-                      fill="#3b82f6"
+                      stroke={brandColors.chartEarth}
+                      fill={brandColors.chartEarth}
                       fillOpacity={0.1}
                       name="Users"
                     />
@@ -502,7 +476,7 @@ export function AdminAnalytics() {
                       yAxisId="left"
                       type="monotone"
                       dataKey="harvests"
-                      stroke="#22c55e"
+                      stroke="#166534"
                       strokeWidth={2}
                       name="Harvests"
                     />
@@ -510,7 +484,7 @@ export function AdminAnalytics() {
                       yAxisId="left"
                       type="monotone"
                       dataKey="orders"
-                      stroke="#ef4444"
+                      stroke="#df000d"
                       strokeWidth={2}
                       name="Orders"
                     />
@@ -597,14 +571,14 @@ export function AdminAnalytics() {
                         labelLine={false}
                         label={({ name, value }) => `${name} ${value}%`}
                         outerRadius={80}
-                        fill="#8884d8"
+                        fill={brandColors.primary}
                         dataKey="value"
                       >
                         {getUserDistributionData().map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value: any, name: string) => [`${value}%`, 'Distribution']} />
+                      <Tooltip formatter={(value: any) => [`${value}%`, 'Distribution']} />
                     </RechartsPieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -694,9 +668,9 @@ export function AdminAnalytics() {
                       ]}
                     />
                     <Legend />
-                    <Bar yAxisId="left" dataKey="users" fill="#3b82f6" name="Users" />
-                    <Bar yAxisId="left" dataKey="harvests" fill="#22c55e" name="Harvests" />
-                    <Bar yAxisId="right" dataKey="revenue" fill="#8b5cf6" name="Revenue" />
+                    <Bar yAxisId="left" dataKey="users" fill={brandColors.chartEarth} name="Users" />
+                    <Bar yAxisId="left" dataKey="harvests" fill="#166534" name="Harvests" />
+                    <Bar yAxisId="right" dataKey="revenue" fill={brandColors.chartGold} name="Revenue" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (

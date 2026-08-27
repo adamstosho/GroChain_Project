@@ -10,10 +10,14 @@ services:
         value: production
       - key: PORT
         value: 10000
+      # This app uses an external MongoDB Atlas cluster, not a Render-managed
+      # database (Render only provisions Postgres/Redis natively, so
+      # `fromDatabase: { name: grochain-mongodb, ... }` can never resolve to
+      # a real connection string and left this var effectively unset).
+      # Set the real mongodb+srv:// Atlas URI in the Render dashboard:
+      # Settings > Environment > MONGODB_URI
       - key: MONGODB_URI
-        fromDatabase:
-          name: grochain-mongodb
-          property: connectionString
+        sync: false
       - key: CORS_ORIGIN
         value: https://gro-chain.vercel.app
       - key: FRONTEND_URL

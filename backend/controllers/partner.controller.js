@@ -1,6 +1,5 @@
 const Partner = require('../models/partner.model')
 const User = require('../models/user.model')
-const Commission = require('../models/commission.model')
 const NotificationService = require('../services/notification.service')
 
 exports.getAllPartners = async (req, res) => {
@@ -134,34 +133,41 @@ exports.getPartnerMetrics = async (req, res) => {
 }
 
 exports.onboardFarmer = async (req, res) => {
+  let session
   try {
     const mongoose = require('mongoose')
-    const session = await mongoose.startSession()
+    session = await mongoose.startSession()
     session.startTransaction()
     const { farmerId } = req.body
     const partnerId = req.params.id
-    
+
     const partner = await Partner.findById(partnerId).session(session)
     if (!partner) {
+      await session.abortTransaction()
+      session.endSession()
       return res.status(404).json({ status: 'error', message: 'Partner not found' })
     }
-    
+
     const farmer = await User.findById(farmerId).session(session)
     if (!farmer) {
+      await session.abortTransaction()
+      session.endSession()
       return res.status(404).json({ status: 'error', message: 'Farmer not found' })
     }
-    
+
     if (farmer.role !== 'farmer') {
+      await session.abortTransaction()
+      session.endSession()
       return res.status(400).json({ status: 'error', message: 'User is not a farmer' })
     }
-    
+
     // Add farmer to partner's farmers list
     if (!partner.farmers.includes(farmerId)) {
       partner.farmers.push(farmerId)
       partner.totalFarmers = partner.farmers.length
       await partner.save({ session })
     }
-    
+
     // Update farmer's partner reference
     farmer.partner = partnerId
     await farmer.save({ session })
@@ -250,15 +256,39 @@ exports.bulkUploadFarmersCSV = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'No CSV file uploaded' });
     }
 
-    // Parse CSV file
-    const csvData = req.file.buffer.toString('utf-8');
-    const lines = csvData.split(/\r?\n/).filter(Boolean);
+    // Parse CSV file (RFC-style: quoted fields, commas inside quotes, BOM)
+    const csvData = req.file.buffer.toString('utf-8').replace(/^\uFEFF/, '');
+    const lines = csvData.split(/\r?\n/).filter(line => line.trim().length > 0);
 
     if (lines.length < 2) {
       return res.status(400).json({ status: 'error', message: 'CSV file must contain header and at least one data row' });
     }
 
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const parseCsvLine = (line) => {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (c === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            current += '"';
+            i += 1;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (c === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += c;
+        }
+      }
+      result.push(current.trim());
+      return result;
+    };
+
+    const headers = parseCsvLine(lines[0]).map(h => h.trim().toLowerCase().replace(/\s+/g, ''));
     const requiredHeaders = ['name', 'email', 'phone', 'location'];
 
     // Validate headers
@@ -266,7 +296,7 @@ exports.bulkUploadFarmersCSV = async (req, res) => {
     if (missingHeaders.length > 0) {
       return res.status(400).json({
         status: 'error',
-        message: `Missing required headers: ${missingHeaders.join(', ')}`
+        message: `Missing required headers: ${missingHeaders.join(', ')}. Expected: name,email,phone,location (optional: gender,age,education)`
       });
     }
 
@@ -276,11 +306,11 @@ exports.bulkUploadFarmersCSV = async (req, res) => {
     const processedEmails = new Set();
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
+      const values = parseCsvLine(lines[i]);
       const row = {};
 
       headers.forEach((header, index) => {
-        row[header] = values[index] || '';
+        row[header] = (values[index] || '').replace(/^"|"$/g, '').trim();
       });
 
       // Validate required fields
@@ -315,7 +345,7 @@ exports.bulkUploadFarmersCSV = async (req, res) => {
 
       // Validate Nigerian phone format
       const phoneRegex = /^(\+234|0)[789][01]\d{8}$/;
-      const cleanPhone = row.phone.replace(/\s/g, '');
+      const cleanPhone = row.phone.replace(/[\s-]/g, '');
       if (!phoneRegex.test(cleanPhone)) {
         errors.push(`Row ${i + 1}: Invalid phone format (use +234 or 0 followed by 10 digits)`);
         continue;
@@ -331,6 +361,9 @@ exports.bulkUploadFarmersCSV = async (req, res) => {
         email: row.email.toLowerCase().trim(),
         phone: cleanPhone,
         location: row.location.trim(),
+        gender: row.gender || undefined,
+        age: row.age ? Number(row.age) : undefined,
+        education: row.education || undefined,
         role: 'farmer',
         status: 'active',
         partner: partner._id,
@@ -1110,6 +1143,5 @@ exports.getPartnerCommission = async (req, res) => {
     console.log('=== PARTNER COMMISSION REQUEST ERROR END ===');
     return res.status(500).json(errorResponse);
   }
-  console.log('=== PARTNER COMMISSION REQUEST SUCCESSFUL END ===');
 }
 

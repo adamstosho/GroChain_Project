@@ -378,7 +378,7 @@ export default function OrderDetailsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6 pt-0 space-y-3 sm:space-y-4">
-                  <div className="bg-white p-3 sm:p-4 rounded-lg border">
+                  <div className="bg-card p-3 sm:p-4 rounded-lg border">
                     <h4 className="font-medium mb-2 text-sm sm:text-base">Bank Details:</h4>
                     <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                       <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">

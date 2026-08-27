@@ -29,7 +29,7 @@ export function OfflineIndicator() {
     try {
       await syncPendingActions();
       toast({ title: 'Offline actions synchronized successfully!', variant: 'success' });
-    } catch (error) {
+    } catch {
       toast({ title: 'Failed to sync offline actions. Please try again.', variant: 'destructive' });
     } finally {
       setIsSyncing(false);
@@ -103,7 +103,7 @@ export function OfflineIndicator() {
                   </p>
                 ) : (
                   <div className="space-y-1 max-h-32 overflow-y-auto">
-                    {pendingSync.map((action, index) => (
+                    {pendingSync.map((action) => (
                       <div key={action.id} className="flex items-center justify-between text-xs bg-muted p-2 rounded">
                         <div className="flex items-center space-x-2">
                           <AlertCircle className="h-3 w-3 text-warning" />

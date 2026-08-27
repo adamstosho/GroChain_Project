@@ -1,10 +1,9 @@
 "use client"
 
 import { useState, useEffect, use } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 import { apiService } from "@/lib/api"
 import { certificateGenerator } from "@/lib/certificate-generator"
@@ -13,29 +12,18 @@ import {
   CheckCircle,
   XCircle,
   MapPin,
-  Calendar,
   Package,
   User,
-  Building,
   Phone,
   Mail,
-  Leaf,
   Award,
-  Navigation,
-  Clock,
   Shield,
-  FileText,
   Download,
   ArrowLeft,
-  ExternalLink,
   ShieldCheck,
-  AlertTriangle,
-  Info,
-  Droplet,
   Globe,
   Camera,
-  Activity,
-  Heart
+  Activity
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -133,8 +121,8 @@ export default function VerificationPage({ params }: VerificationPageProps) {
       await certificateGenerator.generateCertificateFromHTML(verificationData)
     } catch (error) {
       console.error('Error generating certificate:', error)
-      // Fallback
-      certificateGenerator.generateCertificate(verificationData)
+      // Fallback to native jsPDF layout (logo + QR)
+      await certificateGenerator.generateCertificate(verificationData)
     } finally {
       setDownloading(false)
     }
@@ -165,10 +153,10 @@ export default function VerificationPage({ params }: VerificationPageProps) {
     return (
       <div className="min-h-screen bg-muted/50 py-12 px-4 sm:px-6">
         <div className="max-w-md mx-auto space-y-6">
-          <Card className="border border-destructive/10 shadow-xl shadow-rose-500/5 bg-white rounded-2xl overflow-hidden">
+          <Card className="border border-destructive/10 bg-card rounded-2xl overflow-hidden">
             <div className="bg-destructive/10 p-6 text-center border-b border-destructive/50">
               <XCircle className="h-14 w-14 text-destructive mx-auto mb-2" />
-              <h2 className="text-lg font-extrabold text-destructive">Verification Unsuccessful</h2>
+              <h2 className="text-lg font-serif font-bold text-destructive">Verification Unsuccessful</h2>
               <p className="text-xs text-destructive/80 mt-1 leading-snug">The scanned QR code is either invalid or missing administrative validation keys.</p>
             </div>
             <CardContent className="p-6 text-center space-y-4">
@@ -176,7 +164,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
                 {error || "We could not find a registered yield match for this batch identifier in GroChain database."}
               </p>
               <div className="flex flex-col gap-2 pt-2">
-                <Button asChild className="bg-secondary hover:bg-secondary text-white h-10 rounded-xl text-xs font-semibold">
+                <Button asChild className="bg-secondary hover:bg-secondary text-secondary-foreground h-10 rounded-xl text-xs font-semibold">
                   <Link href="/dashboard/scanner">
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Return to Camera Scanner
@@ -200,32 +188,32 @@ export default function VerificationPage({ params }: VerificationPageProps) {
       <div className="max-w-4xl mx-auto space-y-6">
         
         {/* Verification Status Header Certificate */}
-        <Card className="border-0 shadow-lg shadow-emerald-600/5 bg-gradient-to-r from-primary via-primary to-success text-white rounded-2xl overflow-hidden relative">
+        <Card className="border-0 shadow-lg bg-primary text-primary-foreground rounded-2xl overflow-hidden relative">
           <div className="absolute right-0 bottom-0 top-0 w-1/3 opacity-5 pointer-events-none bg-[radial-gradient(circle_at_bottom_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
           <CardContent className="p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
             <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-3">
-              <Badge className="bg-lime-400 hover:bg-lime-400 text-primary border-none px-3.5 py-1 text-xs font-bold gap-1 rounded-full shadow-sm">
+              <Badge className="bg-secondary text-secondary-foreground border-none px-3.5 py-1 text-xs font-bold gap-1 rounded-full shadow-sm hover:bg-secondary">
                 <ShieldCheck className="h-4 w-4" />
                 <span>On-Chain Authenticated</span>
               </Badge>
               <div className="space-y-1">
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">Agricultural Provenance Certificate</h1>
-                <p className="text-white/70 text-xs sm:text-sm max-w-lg">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary-foreground font-serif">Agricultural Provenance Certificate</h1>
+                <p className="text-primary-foreground/70 text-xs sm:text-sm max-w-lg">
                   GroChain blockchain ledger certifies that this batch has undergone inspection standards.
                 </p>
               </div>
               <div className="pt-2 flex items-center gap-2">
-                <span className="text-[10px] font-mono bg-white/10 text-white border border-white/20 px-2 py-0.5 rounded-md">
+                <span className="text-[10px] font-mono bg-primary-foreground/10 text-primary-foreground border border-primary-foreground/20 px-2 py-0.5 rounded-md">
                   BATCH: {verificationData.batchId}
                 </span>
-                <span className="text-[10px] text-white/80 font-medium">Verified on: {formatDate(verificationData.timestamp)}</span>
+                <span className="text-[10px] text-primary-foreground/80 font-medium">Verified on: {formatDate(verificationData.timestamp)}</span>
               </div>
             </div>
 
             <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/10 text-center space-y-2 flex-shrink-0 self-center">
-              <Award className="h-10 w-10 text-lime-300 mx-auto" />
-              <p className="text-xs font-bold uppercase tracking-wider text-white leading-none">Grade {verificationData.quality.toLowerCase() === 'excellent' ? 'A' : 'B'}</p>
-              <p className="text-[9px] text-white/70 leading-none">Yield Quality Rating</p>
+              <Award className="h-10 w-10 text-secondary mx-auto" />
+              <p className="text-xs font-bold uppercase tracking-wider text-primary-foreground leading-none">Grade {verificationData.quality.toLowerCase() === 'excellent' ? 'A' : 'B'}</p>
+              <p className="text-[9px] text-primary-foreground/70 leading-none">Yield Quality Rating</p>
             </div>
           </CardContent>
         </Card>
@@ -237,7 +225,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
           <div className="md:col-span-2 space-y-6">
             
             {/* Product Details Section */}
-            <Card className="border border-border rounded-2xl shadow-sm bg-white overflow-hidden">
+            <Card className="border border-border rounded-2xl shadow-sm bg-card overflow-hidden">
               <CardHeader className="bg-muted/50 border-b border-border/50 py-4 px-6">
                 <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
                   <Package className="h-4 w-4 text-success" />
@@ -281,7 +269,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
                       </span>
                     </div>
                     {verificationData.location.coordinates && (
-                      <Badge className="bg-white border border-border text-success font-mono text-[10px] px-2 py-0.5 shadow-sm">
+                      <Badge className="bg-card border border-border text-success font-mono text-[10px] px-2 py-0.5 shadow-sm">
                         📍 {verificationData.location.coordinates.lat.toFixed(5)}, {verificationData.location.coordinates.lng.toFixed(5)}
                       </Badge>
                     )}
@@ -304,7 +292,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
 
             {/* Photo Gallery Section */}
             {verificationData.images && verificationData.images.length > 0 && (
-              <Card className="border border-border rounded-2xl shadow-sm bg-white overflow-hidden">
+              <Card className="border border-border rounded-2xl shadow-sm bg-card overflow-hidden">
                 <CardHeader className="bg-muted/50 border-b border-border/50 py-4 px-6">
                   <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
                     <Camera className="h-4 w-4 text-success" />
@@ -334,7 +322,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
           <div className="space-y-6">
             
             {/* Farmer card */}
-            <Card className="border border-border rounded-2xl shadow-sm bg-white overflow-hidden">
+            <Card className="border border-border rounded-2xl shadow-sm bg-card overflow-hidden">
               <CardHeader className="bg-muted/50 border-b border-border/50 py-4 px-5">
                 <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
                   <User className="h-4 w-4 text-success" />
@@ -369,7 +357,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
             </Card>
 
             {/* Quality parameters checks list */}
-            <Card className="border border-border rounded-2xl shadow-sm bg-white overflow-hidden">
+            <Card className="border border-border rounded-2xl shadow-sm bg-card overflow-hidden">
               <CardHeader className="bg-muted/50 border-b border-border/50 py-4 px-5">
                 <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
                   <Activity className="h-4 w-4 text-success" />
@@ -409,7 +397,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
 
         {/* Certificate Action buttons */}
         <div className="flex flex-col sm:flex-row gap-3 items-center justify-center pt-2">
-          <Button asChild className="bg-secondary hover:bg-secondary text-white h-10 px-6 rounded-xl text-xs font-semibold w-full sm:w-auto shadow-sm">
+          <Button asChild className="bg-secondary hover:bg-secondary text-secondary-foreground h-10 px-6 rounded-xl text-xs font-semibold w-full sm:w-auto shadow-sm">
             <Link href="/marketplace">
               <ArrowLeft className="h-4 w-4 mr-2" />
               <span>Back to Marketplace</span>
@@ -419,7 +407,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
           <Button 
             onClick={handleDownloadCertificate} 
             disabled={downloading}
-            className="bg-success hover:bg-success text-white h-10 px-6 rounded-xl text-xs font-semibold w-full sm:w-auto shadow-md shadow-emerald-600/10"
+            className="bg-success hover:bg-success-hover text-success-foreground h-10 px-6 text-xs font-semibold w-full sm:w-auto"
           >
             {downloading ? (
               <div className="flex items-center justify-center gap-1.5">

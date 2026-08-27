@@ -1,0 +1,19 @@
+{
+  "_comment": "Brand tokens for the designed GroChain identity (2026-08-27). Logo masters live in design/03-brand-assets/logo/source/ — regenerate with npm run generate:icons. This JSON is documentation + color source for scripts; the mark is no longer a hand-drawn SVG leaf.",
+  "concept": "globe-network-leaf-chain",
+  "canonicalGreen": "#166534",
+  "deepGreen": "#0B3D1E",
+  "grassGreen": "#22C55E",
+  "limeGreen": "#A3E635",
+  "white": "#FFFFFF",
+  "offWhite": "#F3F4F6",
+  "typography": "Poppins",
+  "tagline": "Building Trust in Nigeria's Food Chain",
+  "assets": {
+    "iconMaster": "design/03-brand-assets/logo/source/logo-icon-master.png",
+    "fullLockup": "design/03-brand-assets/logo/source/logo-full-lockup.png",
+    "guidelines": "design/03-brand-assets/logo/source/brand-identity-guidelines.png",
+    "publicIcon": "client/public/logo-icon.png",
+    "publicFull": "client/public/logo-full.png"
+  }
+}

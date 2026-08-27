@@ -181,7 +181,7 @@ export function useApprovals(initialFilters: ApprovalFilters = {}): UseApprovals
       // Update local state
       setApprovals(prev => prev.map(a => 
         a._id === approvalId 
-          ? { ...a, status: 'under_review', reviewedAt: new Date() }
+          ? { ...a, status: 'revision_requested', reviewedAt: new Date() }
           : a
       ))
       

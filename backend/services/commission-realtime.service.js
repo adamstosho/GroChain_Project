@@ -9,7 +9,6 @@ const Commission = require('../models/commission.model');
 const Partner = require('../models/partner.model');
 const User = require('../models/user.model');
 const Order = require('../models/order.model');
-const Listing = require('../models/listing.model');
 const Notification = require('../models/notification.model');
 const websocketService = require('./websocket.service');
 

@@ -1,6 +1,5 @@
 const cron = require('node-cron')
 const Listing = require('../models/listing.model')
-const mongoose = require('mongoose')
 
 class InventoryCleanupService {
   constructor() {

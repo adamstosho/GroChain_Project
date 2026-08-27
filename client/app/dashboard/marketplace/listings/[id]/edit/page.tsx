@@ -14,15 +14,12 @@ import {
   ArrowLeft,
   Plus,
   Upload,
-  Tag,
-  MapPin,
-  Banknote,
   Package,
-  Info,
   CheckCircle,
   AlertCircle
 } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter, useParams } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 
@@ -40,44 +37,13 @@ interface ListingFormData {
   status: 'draft' | 'active' | 'inactive' | 'sold_out'
 }
 
-interface Listing {
-  _id: string
-  farmer: {
-    _id: string
-    name: string
-    email: string
-  }
-  cropName: string
-  category: string
-  description: string
-  basePrice: number
-  unit: string
-  quantity: number
-  availableQuantity: number
-  images: string[]
-  location: string
-  status: 'draft' | 'active' | 'inactive' | 'sold_out' | 'paused'
-  tags: string[]
-  qualityGrade: string
-  organic: boolean
-  harvestDate: string
-  expiryDate: string
-  views: number
-  favorites: number
-  orders: number
-  rating: number
-  reviews: number
-  createdAt: string
-  updatedAt: string
-}
-
 const categories = [
-  { value: 'grains', label: 'Grains (Rice, Maize, Wheat)', icon: '🌾' },
-  { value: 'tubers', label: 'Tubers (Cassava, Yam, Potato)', icon: '🥔' },
-  { value: 'vegetables', label: 'Vegetables (Tomato, Pepper, Onion)', icon: '🥬' },
-  { value: 'fruits', label: 'Fruits (Mango, Orange, Banana)', icon: '🍎' },
-  { value: 'legumes', label: 'Legumes (Beans, Groundnut)', icon: '🫘' },
-  { value: 'cash_crops', label: 'Cash Crops (Cocoa, Coffee, Tea)', icon: '☕' }
+  { value: 'grains', label: 'Grains (Rice, Maize, Wheat)' },
+  { value: 'tubers', label: 'Tubers (Cassava, Yam, Potato)' },
+  { value: 'vegetables', label: 'Vegetables (Tomato, Pepper, Onion)' },
+  { value: 'fruits', label: 'Fruits (Mango, Orange, Banana)' },
+  { value: 'legumes', label: 'Legumes (Beans, Groundnut)' },
+  { value: 'cash_crops', label: 'Cash Crops (Cocoa, Coffee, Tea)' }
 ]
 
 const units = [
@@ -101,7 +67,7 @@ export default function EditListingPage() {
 
   const [loading, setLoading] = useState(false)
   const [loadingListing, setLoadingListing] = useState(false)
-  const [listing, setListing] = useState<Listing | null>(null)
+  const [uploadingImages, setUploadingImages] = useState(false)
 
   const [formData, setFormData] = useState<ListingFormData>({
     cropName: '',
@@ -147,8 +113,6 @@ export default function EditListingPage() {
       }
 
       console.log('Loaded listing data:', listingData)
-
-      setListing(listingData)
 
       // Pre-populate form with listing data
       setFormData({
@@ -281,15 +245,30 @@ export default function EditListingPage() {
     }))
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
-    if (files) {
-      // Mock image upload - replace with actual image upload logic
-      const imageUrls = Array.from(files).map(file => URL.createObjectURL(file))
+    if (!files || files.length === 0) return
+
+    setUploadingImages(true)
+    try {
+      const uploadedUrls = await apiService.uploadImages(Array.from(files))
+      if (uploadedUrls.length === 0) {
+        throw new Error('No image URLs returned')
+      }
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...imageUrls]
+        images: [...prev.images, ...uploadedUrls]
       }))
+    } catch (error) {
+      console.error('Image upload failed:', error)
+      toast({
+        title: "Image upload failed",
+        description: "Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setUploadingImages(false)
+      e.target.value = ''
     }
   }
 
@@ -298,11 +277,6 @@ export default function EditListingPage() {
       ...prev,
       images: prev.images.filter(image => image !== imageToRemove)
     }))
-  }
-
-  const getCategoryIcon = (category: string) => {
-    const found = categories.find(cat => cat.value === category)
-    return found ? found.icon : '🌱'
   }
 
   if (loadingListing) {
@@ -398,10 +372,7 @@ export default function EditListingPage() {
                           <SelectContent>
                             {categories.map((category) => (
                               <SelectItem key={category.value} value={category.value}>
-                                <span className="flex items-center gap-2">
-                                  <span>{category.icon}</span>
-                                  <span>{category.label}</span>
-                                </span>
+                                {category.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -561,9 +532,9 @@ export default function EditListingPage() {
                     <div className="space-y-4">
                       <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
                         <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                        <Label htmlFor="images" className="cursor-pointer">
+                        <Label htmlFor="images" className={uploadingImages ? "cursor-wait" : "cursor-pointer"}>
                           <span className="text-sm text-muted-foreground">
-                            Click to upload images or drag and drop
+                            {uploadingImages ? "Uploading..." : "Click to upload images or drag and drop"}
                           </span>
                           <Input
                             id="images"
@@ -571,6 +542,7 @@ export default function EditListingPage() {
                             multiple
                             accept="image/*"
                             onChange={handleImageUpload}
+                            disabled={uploadingImages}
                             className="hidden"
                           />
                         </Label>
@@ -583,9 +555,11 @@ export default function EditListingPage() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           {formData.images.map((image, index) => (
                             <div key={index} className="relative">
-                              <img
+                              <Image
                                 src={image}
                                 alt={`Product ${index + 1}`}
+                                width={200}
+                                height={96}
                                 className="w-full h-24 object-cover rounded-lg"
                               />
                               <Button
@@ -700,7 +674,7 @@ export default function EditListingPage() {
                 {formData.cropName ? (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl">{getCategoryIcon(formData.category)}</span>
+                      <Package className="h-5 w-5 text-primary" />
                       <div>
                         <h4 className="font-medium text-foreground">{formData.cropName}</h4>
                         <p className="text-sm text-muted-foreground">{formData.category}</p>
