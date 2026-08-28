@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { apiService } from "@/lib/api"
+import { useAuthStore } from "@/lib/auth"
 import { useToast } from "@/hooks/use-toast"
 import {
   Cloud,
@@ -280,23 +281,29 @@ export default function WeatherPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
   const [location, setLocation] = useState('Locating farm...')
+  const [locationSource, setLocationSource] = useState<'live' | 'ip' | 'stored' | 'manual' | null>(null)
+  const [locationUnavailable, setLocationUnavailable] = useState(false)
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [locating, setLocating] = useState(false)
   const { toast } = useToast()
+  const { user } = useAuthStore()
 
   useEffect(() => {
     locateAndFetch()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const locateAndFetch = () => {
     setLocating(true)
     setLoading(true)
+    setLocationUnavailable(false)
     if (typeof window !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const lat = position.coords.latitude
           const lng = position.coords.longitude
           setCoords({ lat, lng })
+          setLocationSource('live')
           await loadWeatherForCoords(lat, lng)
         },
         async (error) => {
@@ -307,11 +314,21 @@ export default function WeatherPage() {
           })
           await loadWeatherFromIP()
         },
-        { timeout: 10000, enableHighAccuracy: true }
+        { timeout: 10000, enableHighAccuracy: true, maximumAge: 0 }
       )
     } else {
       loadWeatherFromIP()
     }
+  }
+
+  // Real GPS coordinates the farmer saved to their profile — a genuine,
+  // exact fallback (not a guess) when live browser geolocation isn't granted.
+  const getStoredProfileCoords = (): { lat: number; lng: number } | null => {
+    const stored = (user as any)?.profile?.coordinates
+    if (stored && typeof stored.lat === 'number' && typeof stored.lng === 'number') {
+      return { lat: stored.lat, lng: stored.lng }
+    }
+    return null
   }
 
   const loadWeatherFromIP = async () => {
@@ -321,17 +338,35 @@ export default function WeatherPage() {
       if (res.status === 'success' && res.data) {
         const { lat, lng, city, state, country } = res.data
         setCoords({ lat, lng })
+        setLocationSource('ip')
         await loadWeatherForCoords(lat, lng, city, state, country)
-      } else {
-        throw new Error("Invalid IP location response")
+        return
       }
+      throw new Error("Invalid IP location response")
     } catch (err) {
       console.error("Failed to locate via IP:", err)
-      // Ultimate fallback: Lagos, Nigeria
-      const defaultLat = 6.5244
-      const defaultLng = 3.3792
-      setCoords({ lat: defaultLat, lng: defaultLng })
-      await loadWeatherForCoords(defaultLat, defaultLng, "Lagos", "Lagos State", "Nigeria")
+
+      // Next best thing: the exact coordinates the farmer saved on their
+      // profile, rather than a guessed city that may not even be close.
+      const profileCoords = getStoredProfileCoords()
+      if (profileCoords) {
+        setCoords(profileCoords)
+        setLocationSource('stored')
+        await loadWeatherForCoords(profileCoords.lat, profileCoords.lng)
+        return
+      }
+
+      // No real location available from any source — say so instead of
+      // silently showing an arbitrary city's weather as if it were theirs.
+      setLocating(false)
+      setLoading(false)
+      setLocationUnavailable(true)
+      setLocation('Location unavailable')
+      toast({
+        title: "Location Unavailable",
+        description: "Enable location permissions, or pick a city below, to see accurate weather.",
+        variant: "destructive"
+      })
     }
   }
 
@@ -344,6 +379,7 @@ export default function WeatherPage() {
   ) => {
     try {
       setLoading(true)
+      setLocationUnavailable(false)
       let resolvedCity = city
       let resolvedState = state
       let resolvedCountry = country
@@ -529,6 +565,8 @@ export default function WeatherPage() {
                     if (cityObj) {
                       const newCoords = { lat: cityObj.lat, lng: cityObj.lng }
                       setCoords(newCoords)
+                      setLocationSource('manual')
+                      setLocationUnavailable(false)
                       await loadWeatherForCoords(cityObj.lat, cityObj.lng, cityObj.name, cityObj.state, cityObj.country)
                     }
                   }
@@ -550,6 +588,25 @@ export default function WeatherPage() {
             </>
           }
         />
+
+        {/* Location unavailable — never silently substitute a wrong city */}
+        {locationUnavailable && !currentWeather && (
+          <Card className="border border-warning/20 bg-warning/5">
+            <CardContent className="p-6 text-center space-y-3">
+              <MapPin className="h-10 w-10 text-warning mx-auto" />
+              <div>
+                <h3 className="font-medium text-foreground">We couldn't detect your exact location</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Enable location permissions in your browser and click Refresh, or pick your city from the dropdown above to see accurate weather.
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={locateAndFetch} disabled={locating}>
+                <RefreshCw className={`mr-2 h-4 w-4 ${locating ? "animate-spin" : ""}`} />
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Current Weather Overview */}
         {currentWeather && (
@@ -573,7 +630,12 @@ export default function WeatherPage() {
                       {currentWeather.condition.replace('-', ' ')}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {location} • Last updated {formatTime(currentWeather.lastUpdated)}
+                      {location}
+                      {locationSource === 'live' && ' (Live GPS)'}
+                      {locationSource === 'ip' && ' (Approximate — via IP)'}
+                      {locationSource === 'stored' && ' (Saved location)'}
+                      {locationSource === 'manual' && ' (Selected city)'}
+                      {' • '}Last updated {formatTime(currentWeather.lastUpdated)}
                     </p>
                   </div>
                 </div>

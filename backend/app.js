@@ -32,6 +32,11 @@ process.on('uncaughtException', (err) => {
 
 const app = express()
 
+// Trust the first hop proxy (Render/Railway/Vercel/nginx, etc.) so req.ip and
+// req.secure reflect the real client via X-Forwarded-For instead of the
+// proxy's own address — this matters for IP-based geolocation fallback.
+app.set('trust proxy', 1)
+
 // Import auto-verify middleware
 const { autoVerifyPayments } = require('./middlewares/auto-verify.middleware')
 

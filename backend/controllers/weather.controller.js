@@ -357,16 +357,38 @@ const weatherController = {
   // IP-based location fallback endpoint
   async getIPLocation(req, res) {
     try {
-      // Get client IP from request
-      const clientIP = req.ip || 
-                      req.connection.remoteAddress || 
-                      req.socket.remoteAddress ||
-                      (req.connection.socket ? req.connection.socket.remoteAddress : null) ||
-                      req.headers['x-forwarded-for']?.split(',')[0] ||
+      // Prefer the original client IP from X-Forwarded-For (set by the
+      // proxy in front of us) over req.ip, since req.ip only reflects that
+      // header when Express's trust-proxy setting is configured — falling
+      // back to the raw socket address otherwise.
+      const forwardedFor = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+      const clientIP = forwardedFor ||
                       req.headers['x-real-ip'] ||
-                      '127.0.0.1'
+                      req.ip ||
+                      req.connection.remoteAddress ||
+                      req.socket.remoteAddress ||
+                      (req.connection.socket ? req.connection.socket.remoteAddress : null)
 
       console.log('🌐 Getting IP-based location for:', clientIP)
+
+      // Loopback/private-range addresses have no public geolocation — this
+      // is expected on localhost dev and would otherwise silently resolve
+      // to whatever default city the caller falls back to.
+      const isNonRoutable = !clientIP ||
+        clientIP === '127.0.0.1' ||
+        clientIP === '::1' ||
+        clientIP.startsWith('::ffff:127.') ||
+        /^10\./.test(clientIP) ||
+        /^192\.168\./.test(clientIP) ||
+        /^172\.(1[6-9]|2\d|3[0-1])\./.test(clientIP)
+
+      if (isNonRoutable) {
+        return res.status(422).json({
+          status: 'error',
+          code: 'NON_ROUTABLE_IP',
+          message: 'IP-based location is unavailable for local/private connections. Please enable browser location permissions.'
+        })
+      }
 
       // Use ipapi.co for IP geolocation (free tier)
       const response = await fetch(`https://ipapi.co/${clientIP}/json/`, {

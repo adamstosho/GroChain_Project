@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from 'react'
+import { formatDistanceToNow } from 'date-fns'
 import { Bell, CheckCircle, AlertCircle, AlertTriangle, Info, Check, X, Search, MoreVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
