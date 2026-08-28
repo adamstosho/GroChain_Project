@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display, Text } from "@/components/ui/typography"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useBuyerStore } from "@/hooks/use-buyer-store"
@@ -301,9 +303,9 @@ export default function ProductDetailPage() {
           <div className="max-w-2xl mx-auto text-center">
             <div className="mb-6">
               <Package className="h-24 w-24 mx-auto text-muted-foreground mb-4" />
-              <h1 className="text-2xl font-bold text-foreground mb-2">
+              <Display as="h1" variant="page" className="mb-2">
                 {error || "Product Not Found"}
-              </h1>
+              </Display>
               <p className="text-muted-foreground">
                 The product you&apos;re looking for doesn&apos;t exist or has been removed.
               </p>
@@ -331,7 +333,7 @@ export default function ProductDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto px-4 py-8">
+      <DashboardPageShell className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Back Button */}
           <div className="flex items-center gap-4 mb-6">
@@ -391,9 +393,9 @@ export default function ProductDetailPage() {
               <div>
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h1 className="text-3xl font-bold text-foreground mb-2">
+                    <Display as="h1" variant="page" className="mb-2">
                       {product.cropName || product.name || 'Product Name'}
-                    </h1>
+                    </Display>
                     <div className="flex items-center gap-2 mb-2">
                       {product.category && <Badge variant="secondary">{product.category}</Badge>}
                       {product.qualityGrade && (
@@ -434,9 +436,9 @@ export default function ProductDetailPage() {
 
               {/* Price */}
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-success">
+                <Text as="span" variant="price" className="text-success">
                   ₦{(product.basePrice || product.price || 0).toLocaleString()}
-                </span>
+                </Text>
                 <span className="text-lg text-muted-foreground">
                   per {product.unit || 'unit'}
                 </span>
@@ -648,7 +650,7 @@ export default function ProductDetailPage() {
             </Card>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

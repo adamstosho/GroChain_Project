@@ -12,6 +12,7 @@ const multer = require('multer')
 const cloudinary = require('cloudinary').v2
 const path = require('path')
 const bcrypt = require('bcryptjs')
+const { escapeRegex } = require('../../utils/regex.util')
 
 // Configure Cloudinary
 cloudinary.config({
@@ -841,10 +842,11 @@ router.get('/users', async (req, res) => {
     // Build filter object
     const filter = {}
     if (search) {
+      const safeSearch = escapeRegex(search)
       filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } }
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { email: { $regex: safeSearch, $options: 'i' } },
+        { phone: { $regex: safeSearch, $options: 'i' } }
       ]
     }
     if (role) filter.role = role
@@ -1711,75 +1713,69 @@ router.get('/system/status', async (req, res) => {
 })
 
 // Admin System Management - System Logs
+// This app has no persistent structured-log store (console/morgan output
+// only goes to the process's stdout, which isn't queryable here) — but the
+// Notification collection already records real, timestamped system events
+// (harvest created, order placed, payment received, etc.) for every
+// meaningful thing that happens, so it's used as the real backing data
+// instead of the fabricated entries this endpoint used to return.
 router.get('/system/logs', async (req, res) => {
   try {
-    const { level = 'all', limit = 100, page = 1 } = req.query
-    
-    // Mock log entries (in a real system, this would come from a logging service)
-    const mockLogs = [
-      {
-        id: '1',
-        timestamp: new Date(Date.now() - 1000 * 60 * 5),
-        level: 'info',
-        message: 'User login successful',
-        module: 'auth',
-        userId: 'user123',
-        metadata: { ip: '192.168.1.1', userAgent: 'Chrome/91.0' }
-      },
-      {
-        id: '2',
-        timestamp: new Date(Date.now() - 1000 * 60 * 10),
-        level: 'warn',
-        message: 'High memory usage detected',
-        module: 'system',
-        metadata: { memory: '85%', threshold: '80%' }
-      },
-      {
-        id: '3',
-        timestamp: new Date(Date.now() - 1000 * 60 * 15),
-        level: 'error',
-        message: 'Database connection timeout',
-        module: 'database',
-        metadata: { timeout: '5000ms', retries: 3 }
-      },
-      {
-        id: '4',
-        timestamp: new Date(Date.now() - 1000 * 60 * 20),
-        level: 'info',
-        message: 'Harvest created successfully',
-        module: 'harvest',
-        userId: 'farmer456',
-        metadata: { harvestId: 'h789', cropType: 'tomato' }
-      },
-      {
-        id: '5',
-        timestamp: new Date(Date.now() - 1000 * 60 * 25),
-        level: 'debug',
-        message: 'API request processed',
-        module: 'api',
-        metadata: { endpoint: '/api/harvests', method: 'GET', responseTime: '120ms' }
-      }
-    ]
+    const { level = 'all', limit = 100, page = 1, search } = req.query
+    const Notification = require('../../models/notification.model')
 
-    // Filter by level if specified
-    let filteredLogs = mockLogs
-    if (level !== 'all') {
-      filteredLogs = mockLogs.filter(log => log.level === level)
+    // Notification.type -> log level: 'success' reads as 'info' (both are
+    // non-problem informational events); there's no real 'debug' concept
+    // here, so that filter honestly returns nothing rather than fake data.
+    const levelToTypes = {
+      info: ['info', 'success'],
+      warn: ['warning'],
+      error: ['error'],
+      debug: []
     }
 
-    // Pagination
-    const startIndex = (parseInt(page) - 1) * parseInt(limit)
-    const paginatedLogs = filteredLogs.slice(startIndex, startIndex + parseInt(limit))
+    const query = {}
+    if (level !== 'all') {
+      query.type = { $in: levelToTypes[level] || [] }
+    }
+    if (search) {
+      const regex = new RegExp(escapeRegex(String(search)), 'i')
+      query.$or = [{ title: regex }, { message: regex }]
+    }
+
+    const limitNum = parseInt(limit) || 100
+    const pageNum = parseInt(page) || 1
+
+    const [total, notifications] = await Promise.all([
+      Notification.countDocuments(query),
+      Notification.find(query)
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
+        .select('title message type category user createdAt metadata')
+        .lean()
+    ])
+
+    const levelFromType = { info: 'info', success: 'info', warning: 'warn', error: 'error' }
+    const logs = notifications.map((n) => ({
+      id: n._id.toString(),
+      timestamp: n.createdAt,
+      level: levelFromType[n.type] || 'info',
+      message: n.title ? `${n.title}: ${n.message}` : n.message,
+      module: n.category || 'system',
+      userId: n.user ? n.user.toString() : undefined,
+      metadata: n.metadata || {}
+    }))
 
     res.json({
       status: 'success',
       data: {
-        logs: paginatedLogs,
+        logs,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total: filteredLogs.length,
-          pages: Math.ceil(filteredLogs.length / parseInt(limit))
+          page: pageNum,
+          limit: limitNum,
+          total,
+          pages: Math.ceil(total / limitNum)
         }
       }
     })
@@ -1854,35 +1850,18 @@ router.get('/system/config', async (req, res) => {
 })
 
 // Admin System Management - Update Configuration
+// The values GET /system/config returns are deployment-level (environment
+// variables, JWT expiry, rate-limit constants) — not database-backed
+// settings a running server can safely apply from a web form. This used to
+// echo back whatever was submitted and claim success without changing
+// anything real; the frontend's config dialog is now honestly read-only and
+// no longer calls this at all. Left as an explicit, honest 501 rather than
+// silently lying about a save, in case anything still hits it directly.
 router.put('/system/config', async (req, res) => {
-  try {
-    const { section, settings } = req.body
-    
-    if (!section || !settings) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Section and settings are required'
-      })
-    }
-
-    // In a real system, you would validate and update configuration
-    // For now, we'll just return success
-    res.json({
-      status: 'success',
-      message: `${section} configuration updated successfully`,
-      data: {
-        section,
-        settings,
-        updatedAt: new Date().toISOString()
-      }
-    })
-  } catch (error) {
-    console.error('Update system config error:', error)
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to update system configuration'
-    })
-  }
+  res.status(501).json({
+    status: 'error',
+    message: 'System configuration is deployment-level (environment variables) and cannot be changed from this dashboard.'
+  })
 })
 
 // Admin System Management - Maintenance Mode
@@ -2344,148 +2323,39 @@ router.delete('/reports/:id', async (req, res) => {
   }
 })
 
-// Admin Reports Management - Schedule Report
+// Admin Reports Management - Scheduled Reports
+// No frontend page calls any of these four endpoints yet, and there is no
+// real scheduler/model behind them — they used to return fabricated data
+// (or silently "succeed" without persisting anything). Reporting that
+// honestly rather than building a full cron+email scheduling engine for a
+// feature with no live UI consumer yet.
 router.post('/reports/schedule', async (req, res) => {
-  try {
-    const { templateId, frequency, recipients, parameters } = req.body
-    
-    if (!templateId || !frequency || !recipients) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Template ID, frequency, and recipients are required'
-      })
-    }
-
-    const scheduleId = `schedule_${Date.now()}`
-    const nextRun = new Date()
-    
-    // Calculate next run based on frequency
-    switch (frequency) {
-      case 'daily':
-        nextRun.setDate(nextRun.getDate() + 1)
-        break
-      case 'weekly':
-        nextRun.setDate(nextRun.getDate() + 7)
-        break
-      case 'monthly':
-        nextRun.setMonth(nextRun.getMonth() + 1)
-        break
-    }
-
-    const scheduledReport = {
-      id: scheduleId,
-      templateId,
-      frequency,
-      recipients,
-      parameters,
-      nextRun: nextRun.toISOString(),
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      createdBy: req.user.id
-    }
-
-    res.json({
-      status: 'success',
-      message: 'Report scheduled successfully',
-      data: scheduledReport
-    })
-  } catch (error) {
-    console.error('Schedule report error:', error)
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to schedule report'
-    })
-  }
+  res.status(501).json({
+    status: 'error',
+    message: 'Scheduled reports are not yet implemented'
+  })
 })
 
-// Admin Reports Management - Get Scheduled Reports
 router.get('/reports/scheduled', async (req, res) => {
-  try {
-    // Mock scheduled reports
-    const scheduledReports = [
-      {
-        id: 'sched-1',
-        templateId: 'harvest-summary',
-        templateName: 'Harvest Summary Report',
-        frequency: 'weekly',
-        nextRun: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3).toISOString(),
-        lastRun: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString(),
-        status: 'active',
-        recipients: ['admin@grochain.com', 'manager@grochain.com'],
-        parameters: { dateRange: 'last7days' }
-      },
-      {
-        id: 'sched-2',
-        templateId: 'financial-performance',
-        templateName: 'Financial Performance Report',
-        frequency: 'monthly',
-        nextRun: new Date(Date.now() + 1000 * 60 * 60 * 24 * 15).toISOString(),
-        lastRun: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString(),
-        status: 'active',
-        recipients: ['finance@grochain.com'],
-        parameters: { dateRange: 'last30days' }
-      }
-    ]
-
-    res.json({
-      status: 'success',
-      data: { scheduledReports }
-    })
-  } catch (error) {
-    console.error('Get scheduled reports error:', error)
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to get scheduled reports'
-    })
-  }
+  res.status(501).json({
+    status: 'error',
+    message: 'Scheduled reports are not yet implemented',
+    data: { scheduledReports: [] }
+  })
 })
 
-// Admin Reports Management - Update Scheduled Report
 router.put('/reports/scheduled/:id', async (req, res) => {
-  try {
-    const { id } = req.params
-    const { status, frequency, recipients, parameters } = req.body
-    
-    // Mock update
-    res.json({
-      status: 'success',
-      message: 'Scheduled report updated successfully',
-      data: {
-        id,
-        status: status || 'active',
-        frequency: frequency || 'weekly',
-        recipients: recipients || [],
-        parameters: parameters || {},
-        updatedAt: new Date().toISOString()
-      }
-    })
-  } catch (error) {
-    console.error('Update scheduled report error:', error)
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to update scheduled report'
-    })
-  }
+  res.status(501).json({
+    status: 'error',
+    message: 'Scheduled reports are not yet implemented'
+  })
 })
 
-// Admin Reports Management - Delete Scheduled Report
 router.delete('/reports/scheduled/:id', async (req, res) => {
-  try {
-    const { id } = req.params
-    
-    // Mock deletion
-    res.json({
-      status: 'success',
-      message: 'Scheduled report deleted successfully',
-      data: { id }
-    })
-  } catch (error) {
-    console.error('Delete scheduled report error:', error)
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to delete scheduled report'
-    })
-  }
+  res.status(501).json({
+    status: 'error',
+    message: 'Scheduled reports are not yet implemented'
+  })
 })
 
 // Cleanup orphaned farmers endpoint

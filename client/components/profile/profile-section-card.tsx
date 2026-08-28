@@ -4,6 +4,7 @@ import type { LucideIcon } from "lucide-react"
 import type { ReactNode } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { textStyles } from "@/lib/design-system"
 
 interface ProfileSectionCardProps {
   icon: LucideIcon
@@ -37,7 +38,7 @@ export function ProfileSectionCard({
             <Icon className="h-4.5 w-4.5" />
           </div>
           <div className="min-w-0">
-            <CardTitle className="text-sm sm:text-base">{title}</CardTitle>
+            <CardTitle className={textStyles.cardTitle}>{title}</CardTitle>
             {description && <CardDescription className="text-xs">{description}</CardDescription>}
           </div>
         </div>

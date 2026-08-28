@@ -2,6 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import type { LucideIcon } from "lucide-react"
 import Link from "next/link"
+import { textStyles } from "@/lib/design-system"
+import { cn } from "@/lib/utils"
 
 interface QuickAction {
   title: string
@@ -19,8 +21,8 @@ export function QuickActions({ actions }: QuickActionsProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base sm:text-lg">Quick Actions</CardTitle>
-        <CardDescription className="text-sm">Common tasks and shortcuts</CardDescription>
+        <CardTitle className={textStyles.cardTitle}>Quick Actions</CardTitle>
+        <CardDescription>Common tasks and shortcuts</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
@@ -37,8 +39,8 @@ export function QuickActions({ actions }: QuickActionsProps) {
                     <action.icon className="h-4 w-4" />
                   </div>
                   <div className="text-left min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">{action.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{action.description}</p>
+                    <p className="truncate text-sm font-medium">{action.title}</p>
+                    <p className="truncate text-xs text-muted-foreground">{action.description}</p>
                   </div>
                 </div>
               </Link>

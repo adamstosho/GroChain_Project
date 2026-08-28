@@ -5,6 +5,7 @@ const mongoose = require('mongoose')
 const notificationController = require('./notification.controller')
 const { ensureExactPrecision } = require('../utils/number-precision')
 const { calculateShippingCost, resolveSellerLocation } = require('../utils/shipping-calculator.util')
+const { escapeRegex } = require('../utils/regex.util')
 
 // Helper function to map crop types to categories
 const getCategoryFromCropType = (cropType) => {
@@ -66,16 +67,17 @@ const marketplaceController = {
         if (minPrice) query.basePrice.$gte = Number(minPrice)
         if (maxPrice) query.basePrice.$lte = Number(maxPrice)
       }
-      if (location) query.location = new RegExp(location, 'i')
+      if (location) query.location = new RegExp(escapeRegex(location), 'i')
       if (quality) query.qualityGrade = quality
       if (farmerId) query.farmer = farmerId
-      
+
       // Search functionality
       if (search) {
+        const searchRegex = new RegExp(escapeRegex(search), 'i')
         query.$or = [
-          { cropName: new RegExp(search, 'i') },
-          { description: new RegExp(search, 'i') },
-          { category: new RegExp(search, 'i') }
+          { cropName: searchRegex },
+          { description: searchRegex },
+          { category: searchRegex }
         ]
       }
       
@@ -461,6 +463,8 @@ const marketplaceController = {
   },
 
   // Create order
+  // NOTE: Live order creation is handled by POST /orders in marketplace.routes.js
+  // (idempotency keys, server-side pricing). This method is retained for reference only.
   async createOrder(req, res) {
     const session = await mongoose.startSession()
     session.startTransaction()
@@ -827,7 +831,7 @@ const marketplaceController = {
         },
         {
           $match: {
-            _id: { $regex: q, $options: 'i' }
+            _id: { $regex: escapeRegex(q), $options: 'i' }
           }
         },
         { $limit: 10 }

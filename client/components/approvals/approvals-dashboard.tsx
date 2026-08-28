@@ -14,6 +14,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useApprovals } from "@/hooks/use-approvals"
 import { HarvestApproval, ApprovalFilters } from "@/lib/types/approvals"
 import { useToast } from "@/hooks/use-toast"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display, Text } from "@/components/ui/typography"
+import { dashboard, textStyles } from "@/lib/design-system"
 import { 
   Shield, 
   CheckCircle, 
@@ -327,7 +330,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
 
   if (isLoading || !stats) {
     return (
-      <div className={className}>
+      <DashboardPageShell className={className}>
         <div className="space-y-6">
           {/* Header Skeleton */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -343,7 +346,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
           </div>
 
           {/* Stats Cards Skeleton */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className={dashboard.statsGrid4}>
             {[...Array(4)].map((_, i) => (
               <Card key={i} className="animate-pulse">
                 <CardHeader className="space-y-0 pb-2">
@@ -372,18 +375,18 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </DashboardPageShell>
     )
   }
 
   return (
-    <div className={className}>
+    <DashboardPageShell className={className}>
 
       {/* Header Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1 min-w-0 flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight truncate">Harvest Approvals</h2>
-          <p className="text-muted-foreground text-sm sm:text-base">Manage and review farmer harvest submissions</p>
+          <Display as="h2" variant="page" className="truncate">Harvest Approvals</Display>
+          <Text variant="sm">Manage and review farmer harvest submissions</Text>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-shrink-0">
           <Button
@@ -411,14 +414,14 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+      <div className={dashboard.statsGrid4}>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
+              <CardTitle className={textStyles.cardTitleSm}>Total Submissions</CardTitle>
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total || 0}</div>
+              <Text as="div" variant="stat">{stats.total || 0}</Text>
               <p className="text-xs text-muted-foreground">
                 Real data from database
               </p>
@@ -426,11 +429,11 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
           </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+            <CardTitle className={textStyles.cardTitleSm}>Pending Review</CardTitle>
             <Clock className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.pending || 0}</div>
+            <Text as="div" variant="stat">{stats.pending || 0}</Text>
             <p className="text-xs text-muted-foreground">
               {(stats.pending || 0) > 0 ? "Requires attention" : "All caught up"}
             </p>
@@ -438,11 +441,11 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Approved</CardTitle>
+            <CardTitle className={textStyles.cardTitleSm}>Approved</CardTitle>
             <CheckCircle className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.approved || 0}</div>
+            <Text as="div" variant="stat">{stats.approved || 0}</Text>
             <p className="text-xs text-muted-foreground">
               ₦{(stats.totalValue || 0).toLocaleString()} total value
             </p>
@@ -450,11 +453,11 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Quality Score</CardTitle>
+            <CardTitle className={textStyles.cardTitleSm}>Avg Quality Score</CardTitle>
             <Star className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(stats.averageQualityScore || 0).toFixed(1)}/10</div>
+            <Text as="div" variant="stat">{(stats.averageQualityScore || 0).toFixed(1)}/10</Text>
             <p className="text-xs text-muted-foreground">
               Quality benchmark met
             </p>
@@ -463,9 +466,9 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
       </div>
 
       {/* Filters and Search */}
-      <Card className="mb-6">
+      <Card>
         <CardHeader>
-          <CardTitle>Search & Filters</CardTitle>
+          <CardTitle className={textStyles.cardTitle}>Search & Filters</CardTitle>
           <CardDescription>Find specific approvals or filter by criteria</CardDescription>
         </CardHeader>
         <CardContent>
@@ -526,7 +529,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
       {/* Approvals Tabs */}
       <Card>
         <CardHeader>
-          <CardTitle>Harvest Submissions</CardTitle>
+          <CardTitle className={textStyles.cardTitle}>Harvest Submissions</CardTitle>
           <CardDescription>Review and manage farmer harvest submissions</CardDescription>
         </CardHeader>
         <CardContent>
@@ -928,6 +931,6 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardPageShell>
   )
 }

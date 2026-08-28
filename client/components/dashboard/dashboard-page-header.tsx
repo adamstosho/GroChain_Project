@@ -3,6 +3,8 @@
 import type { ReactNode } from "react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { Display, Text } from "@/components/ui/typography"
+import { layout } from "@/lib/design-system"
 
 export interface DashboardPageHeaderProps {
   badge: string
@@ -17,7 +19,6 @@ export interface DashboardPageHeaderProps {
 
 /**
  * Shared dashboard hero — uses app theme tokens (light agricultural palette by default).
- * Avoid hardcoded dark (slate-900) blocks so dashboards stay visually consistent.
  */
 export function DashboardPageHeader({
   badge,
@@ -32,7 +33,7 @@ export function DashboardPageHeader({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-border bg-card px-6 py-8 sm:px-10 sm:py-10 shadow-sm",
+        "relative overflow-hidden rounded-2xl border border-border bg-card px-6 py-8 shadow-sm sm:px-10 sm:py-10",
         className
       )}
     >
@@ -46,16 +47,16 @@ export function DashboardPageHeader({
       />
 
       <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div className="min-w-0 space-y-4">
+        <div className={cn("min-w-0", layout.stackMd)}>
           <div className="flex flex-wrap items-center gap-3">
             <Badge
               variant="secondary"
-              className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary"
+              className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[0.6875rem] font-bold uppercase tracking-widest text-primary"
             >
               {badge}
             </Badge>
             {lastUpdated && (
-              <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              <span className="flex items-center gap-2 text-[0.6875rem] font-bold uppercase tracking-widest text-muted-foreground">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" aria-hidden />
                 Real-time
               </span>
@@ -63,7 +64,7 @@ export function DashboardPageHeader({
           </div>
 
           <div>
-            <h1 className="mb-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+            <Display as="h1" variant="page" className="mb-3">
               {title}
               {titleHighlight ? (
                 <>
@@ -71,10 +72,10 @@ export function DashboardPageHeader({
                   <span className="text-primary">{titleHighlight}</span>
                 </>
               ) : null}
-            </h1>
-            <p className="max-w-xl text-sm font-medium leading-relaxed text-muted-foreground sm:text-base">
+            </Display>
+            <Text variant="sm" className="max-w-xl font-medium">
               {description}
-            </p>
+            </Text>
           </div>
 
           {footer ? <div className="pt-1">{footer}</div> : null}

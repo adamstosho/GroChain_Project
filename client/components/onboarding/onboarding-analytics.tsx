@@ -15,6 +15,10 @@ import {
   Filter
 } from "lucide-react"
 import { useOnboarding } from "@/hooks/use-onboarding"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard, textStyles } from "@/lib/design-system"
+import { cn } from "@/lib/utils"
 
 export function OnboardingAnalytics() {
   const { stats, onboardings } = useOnboarding()
@@ -48,14 +52,14 @@ export function OnboardingAnalytics() {
     .sort((a, b) => b.count - a.count)
 
   return (
-    <div className="space-y-6">
+    <DashboardPageShell>
       {/* Analytics Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Onboarding Analytics</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className={textStyles.headingSub}>Onboarding Analytics</h3>
+          <Text variant="sm">
             Detailed insights into your farmer onboarding performance
-          </p>
+          </Text>
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline">
@@ -100,14 +104,14 @@ export function OnboardingAnalytics() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className={dashboard.statsGrid4}>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Onboardings</CardTitle>
+            <CardTitle className={textStyles.cardTitleSm}>Total Onboardings</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <Text as="div" variant="stat">{stats.total}</Text>
             <p className="text-xs text-muted-foreground">
               <span className="text-success">+{stats.thisMonth}</span> this month
             </p>
@@ -116,11 +120,11 @@ export function OnboardingAnalytics() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+            <CardTitle className={textStyles.cardTitleSm}>Success Rate</CardTitle>
             <CheckCircle className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.successRate}%</div>
+            <Text as="div" variant="stat">{stats.successRate}%</Text>
             <p className="text-xs text-muted-foreground">
               Target: 85% • Current: {stats.successRate}%
             </p>
@@ -129,11 +133,11 @@ export function OnboardingAnalytics() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Completion</CardTitle>
+            <CardTitle className={textStyles.cardTitleSm}>Avg Completion</CardTitle>
             <Clock className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.averageCompletionTime} days</div>
+            <Text as="div" variant="stat">{stats.averageCompletionTime} days</Text>
             <p className="text-xs text-muted-foreground">
               Target: 30 days • Current: {stats.averageCompletionTime} days
             </p>
@@ -142,11 +146,11 @@ export function OnboardingAnalytics() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Weekly Growth</CardTitle>
+            <CardTitle className={textStyles.cardTitleSm}>Weekly Growth</CardTitle>
             <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.thisWeek}</div>
+            <Text as="div" variant="stat">{stats.thisWeek}</Text>
             <p className="text-xs text-muted-foreground">
               <span className="text-success">+{weeklyGrowth}%</span> from total
             </p>
@@ -155,10 +159,10 @@ export function OnboardingAnalytics() {
       </div>
 
       {/* Regional Performance */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className={dashboard.contentGrid}>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className={cn(textStyles.cardTitle, "flex items-center gap-2")}>
               <MapPin className="h-4 w-4" />
               Regional Performance
             </CardTitle>
@@ -186,7 +190,7 @@ export function OnboardingAnalytics() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className={cn(textStyles.cardTitle, "flex items-center gap-2")}>
               <Calendar className="h-4 w-4" />
               Monthly Trends
             </CardTitle>
@@ -197,7 +201,7 @@ export function OnboardingAnalytics() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">This Week</span>
                 <div className="flex items-center space-x-2">
-                  <span className="text-lg font-bold text-primary">{stats.thisWeek}</span>
+                  <Text as="span" variant="stat" className="text-primary">{stats.thisWeek}</Text>
                   <Badge variant="outline" className="text-xs">
                     +{weeklyGrowth}%
                   </Badge>
@@ -206,7 +210,7 @@ export function OnboardingAnalytics() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">This Month</span>
                 <div className="flex items-center space-x-2">
-                  <span className="text-lg font-bold text-success">{stats.thisMonth}</span>
+                  <Text as="span" variant="stat" className="text-success">{stats.thisMonth}</Text>
                   <Badge variant="outline" className="text-xs">
                     +{monthlyGrowth}%
                   </Badge>
@@ -214,7 +218,7 @@ export function OnboardingAnalytics() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Total</span>
-                <span className="text-lg font-bold">{stats.total}</span>
+                <Text as="span" variant="stat">{stats.total}</Text>
               </div>
             </div>
           </CardContent>
@@ -224,7 +228,7 @@ export function OnboardingAnalytics() {
       {/* Crop Performance */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className={cn(textStyles.cardTitle, "flex items-center gap-2")}>
             <TrendingUp className="h-4 w-4" />
             Crop Performance
           </CardTitle>
@@ -256,7 +260,7 @@ export function OnboardingAnalytics() {
       {/* Performance Insights */}
       <Card>
         <CardHeader>
-          <CardTitle>Performance Insights</CardTitle>
+          <CardTitle className={textStyles.cardTitle}>Performance Insights</CardTitle>
           <CardDescription>Key findings and recommendations</CardDescription>
         </CardHeader>
         <CardContent>
@@ -292,6 +296,6 @@ export function OnboardingAnalytics() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </DashboardPageShell>
   )
 }

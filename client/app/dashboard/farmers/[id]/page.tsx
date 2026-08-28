@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { useToast } from "@/hooks/use-toast"
 import { api } from "@/lib/api"
 import {
@@ -237,20 +239,19 @@ export default function FarmerDetailsPage() {
 
   return (
     <DashboardLayout pageTitle={`${farmer.name} - Farmer Details`}>
-      <div className="space-y-6 px-4 sm:px-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" asChild>
+      <DashboardPageShell className="px-4 sm:px-6">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div>
+            <Button variant="ghost" asChild className="mb-4 w-fit">
               <Link href="/dashboard/farmers">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Farmers
               </Link>
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">{farmer.name}</h1>
-              <p className="text-muted-foreground">Farmer Details & Performance</p>
-            </div>
+            <DashboardSubpageHeader
+              title={farmer.name}
+              description="Farmer Details & Performance"
+            />
           </div>
           <div className="flex items-center space-x-2">
             {getStatusBadge(farmer.status)}
@@ -558,7 +559,7 @@ export default function FarmerDetailsPage() {
             )}
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

@@ -48,7 +48,8 @@ function issueTokens(user) {
     id: user._id.toString(),
     role: user.role,
     email: user.email,
-    name: user.name
+    name: user.name,
+    tokenVersion: user.tokenVersion || 0
   }
   return {
     accessToken: signAccess(payload),

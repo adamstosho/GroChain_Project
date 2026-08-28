@@ -17,6 +17,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import {
   Database,
   Activity,
@@ -36,7 +40,8 @@ import {
   Zap,
   Wrench,
   Archive,
-  Search
+  Search,
+  Eye
 } from "lucide-react"
 
 interface SystemStatus {
@@ -316,14 +321,12 @@ export function SystemManagement() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 w-full">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="space-y-1 min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-semibold text-foreground truncate">System Management</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Monitor system health, manage configuration, and perform maintenance</p>
-        </div>
-        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0">
+    <DashboardPageShell className="w-full">
+      <DashboardSubpageHeader
+        title="System Management"
+        description="Monitor system health, manage configuration, and perform maintenance"
+        actions={
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0">
           <Button variant="outline" onClick={fetchSystemData} className="w-full sm:w-auto">
             <RefreshCw className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Refresh</span>
@@ -369,12 +372,13 @@ export function SystemManagement() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* System Status Overview */}
       {systemStatus && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={dashboard.statsGrid4}>
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
@@ -621,19 +625,19 @@ export function SystemManagement() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-3 border rounded-lg">
-                    <div className="text-2xl font-bold text-success">99.9%</div>
+                    <Text as="div" variant="stat" className="text-success">99.9%</Text>
                     <div className="text-sm text-muted-foreground">Uptime</div>
                   </div>
                   <div className="text-center p-3 border rounded-lg">
-                    <div className="text-2xl font-bold text-primary">120ms</div>
+                    <Text as="div" variant="stat" className="text-primary">120ms</Text>
                     <div className="text-sm text-muted-foreground">Avg Response</div>
                   </div>
                   <div className="text-center p-3 border rounded-lg">
-                    <div className="text-2xl font-bold text-accent">1,250</div>
+                    <Text as="div" variant="stat" className="text-accent">1,250</Text>
                     <div className="text-sm text-muted-foreground">Active Users</div>
                   </div>
                   <div className="text-center p-3 border rounded-lg">
-                    <div className="text-2xl font-bold text-warning">0.1%</div>
+                    <Text as="div" variant="stat" className="text-warning">0.1%</Text>
                     <div className="text-sm text-muted-foreground">Error Rate</div>
                   </div>
                 </div>
@@ -756,8 +760,8 @@ export function SystemManagement() {
                             setShowConfigDialog(true)
                           }}
                         >
-                          <Wrench className="h-3 w-3 mr-2" />
-                          Configure
+                          <Eye className="h-3 w-3 mr-2" />
+                          View Details
                         </Button>
                       </CardContent>
                     </Card>
@@ -886,9 +890,11 @@ export function SystemManagement() {
       <Dialog open={showConfigDialog} onOpenChange={setShowConfigDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Configure {selectedConfig}</DialogTitle>
+            <DialogTitle>{selectedConfig} Configuration</DialogTitle>
             <DialogDescription>
-              Modify {selectedConfig} configuration settings
+              These are deployment-level settings (environment variables and server
+              constants) — view-only here. Change them via your hosting environment's
+              configuration, not through this dashboard.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -920,20 +926,11 @@ export function SystemManagement() {
           </div>
           <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={() => setShowConfigDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => {
-              toast({
-                title: "Configuration Updated",
-                description: `${selectedConfig} configuration has been updated successfully.`
-              })
-              setShowConfigDialog(false)
-            }}>
-              Save Changes
+              Close
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardPageShell>
   )
 }

@@ -321,10 +321,23 @@ exports.createAndEmitNotification = async ({
   priority = 'normal',
   data = {},
   actionUrl = null,
+  dedupeKey = null,
   channels = DEFAULT_NOTIFICATION_CHANNELS
 }) => {
   try {
     if (!userId || !title || !message) return null
+
+    const normalizedDedupeKey = dedupeKey
+      ? String(dedupeKey).trim().slice(0, 256)
+      : null
+
+    if (normalizedDedupeKey) {
+      const existing = await Notification.findOne({
+        user: userId,
+        dedupeKey: normalizedDedupeKey,
+      })
+      if (existing) return existing
+    }
 
     const deliveryChannels = resolveDeliveryChannels(channels)
 
@@ -337,7 +350,8 @@ exports.createAndEmitNotification = async ({
       channels: toChannelObjects(deliveryChannels),
       data,
       priority,
-      actionUrl
+      actionUrl,
+      ...(normalizedDedupeKey ? { dedupeKey: normalizedDedupeKey } : {}),
     })
 
     await notification.save()
@@ -353,6 +367,13 @@ exports.createAndEmitNotification = async ({
 
     return notification
   } catch (error) {
+    if (error?.code === 11000 && dedupeKey) {
+      const existing = await Notification.findOne({
+        user: userId,
+        dedupeKey: String(dedupeKey).trim().slice(0, 256),
+      })
+      if (existing) return existing
+    }
     console.error('Error creating and emitting notification:', error)
     return null
   }
@@ -678,6 +699,12 @@ exports.createNotificationForActivity = async (userId, role, activity, subActivi
     const title = template.title.replace(/\{(\w+)\}/g, (_, key) => context[key] || '')
     const message = template.message.replace(/\{(\w+)\}/g, (_, key) => context[key] || '')
 
+    const dedupeKey =
+      context.dedupeKey ||
+      (context.actionUrl
+        ? `${role}:${activity}:${subActivity}:${context.actionUrl}`
+        : null)
+
     return exports.createAndEmitNotification({
       userId,
       title,
@@ -686,7 +713,8 @@ exports.createNotificationForActivity = async (userId, role, activity, subActivi
       category: activity,
       data: context,
       priority: template.priority,
-      actionUrl: context.actionUrl || null
+      actionUrl: context.actionUrl || null,
+      dedupeKey,
     })
   } catch (error) {
     console.error('Error creating notification for activity:', error)

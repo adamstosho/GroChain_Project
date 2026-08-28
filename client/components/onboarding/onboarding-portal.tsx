@@ -23,6 +23,10 @@ import { OnboardingTemplates } from "./onboarding-templates"
 import { OnboardingWorkflow } from "./onboarding-workflow"
 import { OnboardingAnalytics } from "./onboarding-analytics"
 import Link from "next/link"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display, Text } from "@/components/ui/typography"
+import { dashboard, textStyles } from "@/lib/design-system"
+import { cn } from "@/lib/utils"
 
 interface OnboardingPortalProps {
   className?: string
@@ -56,9 +60,9 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
 
   if (isLoading || !stats) {
     return (
-      <div className={className}>
+      <DashboardPageShell className={className}>
         {/* Loading Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
             <div className="h-8 bg-muted rounded w-64 animate-pulse" />
             <div className="h-4 bg-muted rounded w-48 animate-pulse" />
@@ -71,7 +75,7 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
         </div>
 
         {/* Loading Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+        <div className={dashboard.statsGrid4}>
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -87,7 +91,7 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
         </div>
 
         {/* Loading Distribution Cards */}
-        <div className="grid gap-4 md:grid-cols-2 mb-6">
+        <div className={dashboard.contentGrid}>
           {[...Array(2)].map((_, i) => (
             <Card key={i}>
               <CardHeader>
@@ -121,19 +125,19 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
             <div className="h-10 bg-muted rounded w-full animate-pulse" />
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     )
   }
 
   return (
-    <div className={className}>
+    <DashboardPageShell className={className}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight">Farmer Onboarding Portal</h2>
-          <p className="text-muted-foreground">
+          <Display as="h2" variant="page">Farmer Onboarding Portal</Display>
+          <Text variant="sm">
             Manage farmer onboarding process, track progress, and ensure successful integration
-          </p>
+          </Text>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={refreshData}>
@@ -154,14 +158,14 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+      <div className={dashboard.statsGrid4}>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Onboardings</CardTitle>
+            <CardTitle className={textStyles.cardTitleSm}>Total Onboardings</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <Text as="div" variant="stat">{stats.total}</Text>
             <p className="text-xs text-muted-foreground">
               <span className="text-success">+{stats.thisMonth}</span> this month
             </p>
@@ -170,11 +174,11 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+            <CardTitle className={textStyles.cardTitleSm}>In Progress</CardTitle>
             <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.inProgress}</div>
+            <Text as="div" variant="stat">{stats.inProgress}</Text>
             <p className="text-xs text-muted-foreground">
               {stats.inProgress > 0 ? "Active onboardings" : "All caught up"}
             </p>
@@ -183,11 +187,11 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+            <CardTitle className={textStyles.cardTitleSm}>Success Rate</CardTitle>
             <CheckCircle className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.successRate}%</div>
+            <Text as="div" variant="stat">{stats.successRate}%</Text>
             <p className="text-xs text-muted-foreground">
               {stats.averageCompletionTime} days avg completion
             </p>
@@ -196,11 +200,11 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+            <CardTitle className={textStyles.cardTitleSm}>Pending Review</CardTitle>
             <Clock className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.pending}</div>
+            <Text as="div" variant="stat">{stats.pending}</Text>
             <p className="text-xs text-muted-foreground">
               {stats.pending > 0 ? "Requires attention" : "All processed"}
             </p>
@@ -209,10 +213,10 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
       </div>
 
       {/* Regional and Crop Distribution */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 mb-6">
+      <div className={dashboard.contentGrid}>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className={cn(textStyles.cardTitle, "flex items-center gap-2")}>
               <MapPin className="h-4 w-4" />
               Regional Distribution
             </CardTitle>
@@ -232,7 +236,7 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className={cn(textStyles.cardTitle, "flex items-center gap-2")}>
               <Leaf className="h-4 w-4" />
               Crop Distribution
             </CardTitle>
@@ -254,7 +258,7 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
       {/* Main Content Tabs */}
       <Card>
         <CardHeader>
-          <CardTitle>Onboarding Management</CardTitle>
+          <CardTitle className={textStyles.cardTitle}>Onboarding Management</CardTitle>
           <CardDescription>
             Manage all aspects of the farmer onboarding process
           </CardDescription>
@@ -291,6 +295,6 @@ export function OnboardingPortal({ className }: OnboardingPortalProps) {
           </Tabs>
         </CardContent>
       </Card>
-    </div>
+    </DashboardPageShell>
   )
 }

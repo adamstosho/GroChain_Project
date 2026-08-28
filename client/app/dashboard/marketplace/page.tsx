@@ -11,6 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
@@ -422,8 +425,8 @@ export default function MarketplacePage() {
   if (isInitialLoading) {
     return (
       <DashboardLayout pageTitle="Marketplace">
-        <div className="space-y-4 sm:space-y-6">
-          <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <DashboardPageShell>
+          <div className={dashboard.statsGrid}>
             {[...Array(4)].map((_, i) => (
               <Card key={i} className="animate-pulse border border-border h-full">
                 <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
@@ -436,14 +439,14 @@ export default function MarketplacePage() {
               </Card>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout pageTitle="Listings">
-      <div className="space-y-6 sm:space-y-10">
+      <DashboardPageShell className="sm:space-y-10">
         <DashboardPageHeader
           badge="Marketplace Intelligence Active"
           title="Merchant"
@@ -479,7 +482,7 @@ export default function MarketplacePage() {
         />
 
         {/* Listings Stats */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div className={dashboard.statsGrid}>
           <Card className="border border-border h-full">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -488,7 +491,7 @@ export default function MarketplacePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{stats.totalListings}</div>
+              <Text as="div" variant="stat" className="text-foreground">{stats.totalListings}</Text>
               <p className="text-xs text-muted-foreground">{stats.activeListings} active</p>
             </CardContent>
           </Card>
@@ -501,7 +504,7 @@ export default function MarketplacePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{stats.totalOrders}</div>
+              <Text as="div" variant="stat" className="text-foreground">{stats.totalOrders}</Text>
               <p className="text-xs text-muted-foreground">{stats.pendingOrders} pending</p>
             </CardContent>
           </Card>
@@ -514,7 +517,7 @@ export default function MarketplacePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{formatCompactCurrency(stats.totalRevenue)}</div>
+              <Text as="div" variant="stat" className="text-foreground">{formatCompactCurrency(stats.totalRevenue)}</Text>
               <p className="text-xs text-muted-foreground">{formatCompactCurrency(stats.monthlyRevenue)} this month</p>
             </CardContent>
           </Card>
@@ -527,7 +530,7 @@ export default function MarketplacePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{stats.totalCustomers}</div>
+              <Text as="div" variant="stat" className="text-foreground">{stats.totalCustomers}</Text>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Star className="h-3 w-3 text-secondary" /> {stats.averageRating} avg rating
               </p>
@@ -542,7 +545,7 @@ export default function MarketplacePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{stats.activeBuyers}</div>
+              <Text as="div" variant="stat" className="text-foreground">{stats.activeBuyers}</Text>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Activity className="h-3 w-3" />
                 {stats.recentBuyerActivity} active today
@@ -693,18 +696,10 @@ export default function MarketplacePage() {
                           </div>
                         ))}
 
-                        {/* Fallback testimonials if API data is not available */}
                         {(!buyerActivityData?.data?.testimonials || buyerActivityData.data.testimonials.length === 0) && (
-                          <>
-                            <div className="p-2 bg-primary/10 rounded border border-primary/10">
-                              <p className="text-xs text-primary italic">&quot;Found excellent quality maize from local farmers. Great platform!&quot;</p>
-                              <p className="text-xs text-primary mt-1">- Lagos Restaurant Owner</p>
-                            </div>
-                            <div className="p-2 bg-accent/10 rounded border border-accent/10">
-                              <p className="text-xs text-accent italic">&quot;Fresh vegetables directly from farms. Much better than markets.&quot;</p>
-                              <p className="text-xs text-accent mt-1">- Abuja Supermarket</p>
-                            </div>
-                          </>
+                          <p className="text-xs text-muted-foreground italic p-2">
+                            No buyer testimonials yet.
+                          </p>
                         )}
                       </div>
                     </div>
@@ -1037,7 +1032,7 @@ export default function MarketplacePage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

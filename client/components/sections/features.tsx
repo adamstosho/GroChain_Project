@@ -1,6 +1,13 @@
+"use client"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { QrCode, Shield, Smartphone, TrendingUp, CreditCard, UserCheck } from "lucide-react"
+import { ScrollReveal } from "@/components/motion/scroll-reveal"
+import { ScrollStagger, StaggerItem } from "@/components/motion/stagger-container"
+import { MarketingSection } from "@/components/layout/marketing-section"
+import { SectionHeader } from "@/components/ui/typography"
+import { layout } from "@/lib/design-system"
 
 export function Features() {
   const features = [
@@ -30,9 +37,9 @@ export function Features() {
     },
     {
       icon: TrendingUp,
-      title: "Market Analytics",
-      description: "Real-time market data, product demand analysis and supply chain optimization insights",
-      features: ["Price tracking", "Real-time market data", "Supply chain insights", "Demand forecasting"],
+      title: "Market Insights",
+      description: "Advisory analytics from your own harvests, listings, and sales on GroChain",
+      features: ["Sales trends", "Listing performance", "Revenue outlook", "Platform-based pricing signals"],
     },
     {
       icon: CreditCard,
@@ -43,52 +50,42 @@ export function Features() {
   ]
 
   return (
-    <section id="features" className="py-16 sm:py-24 bg-muted/30">
-      <div className="container px-4 sm:px-6 lg:px-8">
-        <div className="text-center space-y-4 mb-16">
-          <Badge variant="secondary" className="mb-4">
-            Platform Features
-          </Badge>
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-serif">
-            Comprehensive tools designed specifically for Nigeria's agricultural ecosystem
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            From farm to table, our platform provides everything needed to build trust, ensure quality, and connect
-            stakeholders in the agricultural supply chain.
-          </p>
-        </div>
+    <MarketingSection id="features" className="bg-muted/40">
+      <ScrollReveal>
+        <SectionHeader
+          badge={<Badge variant="secondary">Platform Features</Badge>}
+          title="Everything Nigeria's agricultural ecosystem needs"
+          description="From farm to table, our platform provides the tools to build trust, ensure quality, and connect stakeholders across the supply chain."
+        />
+      </ScrollReveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <Card
-              key={index}
-              className="group hover:shadow-lg transition-all duration-300 border-0 bg-card/50 backdrop-blur-sm"
-            >
-              <CardHeader className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="h-12 w-12 rounded-lg bg-primary-soft flex items-center justify-center group-hover:bg-primary-soft transition-colors">
-                    <feature.icon className="h-6 w-6 text-primary" />
-                  </div>
+      <ScrollStagger className={layout.gridCards}>
+        {features.map((feature) => (
+          <StaggerItem key={feature.title}>
+            <Card className="group h-full border border-border/60 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg">
+              <CardHeader className="space-y-4 pb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-soft transition-colors group-hover:bg-primary/15">
+                  <feature.icon className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl mb-2">{feature.title}</CardTitle>
-                  <CardDescription className="text-base">{feature.description}</CardDescription>
+                  <CardTitle className="mb-2 font-serif text-xl">{feature.title}</CardTitle>
+                  <CardDescription className="text-base leading-relaxed">{feature.description}</CardDescription>
                 </div>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2">
-                  {feature.features.map((item, idx) => (
-                    <li key={idx} className="flex items-center text-sm text-muted-foreground">
-                      <div className="h-1.5 w-1.5 rounded-full bg-success mr-3" />
+                <ul className="space-y-2.5">
+                  {feature.features.map((item) => (
+                    <li key={item} className="flex items-center text-sm text-muted-foreground">
+                      <div className="mr-3 h-1.5 w-1.5 shrink-0 rounded-full bg-success" />
                       {item}
                     </li>
                   ))}
                 </ul>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      </div>
-    </section>
+          </StaggerItem>
+        ))}
+      </ScrollStagger>
+    </MarketingSection>
   )
 }

@@ -1,11 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { HarvestForm, type HarvestFormData } from "@/components/agricultural"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display } from "@/components/ui/typography"
 import { useToast } from "@/hooks/use-toast"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { apiService } from "@/lib/api"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
@@ -15,10 +19,22 @@ export default function NewHarvestPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
+  const { guard, reset } = useSubmitOnce()
+  const idempotencyKeyRef = useRef(
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `harvest-${Date.now()}`,
+  )
 
   const handleSubmit = async (data: HarvestFormData & { images?: string[] }) => {
+    if (!guard()) return
+
     try {
       setLoading(true)
+
+      if (!data.coordinates) {
+        throw new Error("Missing farm GPS coordinates — please detect your location before submitting.")
+      }
 
       // Map our form data to backend schema
       const payload = {
@@ -27,8 +43,8 @@ export default function NewHarvestPage() {
         quantity: data.quantity,
         date: data.harvestDate,
         geoLocation: {
-          lat: data.coordinates?.latitude || 6.5244,
-          lng: data.coordinates?.longitude || 3.3792
+          lat: data.coordinates.latitude,
+          lng: data.coordinates.longitude
         },
         unit: data.unit,
         location: data.location,
@@ -46,7 +62,9 @@ export default function NewHarvestPage() {
         certification: data.certification
       }
 
-      const response = await apiService.createHarvest(payload) as any
+      const response = await apiService.createHarvest(payload, {
+        idempotencyKey: idempotencyKeyRef.current,
+      }) as any
       const created = response?.harvest || response?.data?.harvest || response?.data || response
 
       sessionStorage.removeItem("harvest-form-draft")
@@ -71,6 +89,7 @@ export default function NewHarvestPage() {
       })
     } finally {
       setLoading(false)
+      reset()
     }
   }
 
@@ -80,7 +99,7 @@ export default function NewHarvestPage() {
 
   return (
     <DashboardLayout pageTitle="Log New Harvest">
-      <div className="space-y-6 max-w-5xl mx-auto px-2 sm:px-4">
+      <DashboardPageShell className="max-w-5xl mx-auto px-2 sm:px-4">
         {/* Page Header */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -92,12 +111,10 @@ export default function NewHarvestPage() {
             </Button>
           </div>
 
-          <div className="space-y-1">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Log New Harvest</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Record details of your crop yield on the blockchain ledger for transparency and verification
-            </p>
-          </div>
+          <DashboardSubpageHeader
+            title="Log New Harvest"
+            description="Record details of your crop yield on GroChain for transparency and verification"
+          />
         </div>
 
         {/* Harvest Form */}
@@ -116,7 +133,7 @@ export default function NewHarvestPage() {
         <Card className="border border-border bg-muted/50 shadow-none rounded-2xl">
           <CardContent className="p-4 sm:p-6 text-center space-y-4">
             <div className="max-w-xl mx-auto space-y-2">
-              <h3 className="text-sm sm:text-base font-semibold text-foreground">Need Assistance Logging?</h3>
+              <Display as="h3" variant="sub">Need Assistance Logging?</Display>
               <p className="text-xs sm:text-sm text-muted-foreground leading-normal">
                 If you have questions about quality standards, grading criteria, or moisture readings, 
                 our cooperative agronomy experts are available to guide you.
@@ -136,7 +153,7 @@ export default function NewHarvestPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

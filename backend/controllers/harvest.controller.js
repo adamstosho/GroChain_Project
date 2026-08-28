@@ -4,6 +4,12 @@ const Harvest = require('../models/harvest.model')
 const User = require('../models/user.model')
 const notificationController = require('./notification.controller')
 const { validateQuantity, validatePrice } = require('../utils/number-precision')
+const { escapeRegex } = require('../utils/regex.util')
+const {
+  parseIdempotencyKey,
+  findIdempotentRecord,
+  idempotentSuccess,
+} = require('../utils/idempotency')
 
 const harvestSchema = Joi.object({
   cropType: Joi.string().required(),
@@ -28,6 +34,19 @@ const harvestSchema = Joi.object({
 
 exports.createHarvest = async (req, res) => {
   try {
+    const idempotencyKey = parseIdempotencyKey(req)
+
+    if (idempotencyKey) {
+      const existing = await findIdempotentRecord(
+        Harvest,
+        { farmer: req.user.id },
+        idempotencyKey
+      )
+      if (existing) {
+        return idempotentSuccess(res, existing, 'Harvest already logged')
+      }
+    }
+
     const body = { ...req.body }
     if (!body.unit || typeof body.unit !== 'string' || body.unit.trim() === '') body.unit = 'kg'
 
@@ -72,6 +91,7 @@ exports.createHarvest = async (req, res) => {
       ...value,
       farmer: req.user.id,
       batchId,
+      ...(idempotencyKey ? { idempotencyKey } : {}),
       agriculturalData: {
         soilType: value.soilType,
         irrigationMethod: value.irrigationType,
@@ -196,6 +216,19 @@ exports.createHarvest = async (req, res) => {
     })
   } catch (e) {
     console.error('createHarvest error:', e)
+    if (e?.code === 11000 && req.body?.idempotencyKey) {
+      try {
+        const existing = await Harvest.findOne({
+          farmer: req.user.id,
+          idempotencyKey: String(req.body.idempotencyKey).trim().slice(0, 128),
+        })
+        if (existing) {
+          return idempotentSuccess(res, existing, 'Harvest already logged')
+        }
+      } catch (replayError) {
+        console.error('Harvest idempotency replay failed:', replayError)
+      }
+    }
     return res.status(500).json({ status: 'error', message: 'Server error' })
   }
 }
@@ -204,7 +237,7 @@ exports.getHarvests = async (req, res) => {
   try {
     const { cropType, status, page = 1, limit = 10 } = req.query
     const filter = { farmer: req.user.id }
-    if (cropType) filter.cropType = new RegExp(String(cropType), 'i')
+    if (cropType) filter.cropType = new RegExp(escapeRegex(cropType), 'i')
     if (status) filter.status = status
     const skip = (parseInt(page) - 1) * parseInt(limit)
     const [harvests, total] = await Promise.all([
@@ -675,7 +708,7 @@ exports.exportHarvests = async (req, res) => {
     // Build filter
     const filter = { farmer: farmerId }
     if (status && status !== 'all') filter.status = status
-    if (cropType && cropType !== 'all') filter.cropType = new RegExp(String(cropType), 'i')
+    if (cropType && cropType !== 'all') filter.cropType = new RegExp(escapeRegex(cropType), 'i')
     if (fromDate || toDate) {
       filter.date = {}
       if (fromDate) filter.date.$gte = new Date(fromDate)

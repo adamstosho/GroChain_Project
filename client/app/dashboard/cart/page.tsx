@@ -2,6 +2,8 @@
 
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display } from "@/components/ui/typography"
 import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -62,7 +64,7 @@ export default function CartPage() {
       <DashboardLayout pageTitle="Shopping Cart">
         <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
           <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
-          <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
+          <Display as="h2" variant="card" className="mb-2">Your cart is empty</Display>
           <p className="text-muted-foreground mb-6">
             Start shopping to add products to your cart
           </p>
@@ -78,7 +80,7 @@ export default function CartPage() {
 
   return (
     <DashboardLayout pageTitle="Shopping Cart">
-      <div className="space-y-6">
+      <DashboardPageShell>
         <DashboardPageHeader
           badge="Cart Active"
           title="Shopping"
@@ -245,7 +247,7 @@ export default function CartPage() {
             </Card>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

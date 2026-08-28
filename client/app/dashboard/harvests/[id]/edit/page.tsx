@@ -6,6 +6,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { HarvestForm, type HarvestFormData } from "@/components/agricultural"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display } from "@/components/ui/typography"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react"
@@ -108,6 +111,10 @@ export default function EditHarvestPage() {
     try {
       setLoading(true)
 
+      if (!data.coordinates) {
+        throw new Error("Missing farm GPS coordinates — please detect your location before saving.")
+      }
+
       // Map our form data to backend schema
       const payload = {
         cropType: data.cropType,
@@ -115,8 +122,8 @@ export default function EditHarvestPage() {
         quantity: data.quantity,
         date: data.harvestDate,
         geoLocation: {
-          lat: data.coordinates?.latitude || 6.5244,
-          lng: data.coordinates?.longitude || 3.3792
+          lat: data.coordinates.latitude,
+          lng: data.coordinates.longitude
         },
         unit: data.unit,
         location: data.location,
@@ -194,7 +201,7 @@ export default function EditHarvestPage() {
               <div className="text-center space-y-4">
                 <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-medium text-foreground mb-2">Loading Harvest Data</h2>
+                  <Display as="h2" variant="sub">Loading Harvest Data</Display>
                   <p className="text-sm sm:text-base text-muted-foreground">Please wait while we fetch your harvest information...</p>
                 </div>
               </div>
@@ -214,7 +221,7 @@ export default function EditHarvestPage() {
               <div className="text-center space-y-6">
                 <AlertCircle className="h-16 w-16 text-destructive mx-auto" />
                 <div>
-                  <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">Error Loading Harvest</h2>
+                  <Display as="h2" variant="sub">Error Loading Harvest</Display>
                   <p className="text-sm sm:text-base text-muted-foreground mb-6">{error}</p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <Button onClick={() => window.location.reload()}>
@@ -235,7 +242,7 @@ export default function EditHarvestPage() {
 
   return (
     <DashboardLayout pageTitle="Edit Harvest">
-      <div className="space-y-6 max-w-5xl mx-auto px-2 sm:px-4">
+      <DashboardPageShell className="max-w-5xl mx-auto px-2 sm:px-4">
         {/* Page Header */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -247,10 +254,10 @@ export default function EditHarvestPage() {
             </Button>
           </div>
 
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Edit Harvest</h1>
-              <div className="flex flex-wrap gap-2">
+          <DashboardSubpageHeader
+            title={
+              <div className="flex flex-wrap items-center gap-3">
+                <span>Edit Harvest</span>
                 {hasUnsavedChanges && (
                   <Badge variant="secondary" className="bg-warning/10 text-warning border-warning/10 text-xs">
                     <AlertCircle className="h-3 w-3 mr-1" />
@@ -264,11 +271,9 @@ export default function EditHarvestPage() {
                   </Badge>
                 )}
               </div>
-            </div>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Modify the on-chain logged harvest attributes. All updates are recorded in the audit logs.
-            </p>
-          </div>
+            }
+            description="Modify logged harvest attributes. Updates are saved to your GroChain record."
+          />
         </div>
 
         {/* Harvest Form */}
@@ -284,7 +289,7 @@ export default function EditHarvestPage() {
             />
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

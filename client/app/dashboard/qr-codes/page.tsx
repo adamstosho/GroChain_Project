@@ -9,6 +9,9 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -408,8 +411,8 @@ export default function QRCodesPage() {
   if (loading) {
     return (
       <DashboardLayout pageTitle="QR Codes">
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <DashboardPageShell>
+          <div className={dashboard.statsGrid4}>
             {[...Array(4)].map((_, i) => (
               <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-3">
@@ -423,14 +426,14 @@ export default function QRCodesPage() {
               </Card>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout pageTitle="QR Codes">
-      <div className="space-y-4 sm:space-y-6">
+      <DashboardPageShell>
         <DashboardPageHeader
           badge="Provenance Tracking Active"
           title="QR"
@@ -451,9 +454,7 @@ export default function QRCodesPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total QR Codes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-primary">
-                {stats.totalCodes}
-              </div>
+              <Text as="div" variant="stat">{stats.totalCodes}</Text>
               <div className="flex items-center gap-2 mt-2">
                 <TrendingUp className="h-4 w-4 text-primary" />
                 <span className="text-sm text-primary">+1 from last month</span>
@@ -466,9 +467,7 @@ export default function QRCodesPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Active Codes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-success">
-                {stats.activeCodes}
-              </div>
+              <Text as="div" variant="stat" className="text-success">{stats.activeCodes}</Text>
               <div className="flex items-center gap-2 mt-2">
                 <CheckCircle className="h-4 w-4 text-success" />
                 <span className="text-sm text-success">Ready for scanning</span>
@@ -481,9 +480,7 @@ export default function QRCodesPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Verified Codes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-primary">
-                {stats.verifiedCodes}
-              </div>
+              <Text as="div" variant="stat">{stats.verifiedCodes}</Text>
               <div className="flex items-center gap-2 mt-2">
                 <CheckCircle className="h-4 w-4 text-primary" />
                 <span className="text-sm text-primary">Successfully verified</span>
@@ -496,9 +493,7 @@ export default function QRCodesPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Downloads</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-accent">
-                {stats.totalDownloads || 0}
-              </div>
+              <Text as="div" variant="stat" className="text-accent">{stats.totalDownloads || 0}</Text>
               <div className="flex items-center gap-2 mt-2">
                 <Download className="h-4 w-4 text-accent" />
                 <span className="text-sm text-accent">QR codes downloaded</span>
@@ -511,9 +506,7 @@ export default function QRCodesPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Scans</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-warning">
-                {stats.totalScans}
-              </div>
+              <Text as="div" variant="stat" className="text-warning">{stats.totalScans}</Text>
               <div className="flex items-center gap-2 mt-2">
                 <Eye className="h-4 w-4 text-warning" />
                 <span className="text-sm text-warning">Across all codes</span>
@@ -1010,7 +1003,7 @@ export default function QRCodesPage() {
             </div>
           </div>
         )}
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

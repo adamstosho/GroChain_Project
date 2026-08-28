@@ -24,7 +24,14 @@ async function authenticate(req, res, next) {
     if (!user) {
       return res.status(401).json({ status: 'error', message: 'User not found' })
     }
-    
+
+    // Reject tokens issued before the user's last logout/password change.
+    // (Tokens signed before this check existed carry no tokenVersion claim
+    // and default to 0, matching the schema default, so they remain valid.)
+    if ((decoded.tokenVersion || 0) !== (user.tokenVersion || 0)) {
+      return res.status(401).json({ status: 'error', message: 'Session expired, please log in again' })
+    }
+
     // Check if user is suspended
     if (user.status === 'suspended') {
       return res.status(403).json({ 

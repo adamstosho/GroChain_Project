@@ -8,8 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display, Text } from "@/components/ui/typography"
 import { apiService } from "@/lib/api"
 import { useAuthStore } from "@/lib/auth"
+import { dashboard } from "@/lib/design-system"
 import { useToast } from "@/hooks/use-toast"
 import {
   Cloud,
@@ -306,8 +309,12 @@ export default function WeatherPage() {
           setLocationSource('live')
           await loadWeatherForCoords(lat, lng)
         },
-        async (error) => {
-          console.warn("Geolocation access denied or failed. Falling back to IP-based location...", error)
+        async (error: GeolocationPositionError) => {
+          // Native GeolocationPositionError has no enumerable own properties,
+          // so logging it directly renders as an empty "{}" in some consoles —
+          // log the primitives instead. Denied/unavailable/timed-out is an
+          // expected, already-handled outcome (falls back to IP-based location).
+          console.warn(`Geolocation unavailable (code ${error.code}): ${error.message || 'falling back to IP-based location'}`)
           toast({
             title: "Using Estimated Location",
             description: "Location permission denied or timed out. Falling back to IP-based location.",
@@ -521,8 +528,8 @@ export default function WeatherPage() {
   if (loading) {
     return (
       <DashboardLayout pageTitle="Weather">
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <DashboardPageShell>
+          <div className={dashboard.statsGrid4}>
             {[...Array(4)].map((_, i) => (
               <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-3">
@@ -536,14 +543,14 @@ export default function WeatherPage() {
               </Card>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout pageTitle="Weather">
-      <div className="space-y-6">
+      <DashboardPageShell>
         <DashboardPageHeader
           badge="Weather Monitoring Active"
           title="Weather"
@@ -619,9 +626,9 @@ export default function WeatherPage() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <h2 className="text-3xl font-bold text-foreground">
+                      <Display as="h2" variant="page">
                         {currentWeather.temperature}°C
-                      </h2>
+                      </Display>
                       <span className="text-lg text-muted-foreground">
                         Feels like {currentWeather.feelsLike}°C
                       </span>
@@ -794,27 +801,27 @@ export default function WeatherPage() {
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
                     <div>
-                      <div className="text-2xl font-bold text-foreground">{stats.averageTemperature}°C</div>
+                      <Text as="div" variant="stat" className="text-foreground">{stats.averageTemperature}°C</Text>
                       <div className="text-sm text-muted-foreground">Avg Temperature</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-foreground">{stats.totalPrecipitation}mm</div>
+                      <Text as="div" variant="stat" className="text-foreground">{stats.totalPrecipitation}mm</Text>
                       <div className="text-sm text-muted-foreground">Total Rainfall</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-foreground">{stats.averageHumidity}%</div>
+                      <Text as="div" variant="stat" className="text-foreground">{stats.averageHumidity}%</Text>
                       <div className="text-sm text-muted-foreground">Avg Humidity</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-foreground">{stats.windEvents}</div>
+                      <Text as="div" variant="stat" className="text-foreground">{stats.windEvents}</Text>
                       <div className="text-sm text-muted-foreground">Wind Events</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-foreground">{stats.sunnyDays}</div>
+                      <Text as="div" variant="stat" className="text-foreground">{stats.sunnyDays}</Text>
                       <div className="text-sm text-muted-foreground">Sunny Days</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-foreground">{stats.rainyDays}</div>
+                      <Text as="div" variant="stat" className="text-foreground">{stats.rainyDays}</Text>
                       <div className="text-sm text-muted-foreground">Rainy Days</div>
                     </div>
                   </div>
@@ -1010,7 +1017,7 @@ export default function WeatherPage() {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

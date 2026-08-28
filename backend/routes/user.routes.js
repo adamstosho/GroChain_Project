@@ -2,6 +2,7 @@ const router = require('express').Router()
 const { authenticate, authorize } = require('../middlewares/auth.middleware')
 const User = require('../models/user.model')
 const upload = require('../utils/upload')
+const { escapeRegex } = require('../utils/regex.util')
 
 router.get('/dashboard', authenticate, authorize('admin','partner','farmer','buyer'), async (req, res) => {
   try {
@@ -1046,11 +1047,14 @@ router.post('/change-password', authenticate, async (req, res) => {
 
     // Update password (pre-save middleware will hash it)
     user.password = newPassword
+    // Invalidate every previously-issued token (including the one used for
+    // this request) so a compromised session can't outlive a password change
+    user.tokenVersion = (user.tokenVersion || 0) + 1
     await user.save()
 
     return res.json({
       status: 'success',
-      message: 'Password changed successfully'
+      message: 'Password changed successfully. Please log in again.'
     })
   } catch (error) {
     console.error('Error changing password:', error)
@@ -1071,13 +1075,14 @@ router.get('/', async (req, res) => {
   if (role) query.role = role
   if (status) query.status = status
   if (search) {
+    const searchRegex = new RegExp(escapeRegex(search), 'i')
     query.$or = [
-      { name: new RegExp(search, 'i') },
-      { email: new RegExp(search, 'i') },
-      { phone: new RegExp(search, 'i') }
+      { name: searchRegex },
+      { email: searchRegex },
+      { phone: searchRegex }
     ]
   }
-  const users = await User.find(query).sort({ createdAt: -1 }).skip((page-1)*limit).limit(parseInt(limit))
+  const users = await User.find(query).select('-password -resetPasswordToken -resetPasswordExpires -emailVerificationToken -emailVerificationExpires -smsOtpToken -smsOtpExpires').sort({ createdAt: -1 }).skip((page-1)*limit).limit(parseInt(limit))
   const total = await User.countDocuments(query)
   return res.json({ status: 'success', data: { users, pagination: { currentPage: parseInt(page), totalPages: Math.ceil(total/limit), totalItems: total, itemsPerPage: parseInt(limit) } } })
 })
@@ -1088,12 +1093,21 @@ router.post('/', async (req, res) => {
   return res.status(201).json({ status: 'success', data: user })
 })
 
-// Bulk create
+// Bulk create — uses individual create() calls, not insertMany(), because
+// insertMany() skips Mongoose's pre('save') hooks entirely, which is what
+// hashes the password. insertMany() here would have written every user's
+// password to the database in plaintext.
 router.post('/bulk-create', async (req, res) => {
   const { users } = req.body || {}
   if (!Array.isArray(users) || users.length === 0) return res.status(400).json({ status: 'error', message: 'users array required' })
-  const created = await User.insertMany(users, { ordered: false })
-  return res.status(201).json({ status: 'success', data: { created: created.length } })
+
+  const results = await Promise.allSettled(users.map((u) => User.create(u)))
+  const created = results.filter((r) => r.status === 'fulfilled').length
+  const errors = results
+    .map((r, i) => r.status === 'rejected' ? { index: i, email: users[i]?.email, error: r.reason?.message || 'Failed to create user' } : null)
+    .filter(Boolean)
+
+  return res.status(201).json({ status: 'success', data: { created, failed: errors.length, errors } })
 })
 
 // Bulk update
@@ -1115,13 +1129,17 @@ router.delete('/bulk-delete', async (req, res) => {
 // Search users
 router.get('/search/query', async (req, res) => {
   const { q } = req.query
-  const users = await User.find({ $or: [ { name: new RegExp(q, 'i') }, { email: new RegExp(q, 'i') }, { phone: new RegExp(q, 'i') } ] }).limit(50)
+  const searchRegex = new RegExp(escapeRegex(q), 'i')
+  const users = await User.find({ $or: [ { name: searchRegex }, { email: searchRegex }, { phone: searchRegex } ] })
+    .select('-password -resetPasswordToken -resetPasswordExpires -emailVerificationToken -emailVerificationExpires -smsOtpToken -smsOtpExpires')
+    .limit(50)
   return res.json({ status: 'success', data: users })
 })
 
 // Get user
 router.get('/:userId', async (req, res) => {
   const user = await User.findById(req.params.userId)
+    .select('-password -resetPasswordToken -resetPasswordExpires -emailVerificationToken -emailVerificationExpires -smsOtpToken -smsOtpExpires')
   if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
   return res.json({ status: 'success', data: user })
 })
@@ -1141,6 +1159,7 @@ router.put('/:userId', async (req, res) => {
   }
   // Explicitly never mass-assign secrets / privileged auth fields
   const user = await User.findByIdAndUpdate(req.params.userId, updateData, { new: true })
+    .select('-password -resetPasswordToken -resetPasswordExpires -emailVerificationToken -emailVerificationExpires -smsOtpToken -smsOtpExpires')
   if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
   return res.json({ status: 'success', data: user })
 })
@@ -1162,20 +1181,22 @@ router.get('/:userId/activity', async (req, res) => {
 })
 
 // Verify / suspend / reactivate / change role
+const SENSITIVE_FIELDS = '-password -resetPasswordToken -resetPasswordExpires -emailVerificationToken -emailVerificationExpires -smsOtpToken -smsOtpExpires'
+
 router.post('/:userId/verify', async (req, res) => {
-  const user = await User.findByIdAndUpdate(req.params.userId, { emailVerified: true }, { new: true })
+  const user = await User.findByIdAndUpdate(req.params.userId, { emailVerified: true }, { new: true }).select(SENSITIVE_FIELDS)
   if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
   return res.json({ status: 'success', data: user })
 })
 
 router.patch('/:userId/suspend', async (req, res) => {
-  const user = await User.findByIdAndUpdate(req.params.userId, { status: 'suspended', suspendedAt: new Date(), suspensionReason: req.body?.reason }, { new: true })
+  const user = await User.findByIdAndUpdate(req.params.userId, { status: 'suspended', suspendedAt: new Date(), suspensionReason: req.body?.reason }, { new: true }).select(SENSITIVE_FIELDS)
   if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
   return res.json({ status: 'success', data: user })
 })
 
 router.patch('/:userId/reactivate', async (req, res) => {
-  const user = await User.findByIdAndUpdate(req.params.userId, { status: 'active', suspensionReason: null, suspendedAt: null }, { new: true })
+  const user = await User.findByIdAndUpdate(req.params.userId, { status: 'active', suspensionReason: null, suspendedAt: null }, { new: true }).select(SENSITIVE_FIELDS)
   if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
   return res.json({ status: 'success', data: user })
 })
@@ -1186,7 +1207,7 @@ router.patch('/:userId/role', async (req, res) => {
   if (!role || !allowedRoles.includes(role)) {
     return res.status(400).json({ status: 'error', message: 'Valid role required' })
   }
-  const user = await User.findByIdAndUpdate(req.params.userId, { role }, { new: true })
+  const user = await User.findByIdAndUpdate(req.params.userId, { role }, { new: true }).select(SENSITIVE_FIELDS)
   if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
   return res.json({ status: 'success', data: user })
 })

@@ -7,9 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import QRGenerator from "@/components/qr-generator"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import {
@@ -477,7 +479,7 @@ export default function QRScannerPage() {
 
   return (
     <DashboardLayout pageTitle="QR Scanner">
-      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
+      <DashboardPageShell className="px-4 sm:px-6 max-w-full overflow-hidden">
         <DashboardPageHeader
           badge="Verification Active"
           title="QR"
@@ -505,14 +507,14 @@ export default function QRScannerPage() {
         />
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className={dashboard.statsGrid4}>
           <Card className="hover:shadow-md transition-shadow">
             <CardContent className="p-2 sm:p-3 md:p-4">
               <div className="flex items-center space-x-1 sm:space-x-2">
                 <Scan className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">Total Scans</p>
-                  <p className="text-sm sm:text-lg md:text-2xl font-bold">{scanStats.totalScans}</p>
+                  <Text as="p" variant="stat" className="text-foreground">{scanStats.totalScans}</Text>
                 </div>
               </div>
             </CardContent>
@@ -523,7 +525,7 @@ export default function QRScannerPage() {
                 <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-success flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">Verified</p>
-                  <p className="text-sm sm:text-lg md:text-2xl font-bold">{scanStats.verifiedScans}</p>
+                  <Text as="p" variant="stat" className="text-foreground">{scanStats.verifiedScans}</Text>
                 </div>
               </div>
             </CardContent>
@@ -534,7 +536,7 @@ export default function QRScannerPage() {
                 <XCircle className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-destructive flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">Failed</p>
-                  <p className="text-sm sm:text-lg md:text-2xl font-bold">{scanStats.failedScans}</p>
+                  <Text as="p" variant="stat" className="text-foreground">{scanStats.failedScans}</Text>
                 </div>
               </div>
             </CardContent>
@@ -545,7 +547,7 @@ export default function QRScannerPage() {
                 <Package className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">Unique Products</p>
-                  <p className="text-sm sm:text-lg md:text-2xl font-bold">{scanStats.uniqueProducts}</p>
+                  <Text as="p" variant="stat" className="text-foreground">{scanStats.uniqueProducts}</Text>
                 </div>
               </div>
             </CardContent>
@@ -554,10 +556,9 @@ export default function QRScannerPage() {
 
         {/* Main Scanner Interface */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-3 h-auto p-1">
             <TabsTrigger value="scanner" className="text-xs sm:text-sm">Scanner</TabsTrigger>
             <TabsTrigger value="manual" className="text-xs sm:text-sm">Manual</TabsTrigger>
-            <TabsTrigger value="generator" className="text-xs sm:text-sm">Generator</TabsTrigger>
             <TabsTrigger value="history" className="text-xs sm:text-sm">History</TabsTrigger>
           </TabsList>
 
@@ -823,14 +824,6 @@ export default function QRScannerPage() {
             </Card>
           </TabsContent>
 
-          {/* QR Generator Tab */}
-          <TabsContent value="generator" className="mt-4 sm:mt-6">
-            <QRGenerator onQRGenerated={(qrData) => {
-              setScannedData(qrData)
-              setActiveTab("manual")
-            }} />
-          </TabsContent>
-
           {/* Scan History Tab */}
           <TabsContent value="history" className="mt-4 sm:mt-6">
             <Card>
@@ -936,7 +929,7 @@ export default function QRScannerPage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

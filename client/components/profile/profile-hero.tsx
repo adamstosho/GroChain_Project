@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { AvatarUpload } from "@/components/ui/avatar-upload"
 import { Edit3, Save, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Display, Text } from "@/components/ui/typography"
 
 interface ProfileHeroProps {
   name: string
@@ -57,8 +58,8 @@ export function ProfileHero({
               compact
             />
             <div className="min-w-0 space-y-1.5 pb-1">
-              <h1 className="truncate text-xl font-bold tracking-tight text-foreground sm:text-2xl">{name}</h1>
-              <p className="truncate text-sm font-medium text-muted-foreground">{subtitle}</p>
+              <Display as="h1" variant="page" className="truncate">{name}</Display>
+              <Text as="p" variant="sm" className="truncate font-medium">{subtitle}</Text>
               {badges && <div className="flex flex-wrap justify-center gap-2 sm:justify-start">{badges}</div>}
             </div>
           </div>

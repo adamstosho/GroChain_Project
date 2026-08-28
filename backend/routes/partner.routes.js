@@ -23,6 +23,7 @@ const Partner = require('../models/partner.model');
 const { authenticate } = require('../middlewares/auth.middleware');
 const multer = require('multer');
 const ctrl = require('../controllers/partner.controller');
+const { escapeRegex } = require('../utils/regex.util');
 
 // Apply authentication to all routes below
 router.use(authenticate);
@@ -420,10 +421,11 @@ router.get('/farmers', async (req, res) => {
     }
 
     if (req.query.search) {
+      const safeSearch = escapeRegex(req.query.search);
       query.$or = [
-        { name: { $regex: req.query.search, $options: 'i' } },
-        { email: { $regex: req.query.search, $options: 'i' } },
-        { phone: { $regex: req.query.search, $options: 'i' } }
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { email: { $regex: safeSearch, $options: 'i' } },
+        { phone: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 
@@ -438,10 +440,11 @@ router.get('/farmers', async (req, res) => {
 
     // Apply search filter to stats if present
     if (req.query.search) {
+      const safeSearch = escapeRegex(req.query.search);
       statsQuery.$or = [
-        { name: { $regex: req.query.search, $options: 'i' } },
-        { email: { $regex: req.query.search, $options: 'i' } },
-        { phone: { $regex: req.query.search, $options: 'i' } }
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { email: { $regex: safeSearch, $options: 'i' } },
+        { phone: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 
@@ -571,7 +574,7 @@ router.get('/farmers/:farmerId', async (req, res) => {
     }
 
     // Get farmer details
-    const farmer = await User.findById(farmerId).select('-password');
+    const farmer = await User.findById(farmerId).select('-password -resetPasswordToken -resetPasswordExpires -emailVerificationToken -emailVerificationExpires -smsOtpToken -smsOtpExpires');
     if (!farmer) {
       return res.status(404).json({ 
         status: 'error', 
@@ -1019,6 +1022,7 @@ router.get('/metrics', async (req, res) => {
     const Listing = require('../models/listing.model');
     const Order = require('../models/order.model');
     const Commission = require('../models/commission.model');
+    const Review = require('../models/review.model');
 
     // Get harvests and listings from partner's farmers
     const [harvests, listings] = await Promise.all([
@@ -1152,6 +1156,14 @@ router.get('/metrics', async (req, res) => {
       }
     ]);
 
+    // Real average rating per farmer, from actual buyer reviews — not a
+    // fabricated placeholder.
+    const farmerRatings = await Review.aggregate([
+      { $match: { farmer: { $in: farmerIds } } },
+      { $group: { _id: '$farmer', avgRating: { $avg: '$rating' }, count: { $sum: 1 } } }
+    ]);
+    const farmerRatingMap = new Map(farmerRatings.map((r) => [r._id.toString(), r]));
+
     // Get top performing farmers
     const topFarmers = await Promise.all(
       partnerFarmers.slice(0, 5).map(async (farmer) => {
@@ -1173,12 +1185,15 @@ router.get('/metrics', async (req, res) => {
           });
         });
 
+        const ratingStats = farmerRatingMap.get(farmer._id.toString());
+
         return {
           name: farmer.name,
           location: farmer.location || 'Nigeria',
           harvests: farmerHarvests.length,
           revenue: farmerRevenue,
-          rating: 4.2 + Math.random() * 0.8, // Mock rating for now
+          rating: ratingStats ? Math.round(ratingStats.avgRating * 10) / 10 : 0,
+          reviewCount: ratingStats ? ratingStats.count : 0,
           status: farmer.status
         };
       })

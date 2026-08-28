@@ -540,6 +540,7 @@ export const useNotifications = () => {
   const fetchNotificationsRef = useRef(fetchNotifications)
   const connectSocketRef = useRef(connectSocket)
   const disconnectSocketRef = useRef(disconnectSocket)
+  const initialFetchKeyRef = useRef<string | null>(null)
   fetchNotificationsRef.current = fetchNotifications
   connectSocketRef.current = connectSocket
   disconnectSocketRef.current = disconnectSocket
@@ -555,7 +556,11 @@ export const useNotifications = () => {
     if (!isHydrated) return
 
     if (userId) {
-      void fetchNotificationsRef.current()
+      const fetchKey = `notifications-initial:${userId}`
+      if (initialFetchKeyRef.current !== fetchKey) {
+        initialFetchKeyRef.current = fetchKey
+        void fetchNotificationsRef.current()
+      }
 
       const socketTimeout = setTimeout(() => {
         try {
@@ -578,6 +583,7 @@ export const useNotifications = () => {
       loading: false,
       connected: false,
     }))
+    initialFetchKeyRef.current = null
     disconnectSocketRef.current()
   }, [userId, isHydrated])
 

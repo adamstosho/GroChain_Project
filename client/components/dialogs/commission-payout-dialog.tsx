@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { useCommission } from "@/hooks/use-commission"
 import { Loader2, Wallet, Banknote, CreditCard } from "lucide-react"
+import { Text } from "@/components/ui/typography"
 
 interface CommissionPayoutDialogProps {
   open: boolean
@@ -41,7 +42,7 @@ export function CommissionPayoutDialog({
   const [isProcessing, setIsProcessing] = useState(false)
   
   const { toast } = useToast()
-  const { processPayout } = useCommission()
+  const { requestPayout } = useCommission()
 
   const handleSubmit = async () => {
     if (!accountNumber && payoutMethod === 'bank_transfer') {
@@ -83,8 +84,8 @@ export function CommissionPayoutDialog({
       }
 
       const commissionIds = pendingCommissions.map(c => c._id)
-      
-      await processPayout(commissionIds, payoutMethod, payoutDetails)
+
+      await requestPayout(commissionIds, payoutMethod, payoutDetails, notes)
       
       toast({
         title: "Payout request submitted",
@@ -205,7 +206,7 @@ export function CommissionPayoutDialog({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Pending Amount</p>
-                  <p className="text-2xl font-bold">₦{totalAmount.toLocaleString()}</p>
+                  <Text as="p" variant="price" className="text-foreground">₦{totalAmount.toLocaleString()}</Text>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-muted-foreground">Number of Commissions</p>

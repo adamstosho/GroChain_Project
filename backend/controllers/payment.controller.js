@@ -8,6 +8,12 @@ const notificationController = require('./notification.controller')
 const realTimeCommissionService = require('../services/commission-realtime.service')
 const PaystackUtil = require('../utils/paystack.util')
 const FlutterwaveUtil = require('../utils/flutterwave.util')
+const { createCommissionIdempotent } = require('../utils/commission-idempotency')
+const {
+  fulfillOrderInSession,
+  runPostPaymentSideEffects,
+  reconcileOrderFulfillment,
+} = require('../utils/payment-fulfillment')
 
 const allowInsecureTestPayments = () =>
   process.env.ALLOW_INSECURE_TEST_PAYMENTS === 'true' && process.env.NODE_ENV !== 'production'
@@ -192,110 +198,13 @@ exports.initializePayment = async (req, res) => {
     })
     
     const isTestMode = allowInsecureTestPayments()
-    
+
+    // Test-mode side effects (inventory, commissions, order paid) run only in
+    // verifyPayment / webhooks — never at init — so retries cannot double-apply.
     if (isTestMode) {
-      console.log('🧪 Auto-verifying payment in test mode...')
-      
-      // Update transaction to completed
-      transaction.status = 'completed'
-      transaction.processedAt = new Date()
-      transaction.metadata = {
-        ...transaction.metadata,
-        autoVerified: true,
-        verifiedAt: new Date(),
-        testMode: true
-      }
-      await transaction.save()
-      
-      // Update order to confirmed (order status) and paid (payment status)
-      order.status = 'confirmed'
-      order.paymentStatus = 'paid'
-      order.paymentReference = reference
-      await order.save()
-      
-      console.log('✅ Payment auto-verified and order marked as paid')
-      
-      // CRITICAL FIX: Create commissions for auto-verified payments
-      try {
-        console.log('💰 Auto-verification: Creating commissions for paid order...');
-        
-        // Populate the order with items and listings before creating commissions
-        const populatedOrder = await Order.findById(order._id)
-          .populate('items.listing')
-          .populate('buyer', 'name email');
-        
-        if (populatedOrder) {
-          await exports.createCommissions(populatedOrder);
-          console.log('✅ Auto-verification: Commissions created successfully');
-        } else {
-          console.log('❌ Auto-verification: Could not populate order for commission creation');
-        }
-      } catch (commissionError) {
-        console.error('❌ Auto-verification: Commission creation failed:', commissionError);
-        // Don't fail the auto-verification because of commission errors
-      }
-      
-      // CRITICAL FIX: Update inventory for auto-verified payments
-      try {
-        console.log('📦 Auto-verification: Updating inventory for paid order...')
-        console.log('📦 Order ID:', order._id)
-        console.log('📦 Order items before populate:', order.items?.length || 0)
-        
-        const Listing = require('../models/listing.model')
-        
-        // Populate the order items with listing details
-        const populatedOrder = await Order.findById(order._id)
-          .populate('items.listing', 'cropName availableQuantity quantity status')
-        
-        console.log('📦 Order items after populate:', populatedOrder?.items?.length || 0)
-        
-        for (const item of populatedOrder.items) {
-          console.log('🔍 Processing order item:', {
-            hasListing: !!item.listing,
-            listingId: item.listing?._id,
-            quantity: item.quantity
-          })
-          
-          if (item.listing) {
-            const listing = item.listing
-            const newAvailableQuantity = listing.availableQuantity - item.quantity
-            
-            console.log('🛒 Auto-verification: Updating inventory for item:', {
-              listingId: listing._id,
-              cropName: listing.cropName,
-              orderedQuantity: item.quantity,
-              oldAvailableQuantity: listing.availableQuantity,
-              newAvailableQuantity: newAvailableQuantity
-            })
-
-            // Update the listing with final inventory reduction
-            const updatedListing = await Listing.findByIdAndUpdate(listing._id, {
-              $inc: { 
-                availableQuantity: -item.quantity
-              },
-              status: newAvailableQuantity <= 0 ? 'sold_out' : listing.status,
-              soldOutAt: newAvailableQuantity <= 0 ? new Date() : null
-            }, { new: true })
-
-            console.log('✅ Auto-verification: Inventory updated:', {
-              listingId: listing._id,
-              cropName: listing.cropName,
-              finalAvailableQuantity: updatedListing.availableQuantity,
-              finalTotalQuantity: updatedListing.quantity,
-              status: updatedListing.status
-            })
-          } else {
-            console.log('❌ No listing found for order item')
-          }
-        }
-        
-        console.log('✅ Auto-verification: All inventory updates completed successfully')
-      } catch (inventoryError) {
-        console.error('❌ Auto-verification: Inventory update failed:', inventoryError)
-        // Don't fail the auto-verification because of inventory errors, but log them
-      }
+      console.log('🧪 Test mode init: transaction stays pending until verify/webhook runs side effects')
     }
-    
+
     // Initialize payment with the selected provider
     const webhookUrl = process.env.NODE_ENV === 'production'
       ? `${process.env.WEBHOOK_URL || 'https://your-domain.com/api'}/payments/verify`
@@ -671,7 +580,7 @@ exports.verifyPayment = async (req, res) => {
     const session = await mongoose.startSession()
     session.startTransaction()
 
-    let hadPaidPayment = false
+    let shouldRunSideEffects = false
     let order = null
 
     try {
@@ -688,69 +597,23 @@ exports.verifyPayment = async (req, res) => {
       }
       await transaction.save({ session })
 
-      if (transaction.orderId) {
+      if (transaction.metadata?.loanApplicationId || transaction.loanApplicationId) {
+        const { completeLoanRepayment } = require('../services/loan-payment.service')
+        const loanResult = await completeLoanRepayment(reference, session)
+        if (!loanResult.success && !loanResult.alreadyProcessed) {
+          throw new Error(loanResult.error || 'Loan repayment processing failed')
+        }
+      } else if (transaction.orderId) {
         order = await Order.findById(transaction.orderId).session(session)
 
         if (order) {
-          console.log('📦 Updating order status to paid:', transaction.orderId)
-
-          // Canonical paid flag is paymentStatus; status may be pending/confirmed/paid depending on flow
-          hadPaidPayment = order.paymentStatus === 'paid'
-
-          if (!hadPaidPayment) {
-            order.status = 'confirmed'
-            order.paymentStatus = 'paid'
-            order.paymentReference = reference
-            await order.save({ session })
-            console.log('✅ Order status updated successfully')
-
-            // Update inventory for each item in the order
-            console.log('📦 Updating inventory for paid order...')
-            const Listing = require('../models/listing.model')
-            const populatedOrder = await Order.findById(order._id)
-              .populate('items.listing', 'cropName availableQuantity quantity status updatedAt createdAt')
-              .session(session)
-
-            for (const item of populatedOrder.items) {
-              if (!item.listing) continue
-              const listing = item.listing
-
-              // Validate that we have enough stock before updating
-              if (listing.availableQuantity < item.quantity) {
-                console.error('❌ Insufficient stock for item:', {
-                  listingId: listing._id,
-                  cropName: listing.cropName,
-                  availableQuantity: listing.availableQuantity,
-                  orderedQuantity: item.quantity
-                })
-                continue // Payment already captured by the provider — don't block the order over a stock discrepancy
-              }
-
-              const newAvailableQuantity = listing.availableQuantity - item.quantity
-
-              const updatedListing = await Listing.findByIdAndUpdate(
-                listing._id,
-                {
-                  $inc: { availableQuantity: -item.quantity },
-                  $set: {
-                    status: newAvailableQuantity <= 0 ? 'sold_out' : listing.status,
-                    soldOutAt: newAvailableQuantity <= 0 ? new Date() : null,
-                    updatedAt: new Date()
-                  }
-                },
-                { new: true, runValidators: true, session }
-              )
-
-              console.log('✅ Inventory updated:', {
-                listingId: listing._id,
-                cropName: updatedListing?.cropName,
-                finalAvailableQuantity: updatedListing?.availableQuantity
-              })
-            }
-          } else if (!order.paymentReference) {
-            order.paymentReference = reference
-            await order.save({ session })
-          }
+          console.log('📦 Finalizing paid order:', transaction.orderId)
+          const fulfillment = await fulfillOrderInSession({
+            order,
+            paymentReference: reference,
+            session,
+          })
+          shouldRunSideEffects = fulfillment.needsSideEffects
         }
       }
 
@@ -778,100 +641,8 @@ exports.verifyPayment = async (req, res) => {
     let updatedOrder = order
     if (!order) {
       console.log('⚠️ No order found for transaction')
-    } else if (!hadPaidPayment) {
-      // Calculate and create commissions with real-time updates (idempotent —
-      // guarded by an existence check, safe to retry independently of the
-      // order/inventory transaction above)
-      try {
-        const Listing = require('../models/listing.model')
-        const User = require('../models/user.model')
-
-        console.log('🔄 Processing commissions with real-time updates for order:', order._id);
-
-        const commissionResult = await realTimeCommissionService.processOrderCommissions(order);
-
-        if (commissionResult.success) {
-          console.log('✅ Real-time commissions processed successfully:', {
-            processedItems: commissionResult.processedItems,
-            totalCommission: commissionResult.totalCommission
-          });
-        } else {
-          console.error('❌ Real-time commission processing failed:', commissionResult.error);
-          console.log('🔄 Falling back to original commission creation');
-          await exports.createCommissions(order);
-        }
-
-        // Verify partner commissions for all involved farmers
-        for (const item of order.items || []) {
-          if (!item.listing) continue;
-
-          const listing = await Listing.findById(item.listing).populate('farmer');
-          if (!listing || !listing.farmer) continue;
-
-          const farmer = typeof listing.farmer === 'object' ? listing.farmer : await User.findById(listing.farmer);
-          if (!farmer || !farmer.partner) continue;
-
-          console.log('🔄 Verifying partner commissions for farmer:', farmer.name);
-          await realTimeCommissionService.verifyPartnerCommissions(farmer.partner);
-        }
-        console.log('✅ Commissions created successfully')
-      } catch (commissionError) {
-        console.error('❌ Commission creation failed:', commissionError)
-        // Don't fail the verification because of commission errors
-      }
-
-      // Create notifications for successful payment
-      try {
-        await notificationController.createNotificationForActivity(
-          order.buyer._id,
-          'buyer',
-          'financial',
-          'paymentCompleted',
-          {
-            amount: order.total,
-            orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
-            actionUrl: `/dashboard/orders/${order._id}`
-          }
-        )
-
-        const populatedOrder = await Order.findById(order._id)
-          .populate('items.listing', 'farmer cropName')
-          .populate('buyer', 'name')
-
-        for (const item of populatedOrder.items) {
-          if (item.listing && item.listing.farmer) {
-            await notificationController.createNotificationForActivity(
-              item.listing.farmer,
-              'farmer',
-              'financial',
-              'paymentReceived',
-              {
-                amount: item.price * item.quantity,
-                orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
-                productName: item.listing.cropName,
-                buyerName: populatedOrder.buyer.name,
-                actionUrl: `/dashboard/orders/${order._id}`
-              }
-            )
-          }
-        }
-
-        await notificationController.notifyAdmins(
-          'farmer',
-          'paymentCompleted',
-          {
-            amount: order.total,
-            orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
-            buyerName: populatedOrder.buyer.name,
-            actionUrl: `/admin/orders/${order._id}`
-          }
-        )
-
-        console.log('✅ Payment notifications sent successfully')
-      } catch (notificationError) {
-        console.error('❌ Payment notification failed:', notificationError)
-        // Don't fail the verification because of notification errors
-      }
+    } else if (shouldRunSideEffects) {
+      await runPostPaymentSideEffects(order)
     }
 
     return res.json({
@@ -1008,83 +779,57 @@ console.log('==== START COMMISSION CALCULATION FOR ORDER:', order._id, '====');
 
       // Create commission record if there's a partner commission
       if (partner && partnerCommission > 0) {
-        // Check if commission already exists to prevent duplicates
-        const existingCommission = await Commission.findOne({
+        const commissionPayload = {
           partner: partner._id,
           farmer: farmer._id,
           order: order._id,
-          listing: listing._id
-        });
-
-        if (existingCommission) {
-          console.log('ℹ️ Commission already exists for this order item:', existingCommission._id);
-        } else {
-          const commission = new Commission({
-            partner: partner._id,
-            farmer: farmer._id,
-            order: order._id,
-            listing: listing._id,
-            amount: partnerCommission,
-            rate: commissionRate,
-            orderAmount: itemAmount,
-            orderDate: order.createdAt,
-            status: 'pending',
-            metadata: {
-              commissionType: commissionType,
-              platformFee: platformFee,
-              platformFeeRate: platformFeeRate,
-              referralId: referral?._id
-            }
-          });
-
-          await commission.save();
-          console.log('✅ Commission record created:', commission._id);
-
-          // Update partner's total commissions
-          try {
-            await Partner.findByIdAndUpdate(
-              partner._id, 
-              { $inc: { totalCommissions: partnerCommission } }
-            );
-            console.log('✅ Partner totalCommissions updated by:', partnerCommission);
-          } catch (updateError) {
-            console.error('❌ Failed to update partner totalCommissions:', updateError);
-            // Attempt again with a manual update
-            try {
-              const partnerDoc = await Partner.findById(partner._id);
-              if (partnerDoc) {
-                partnerDoc.totalCommissions = (partnerDoc.totalCommissions || 0) + partnerCommission;
-                await partnerDoc.save();
-                console.log('✅ Partner totalCommissions updated manually:', partnerDoc.totalCommissions);
-              }
-            } catch (retryError) {
-              console.error('❌ Final attempt to update partner failed:', retryError);
-            }
+          listing: listing._id,
+          amount: partnerCommission,
+          rate: commissionRate,
+          orderAmount: itemAmount,
+          orderDate: order.createdAt,
+          status: 'pending',
+          metadata: {
+            commissionType: commissionType,
+            platformFee: platformFee,
+            platformFeeRate: platformFeeRate,
+            referralId: referral?._id
           }
-          console.log('✅ Partner total commissions updated:', partner._id);
         }
 
-        // Notify partner about commission earned
-        try {
-          const partnerUser = await User.findOne({ email: partner.email })
-          if (partnerUser) {
-            await notificationController.createNotificationForActivity(
-              partnerUser._id,
-              'partner',
-              'commission',
-              'earned',
-              {
-                amount: partnerCommission,
-                farmerName: farmer.name,
-                productName: listing.cropName,
-                actionUrl: `/dashboard/commissions`
-              }
-            )
-            console.log('✅ Partner commission notification sent:', partnerUser._id)
+        const { commission, created } = await createCommissionIdempotent(
+          commissionPayload,
+          partnerCommission
+        )
+
+        if (created && commission) {
+          console.log('✅ Commission record created:', commission._id)
+        } else if (commission) {
+          console.log('ℹ️ Commission already exists for this order item:', commission._id)
+        }
+
+        if (created) {
+          // Notify partner about commission earned
+          try {
+            const partnerUser = await User.findOne({ email: partner.email })
+            if (partnerUser) {
+              await notificationController.createNotificationForActivity(
+                partnerUser._id,
+                'partner',
+                'commission',
+                'earned',
+                {
+                  amount: partnerCommission,
+                  farmerName: farmer.name,
+                  productName: listing.cropName,
+                  actionUrl: `/dashboard/commissions`
+                }
+              )
+              console.log('✅ Partner commission notification sent:', partnerUser._id)
+            }
+          } catch (notificationError) {
+            console.error('❌ Partner commission notification failed:', notificationError)
           }
-        } catch (notificationError) {
-          console.error('❌ Partner commission notification failed:', notificationError)
-          // Don't fail the payment process because of notification errors
         }
       } else {
         console.log('ℹ️ No partner commission for this farmer')
@@ -1119,10 +864,214 @@ console.log('==== START COMMISSION CALCULATION FOR ORDER:', order._id, '====');
 
 
 
+// Core refund logic, reusable by both the HTTP endpoint below and other
+// flows that need to trigger a real refund (e.g. cancelling a paid order —
+// see marketplace.routes.js PATCH /orders/:id/status, which used to just
+// restore inventory and mark the order "cancelled" without ever refunding
+// the buyer's money or touching paymentStatus). Returns a plain result
+// object instead of writing to `res` so callers can decide how to respond.
+async function refundOrderCore(orderId, { reason, amount, idempotencyKey, resultingOrderStatus = 'refunded' } = {}) {
+  const order = await Order.findById(orderId)
+  if (!order) {
+    return { success: false, statusCode: 404, message: 'Order not found' }
+  }
+
+  if (order.paymentStatus !== 'paid') {
+    if (order.paymentStatus === 'refunded' || order.status === 'refunded') {
+      const existingRefund = await Transaction.findOne({
+        orderId, type: 'refund', status: 'completed'
+      }).sort({ createdAt: -1 })
+      if (existingRefund) {
+        return { success: true, statusCode: 200, idempotent: true, data: { refund: existingRefund, message: 'Refund already processed' } }
+      }
+    }
+    return { success: false, statusCode: 400, message: 'Order is not paid' }
+  }
+
+  if (order.paymentStatus === 'refunded' || order.status === 'refunded') {
+    const existingRefund = await Transaction.findOne({
+      orderId, type: 'refund', status: 'completed'
+    }).sort({ createdAt: -1 })
+    if (existingRefund) {
+      return { success: true, statusCode: 200, idempotent: true, data: { refund: existingRefund, message: 'Refund already processed' } }
+    }
+    return { success: false, statusCode: 400, message: 'Order is already refunded' }
+  }
+
+  if (idempotencyKey) {
+    const keyedRefund = await Transaction.findOne({
+      orderId, type: 'refund', status: 'completed', 'metadata.idempotencyKey': idempotencyKey
+    })
+    if (keyedRefund) {
+      return { success: true, statusCode: 200, idempotent: true, data: { refund: keyedRefund, message: 'Refund already processed' } }
+    }
+  }
+
+  const existingCompletedRefund = await Transaction.findOne({
+    orderId, type: 'refund', status: 'completed'
+  })
+  if (existingCompletedRefund) {
+    return { success: true, statusCode: 200, idempotent: true, data: { refund: existingCompletedRefund, message: 'Refund already processed' } }
+  }
+
+  const refundAmount = amount != null ? Number(amount) : order.total
+  if (!Number.isFinite(refundAmount) || refundAmount <= 0) {
+    return { success: false, statusCode: 400, message: 'Invalid refund amount' }
+  }
+  if (refundAmount > order.total) {
+    return { success: false, statusCode: 400, message: 'Refund amount cannot exceed order total' }
+  }
+
+  // Atomically claim this order for refund processing — everything above
+  // this point is a plain read, so a double-click or client retry could
+  // otherwise pass all those checks twice and call the provider's refund
+  // API twice for the same order (real double refund, unlike verify/
+  // webhook handling which already locks via Transaction.webhookLock
+  // before this point). Mirrors that same lock pattern, scoped to the
+  // order since no refund Transaction exists yet to lock onto.
+  const refundLockToken = crypto.randomBytes(16).toString('hex')
+  const refundLockNow = new Date()
+  const lockedOrder = await Order.findOneAndUpdate(
+    {
+      _id: orderId,
+      paymentStatus: 'paid',
+      $or: [
+        { 'metadata.refundLock.status': { $exists: false } },
+        { 'metadata.refundLock.status': { $ne: 'processing' } },
+        { 'metadata.refundLock.expiresAt': { $lt: refundLockNow } }
+      ]
+    },
+    {
+      $set: {
+        'metadata.refundLock': {
+          status: 'processing',
+          token: refundLockToken,
+          startedAt: refundLockNow,
+          expiresAt: new Date(refundLockNow.getTime() + 5 * 60 * 1000)
+        }
+      }
+    },
+    { new: true }
+  )
+
+  if (!lockedOrder) {
+    // Either already refunded (handled by the idempotent-return checks
+    // above on a subsequent request once this one finishes), or another
+    // refund request for this order is already in flight right now.
+    return { success: false, statusCode: 409, message: 'A refund for this order is already being processed. Please wait a moment and check the order status.' }
+  }
+
+  const releaseRefundLock = () => Order.updateOne(
+    { _id: orderId, 'metadata.refundLock.token': refundLockToken },
+    { $unset: { 'metadata.refundLock': '' } }
+  ).catch((e) => console.error('Failed to release refund lock:', e.message))
+
+  // Find the original completed payment so we know which provider/reference to refund
+  const originalPayment = await Transaction.findOne({
+    orderId, type: 'payment', status: 'completed'
+  }).sort({ createdAt: -1 })
+
+  if (!originalPayment) {
+    await releaseRefundLock()
+    return { success: false, statusCode: 400, message: 'No completed payment found for this order' }
+  }
+
+  const provider = originalPayment.paymentProvider || 'paystack'
+
+  let providerResult
+  if (provider === 'paystack') {
+    const paystackUtil = new PaystackUtil()
+    providerResult = await paystackUtil.refundTransaction(originalPayment.reference, refundAmount)
+  } else if (provider === 'flutterwave') {
+    const providerTransactionId = originalPayment.metadata?.verification?.providerTransactionId
+    if (!providerTransactionId) {
+      await releaseRefundLock()
+      return { success: false, statusCode: 400, message: 'Cannot refund: missing Flutterwave transaction id on the original payment' }
+    }
+    const flutterwaveUtil = new FlutterwaveUtil()
+    providerResult = await flutterwaveUtil.refundTransaction(providerTransactionId, refundAmount)
+  } else {
+    await releaseRefundLock()
+    return { success: false, statusCode: 400, message: `Unsupported payment provider: ${provider}` }
+  }
+
+  if (!providerResult.success) {
+    await releaseRefundLock()
+    return { success: false, statusCode: 502, message: 'Refund failed at payment provider: ' + providerResult.message }
+  }
+
+  // Provider already moved money — wrap DB side in a transaction so order +
+  // refund record + inventory restore stay consistent. If this fails after a
+  // successful provider refund, log for manual reconcile.
+  const session = await mongoose.startSession()
+  session.startTransaction()
+  let refundTransaction
+  try {
+    const Listing = require('../models/listing.model')
+    const populatedOrder = await Order.findById(orderId).session(session)
+    if (!populatedOrder) {
+      throw new Error('Order disappeared during refund')
+    }
+
+    ;[refundTransaction] = await Transaction.create([{
+      type: 'refund',
+      status: 'completed',
+      amount: refundAmount,
+      currency: 'NGN',
+      reference: `REFUND_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`,
+      description: `Refund for order ${orderId}: ${reason || 'no reason given'}`,
+      userId: populatedOrder.buyer,
+      orderId: orderId,
+      paymentProvider: provider,
+      processedAt: new Date(),
+      metadata: {
+        reason: reason,
+        originalOrderId: orderId,
+        originalTransactionId: originalPayment._id,
+        providerResponse: providerResult.data,
+        ...(idempotencyKey ? { idempotencyKey } : {})
+      }
+    }], { session })
+
+    populatedOrder.status = resultingOrderStatus
+    populatedOrder.paymentStatus = 'refunded'
+    if (populatedOrder.metadata?.refundLock) {
+      populatedOrder.metadata.refundLock = undefined
+    }
+    await populatedOrder.save({ session })
+
+    // Restore stock that was decremented when payment completed
+    for (const item of populatedOrder.items || []) {
+      const listingId = item.listing?._id || item.listing
+      if (!listingId) continue
+      await Listing.findByIdAndUpdate(
+        listingId,
+        { $inc: { availableQuantity: Number(item.quantity) || 0 } },
+        { session }
+      )
+    }
+
+    await session.commitTransaction()
+  } catch (txError) {
+    await session.abortTransaction()
+    console.error(
+      'CRITICAL: Provider refund succeeded but DB commit failed — manual reconcile required',
+      { orderId, provider, refundAmount, error: txError.message }
+    )
+    return { success: false, statusCode: 500, message: 'Refund succeeded at provider but failed to update records. Support has been alerted.' }
+  } finally {
+    session.endSession()
+  }
+
+  return { success: true, statusCode: 200, data: { refund: refundTransaction, message: 'Refund processed successfully' } }
+}
+
 exports.processRefund = async (req, res) => {
   try {
     const { orderId } = req.params
     const { reason, amount } = req.body
+    const rawIdempotencyKey = req.get('Idempotency-Key') || req.body?.idempotencyKey || ''
+    const idempotencyKey = String(rawIdempotencyKey).trim().slice(0, 128) || null
 
     const currentUserId = (req.user?.id || req.user?._id)?.toString?.()
     const currentRole = req.user?.role
@@ -1136,134 +1085,18 @@ exports.processRefund = async (req, res) => {
       return res.status(403).json({ status: 'error', message: 'Access denied' })
     }
 
-    if (order.paymentStatus !== 'paid') {
-      return res.status(400).json({ status: 'error', message: 'Order is not paid' })
+    const result = await refundOrderCore(orderId, { reason, amount, idempotencyKey })
+    if (!result.success) {
+      return res.status(result.statusCode).json({ status: 'error', message: result.message })
     }
-
-    if (order.paymentStatus === 'refunded' || order.status === 'refunded') {
-      return res.status(400).json({ status: 'error', message: 'Order is already refunded' })
-    }
-
-    const refundAmount = amount != null ? Number(amount) : order.total
-    if (!Number.isFinite(refundAmount) || refundAmount <= 0) {
-      return res.status(400).json({ status: 'error', message: 'Invalid refund amount' })
-    }
-    if (refundAmount > order.total) {
-      return res.status(400).json({ status: 'error', message: 'Refund amount cannot exceed order total' })
-    }
-
-    // Find the original completed payment so we know which provider/reference to refund
-    const originalPayment = await Transaction.findOne({
-      orderId,
-      type: 'payment',
-      status: 'completed'
-    }).sort({ createdAt: -1 })
-
-    if (!originalPayment) {
-      return res.status(400).json({ status: 'error', message: 'No completed payment found for this order' })
-    }
-
-    const provider = originalPayment.paymentProvider || 'paystack'
-
-    let providerResult
-    if (provider === 'paystack') {
-      const paystackUtil = new PaystackUtil()
-      providerResult = await paystackUtil.refundTransaction(originalPayment.reference, refundAmount)
-    } else if (provider === 'flutterwave') {
-      const providerTransactionId = originalPayment.metadata?.verification?.providerTransactionId
-      if (!providerTransactionId) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Cannot refund: missing Flutterwave transaction id on the original payment'
-        })
-      }
-      const flutterwaveUtil = new FlutterwaveUtil()
-      providerResult = await flutterwaveUtil.refundTransaction(providerTransactionId, refundAmount)
-    } else {
-      return res.status(400).json({ status: 'error', message: `Unsupported payment provider: ${provider}` })
-    }
-
-    if (!providerResult.success) {
-      return res.status(502).json({
-        status: 'error',
-        message: 'Refund failed at payment provider: ' + providerResult.message
-      })
-    }
-
-    // Provider already moved money — wrap DB side in a transaction so order +
-    // refund record + inventory restore stay consistent. If this fails after a
-    // successful provider refund, log for manual reconcile.
-    const session = await mongoose.startSession()
-    session.startTransaction()
-    let refundTransaction
-    try {
-      const Listing = require('../models/listing.model')
-      const populatedOrder = await Order.findById(orderId).session(session)
-      if (!populatedOrder) {
-        throw new Error('Order disappeared during refund')
-      }
-
-      ;[refundTransaction] = await Transaction.create([{
-        type: 'refund',
-        status: 'completed',
-        amount: refundAmount,
-        currency: 'NGN',
-        reference: `REFUND_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`,
-        description: `Refund for order ${orderId}: ${reason || 'no reason given'}`,
-        userId: populatedOrder.buyer,
-        orderId: orderId,
-        paymentProvider: provider,
-        processedAt: new Date(),
-        metadata: {
-          reason: reason,
-          originalOrderId: orderId,
-          originalTransactionId: originalPayment._id,
-          providerResponse: providerResult.data
-        }
-      }], { session })
-
-      populatedOrder.status = 'refunded'
-      populatedOrder.paymentStatus = 'refunded'
-      await populatedOrder.save({ session })
-
-      // Restore stock that was decremented when payment completed
-      for (const item of populatedOrder.items || []) {
-        const listingId = item.listing?._id || item.listing
-        if (!listingId) continue
-        await Listing.findByIdAndUpdate(
-          listingId,
-          { $inc: { availableQuantity: Number(item.quantity) || 0 } },
-          { session }
-        )
-      }
-
-      await session.commitTransaction()
-    } catch (txError) {
-      await session.abortTransaction()
-      console.error(
-        'CRITICAL: Provider refund succeeded but DB commit failed — manual reconcile required',
-        { orderId, provider, refundAmount, error: txError.message }
-      )
-      return res.status(500).json({
-        status: 'error',
-        message: 'Refund succeeded at provider but failed to update records. Support has been alerted.'
-      })
-    } finally {
-      session.endSession()
-    }
-
-    return res.json({
-      status: 'success',
-      data: {
-        refund: refundTransaction,
-        message: 'Refund processed successfully'
-      }
-    })
+    return res.status(result.statusCode).json({ status: 'success', data: result.data, ...(result.idempotent ? { idempotent: true } : {}) })
   } catch (error) {
     console.error('processRefund error:', error)
     return res.status(500).json({ status: 'error', message: 'Server error' })
   }
 }
+
+exports.refundOrderCore = refundOrderCore
 
 exports.getTransactionHistory = async (req, res) => {
   try {
@@ -1374,8 +1207,14 @@ exports.webhookVerify = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Missing payment reference' })
     }
 
+    if (event !== 'charge.success') {
+      console.log('ℹ️ Webhook: Event type not charge.success:', event)
+      return res.json({ status: 'success', message: 'Event ignored' })
+    }
+
     const now = new Date()
     webhookLockToken = crypto.randomBytes(16).toString('hex')
+    let webhookSideEffectsApplied = false
 
     // Acquire atomic processing lock for this reference.
     // Only one webhook worker can process non-completed transaction side effects.
@@ -1489,78 +1328,33 @@ exports.webhookVerify = async (req, res) => {
           await tx.save({ session })
           console.log('✅ Transaction updated to completed')
 
-          if (tx.orderId) {
+          if (tx.metadata?.loanApplicationId || tx.loanApplicationId) {
+            const { completeLoanRepayment } = require('../services/loan-payment.service')
+            const loanResult = await completeLoanRepayment(reference, session)
+            if (!loanResult.success && !loanResult.alreadyProcessed) {
+              throw new Error(loanResult.error || 'Loan repayment processing failed')
+            }
+            console.log('✅ Loan repayment processed via Paystack webhook')
+          } else           if (tx.orderId) {
             order = await Order.findById(tx.orderId).session(session)
             if (order) {
-              console.log('📦 Webhook: Updating order status', {
+              console.log('📦 Webhook: Finalizing paid order', {
                 orderId: tx.orderId,
                 currentStatus: order.status,
-                currentPaymentStatus: order.paymentStatus
+                currentPaymentStatus: order.paymentStatus,
               })
 
-              // Track whether the order was pending before we attempted to update it.
-              // This lets us detect the transition (pending -> paid) caused by this webhook
-              // and only run commission creation / notifications once.
-              const wasPendingBeforeUpdate = order.status !== 'confirmed' && order.status !== 'paid'
-
-              if (wasPendingBeforeUpdate) {
-                order.status = 'confirmed'
-                order.paymentStatus = 'paid'
-                order.paymentReference = data.reference
-                await order.save({ session })
-                console.log('✅ Order status updated to confirmed')
-
-                // Update inventory for each item in the order
-                console.log('📦 Webhook: Updating inventory for paid order...')
-                const Listing = require('../models/listing.model')
-                const populatedOrder = await Order.findById(order._id)
-                  .populate('items.listing', 'cropName availableQuantity quantity status updatedAt createdAt')
-                  .session(session)
-
-                for (const item of populatedOrder.items) {
-                  if (!item.listing) continue
-                  const listing = item.listing
-
-                  if (listing.availableQuantity < item.quantity) {
-                    console.error('❌ Webhook: Insufficient stock for item:', {
-                      listingId: listing._id,
-                      cropName: listing.cropName,
-                      availableQuantity: listing.availableQuantity,
-                      orderedQuantity: item.quantity
-                    })
-                    continue // Payment already captured by the provider — don't block the order over a stock discrepancy
-                  }
-
-                  const newAvailableQuantity = listing.availableQuantity - item.quantity
-
-                  const updatedListing = await Listing.findByIdAndUpdate(
-                    listing._id,
-                    {
-                      $inc: { availableQuantity: -item.quantity },
-                      $set: {
-                        status: newAvailableQuantity <= 0 ? 'sold_out' : listing.status,
-                        soldOutAt: newAvailableQuantity <= 0 ? new Date() : null,
-                        updatedAt: new Date()
-                      }
-                    },
-                    { new: true, runValidators: true, session }
-                  )
-
-                  console.log('✅ Webhook: Inventory updated:', {
-                    listingId: listing._id,
-                    cropName: updatedListing?.cropName,
-                    finalAvailableQuantity: updatedListing?.availableQuantity
-                  })
-                }
-              } else {
-                console.log('ℹ️ Order was already confirmed/paid, skipping update')
-              }
-
-              wasJustPaid = wasPendingBeforeUpdate && order.paymentStatus === 'paid'
+              const fulfillment = await fulfillOrderInSession({
+                order,
+                paymentReference: data.reference,
+                session,
+              })
+              wasJustPaid = fulfillment.needsSideEffects
             }
           }
 
           await session.commitTransaction()
+          webhookSideEffectsApplied = true
         } catch (txError) {
           console.error('❌ Webhook: transaction failed, rolling back:', txError)
           await session.abortTransaction()
@@ -1588,116 +1382,32 @@ exports.webhookVerify = async (req, res) => {
         }
         session.endSession()
 
-        if (!order) {
-          console.log('❌ Webhook: Order not found for transaction')
-        } else {
-
-            // Create commissions with real-time updates (only if order was just paid)
-            if (wasJustPaid) {
-              try {
-                console.log('🔄 Processing real-time commissions for webhook order:', order._id);
-                
-                // Populate the order with items and listings before creating commissions
-                const populatedOrder = await Order.findById(order._id)
-                  .populate('items.listing')
-                  .populate('buyer', 'name email');
-                
-                if (populatedOrder) {
-                  // Use the real-time commission service
-                  const commissionResult = await realTimeCommissionService.processOrderCommissions(populatedOrder);
-                  
-                  if (commissionResult.success) {
-                    console.log('✅ Real-time commissions processed successfully:', {
-                      processedItems: commissionResult.processedItems,
-                      totalCommission: commissionResult.totalCommission
-                    });
-                  } else {
-                    console.error('❌ Real-time commission processing failed:', commissionResult.error);
-                    
-                    // Fallback to original commission creation
-                    console.log('🔄 Falling back to original commission creation');
-                    await exports.createCommissions(populatedOrder);
-                  }
-                } else {
-                  console.log('❌ Webhook: Could not populate order for commission creation');
-                }
-                
-                console.log('✅ Commissions created successfully')
-              } catch (commissionError) {
-                console.error('❌ Commission creation failed:', commissionError)
-                // Don't fail the webhook because of commission errors
-              }
-            }
-
-            // Send notifications for successful payment (only if order was just paid)
-            if (wasJustPaid) {
-              try {
-              // Notify buyer about successful payment
-              await notificationController.createNotificationForActivity(
-                order.buyer._id,
-                'buyer',
-                'financial',
-                'paymentCompleted',
-                {
-                  amount: order.total,
-                  orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
-                  actionUrl: `/dashboard/orders/${order._id}`
-                }
-              )
-
-              // Notify farmers about payment received
-              const populatedOrder = await Order.findById(order._id)
-                .populate('items.listing', 'farmer cropName')
-                .populate('buyer', 'name')
-
-              for (const item of populatedOrder.items) {
-                if (item.listing && item.listing.farmer) {
-                  await notificationController.createNotificationForActivity(
-                    item.listing.farmer,
-                    'farmer',
-                    'financial',
-                    'paymentReceived',
-                    {
-                      amount: item.price * item.quantity,
-                      orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
-                      productName: item.listing.cropName,
-                      buyerName: populatedOrder.buyer.name,
-                      actionUrl: `/dashboard/orders/${order._id}`
-                    }
-                  )
-                }
-              }
-
-              // Notify admins about payment completion
-              await notificationController.notifyAdmins(
-                'farmer',
-                'paymentCompleted',
-                {
-                  amount: order.total,
-                  orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
-                  buyerName: populatedOrder.buyer.name,
-                  actionUrl: `/admin/orders/${order._id}`
-                }
-              )
-
-                console.log('✅ Payment notifications sent successfully')
-              } catch (notificationError) {
-                console.error('❌ Payment notification failed:', notificationError)
-                // Don't fail the webhook because of notification errors
-              }
-            }
-          }
+        if (order && wasJustPaid) {
+          await runPostPaymentSideEffects(order)
+        }
       } catch (processingError) {
         console.error('❌ Webhook processing error:', processingError)
-        // Log the error but don't fail the webhook response
+        if (webhookReference && webhookLockToken && !webhookSideEffectsApplied) {
+          try {
+            await Transaction.findOneAndUpdate(
+              { reference: webhookReference, 'metadata.webhookLock.token': webhookLockToken },
+              {
+                $set: {
+                  'metadata.webhookLock.status': 'failed',
+                  'metadata.webhookLock.failedAt': new Date(),
+                  'metadata.webhookLock.error': processingError.message
+                }
+              }
+            )
+          } catch (lockError) {
+            console.error('❌ Failed to update webhook lock failure state:', lockError)
+          }
+        }
       }
-    } else {
-      console.log('ℹ️ Webhook: Event type not charge.success:', event)
     }
 
     console.log('✅ Webhook processing completed')
-    // Mark lock completed for traceability
-    if (webhookReference && webhookLockToken) {
+    if (webhookSideEffectsApplied && webhookReference && webhookLockToken) {
       await Transaction.findOneAndUpdate(
         { reference: webhookReference, 'metadata.webhookLock.token': webhookLockToken },
         {
@@ -1777,8 +1487,15 @@ exports.webhookVerifyFlutterwave = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Missing payment reference' })
     }
 
+    const isSuccessfulCharge = event === 'charge.completed' && data.status === 'successful'
+    if (!isSuccessfulCharge) {
+      console.log('ℹ️ Flutterwave webhook: Event/status not a successful charge:', event, data.status)
+      return res.json({ status: 'success', message: 'Event ignored' })
+    }
+
     const now = new Date()
     webhookLockToken = crypto.randomBytes(16).toString('hex')
+    let webhookSideEffectsApplied = false
 
     let tx = await Transaction.findOneAndUpdate(
       {
@@ -1882,68 +1599,27 @@ exports.webhookVerifyFlutterwave = async (req, res) => {
           await tx.save({ session })
           console.log('✅ Transaction updated to completed')
 
-          if (tx.orderId) {
+          if (tx.metadata?.loanApplicationId || tx.loanApplicationId) {
+            const { completeLoanRepayment } = require('../services/loan-payment.service')
+            const loanResult = await completeLoanRepayment(reference, session)
+            if (!loanResult.success && !loanResult.alreadyProcessed) {
+              throw new Error(loanResult.error || 'Loan repayment processing failed')
+            }
+            console.log('✅ Loan repayment processed via Flutterwave webhook')
+          } else if (tx.orderId) {
             order = await Order.findById(tx.orderId).session(session)
             if (order) {
-              const wasPendingBeforeUpdate = order.status !== 'confirmed' && order.status !== 'paid'
-
-              if (wasPendingBeforeUpdate) {
-                order.status = 'confirmed'
-                order.paymentStatus = 'paid'
-                order.paymentReference = reference
-                await order.save({ session })
-                console.log('✅ Order status updated to confirmed')
-
-                console.log('📦 Flutterwave webhook: Updating inventory for paid order...')
-                const Listing = require('../models/listing.model')
-                const populatedOrder = await Order.findById(order._id)
-                  .populate('items.listing', 'cropName availableQuantity quantity status updatedAt createdAt')
-                  .session(session)
-
-                for (const item of populatedOrder.items) {
-                  if (!item.listing) continue
-                  const listing = item.listing
-
-                  if (listing.availableQuantity < item.quantity) {
-                    console.error('❌ Flutterwave webhook: Insufficient stock for item:', {
-                      listingId: listing._id,
-                      cropName: listing.cropName,
-                      availableQuantity: listing.availableQuantity,
-                      orderedQuantity: item.quantity
-                    })
-                    continue
-                  }
-
-                  const newAvailableQuantity = listing.availableQuantity - item.quantity
-
-                  const updatedListing = await Listing.findByIdAndUpdate(
-                    listing._id,
-                    {
-                      $inc: { availableQuantity: -item.quantity },
-                      $set: {
-                        status: newAvailableQuantity <= 0 ? 'sold_out' : listing.status,
-                        soldOutAt: newAvailableQuantity <= 0 ? new Date() : null,
-                        updatedAt: new Date()
-                      }
-                    },
-                    { new: true, runValidators: true, session }
-                  )
-
-                  console.log('✅ Flutterwave webhook: Inventory updated:', {
-                    listingId: listing._id,
-                    cropName: updatedListing?.cropName,
-                    finalAvailableQuantity: updatedListing?.availableQuantity
-                  })
-                }
-              } else {
-                console.log('ℹ️ Order was already confirmed/paid, skipping update')
-              }
-
-              wasJustPaid = wasPendingBeforeUpdate && order.paymentStatus === 'paid'
+              const fulfillment = await fulfillOrderInSession({
+                order,
+                paymentReference: reference,
+                session,
+              })
+              wasJustPaid = fulfillment.needsSideEffects
             }
           }
 
           await session.commitTransaction()
+          webhookSideEffectsApplied = true
         } catch (txError) {
           console.error('❌ Flutterwave webhook: transaction failed, rolling back:', txError)
           await session.abortTransaction()
@@ -1970,84 +1646,31 @@ exports.webhookVerifyFlutterwave = async (req, res) => {
         session.endSession()
 
         if (order && wasJustPaid) {
-          try {
-            console.log('🔄 Processing real-time commissions for Flutterwave webhook order:', order._id);
-            const populatedOrder = await Order.findById(order._id)
-              .populate('items.listing')
-              .populate('buyer', 'name email');
-
-            if (populatedOrder) {
-              const commissionResult = await realTimeCommissionService.processOrderCommissions(populatedOrder);
-              if (!commissionResult.success) {
-                console.error('❌ Real-time commission processing failed:', commissionResult.error);
-                await exports.createCommissions(populatedOrder);
-              }
-            }
-          } catch (commissionError) {
-            console.error('❌ Commission creation failed:', commissionError)
-          }
-
-          try {
-            await notificationController.createNotificationForActivity(
-              order.buyer._id,
-              'buyer',
-              'financial',
-              'paymentCompleted',
-              {
-                amount: order.total,
-                orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
-                actionUrl: `/dashboard/orders/${order._id}`
-              }
-            )
-
-            const populatedOrder = await Order.findById(order._id)
-              .populate('items.listing', 'farmer cropName')
-              .populate('buyer', 'name')
-
-            for (const item of populatedOrder.items) {
-              if (item.listing && item.listing.farmer) {
-                await notificationController.createNotificationForActivity(
-                  item.listing.farmer,
-                  'farmer',
-                  'financial',
-                  'paymentReceived',
-                  {
-                    amount: item.price * item.quantity,
-                    orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
-                    productName: item.listing.cropName,
-                    buyerName: populatedOrder.buyer.name,
-                    actionUrl: `/dashboard/orders/${order._id}`
-                  }
-                )
-              }
-            }
-
-            await notificationController.notifyAdmins(
-              'farmer',
-              'paymentCompleted',
-              {
-                amount: order.total,
-                orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
-                buyerName: populatedOrder.buyer.name,
-                actionUrl: `/admin/orders/${order._id}`
-              }
-            )
-            console.log('✅ Payment notifications sent successfully')
-          } catch (notificationError) {
-            console.error('❌ Payment notification failed:', notificationError)
-          }
-        } else if (!order) {
-          console.log('❌ Flutterwave webhook: Order not found for transaction')
+          await runPostPaymentSideEffects(order)
         }
       } catch (processingError) {
         console.error('❌ Flutterwave webhook processing error:', processingError)
+        if (webhookReference && webhookLockToken && !webhookSideEffectsApplied) {
+          try {
+            await Transaction.findOneAndUpdate(
+              { reference: webhookReference, 'metadata.webhookLock.token': webhookLockToken },
+              {
+                $set: {
+                  'metadata.webhookLock.status': 'failed',
+                  'metadata.webhookLock.failedAt': new Date(),
+                  'metadata.webhookLock.error': processingError.message
+                }
+              }
+            )
+          } catch (lockError) {
+            console.error('❌ Failed to update webhook lock failure state:', lockError)
+          }
+        }
       }
-    } else {
-      console.log('ℹ️ Flutterwave webhook: Event/status not a successful charge:', event, data.status)
     }
 
     console.log('✅ Flutterwave webhook processing completed')
-    if (webhookReference && webhookLockToken) {
+    if (webhookSideEffectsApplied && webhookReference && webhookLockToken) {
       await Transaction.findOneAndUpdate(
         { reference: webhookReference, 'metadata.webhookLock.token': webhookLockToken },
         {
@@ -2084,21 +1707,15 @@ exports.webhookVerifyFlutterwave = async (req, res) => {
   }
 }
 
-// Fallback method to sync order status with transaction status
+// Reconciliation endpoint — replays the full idempotent fulfillment pipeline
+// (order paid + inventory + commissions/notifications), never status-only patches.
 exports.syncOrderStatus = async (req, res) => {
   try {
-    console.log('🔄 syncOrderStatus endpoint hit')
-    console.log('📋 Request params:', req.params)
-    console.log('👤 Request user:', req.user?.id || 'No user')
-    
     const { orderId } = req.params
 
     if (!orderId) {
-      console.log('❌ No orderId provided')
       return res.status(400).json({ status: 'error', message: 'Order ID is required' })
     }
-
-    console.log('🔄 Syncing order status for:', orderId)
 
     const order = await Order.findById(orderId)
     if (!order) {
@@ -2114,144 +1731,125 @@ exports.syncOrderStatus = async (req, res) => {
       return res.status(403).json({ status: 'error', message: 'Access denied' })
     }
 
-    // Find the transaction for this order
-    const transaction = await Transaction.findOne({ orderId: order._id })
-    if (!transaction) {
-      console.log('⚠️ No transaction found for order:', orderId)
-      return res.json({
-        status: 'success',
-        message: 'No transaction found, order status unchanged',
-        order: {
-          id: order._id,
-          status: order.status,
-          paymentStatus: order.paymentStatus
-        }
+    const result = await reconcileOrderFulfillment(orderId)
+
+    if (!result.success) {
+      return res.status(result.statusCode || 500).json({
+        status: 'error',
+        message: result.error || 'Order reconciliation failed',
       })
     }
 
-    console.log('💳 Found transaction:', {
-      id: transaction._id,
-      reference: transaction.reference,
-      status: transaction.status
+    if (result.reason === 'no_completed_payment') {
+      return res.json({
+        status: 'success',
+        message: 'No completed payment found — order unchanged',
+        data: { order: result.order },
+      })
+    }
+
+    if (result.alreadySynced) {
+      return res.json({
+        status: 'success',
+        message: 'Order already fully fulfilled',
+        data: { order: result.order, idempotent: true },
+      })
+    }
+
+    return res.json({
+      status: 'success',
+      message: 'Order fulfillment reconciled',
+      data: {
+        order: result.order,
+        wasJustPaid: result.wasJustPaid,
+        inventoryApplied: result.inventoryApplied,
+        paymentReference: result.transaction?.reference,
+      },
     })
-
-    // If transaction is completed but order is not confirmed, fix it
-    if (transaction.status === 'completed' && order.status !== 'confirmed' && order.status !== 'paid') {
-      console.log('🔧 Fixing order status mismatch')
-
-      const oldStatus = order.status
-      const oldPaymentStatus = order.paymentStatus
-
-      order.status = 'confirmed'
-      order.paymentStatus = 'paid'
-      order.paymentReference = transaction.reference
-      await order.save()
-
-      console.log('✅ Order status synchronized')
-
-      return res.json({
-        status: 'success',
-        message: 'Order status synchronized',
-        changes: {
-          status: `${oldStatus} → ${order.status}`,
-          paymentStatus: `${oldPaymentStatus} → ${order.paymentStatus}`,
-          paymentReference: order.paymentReference
-        }
-      })
-    } else {
-      console.log('ℹ️ Order status already synchronized')
-      return res.json({
-        status: 'success',
-        message: 'Order status already synchronized',
-        order: {
-          id: order._id,
-          status: order.status,
-          paymentStatus: order.paymentStatus,
-          paymentReference: order.paymentReference
-        }
-      })
-    }
-
   } catch (error) {
-    console.error('❌ Order sync error:', error)
-    return res.status(500).json({ status: 'error', message: 'Order synchronization failed' })
+    console.error('❌ Order reconciliation error:', error)
+    return res.status(500).json({ status: 'error', message: 'Order reconciliation failed' })
   }
 }
 
-// Bulk sync method to fix multiple orders
+// Admin bulk reconciliation — same idempotent pipeline as syncOrderStatus
 exports.bulkSyncOrders = async (req, res) => {
   try {
     if (req.user?.role !== 'admin') {
       return res.status(403).json({ status: 'error', message: 'Admin access required' })
     }
 
-    console.log('🔄 Starting bulk order synchronization...')
-
-    // Find all orders with pending status
     const pendingOrders = await Order.find({
+      $or: [{ status: 'pending' }, { paymentStatus: 'pending' }],
+    }).limit(100)
+
+    // Also heal legacy rows where status was patched paid without inventory fulfillment
+    const inventoryDriftOrders = await Order.find({
+      paymentStatus: 'paid',
       $or: [
-        { status: 'pending' },
-        { paymentStatus: 'pending' }
-      ]
-    }).limit(100) // Limit to prevent timeout
+        { 'metadata.fulfillment.inventoryAppliedAt': { $exists: false } },
+        { 'metadata.fulfillment.inventoryAppliedAt': null },
+      ],
+    }).limit(50)
 
-    console.log(`📦 Found ${pendingOrders.length} pending orders to check`)
+    const seen = new Set()
+    const ordersToReconcile = []
+    for (const order of [...pendingOrders, ...inventoryDriftOrders]) {
+      const id = order._id.toString()
+      if (seen.has(id)) continue
+      seen.add(id)
+      ordersToReconcile.push(order)
+    }
 
-    let fixedCount = 0
+    let reconciledCount = 0
     let alreadySyncedCount = 0
+    let noPaymentCount = 0
     const results = []
 
-    for (const order of pendingOrders) {
+    for (const order of ordersToReconcile) {
       try {
-        // Find transaction for this order
-        const transaction = await Transaction.findOne({
-          orderId: order._id,
-          status: 'completed'
-        })
+        const result = await reconcileOrderFulfillment(order._id)
 
-        if (transaction && order.status !== 'confirmed' && order.status !== 'paid') {
-          // Fix the order
-          order.status = 'confirmed'
-          order.paymentStatus = 'paid'
-          order.paymentReference = transaction.reference
-          await order.save()
+        if (result.reason === 'no_completed_payment') {
+          noPaymentCount++
+          continue
+        }
 
+        if (result.alreadySynced) {
+          alreadySyncedCount++
+          continue
+        }
+
+        if (result.synced) {
+          reconciledCount++
           results.push({
             orderId: order._id,
-            fixed: true,
-            changes: `pending → paid`
+            reconciled: true,
+            wasJustPaid: result.wasJustPaid,
+            inventoryApplied: result.inventoryApplied,
           })
-
-          fixedCount++
-        } else if (transaction && order.status === 'paid') {
-          alreadySyncedCount++
         }
       } catch (orderError) {
-        console.error(`❌ Error processing order ${order._id}:`, orderError)
-        results.push({
-          orderId: order._id,
-          error: orderError.message
-        })
+        console.error(`❌ Reconciliation failed for order ${order._id}:`, orderError)
+        results.push({ orderId: order._id, error: orderError.message })
       }
     }
 
-    console.log('✅ Bulk synchronization completed')
-
     return res.json({
       status: 'success',
-      message: 'Bulk synchronization completed',
+      message: 'Bulk order reconciliation completed',
       summary: {
-        totalChecked: pendingOrders.length,
-        fixed: fixedCount,
+        totalChecked: ordersToReconcile.length,
+        reconciled: reconciledCount,
         alreadySynced: alreadySyncedCount,
-        errors: results.filter(r => r.error).length
+        noCompletedPayment: noPaymentCount,
+        errors: results.filter((r) => r.error).length,
       },
-      results: results.slice(0, 10) // Return first 10 results
+      results: results.slice(0, 10),
     })
-
   } catch (error) {
-    console.error('❌ Bulk sync error:', error)
-    return res.status(500).json({ status: 'error', message: 'Bulk synchronization failed' })
+    console.error('❌ Bulk reconciliation error:', error)
+    return res.status(500).json({ status: 'error', message: 'Bulk reconciliation failed' })
   }
 }
 
@@ -2453,5 +2051,139 @@ exports.setDefaultPaymentMethod = async (req, res) => {
       message: 'Failed to set default payment method',
       error: error.message
     })
+  }
+}
+
+exports.initializeLoanPayment = async (req, res) => {
+  try {
+    const { loanApplicationId, paymentProvider = 'paystack' } = req.body
+    const currentUserId = req.user?.id || req.user?._id
+
+    if (!loanApplicationId) {
+      return res.status(400).json({ status: 'error', message: 'Loan application ID is required' })
+    }
+
+    const LoanApplication = require('../models/loan-application.model')
+    const { getNextPendingInstallment, generateLoanPaymentReference } = require('../services/loan-payment.service')
+
+    const loan = await LoanApplication.findById(loanApplicationId)
+    if (!loan) {
+      return res.status(404).json({ status: 'error', message: 'Loan not found' })
+    }
+
+    if (loan.farmer.toString() !== currentUserId?.toString()) {
+      return res.status(403).json({ status: 'error', message: 'You can only pay your own loans' })
+    }
+
+    if (!['approved', 'disbursed'].includes(loan.status)) {
+      return res.status(400).json({ status: 'error', message: 'This loan is not active for repayment' })
+    }
+
+    const installment = await getNextPendingInstallment(loan)
+    if (!installment) {
+      return res.status(400).json({ status: 'error', message: 'No pending installments' })
+    }
+
+    const installmentIndex = loan.repaymentSchedule.findIndex(
+      p => p._id?.toString() === installment._id?.toString() ||
+        (p.dueDate?.toString() === installment.dueDate?.toString() && p.amount === installment.amount)
+    )
+
+    const user = await require('../models/user.model').findById(currentUserId).select('email name')
+    if (!user?.email) {
+      return res.status(400).json({ status: 'error', message: 'User email is required for payment' })
+    }
+
+    const amount = installment.amount
+    let reference
+    let transaction = await Transaction.findOne({
+      loanApplicationId,
+      status: 'pending',
+      type: 'loan_repayment',
+      amount,
+      'metadata.installmentIndex': installmentIndex >= 0 ? installmentIndex : undefined
+    }).sort({ createdAt: -1 })
+
+    if (transaction) {
+      reference = transaction.reference
+    } else {
+      reference = generateLoanPaymentReference(loanApplicationId)
+      transaction = await Transaction.create({
+        type: 'loan_repayment',
+        status: 'pending',
+        amount,
+        currency: 'NGN',
+        reference,
+        description: `Loan repayment installment — ${loan.purpose}`,
+        userId: currentUserId,
+        loanApplicationId,
+        paymentProvider,
+        metadata: {
+          loanApplicationId,
+          installmentIndex: installmentIndex >= 0 ? installmentIndex : 0,
+          installmentAmount: amount,
+          dueDate: installment.dueDate
+        }
+      })
+    }
+
+    if (!hasValidProviderSecret(paymentProvider)) {
+      if (!allowInsecureTestPayments()) {
+        return res.status(503).json({
+          status: 'error',
+          message: 'Payment provider is not configured. Please contact support.'
+        })
+      }
+      return res.json({
+        status: 'success',
+        data: {
+          transaction: { reference, amount, status: 'pending' },
+          paystack: { reference, access_code: null, authorization_url: null },
+          testMode: true
+        }
+      })
+    }
+
+    const paystackData = {
+      email: user.email,
+      amount: Math.round(amount * 100),
+      reference,
+      callback_url: req.body.callbackUrl || `${process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:3000'}/payment/verify`,
+      metadata: {
+        loan_application_id: loanApplicationId,
+        installment_index: installmentIndex >= 0 ? installmentIndex : 0,
+        payment_type: 'loan_repayment'
+      }
+    }
+
+    const paystackUtil = new PaystackUtil()
+    const paystackInit = await paystackUtil.initializeTransaction(paystackData)
+
+    if (!paystackInit.success) {
+      return res.status(502).json({
+        status: 'error',
+        message: paystackInit.message || 'Failed to initialize payment with Paystack'
+      })
+    }
+
+    return res.json({
+      status: 'success',
+      data: {
+        transaction: {
+          reference,
+          amount,
+          status: 'pending',
+          loanApplicationId
+        },
+        paystack: {
+          reference,
+          access_code: paystackInit.data?.access_code,
+          authorization_url: paystackInit.data?.authorization_url
+        }
+      }
+    })
+  } catch (error) {
+    console.error('Error initializing loan payment:', error)
+    return res.status(500).json({ status: 'error', message: 'Failed to initialize loan payment' })
   }
 }

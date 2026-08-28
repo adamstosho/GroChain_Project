@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, type MouseEvent } from "react"
-import Image from "next/image"
+import { SafeImage } from "@/components/ui/safe-image"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -168,8 +168,8 @@ export function MarketplaceCard({
           <div className="flex flex-col h-full">
             {/* Image and badges */}
             <div className="relative mb-3">
-              <Image
-                src={product.images[0]}
+              <SafeImage
+                src={product.images[0] || "/placeholder-harvest.jpg"}
                 alt={product.name}
                 width={300}
                 height={80}
@@ -239,10 +239,11 @@ export function MarketplaceCard({
     <Card className={cn("hover:shadow-lg transition-shadow duration-200 group overflow-hidden w-full border border-border hover:border-primary/30 bg-card", className)}>
       {/* Product Image */}
       <div className="relative aspect-[5/3] sm:aspect-[4/3] overflow-hidden">
-        <Image
-          src={product.images[0]}
+        <SafeImage
+          src={product.images[0] || "/placeholder-harvest.jpg"}
           alt={product.name}
           fill
+          sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 100vw"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
         
@@ -349,21 +350,27 @@ export function MarketplaceCard({
           </div>
         </div>
 
-        {/* Low Stock Gauge */}
-        {product.availableQuantity > 0 && product.availableQuantity < 150 && (
-          <div className="space-y-1">
-            <div className="flex justify-between text-[9px] font-semibold text-warning">
-              <span className="flex items-center gap-0.5">Low Stock</span>
-              <span>{Math.round((product.availableQuantity / (product.quantity || 150)) * 100)}%</span>
+        {/* Low Stock Gauge — only shown when we know the listing's real
+            original quantity, so the percentage (and whether this shows at
+            all) reflects what's actually left, not a guessed denominator. */}
+        {product.quantity > 0 && product.availableQuantity > 0 && (() => {
+          const percentRemaining = (product.availableQuantity / product.quantity) * 100
+          if (percentRemaining >= 20) return null
+          return (
+            <div className="space-y-1">
+              <div className="flex justify-between text-[9px] font-semibold text-warning">
+                <span className="flex items-center gap-0.5">Low Stock</span>
+                <span>{Math.round(percentRemaining)}%</span>
+              </div>
+              <div className="w-full bg-warning/10 rounded-full h-1 overflow-hidden">
+                <div
+                  className="bg-warning h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.max(10, Math.min(100, percentRemaining))}%` }}
+                />
+              </div>
             </div>
-            <div className="w-full bg-warning/10 rounded-full h-1 overflow-hidden">
-              <div 
-                className="bg-warning h-full rounded-full transition-all duration-500"
-                style={{ width: `${Math.max(10, Math.min(100, (product.availableQuantity / (product.quantity || 150)) * 100))}%` }}
-              />
-            </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* Farmer Info */}
         <div className="flex items-center justify-between gap-2 border-t border-border pt-2">

@@ -37,6 +37,9 @@ import {
   ComposedChart
 } from "recharts"
 import { cn } from "@/lib/utils"
+import { Display, Text } from "@/components/ui/typography"
+import { dashboard, textStyles } from "@/lib/design-system"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { getExportService } from "@/lib/export-utils"
@@ -265,18 +268,20 @@ export function AdminAnalytics() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <LoadingSpinner size="lg" />
-      </div>
+      <DashboardPageShell>
+        <div className="flex items-center justify-center h-64">
+          <LoadingSpinner size="lg" />
+        </div>
+      </DashboardPageShell>
     )
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 w-full">
+    <DashboardPageShell>
       {/* Header */}
       <div className="space-y-4">
         <div className="flex flex-col space-y-2">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+          <Display as="h1" variant="page">Analytics Dashboard</Display>
           <p className="text-muted-foreground text-sm sm:text-base">
             Platform-wide insights, user growth, and system performance metrics
           </p>
@@ -325,16 +330,16 @@ export function AdminAnalytics() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+      <div className={dashboard.statsGrid4}>
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Users</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Total Users</CardTitle>
             <div className="p-1.5 sm:p-2 bg-primary/10 rounded-full flex-shrink-0">
               <Users className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{formatNumber(analyticsData?.totalUsers || 0)}</div>
+            <Text as="div" variant="stat">{formatNumber(analyticsData?.totalUsers || 0)}</Text>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <TrendingUp className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">{formatNumber(analyticsData?.activeUsers || 0)} active</span>
@@ -345,15 +350,15 @@ export function AdminAnalytics() {
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Revenue</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Total Revenue</CardTitle>
             <div className="p-1.5 sm:p-2 bg-success/10 rounded-full flex-shrink-0">
               <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-success" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold break-words">
+            <Text as="div" variant="stat" className="break-words">
               {formatCurrency(analyticsData?.totalRevenue || 0)}
-            </div>
+            </Text>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <TrendingUp className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">From {formatNumber(analyticsData?.totalOrders || 0)} orders</span>
@@ -364,13 +369,13 @@ export function AdminAnalytics() {
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Harvests</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Total Harvests</CardTitle>
             <div className="p-1.5 sm:p-2 bg-accent/10 rounded-full flex-shrink-0">
               <Package className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{formatNumber(analyticsData?.totalHarvests || 0)}</div>
+            <Text as="div" variant="stat">{formatNumber(analyticsData?.totalHarvests || 0)}</Text>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <Target className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
               <span className="truncate">{analyticsData?.approvalRate || 0}% approval rate</span>
@@ -381,13 +386,13 @@ export function AdminAnalytics() {
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Credit Score</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Credit Score</CardTitle>
             <div className="p-1.5 sm:p-2 bg-warning/10 rounded-full flex-shrink-0">
               <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-warning" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{analyticsData?.averageCreditScore || 0}</div>
+            <Text as="div" variant="stat">{analyticsData?.averageCreditScore || 0}</Text>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <Shield className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
               <span className="truncate">Platform average</span>
@@ -508,9 +513,9 @@ export function AdminAnalytics() {
                 <CardTitle className="text-sm font-medium">User Growth</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-primary">
+                <Text as="div" variant="stat" className="text-primary">
                   {formatNumber(analyticsData?.newRegistrations || 0)}
-                </div>
+                </Text>
                 <p className="text-xs text-muted-foreground">
                   New registrations this period
                 </p>
@@ -522,9 +527,9 @@ export function AdminAnalytics() {
                 <CardTitle className="text-sm font-medium">Platform Health</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-success">
+                <Text as="div" variant="stat" className="text-success">
                   {analyticsData?.approvalRate || 0}%
-                </div>
+                </Text>
                 <p className="text-xs text-muted-foreground">
                   Harvest approval rate
                 </p>
@@ -536,9 +541,9 @@ export function AdminAnalytics() {
                 <CardTitle className="text-sm font-medium">Active Users</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-accent">
+                <Text as="div" variant="stat" className="text-accent">
                   {analyticsData?.totalUsers ? Math.round((analyticsData.activeUsers / analyticsData.totalUsers) * 100) : 0}%
-                </div>
+                </Text>
                 <p className="text-xs text-muted-foreground">
                   User engagement rate
                 </p>
@@ -847,6 +852,6 @@ export function AdminAnalytics() {
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+    </DashboardPageShell>
   )
 }

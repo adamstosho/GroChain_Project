@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface OfflineData {
   id: string;
@@ -22,6 +22,7 @@ interface UseOfflineReturn {
 export function useOffline(): UseOfflineReturn {
   const [isOnline, setIsOnline] = useState(true);
   const [pendingSync, setPendingSync] = useState<OfflineData[]>([]);
+  const syncingRef = useRef(false);
 
   // Check online status
   useEffect(() => {
@@ -66,53 +67,68 @@ export function useOffline(): UseOfflineReturn {
   }, []);
 
   const syncPendingActions = useCallback(async () => {
-    if (!isOnline || pendingSync.length === 0) return;
+    if (!isOnline || pendingSync.length === 0 || syncingRef.current) return;
 
+    syncingRef.current = true;
     const { apiService } = await import('@/lib/api');
-    const syncPromises = pendingSync.map(async (action) => {
-      try {
-        switch (action.type) {
-          case 'harvest':
-            if (action.action === 'create') {
-              await apiService.post('/harvests', action.data);
-            } else if (action.action === 'update') {
-              await apiService.put(`/harvests/${action.data.id}`, action.data);
-            }
-            break;
-          case 'shipment':
-            if (action.action === 'create') {
-              await apiService.post('/shipments', action.data);
-            } else if (action.action === 'update') {
-              await apiService.put(`/shipments/${action.data.id}`, action.data);
-            }
-            break;
-          case 'listing':
-            if (action.action === 'create') {
-              await apiService.post('/marketplace/listings', action.data);
-            } else if (action.action === 'update') {
-              await apiService.put(`/marketplace/listings/${action.data.id}`, action.data);
-            }
-            break;
-          case 'order':
-            if (action.action === 'create') {
-              await apiService.post('/marketplace/orders', action.data);
-            } else if (action.action === 'update') {
-              await apiService.put(`/marketplace/orders/${action.data.id}`, action.data);
-            }
-            break;
-        }
-        return action.id;
-      } catch (error) {
-        console.error(`Failed to sync ${action.type} action:`, error);
-        return null;
-      }
-    });
 
-    const results = await Promise.all(syncPromises);
-    const successfulIds = results.filter(id => id !== null);
-    
-    if (successfulIds.length > 0) {
-      setPendingSync(prev => prev.filter(action => !successfulIds.includes(action.id)));
+    try {
+      const syncPromises = pendingSync.map(async (action) => {
+        try {
+          switch (action.type) {
+            case 'harvest':
+              if (action.action === 'create') {
+                await apiService.createHarvest(
+                  action.data,
+                  action.data?.idempotencyKey
+                    ? { idempotencyKey: String(action.data.idempotencyKey) }
+                    : undefined,
+                );
+              } else if (action.action === 'update') {
+                await apiService.put(`/harvests/${action.data.id}`, action.data);
+              }
+              break;
+            case 'shipment':
+              if (action.action === 'create') {
+                await apiService.post('/shipments', action.data);
+              } else if (action.action === 'update') {
+                await apiService.put(`/shipments/${action.data.id}`, action.data);
+              }
+              break;
+            case 'listing':
+              if (action.action === 'create') {
+                await apiService.post('/marketplace/listings', action.data);
+              } else if (action.action === 'update') {
+                await apiService.put(`/marketplace/listings/${action.data.id}`, action.data);
+              }
+              break;
+            case 'order':
+              if (action.action === 'create') {
+                const { idempotencyKey, ...payload } = action.data || {};
+                await apiService.createOrder(
+                  payload,
+                  idempotencyKey ? { idempotencyKey: String(idempotencyKey) } : undefined,
+                );
+              } else if (action.action === 'update') {
+                await apiService.put(`/marketplace/orders/${action.data.id}`, action.data);
+              }
+              break;
+          }
+          return action.id;
+        } catch (error) {
+          console.error(`Failed to sync ${action.type} action:`, error);
+          return null;
+        }
+      });
+
+      const results = await Promise.all(syncPromises);
+      const successfulIds = results.filter((id): id is string => id !== null);
+
+      if (successfulIds.length > 0) {
+        setPendingSync(prev => prev.filter(action => !successfulIds.includes(action.id)));
+      }
+    } finally {
+      syncingRef.current = false;
     }
   }, [isOnline, pendingSync]);
 
@@ -129,6 +145,4 @@ export function useOffline(): UseOfflineReturn {
     clearPendingActions,
   };
 }
-
-
 

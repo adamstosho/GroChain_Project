@@ -12,6 +12,24 @@ const {
   toAclUser
 } = require('../utils/realtime-room-access.util')
 const { getCoordinatesForState } = require('../utils/nigerian-states.util')
+const { escapeRegex } = require('../utils/regex.util')
+const { ORDER_STATUS_TRANSITIONS, SHIPMENT_TO_ORDER_STATUS } = require('../utils/orderStatus.util')
+
+// Propagates a shipment status change to its linked Order, when there is an
+// unambiguous mapping and the transition is legal for the order's current
+// state. Without this, an order can stay stuck on 'processing' forever even
+// after its shipment is marked 'delivered'.
+async function syncOrderStatusFromShipment(orderId, shipmentStatus) {
+  const desiredOrderStatus = SHIPMENT_TO_ORDER_STATUS[shipmentStatus]
+  if (!desiredOrderStatus || !orderId) return
+  const order = await Order.findById(orderId)
+  if (!order || order.status === desiredOrderStatus) return
+  const allowedNext = ORDER_STATUS_TRANSITIONS[order.status] || []
+  if (!allowedNext.includes(desiredOrderStatus)) return
+  order.status = desiredOrderStatus
+  order.updatedAt = new Date()
+  await order.save()
+}
 
 const aclUserFromReq = (req) => toAclUser(req.user)
 
@@ -256,6 +274,22 @@ const shipmentController = {
         code: error.code
       })
       
+      // Handle duplicate order shipment (concurrent create)
+      if (error.code === 11000 && error.keyPattern?.order) {
+        const duplicateOrderId = req.body?.orderId || error.keyValue?.order
+        const existingShipment = duplicateOrderId
+          ? await Shipment.findOne({ order: duplicateOrderId })
+          : null
+        if (existingShipment) {
+          return res.status(200).json({
+            status: 'success',
+            message: 'Shipment already exists for this order',
+            data: existingShipment,
+            idempotent: true,
+          })
+        }
+      }
+
       // Handle specific error types
       if (error.name === 'ValidationError') {
         return res.status(400).json({
@@ -355,13 +389,14 @@ const shipmentController = {
       const filterParts = [accessFilter]
 
       if (q) {
+        const safeQ = escapeRegex(q)
         filterParts.push({
           $or: [
-            { shipmentNumber: { $regex: q, $options: 'i' } },
-            { trackingNumber: { $regex: q, $options: 'i' } },
-            { carrier: { $regex: q, $options: 'i' } },
-            { 'origin.city': { $regex: q, $options: 'i' } },
-            { 'destination.city': { $regex: q, $options: 'i' } }
+            { shipmentNumber: { $regex: safeQ, $options: 'i' } },
+            { trackingNumber: { $regex: safeQ, $options: 'i' } },
+            { carrier: { $regex: safeQ, $options: 'i' } },
+            { 'origin.city': { $regex: safeQ, $options: 'i' } },
+            { 'destination.city': { $regex: safeQ, $options: 'i' } }
           ]
         })
       }
@@ -369,9 +404,9 @@ const shipmentController = {
       const extra = {}
       if (status) extra.status = status
       if (shippingMethod) extra.shippingMethod = shippingMethod
-      if (carrier) extra.carrier = { $regex: carrier, $options: 'i' }
-      if (origin) extra['origin.city'] = { $regex: origin, $options: 'i' }
-      if (destination) extra['destination.city'] = { $regex: destination, $options: 'i' }
+      if (carrier) extra.carrier = { $regex: escapeRegex(carrier), $options: 'i' }
+      if (origin) extra['origin.city'] = { $regex: escapeRegex(origin), $options: 'i' }
+      if (destination) extra['destination.city'] = { $regex: escapeRegex(destination), $options: 'i' }
       if (order) extra.order = new mongoose.Types.ObjectId(order)
       if (startDate || endDate) {
         extra.createdAt = {}
@@ -470,6 +505,9 @@ const shipmentController = {
       // Add tracking event
       const updatedShipment = await shipment.addTrackingEvent(status, location, description, coordinates)
 
+      // Keep the linked Order's status in sync with this shipment update
+      await syncOrderStatusFromShipment(shipment.order, status)
+
       // Create notification for buyer (persist + realtime)
       const order = await Order.findById(shipment.order)
       const orderNumber = order?.orderNumber || `ORD-${shipment.order?.toString().slice(-6).toUpperCase() || 'UNKNOWN'}`
@@ -556,6 +594,9 @@ const shipmentController = {
         'Package delivered successfully',
         deliveredShipment.destination.coordinates
       )
+
+      // Keep the linked Order's status in sync with this delivery
+      await syncOrderStatusFromShipment(shipmentWithTracking.order, 'delivered')
 
       // Create notification for buyer and seller (persist + realtime)
       const { createAndEmitNotification } = require('./notification.controller')
@@ -748,13 +789,14 @@ const shipmentController = {
       }
 
       const accessFilter = await buildShipmentAccessFilter(aclUserFromReq(req))
+      const safeQ = escapeRegex(q)
       const query = mergeShipmentQueries(accessFilter, {
         $or: [
-          { shipmentNumber: { $regex: q, $options: 'i' } },
-          { trackingNumber: { $regex: q, $options: 'i' } },
-          { carrier: { $regex: q, $options: 'i' } },
-          { 'origin.city': { $regex: q, $options: 'i' } },
-          { 'destination.city': { $regex: q, $options: 'i' } }
+          { shipmentNumber: { $regex: safeQ, $options: 'i' } },
+          { trackingNumber: { $regex: safeQ, $options: 'i' } },
+          { carrier: { $regex: safeQ, $options: 'i' } },
+          { 'origin.city': { $regex: safeQ, $options: 'i' } },
+          { 'destination.city': { $regex: safeQ, $options: 'i' } }
         ]
       })
 

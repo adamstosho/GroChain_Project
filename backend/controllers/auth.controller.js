@@ -1,16 +1,19 @@
 const Joi = require('joi')
 const User = require('../models/user.model')
-const { signAccess, signRefresh, verifyRefresh } = require('../utils/jwt')
+const { signAccess, signRefresh, verifyRefresh, verifyAccessAllowExpired } = require('../utils/jwt')
 const nodemailer = require('nodemailer')
 const { sendEmailViaSendGrid } = require('../utils/sendgrid-direct')
 const { sendEmailViaResend } = require('../utils/resend-direct')
 
+// 'admin' is deliberately excluded — public self-registration must never be
+// able to grant admin access. Admin accounts are created out-of-band (by an
+// existing admin, or direct DB/seed access), never through this endpoint.
 const registerSchema = Joi.object({
   name: Joi.string().required(),
   email: Joi.string().email().required(),
   phone: Joi.string().optional(),
   password: Joi.string().min(8).required(),
-  role: Joi.string().valid('admin','partner','farmer','buyer').default('farmer'),
+  role: Joi.string().valid('partner','farmer','buyer').default('farmer'),
   location: Joi.string().optional(),
 }).unknown(true)
 
@@ -448,13 +451,15 @@ exports.login = async (req, res) => {
       id: userAuthData.id,
       role: userAuthData.role,
       email: userAuthData.email,
-      name: userAuthData.name
+      name: userAuthData.name,
+      tokenVersion: userAuthData.tokenVersion
     })
     const refreshToken = signRefresh({
       id: userAuthData.id,
       role: userAuthData.role,
       email: userAuthData.email,
-      name: userAuthData.name
+      name: userAuthData.name,
+      tokenVersion: userAuthData.tokenVersion
     })
     
     // Set HTTP-only cookies for authentication
@@ -512,17 +517,29 @@ exports.refresh = async (req, res) => {
     const { refreshToken } = req.body || {}
     if (!refreshToken) return res.status(400).json({ status: 'error', message: 'refreshToken required' })
     const decoded = verifyRefresh(refreshToken)
+
+    // Reject refresh tokens issued before the user's last logout/password
+    // change — without this check, a revoked refresh token could keep
+    // minting valid access tokens forever, defeating revocation entirely.
+    const user = await User.findById(decoded.id)
+    if (!user) return res.status(401).json({ status: 'error', message: 'Invalid refresh token' })
+    if ((decoded.tokenVersion || 0) !== (user.tokenVersion || 0)) {
+      return res.status(401).json({ status: 'error', message: 'Session expired, please log in again' })
+    }
+
     const accessToken = signAccess({
       id: decoded.id,
       role: decoded.role,
       email: decoded.email,
-      name: decoded.name
+      name: decoded.name,
+      tokenVersion: decoded.tokenVersion || 0
     })
     const newRefreshToken = signRefresh({
       id: decoded.id,
       role: decoded.role,
       email: decoded.email,
-      name: decoded.name
+      name: decoded.name,
+      tokenVersion: decoded.tokenVersion || 0
     })
     return res.json({ status: 'success', data: { accessToken, refreshToken: newRefreshToken } })
   } catch (e) {
@@ -532,6 +549,25 @@ exports.refresh = async (req, res) => {
 
 exports.logout = async (req, res) => {
   try {
+    // Best-effort: invalidate every outstanding token for this user by
+    // bumping tokenVersion, so a leaked/stolen token stops working
+    // immediately instead of remaining valid until natural expiry. A
+    // missing/invalid token still results in a successful logout (cookies
+    // are cleared below regardless) — we just can't revoke what we can't
+    // identify.
+    try {
+      const header = req.headers.authorization || ''
+      const token = (header.startsWith('Bearer ') ? header.slice(7) : null) || req.cookies?.auth_token || null
+      if (token) {
+        const decoded = verifyAccessAllowExpired(token)
+        if (decoded?.id) {
+          await User.findByIdAndUpdate(decoded.id, { $inc: { tokenVersion: 1 } })
+        }
+      }
+    } catch (revokeError) {
+      console.error('Logout token revocation skipped:', revokeError.message || revokeError)
+    }
+
     // Clear the auth token cookie
     res.clearCookie('auth_token', {
       httpOnly: true,
@@ -650,13 +686,13 @@ exports.resetPassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10)
     
     const user = await User.findByIdAndUpdate(
-      entry.id, 
-      { password: hashedPassword }, 
+      entry.id,
+      { password: hashedPassword, $inc: { tokenVersion: 1 } },
       { new: true }
     )
-    
+
     if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
-    
+
     // Clean up token
     tempTokens.delete(token)
     

@@ -13,6 +13,9 @@ import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useDashboardRefresh } from "@/hooks/use-dashboard-refresh"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { dashboard, textStyles } from "@/lib/design-system"
+import { cn } from "@/lib/utils"
 import { Users, TrendingUp, Banknote, Database, UserCheck, Settings, BarChart3, FileText, RefreshCw } from "lucide-react"
 import Link from "next/link"
 
@@ -39,9 +42,12 @@ interface AdminStats {
 
 interface SystemHealth {
   uptime: string
-  responseTime: string
+  // Real request-timing/error-rate metrics require an APM/metrics
+  // collector this app doesn't have yet — left undefined rather than a
+  // fabricated number, and rendered as "—" until that's built.
+  responseTime?: string
   activeUsers: number
-  errorRate: string
+  errorRate?: string
   status?: string
   memory?: any
   timestamp?: string
@@ -118,26 +124,21 @@ export function AdminDashboard() {
         })
       }
 
-      // Process system health data
+      // Process system health data — only real fields from the health-check
+      // response are used; responseTime/errorRate aren't computed anywhere
+      // on the backend, so they're left unset rather than faked.
       if (systemHealthResponse.status === 'fulfilled') {
         const healthData = systemHealthResponse.value.data as any
         setSystemHealth({
           uptime: `${(healthData.uptime / 3600).toFixed(1)}h`,
-          responseTime: "120ms",
           activeUsers: stats?.totalUsers || 0,
-          errorRate: "0.1%",
           status: healthData.status,
           memory: healthData.memory,
           timestamp: healthData.timestamp
         })
       } else {
         console.error('❌ System health failed:', systemHealthResponse.reason)
-        setSystemHealth({
-          uptime: "99.9%",
-          responseTime: "120ms",
-          activeUsers: stats?.totalUsers || 0,
-          errorRate: "0.1%",
-        })
+        setSystemHealth(null)
       }
 
       // Process recent users data
@@ -237,8 +238,8 @@ export function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
+      <DashboardPageShell>
+        <div className={dashboard.statsGrid4}>
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader className="space-y-0 pb-2">
@@ -248,12 +249,12 @@ export function AdminDashboard() {
             </Card>
           ))}
         </div>
-      </div>
+      </DashboardPageShell>
     )
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
+    <DashboardPageShell>
       <DashboardPageHeader
         badge="Platform Control"
         title="Admin"
@@ -282,68 +283,61 @@ export function AdminDashboard() {
       />
 
       {/* Stats Overview - Enhanced Responsive Grid */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
+      <div className={dashboard.statsGrid}>
         <StatsCard
           title="Total Users"
           value={stats?.totalUsers || 0}
           description="Platform users"
           icon={Users}
-          trend={{ value: 12, isPositive: true }}
         />
         <StatsCard
           title="Platform Revenue"
           value={`₦${(stats?.totalRevenue || 0).toLocaleString()}`}
           description="Total earnings"
           icon={Banknote}
-          trend={{ value: 18, isPositive: true }}
         />
         <StatsCard
           title="Active Transactions"
           value={stats?.activeTransactions || 0}
           description="In progress"
           icon={TrendingUp}
-          trend={{ value: 5, isPositive: true }}
         />
         <StatsCard
           title="System Health"
-          value="99.9%"
+          value={systemHealth?.uptime || "Unavailable"}
           description="Uptime"
           icon={Database}
-          trend={{ value: 0.1, isPositive: true }}
         />
         <StatsCard
           title="Total Commissions"
           value={stats?.commissionStats?.totalCommissions || 0}
           description="Commission payments"
           icon={Banknote}
-          trend={{ value: 8, isPositive: true }}
         />
         <StatsCard
           title="Commission Revenue"
           value={`₦${(stats?.commissionStats?.totalCommissionAmount || 0).toLocaleString()}`}
           description="Partner earnings"
           icon={TrendingUp}
-          trend={{ value: 15, isPositive: true }}
         />
         <StatsCard
           title="Commission Rate"
           value={`${stats?.commissionStats?.commissionRate || 0}%`}
           description="Of total revenue"
           icon={BarChart3}
-          trend={{ value: 2, isPositive: true }}
         />
       </div>
 
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3">
+      <div className={dashboard.contentGrid}>
         {/* Main Content - Enhanced Responsive */}
-        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+        <div className={dashboard.contentMain}>
           {/* Quick Actions */}
           <QuickActions actions={quickActions} />
 
           {/* Platform Overview - Enhanced Responsive */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center text-base sm:text-lg">
+              <CardTitle className={cn(textStyles.cardTitle, "flex items-center")}>
                 <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                 Platform Overview
               </CardTitle>
@@ -548,7 +542,7 @@ export function AdminDashboard() {
           <Card>
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 sm:pb-4">
               <div className="min-w-0 flex-1">
-                <CardTitle className="flex items-center text-base sm:text-lg mb-1">
+                <CardTitle className={cn(textStyles.cardTitle, "flex items-center mb-1")}>
                   <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
                   <span className="truncate">Recent Users</span>
                 </CardTitle>
@@ -628,13 +622,13 @@ export function AdminDashboard() {
         </div>
 
         {/* Sidebar - Enhanced Responsive */}
-        <div className="space-y-4 sm:space-y-6">
+        <div className={dashboard.contentSide}>
           <RecentActivity />
 
           {/* System Health - Enhanced Responsive */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center text-base sm:text-lg">
+              <CardTitle className={cn(textStyles.cardTitle, "flex items-center")}>
                 <Database className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                 System Health
               </CardTitle>
@@ -645,13 +639,13 @@ export function AdminDashboard() {
                 <div className="flex justify-between">
                   <span className="text-sm">Uptime</span>
                   <span className="font-medium text-success">
-                    {systemHealth?.uptime || "99.9%"}
+                    {systemHealth?.uptime || "Unavailable"}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Response Time</span>
-                  <span className="font-medium">
-                    {systemHealth?.responseTime || "120ms"}
+                  <span className="font-medium text-muted-foreground">
+                    {systemHealth?.responseTime || "Not tracked yet"}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -662,8 +656,8 @@ export function AdminDashboard() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Error Rate</span>
-                  <span className="font-medium text-success">
-                    {systemHealth?.errorRate || "0.1%"}
+                  <span className="font-medium text-muted-foreground">
+                    {systemHealth?.errorRate || "Not tracked yet"}
                   </span>
                 </div>
                 <Button variant="outline" size="sm" className="w-full" asChild>
@@ -676,7 +670,7 @@ export function AdminDashboard() {
           {/* Admin Actions - Enhanced Responsive */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center text-base sm:text-lg">
+              <CardTitle className={cn(textStyles.cardTitle, "flex items-center")}>
                 <Settings className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                 Admin Actions
               </CardTitle>
@@ -706,6 +700,6 @@ export function AdminDashboard() {
           </Card>
         </div>
       </div>
-    </div>
+    </DashboardPageShell>
   )
 }

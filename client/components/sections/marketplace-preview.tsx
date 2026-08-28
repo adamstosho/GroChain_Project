@@ -13,7 +13,12 @@ import { useAuthStore } from "@/lib/auth"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import Image from "next/image"
+import { SafeImage } from "@/components/ui/safe-image"
+import { ScrollReveal } from "@/components/motion/scroll-reveal"
+import { ScrollStagger, StaggerItem } from "@/components/motion/stagger-container"
+import { MarketingSection } from "@/components/layout/marketing-section"
+import { SectionHeader, Display, Text } from "@/components/ui/typography"
+import { layout } from "@/lib/design-system"
 
 interface MarketplaceProduct {
   id: string
@@ -125,22 +130,19 @@ export function MarketplacePreview() {
   }
 
   return (
-    <section id="marketplace" className="py-16 bg-muted">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-foreground mb-4">
-            Produce from verified farmers
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
-            Listings show origin, grade, and a QR code so a buyer can check a batch before they pay.
-          </p>
-          <Button asChild size="lg">
-            <Link href="/marketplace">
-              View All Products
-            </Link>
-          </Button>
-        </div>
+    <MarketingSection id="marketplace" className="bg-muted/40">
+        <ScrollReveal>
+          <SectionHeader
+            badge={<Badge variant="secondary">Marketplace</Badge>}
+            title="Produce from verified farmers"
+            description="Listings show origin, grade, and a QR code so a buyer can check a batch before they pay."
+          />
+          <div className="-mt-8 mb-12 text-center sm:mb-14">
+            <Button asChild size="lg">
+              <Link href="/marketplace">View All Products</Link>
+            </Button>
+          </div>
+        </ScrollReveal>
 
         {/* Products Grid */}
         {isInitialLoading && products.length === 0 ? (
@@ -157,16 +159,18 @@ export function MarketplacePreview() {
             ))}
           </div>
         ) : products.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <ScrollStagger className={`${layout.gridCards} mb-8`}>
             {products.map((product) => (
-              <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <StaggerItem key={product.id}>
+              <Card className="overflow-hidden h-full border border-border/60 bg-card shadow-sm transition-all duration-300 hover:shadow-lg hover:border-primary/15 hover:-translate-y-1">
                 {/* Product Image */}
                 <div className="relative h-48 bg-muted">
                   {product.images && product.images.length > 0 ? (
-                    <Image
+                    <SafeImage
                       src={product.images[0]}
                       alt={typeof product.name === 'string' ? product.name : 'Fresh agricultural product'}
                       fill
+                      sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                       className="object-cover"
                     />
                   ) : (
@@ -193,9 +197,9 @@ export function MarketplacePreview() {
                 <CardContent className="p-4">
                   {/* Product Name & Category */}
                   <div className="mb-2">
-                    <h3 className="font-semibold text-lg text-foreground line-clamp-1">
+                    <Display as="h3" variant="card" className="line-clamp-1">
                       {typeof product.name === 'string' ? product.name : 'Unnamed Product'}
-                    </h3>
+                    </Display>
                     <p className="text-sm text-muted-foreground capitalize">
                       {typeof product.category === 'string' ? product.category : 'Agricultural Product'}
                     </p>
@@ -238,9 +242,9 @@ export function MarketplacePreview() {
                   {/* Price */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-2xl font-bold text-success">
+                      <Text as="span" variant="price" className="text-success">
                         ₦{typeof product.price === 'number' ? product.price.toLocaleString() : '0'}
-                      </span>
+                      </Text>
                       <span className="text-sm text-muted-foreground ml-1">
                         per {typeof product.unit === 'string' ? product.unit : 'unit'}
                       </span>
@@ -286,31 +290,35 @@ export function MarketplacePreview() {
                   </div>
                 </CardFooter>
               </Card>
+              </StaggerItem>
             ))}
-          </div>
+          </ScrollStagger>
         ) : (
-          <Card className="mb-8 border-dashed">
+          <ScrollReveal>
+          <Card className="mb-8 border-dashed border-border/60 bg-card/50">
             <CardContent className="p-10 text-center space-y-3">
-              <h3 className="text-xl font-semibold text-foreground">No listings on the public market yet</h3>
-              <p className="text-muted-foreground max-w-xl mx-auto">
+              <Display as="h3" variant="card">No listings on the public market yet</Display>
+              <Text variant="sm" className="mx-auto max-w-xl">
                 When farmers publish harvests, they will show up here with origin, grade, and a QR code to scan. Until
                 then you can open the marketplace or register to list the first batches.
-              </p>
+              </Text>
             </CardContent>
           </Card>
+          </ScrollReveal>
         )}
 
+        <ScrollReveal delay={0.1}>
         <div className="text-center">
-          <div className="bg-card rounded-lg shadow-sm p-8">
-            <h3 className="text-xl font-semibold text-foreground mb-2">
+          <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-8 sm:p-10">
+            <Display as="h3" variant="card" className="mb-2">
               {products.length > 0 ? "See the full marketplace" : "List or browse produce"}
-            </h3>
-            <p className="text-muted-foreground mb-6">
+            </Display>
+            <Text variant="sm" className="mb-6">
               {products.length > 0
                 ? "Open the marketplace for the full catalogue, or register to sell your own harvest."
                 : "Farmers list batches with a QR trail. Buyers browse and verify before they buy."}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            </Text>
+            <div className={layout.actionsRow + " justify-center"}>
               <Button asChild size="lg">
                 <Link href="/marketplace">
                   Browse Marketplace
@@ -324,7 +332,7 @@ export function MarketplacePreview() {
             </div>
           </div>
         </div>
-      </div>
-    </section>
+        </ScrollReveal>
+    </MarketingSection>
   )
 }

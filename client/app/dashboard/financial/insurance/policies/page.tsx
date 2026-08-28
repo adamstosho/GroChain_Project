@@ -8,6 +8,10 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
@@ -452,8 +456,8 @@ export default function InsurancePoliciesPage() {
   if (loading) {
     return (
       <DashboardLayout pageTitle="Insurance Policies">
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <DashboardPageShell>
+          <div className={dashboard.statsGrid4}>
             {[...Array(4)].map((_, i) => (
               <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-3">
@@ -467,46 +471,42 @@ export default function InsurancePoliciesPage() {
               </Card>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout pageTitle="Insurance Policies">
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-foreground">Insurance Policies</h1>
-            <p className="text-muted-foreground">
-              Manage your insurance coverage and claims
-            </p>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Export Report
-            </Button>
-            <Button onClick={handleNewPolicy}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Policy
-            </Button>
-          </div>
-        </div>
+      <DashboardPageShell>
+        <DashboardSubpageHeader
+          title="Insurance Policies"
+          description="Manage your insurance coverage and claims"
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleExport}>
+                <Download className="h-4 w-4 mr-2" />
+                Export Report
+              </Button>
+              <Button onClick={handleNewPolicy}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Policy
+              </Button>
+            </div>
+          }
+        />
 
         {/* Insurance Stats */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className={dashboard.statsGrid4}>
             <Card className="border border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Policies</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-primary">
+                <Text as="div" variant="stat" className="text-primary">
                   {stats.totalPolicies}
-                </div>
+                </Text>
                 <div className="flex items-center gap-2 mt-2">
                   <Shield className="h-4 w-4 text-primary" />
                   <span className="text-sm text-muted-foreground">{stats.activePolicies} active</span>
@@ -519,9 +519,9 @@ export default function InsurancePoliciesPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Coverage</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-success">
+                <Text as="div" variant="stat" className="text-success">
                   {formatCompactCurrency(stats.totalCoverage)}
-                </div>
+                </Text>
                 <div className="flex items-center gap-2 mt-2">
                   <TrendingUp className="h-4 w-4 text-success" />
                   <span className="text-sm text-muted-foreground">Across active policies</span>
@@ -534,9 +534,9 @@ export default function InsurancePoliciesPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Premium</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-warning">
+                <Text as="div" variant="stat" className="text-warning">
                   {formatCompactCurrency(stats.totalPremium)}
-                </div>
+                </Text>
                 <div className="flex items-center gap-2 mt-2">
                   <Banknote className="h-4 w-4 text-warning" />
                   <span className="text-sm text-muted-foreground">Total across active policies</span>
@@ -549,9 +549,9 @@ export default function InsurancePoliciesPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Pending Claims</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-destructive">
+                <Text as="div" variant="stat" className="text-destructive">
                   {stats.pendingClaims}
-                </div>
+                </Text>
                 <div className="flex items-center gap-2 mt-2">
                   <AlertTriangle className="h-4 w-4 text-destructive" />
                   <span className="text-sm text-destructive">{formatCompactCurrency(stats.claimsValue)} value</span>
@@ -791,7 +791,7 @@ export default function InsurancePoliciesPage() {
             </CardContent>
           </Card>
         )}
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

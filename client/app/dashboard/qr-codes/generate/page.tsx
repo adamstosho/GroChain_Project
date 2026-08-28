@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft, QrCode, Package, Download, Copy, Smartphone, Printer, FileText, CheckCircle, Plus, ExternalLink } from "lucide-react"
@@ -183,24 +185,18 @@ export default function GenerateQRCodePage() {
 
   return (
     <DashboardLayout pageTitle="Generate QR Code">
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
-                <Link href="/dashboard/qr-codes" className="flex items-center gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to QR Codes
-                </Link>
-              </Button>
-            </div>
-            <h1 className="text-2xl font-semibold text-foreground">Generate QR Code</h1>
-            <p className="text-muted-foreground">
-              Create unique QR codes for your agricultural products to enable traceability
-            </p>
-          </div>
-        </div>
+      <DashboardPageShell>
+        <Button variant="ghost" asChild className="w-fit text-muted-foreground hover:text-foreground">
+          <Link href="/dashboard/qr-codes" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to QR Codes
+          </Link>
+        </Button>
+
+        <DashboardSubpageHeader
+          title="Generate QR Code"
+          description="Create unique QR codes for your agricultural products to enable traceability"
+        />
 
         {/* Harvest Selection */}
         <Card className="border border-border">
@@ -585,7 +581,7 @@ export default function GenerateQRCodePage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

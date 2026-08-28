@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -132,7 +135,7 @@ export default function InsuranceComparisonPage() {
       })
 
       if (response.status === 'success' && response.data) {
-        const policiesData = (response.data as any).policies || response.data || []
+        const policiesData = (response.data as any).policies || (response.data as any).quotes || response.data || []
 
         // Transform backend data to match frontend interface
         const transformedPolicies: InsurancePolicy[] = policiesData.map((policy: any) => ({
@@ -143,7 +146,9 @@ export default function InsuranceComparisonPage() {
           coverage: policy.coverage,
           premium: policy.premium,
           deductible: policy.deductible,
-          maxCoverage: policy.maxCoverage,
+          maxCoverage: policy.maxCoverage || policy.sumInsured,
+          sumInsured: policy.sumInsured,
+          pricingBreakdown: policy.pricingBreakdown,
           features: policy.features || [],
           exclusions: policy.exclusions || [],
           rating: policy.rating || 4.0,
@@ -217,7 +222,7 @@ export default function InsuranceComparisonPage() {
   if (loading) {
     return (
       <DashboardLayout pageTitle="Insurance Comparison">
-        <div className="space-y-6">
+        <DashboardPageShell>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
               <Card key={i} className="animate-pulse border border-border">
@@ -232,48 +237,43 @@ export default function InsuranceComparisonPage() {
               </Card>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout pageTitle="Insurance Comparison">
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
-                <Link href="/dashboard/financial" className="flex items-center gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Financial Services
-                </Link>
+      <DashboardPageShell>
+        <Button variant="ghost" asChild className="w-fit text-muted-foreground hover:text-foreground">
+          <Link href="/dashboard/financial" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Financial Services
+          </Link>
+        </Button>
+
+        <DashboardSubpageHeader
+          title="Insurance Comparison"
+          description="Compare insurance policies to find the best coverage for your farm"
+          actions={
+            <div className="flex gap-2">
+              <Button
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+              >
+                Grid View
+              </Button>
+              <Button
+                variant={viewMode === "table" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("table")}
+              >
+                Table View
               </Button>
             </div>
-            <h1 className="text-2xl font-semibold text-foreground">Insurance Comparison</h1>
-            <p className="text-muted-foreground">
-              Compare insurance policies to find the best coverage for your farm
-            </p>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === "grid" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("grid")}
-            >
-              Grid View
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-            >
-              Table View
-            </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Filters */}
         <Card className="border border-border">
@@ -395,9 +395,9 @@ export default function InsuranceComparisonPage() {
                       <CardDescription className="text-sm">{policy.provider}</CardDescription>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-primary">
+                      <Text as="div" variant="stat" className="text-primary">
                         ₦{policy.premium.toLocaleString()}
-                      </div>
+                      </Text>
                       <div className="text-xs text-muted-foreground">per year</div>
                     </div>
                   </div>
@@ -617,7 +617,7 @@ export default function InsuranceComparisonPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

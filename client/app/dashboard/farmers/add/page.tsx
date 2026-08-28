@@ -8,6 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display } from "@/components/ui/typography"
 import { useToast } from "@/hooks/use-toast"
 import { APP_CONFIG } from "@/lib/constants"
 import {
@@ -181,22 +184,18 @@ export default function AddFarmerPage() {
 
   return (
     <DashboardLayout pageTitle="Add New Farmer">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/dashboard/farmers">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Farmers
-                </Link>
-              </Button>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight">Add New Farmer</h1>
-            <p className="text-muted-foreground">Onboard a new farmer to your network</p>
-          </div>
-        </div>
+      <DashboardPageShell>
+        <Button variant="ghost" size="sm" asChild className="w-fit">
+          <Link href="/dashboard/farmers">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Farmers
+          </Link>
+        </Button>
+
+        <DashboardSubpageHeader
+          title="Add New Farmer"
+          description="Onboard a new farmer to your network"
+        />
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Form */}
@@ -494,7 +493,7 @@ export default function AddFarmerPage() {
             </Card>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

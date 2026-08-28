@@ -31,6 +31,10 @@ const UserSchema = new mongoose.Schema({
   smsOtpAttempts: { type: Number, default: 0 },
   pushToken: { type: String },
   lastLogin: { type: Date },
+  // Bumped on logout / password change to invalidate all previously-issued
+  // JWTs for this user (they carry the version at sign time; the auth
+  // middleware rejects any token whose version no longer matches).
+  tokenVersion: { type: Number, default: 0 },
   notificationPreferences: {
     websocket: { type: Boolean, default: true },
     email: { type: Boolean, default: true },
@@ -160,7 +164,8 @@ UserSchema.methods.getAuthData = function() {
     name: this.name,
     email: this.email,
     role: this.role,
-    status: this.status
+    status: this.status,
+    tokenVersion: this.tokenVersion || 0
   }
 }
 

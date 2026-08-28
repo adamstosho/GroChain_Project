@@ -110,14 +110,6 @@ export const useGeolocation = (): GeolocationHookResult => {
         }
       },
       (err) => {
-        // Enhanced error logging with more details
-        console.error('❌ Geolocation error:', {
-          code: err.code,
-          message: err.message,
-          error: err,
-          timestamp: new Date().toISOString()
-        })
-        
         let errorMessage = 'Unable to get your location'
 
         // Handle different error codes with proper constants
@@ -135,6 +127,13 @@ export const useGeolocation = (): GeolocationHookResult => {
             errorMessage = `Location error: ${err.message || 'Unknown error occurred'}`
             break
         }
+
+        // A denied/unavailable/timed-out request is an expected, already-handled
+        // outcome (we fall back to IP-based location) — not an application fault,
+        // so this stays a warn rather than triggering Next's error overlay. Log
+        // only primitives: the native GeolocationPositionError has no enumerable
+        // own properties, so passing it directly renders as an empty "{}".
+        console.warn(`⚠️ Geolocation unavailable (code ${err.code ?? 'unknown'}): ${errorMessage}`)
 
         setError(errorMessage)
         setLoading(false)

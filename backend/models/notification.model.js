@@ -41,6 +41,8 @@ const NotificationSchema = new mongoose.Schema({
   priority: { type: String, enum: ['low', 'normal', 'high', 'urgent'], default: 'normal' },
   scheduledFor: { type: Date }, // For scheduled notifications
   expiresAt: { type: Date }, // When notification expires
+  /** Stable key for deduplicating payment/order alerts on retries. */
+  dedupeKey: { type: String, maxlength: 256 },
   sentBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // System or user who sent it
   metadata: { type: Object } // Additional metadata
 }, { timestamps: true })
@@ -49,6 +51,13 @@ NotificationSchema.index({ user: 1, read: 1 })
 NotificationSchema.index({ category: 1 })
 NotificationSchema.index({ createdAt: -1 })
 NotificationSchema.index({ scheduledFor: 1 })
+NotificationSchema.index(
+  { user: 1, dedupeKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { dedupeKey: { $type: 'string' } },
+  }
+)
 
 module.exports = mongoose.model('Notification', NotificationSchema)
 

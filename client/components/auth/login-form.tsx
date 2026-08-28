@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import { useState, useEffect, type FormEvent } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -11,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { useAuthStore } from "@/lib/auth"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 import {
   clearRememberEmail,
   getRememberEmail,
@@ -27,6 +26,7 @@ export function LoginForm() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>("")
+  const { guard, reset } = useSubmitOnce()
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -44,8 +44,9 @@ export function LoginForm() {
     }
   }, [emailFromUrl])
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!guard()) return
     const native = new FormData(e.currentTarget)
     const email = String(native.get("email") || formData.email).trim()
     const password = String(native.get("password") || formData.password)
@@ -76,6 +77,7 @@ export function LoginForm() {
       }
     } finally {
       setIsLoading(false)
+      reset()
     }
   }
 

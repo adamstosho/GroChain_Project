@@ -7,6 +7,10 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -396,8 +400,8 @@ export default function MarketplaceOrdersPage() {
   if (loading) {
     return (
       <DashboardLayout pageTitle="Marketplace Orders">
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <DashboardPageShell>
+          <div className={dashboard.statsGrid4}>
             {[...Array(4)].map((_, i) => (
               <Card key={i} className="animate-pulse border border-border">
                 <CardContent className="p-6">
@@ -421,74 +425,70 @@ export default function MarketplaceOrdersPage() {
               </Card>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout pageTitle="Marketplace Orders">
-      <div className="space-y-6">
+      <DashboardPageShell>
         {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/dashboard/marketplace">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Marketplace
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground">Orders Management</h1>
-              <p className="text-muted-foreground">
-                Track and manage all customer orders for your products
-              </p>
-            </div>
-          </div>
+        <Button variant="ghost" size="sm" asChild className="w-fit">
+          <Link href="/dashboard/marketplace">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Marketplace
+          </Link>
+        </Button>
 
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleRefresh}
-              disabled={refreshing}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={async () => {
-                try {
-                  const { getExportService } = await import("@/lib/export-utils")
-                  const exportService = getExportService()
-                  const rows = filteredOrders.map((o) => ({
-                    orderNumber: o.orderNumber,
-                    status: o.status,
-                    paymentStatus: (o as any).paymentStatus,
-                    total: o.total,
-                    buyer: o.buyer?.name,
-                    createdAt: o.createdAt,
-                    items: o.items?.length || 0,
-                  }))
-                  const result = await exportService.exportCustomData(rows, {
-                    format: "excel",
-                    filename: `grochain-marketplace-orders-${new Date().toISOString().slice(0, 10)}.xlsx`,
-                  })
-                  if (!result.success) throw new Error(result.error)
-                  toast({ title: "Export ready", description: "Orders file downloaded." })
-                } catch (e: any) {
-                  toast({ title: "Export failed", description: e?.message || "Try again", variant: "destructive" })
-                }
-              }}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-          </div>
-        </div>
+        <DashboardSubpageHeader
+          title="Orders Management"
+          description="Track and manage all customer orders for your products"
+          actions={
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    const { getExportService } = await import("@/lib/export-utils")
+                    const exportService = getExportService()
+                    const rows = filteredOrders.map((o) => ({
+                      orderNumber: o.orderNumber,
+                      status: o.status,
+                      paymentStatus: (o as any).paymentStatus,
+                      total: o.total,
+                      buyer: o.buyer?.name,
+                      createdAt: o.createdAt,
+                      items: o.items?.length || 0,
+                    }))
+                    const result = await exportService.exportCustomData(rows, {
+                      format: "excel",
+                      filename: `grochain-marketplace-orders-${new Date().toISOString().slice(0, 10)}.xlsx`,
+                    })
+                    if (!result.success) throw new Error(result.error)
+                    toast({ title: "Export ready", description: "Orders file downloaded." })
+                  } catch (e: any) {
+                    toast({ title: "Export failed", description: e?.message || "Try again", variant: "destructive" })
+                  }
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
+          }
+        />
 
         {/* Order Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={dashboard.statsGrid4}>
           <Card className="border border-border">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -497,7 +497,7 @@ export default function MarketplaceOrdersPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.totalOrders}</div>
+              <Text as="div" variant="stat" className="text-foreground">{stats.totalOrders}</Text>
               <p className="text-xs text-muted-foreground">{stats.pendingOrders} pending</p>
             </CardContent>
           </Card>
@@ -510,7 +510,7 @@ export default function MarketplaceOrdersPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.pendingOrders}</div>
+              <Text as="div" variant="stat" className="text-foreground">{stats.pendingOrders}</Text>
               <p className="text-xs text-muted-foreground">Awaiting confirmation</p>
             </CardContent>
           </Card>
@@ -523,7 +523,7 @@ export default function MarketplaceOrdersPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.confirmedOrders}</div>
+              <Text as="div" variant="stat" className="text-foreground">{stats.confirmedOrders}</Text>
               <p className="text-xs text-muted-foreground">Confirmed orders</p>
             </CardContent>
           </Card>
@@ -536,7 +536,7 @@ export default function MarketplaceOrdersPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalRevenue)}</div>
+              <Text as="div" variant="stat" className="text-foreground">{formatCurrency(stats.totalRevenue)}</Text>
               <p className="text-xs text-muted-foreground">{formatCurrency(stats.monthlyRevenue)} this month</p>
             </CardContent>
           </Card>
@@ -889,7 +889,7 @@ export default function MarketplaceOrdersPage() {
             </div>
           </div>
         )}
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

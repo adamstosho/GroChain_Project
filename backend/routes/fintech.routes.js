@@ -40,6 +40,8 @@ router.get('/loan-applications/me', ctrl.getLoanApplications)
 router.post('/loan-applications', ctrl.createLoanApplication)
 router.get('/loan-applications/:id', ctrl.getLoanApplication)
 router.put('/loan-applications/:id', ctrl.updateLoanApplication)
+router.post('/loan-applications/:id/accept', ctrl.acceptLoanApplication)
+router.post('/loan-applications/:id/payments', ctrl.recordLoanPayment)
 router.delete('/loan-applications/:id', ctrl.deleteLoanApplication)
 
 // Insurance routes

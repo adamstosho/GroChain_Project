@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import { processOrderPayment, loadPaystackScript } from "@/lib/paystack"
 import { processFlutterwaveOrderPayment, loadFlutterwaveScript } from "@/lib/flutterwave"
-import { calculateShippingCost, SHIPPING_METHODS, type ShippingLocation } from "@/lib/shipping-calculator"
+import { calculateShippingCost, unitToKg, SHIPPING_METHODS, type ShippingLocation } from "@/lib/shipping-calculator"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -527,37 +527,38 @@ export default function CheckoutPage() {
 
   // Calculate totals (matching backend calculations)
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-  
+
+  // Real physical weight, converting each item's actual unit (bags, tons,
+  // kg, etc.) to kg — a "bag" and a "piece" are not both 1kg, so this must
+  // match the backend's per-item unit conversion, not just sum quantities.
+  const cartWeightKg = cart.reduce((sum, item) => sum + unitToKg(item.quantity, item.unit), 0)
+
   // Calculate shipping cost based on location and method
   const calculateShippingCostForOrder = () => {
     if (!shippingInfo.city || !shippingInfo.state || cart.length === 0) {
       return 0
     }
-    
+
     // Derive the seller's origin from the first cart item's actual listing
     // location rather than assuming a single city — sellers list from across Nigeria.
     const sellerLocation: ShippingLocation = parseSellerLocation(cart[0]?.location)
-    
+
     const buyerLocation: ShippingLocation = {
       city: shippingInfo.city,
       state: shippingInfo.state,
       country: "Nigeria"
     }
-    
-    // Calculate total weight (assuming 1kg per unit for simplicity)
-    // In a real app, this would come from the product's weight field
-    const totalWeight = cart.reduce((sum, item) => sum + item.quantity, 0)
-    
+
     const shippingCalculation = calculateShippingCost(
       sellerLocation,
       buyerLocation,
-      totalWeight,
+      cartWeightKg,
       shippingMethod
     )
-    
+
     return shippingCalculation.totalCost
   }
-  
+
   const shipping = calculateShippingCostForOrder()
   const tax = 0 // VAT removed
   const total = subtotal + shipping
@@ -747,10 +748,10 @@ export default function CheckoutPage() {
                     const methodCost = calculateShippingCost(
                       sellerLocation,
                       { city: shippingInfo.city || sellerLocation.city, state: shippingInfo.state || sellerLocation.state, country: "Nigeria" },
-                      cart.reduce((sum, item) => sum + item.quantity, 0),
+                      cartWeightKg,
                       method.id
                     )
-                    
+
                     return (
                       <div key={method.id} className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-muted transition-colors">
                         <RadioGroupItem value={method.id} id={method.id} />
@@ -758,11 +759,11 @@ export default function CheckoutPage() {
                           <div className="flex items-center justify-between w-full">
                             <div>
                               <p className="font-medium">{method.name}</p>
-                              <p className="text-sm text-muted-foreground">{method.estimatedDays} day{method.estimatedDays > 1 ? 's' : ''} delivery</p>
+                              <p className="text-sm text-muted-foreground">{methodCost.estimatedDays} day{methodCost.estimatedDays > 1 ? 's' : ''} delivery</p>
                             </div>
                             <div className="text-right">
                               <p className="font-medium text-success">₦{methodCost.totalCost.toLocaleString()}</p>
-                              <p className="text-xs text-muted-foreground">{methodCost.distance}km</p>
+                              <p className="text-xs text-muted-foreground">~{methodCost.distance}km</p>
                             </div>
                           </div>
                         </Label>
@@ -770,18 +771,18 @@ export default function CheckoutPage() {
                     )
                   })}
                 </RadioGroup>
-                
+
                 {shippingInfo.city && shippingInfo.state && (
                   <div className="mt-4 p-3 bg-primary/10 border border-primary/10 rounded-md">
                     <p className="text-sm text-primary">
-                      <strong>Shipping Details:</strong><br/>
+                      <strong>Shipping Estimate:</strong><br/>
                       From: {parseSellerLocation(cart[0]?.location).city}, {parseSellerLocation(cart[0]?.location).state}<br/>
                       To: {shippingInfo.city}, {shippingInfo.state}<br/>
-                      Weight: {cart.reduce((sum, item) => sum + item.quantity, 0)}kg<br/>
-                      Distance: {calculateShippingCost(
+                      Weight: {cartWeightKg.toLocaleString()}kg<br/>
+                      Est. road distance: ~{calculateShippingCost(
                         parseSellerLocation(cart[0]?.location),
                         { city: shippingInfo.city, state: shippingInfo.state, country: "Nigeria" },
-                        cart.reduce((sum, item) => sum + item.quantity, 0),
+                        cartWeightKg,
                         shippingMethod
                       ).distance}km
                     </p>
@@ -895,9 +896,11 @@ export default function CheckoutPage() {
                     <span>₦{subtotal.toLocaleString()}</span>
                   </div>
 
-                  {/* Show calculated shipping cost */}
+                  {/* Estimated shipping cost — the backend recomputes the
+                      authoritative charge from the same model at order
+                      creation, so this may shift slightly by a few naira. */}
                   <div className="flex justify-between">
-                    <span>Shipping</span>
+                    <span>Shipping (estimated)</span>
                     <span>₦{shipping.toLocaleString()}</span>
                   </div>
 

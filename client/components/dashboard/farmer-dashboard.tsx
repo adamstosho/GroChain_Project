@@ -17,6 +17,9 @@ import { Leaf, Package, TrendingUp, Banknote, Plus, Eye, BarChart3, RefreshCw, S
 import Link from "next/link"
 import { AiTrustBadge } from "@/components/ai/ai-trust-badge"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard, textStyles } from "@/lib/design-system"
 import { useAuthStore } from "@/lib/auth"
 
 // Helper function to determine credit score status
@@ -255,8 +258,8 @@ export function FarmerDashboard() {
 
   if (isInitialLoading) {
     return (
-      <div className="space-y-4 sm:space-y-6">
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <DashboardPageShell>
+        <div className={dashboard.statsGrid}>
           {[...Array(5)].map((_, i) => (
             <Card key={i} className="animate-pulse h-full">
               <CardHeader className="space-y-0 pb-2">
@@ -266,7 +269,7 @@ export function FarmerDashboard() {
             </Card>
           ))}
         </div>
-      </div>
+      </DashboardPageShell>
     )
   }
 
@@ -274,7 +277,7 @@ export function FarmerDashboard() {
   const farmerUserId = useAuthStore.getState().user?._id
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 sm:space-y-10 max-w-full overflow-hidden">
+    <DashboardPageShell>
       <DashboardPageHeader
         badge="Farmer Intelligence Active"
         title="Farmer"
@@ -315,47 +318,41 @@ export function FarmerDashboard() {
       />
 
       {/* Stats Overview */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <div className={dashboard.statsGrid}>
         <StatsCard
           title="Total Harvests"
           value={stats?.totalHarvests || 0}
           description="All time harvests"
           icon={Leaf}
-          trend={(stats?.totalHarvests || 0) > 0 ? { value: 12, isPositive: true } : undefined}
         />
         <StatsCard
           title="Pending Approvals"
           value={stats?.pendingApprovals || 0}
           description="Awaiting verification"
           icon={Package}
-          trend={(stats?.pendingApprovals || 0) > 0 ? { value: 2, isPositive: false } : undefined}
         />
         <StatsCard
           title="Active Listings"
           value={stats?.activeListings || 0}
           description="In marketplace"
           icon={TrendingUp}
-          trend={(stats?.activeListings || 0) > 0 ? { value: 8, isPositive: true } : undefined}
         />
         <StatsCard
           title="Revenue This Month"
           value={stats?.monthlyRevenue ? `₦${stats.monthlyRevenue.toLocaleString()}` : "₦0"}
           description="From sales"
           icon={Banknote}
-          trend={(stats?.monthlyRevenue || 0) > 0 ? { value: 15, isPositive: true } : undefined}
         />
         <StatsCard
           title="Total Revenue"
           value={stats?.totalRevenue ? `₦${stats.totalRevenue.toLocaleString()}` : "₦0"}
           description="All time earnings"
           icon={Banknote}
-          trend={(stats?.totalRevenue || 0) > 0 ? { value: 25, isPositive: true } : undefined}
         />
       </div>
 
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+      <div className={dashboard.contentGrid}>
+        <div className={dashboard.contentMain}>
           {/* Quick Actions */}
           <QuickActions actions={quickActions} />
 
@@ -363,7 +360,7 @@ export function FarmerDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Recent Harvests</CardTitle>
+                <CardTitle className={textStyles.cardTitle}>Recent Harvests</CardTitle>
                 <CardDescription>Your latest harvest records</CardDescription>
               </div>
               <Button asChild size="sm">
@@ -400,7 +397,7 @@ export function FarmerDashboard() {
           {/* Performance Overview */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm sm:text-base">Performance Overview</CardTitle>
+              <CardTitle className={textStyles.cardTitleSm}>Performance Overview</CardTitle>
               <CardDescription className="text-xs sm:text-sm">Your farming metrics and analytics</CardDescription>
             </CardHeader>
             <CardContent>
@@ -462,8 +459,7 @@ export function FarmerDashboard() {
           </Card>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-4 sm:space-y-6">
+        <div className={dashboard.contentSide}>
           {/* Weather Widget */}
           <WeatherWidget />
 
@@ -473,19 +469,19 @@ export function FarmerDashboard() {
           {/* Credit Score */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm sm:text-base">Credit Score</CardTitle>
+              <CardTitle className={textStyles.cardTitleSm}>Credit Score</CardTitle>
               <CardDescription className="text-xs sm:text-sm">Your financial standing</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center">
                 {credit && credit.score !== "N/A" ? (
                   <>
-                    <div className="text-2xl sm:text-3xl font-bold text-primary mb-2">
+                    <Text as="div" variant="stat" className="mb-2 text-primary">
                       {credit.score || "N/A"}
-                    </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
+                    </Text>
+                    <Text variant="sm">
                       {getCreditScoreStatus(credit.score)}
-                    </p>
+                    </Text>
                     {credit.factors && (
                       <div className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2">
                         <div className="flex justify-between text-xs">
@@ -509,12 +505,10 @@ export function FarmerDashboard() {
                   </>
                 ) : (
                   <>
-                    <div className="text-2xl sm:text-3xl font-bold text-muted-foreground mb-2">
+                    <Text as="div" variant="stat" className="mb-2 text-muted-foreground">
                       N/A
-                    </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      Calculating your credit score...
-                    </p>
+                    </Text>
+                    <Text variant="sm">Calculating your credit score...</Text>
                   </>
                 )}
                 <Button variant="outline" size="sm" className="mt-3 sm:mt-4 w-full text-xs sm:text-sm">
@@ -525,6 +519,6 @@ export function FarmerDashboard() {
           </Card>
         </div>
       </div>
-    </div>
+    </DashboardPageShell>
   )
 }

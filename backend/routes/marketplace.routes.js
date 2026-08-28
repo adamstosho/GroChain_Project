@@ -106,7 +106,8 @@ router.post('/upload-image', authenticate, authorize('farmer','partner','admin')
 
 // Import marketplace controller
 const marketplaceController = require('../controllers/marketplace.controller')
-const { calculateShippingCost, resolveSellerLocation } = require('../utils/shipping-calculator.util')
+const { calculateShippingCost, resolveSellerLocation, unitToKg } = require('../utils/shipping-calculator.util')
+const { escapeRegex } = require('../utils/regex.util')
 
 // Use the full marketplace controller for listings
 router.get('/listings', marketplaceController.getListings)
@@ -121,7 +122,7 @@ router.get('/listings/:id', marketplaceController.getListing)
 router.get('/search-suggestions', async (req, res) => {
   const { q = '' } = req.query
   const limit = Number(req.query.limit || 10)
-  const regex = new RegExp(q, 'i')
+  const regex = new RegExp(escapeRegex(q), 'i')
   const crops = await Listing.find({ cropName: regex }).limit(limit).select('cropName').lean()
   const categories = await Listing.find({ category: regex }).limit(limit).select('category').lean()
   const tags = await Listing.find({ tags: regex }).limit(limit).select('tags').lean()
@@ -391,6 +392,12 @@ router.post('/listings', authenticate, authorize('farmer','partner','admin'), as
   if (!cropName || basePrice == null || !category || !description || !unit || !quantity || !location) {
     return res.status(400).json({ status: 'error', message: 'Missing required listing fields' })
   }
+  if (!(Number(basePrice) > 0)) {
+    return res.status(400).json({ status: 'error', message: 'basePrice must be a positive number' })
+  }
+  if (!(Number(quantity) > 0)) {
+    return res.status(400).json({ status: 'error', message: 'quantity must be a positive number' })
+  }
   const listing = await Listing.create({
     farmer: req.user.id,
     cropName,
@@ -452,7 +459,6 @@ router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin
       deliveryInstructions,
       paymentMethod,
       notes,
-      shipping,
       shippingMethod
     } = req.body || {}
 
@@ -469,9 +475,10 @@ router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin
       return res.status(400).json({ status: 'error', message: 'Complete shipping address is required' })
     }
 
-    // Validate inventory and source prices from the listing itself — never
-    // trust a client-submitted price or skip stock validation.
+    // Validate inventory and source prices/units from the listing itself —
+    // never trust a client-submitted price, unit, or skip stock validation.
     const listingPriceById = new Map()
+    const listingUnitById = new Map()
     let sellerOriginListing = null
     for (const item of items) {
       const listing = await Listing.findById(item.listing).session(session)
@@ -489,6 +496,7 @@ router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin
         })
       }
       listingPriceById.set(item.listing.toString(), listing.basePrice)
+      listingUnitById.set(item.listing.toString(), listing.unit)
       if (!sellerOriginListing) {
         sellerOriginListing = listing
       }
@@ -497,21 +505,23 @@ router.post('/orders', authenticate, authorize('buyer','farmer','partner','admin
     // Calculate totals from the authoritative listing price, not the client-submitted one
     const subtotal = items.reduce((s, it) => s + (Number(it.quantity) * listingPriceById.get(it.listing.toString())), 0)
 
-    // Use provided shipping cost or calculate it
-    let shippingCost = shipping || 0
-    if (shippingCost === 0 && shippingMethod && shippingAddress) {
-      // Derive the shipping origin from the actual seller's listing location
-      // rather than assuming a single city — farmers list from across Nigeria.
-      const originLocation = resolveSellerLocation(null, sellerOriginListing?.location)
+    // Shipping is always computed server-side from the authoritative seller
+    // origin, buyer destination, and real item weight — a client-submitted
+    // shipping figure is never trusted for the amount actually charged,
+    // exactly like item pricing above. The client-side estimate shown at
+    // checkout is only a preview; this is the number that's actually billed.
+    const totalWeightKg = items.reduce(
+      (sum, item) => sum + unitToKg(item.quantity, listingUnitById.get(item.listing.toString())),
+      0
+    )
+    const originLocation = resolveSellerLocation(null, sellerOriginListing?.location)
+    const shippingCost = calculateShippingCost(
+      originLocation,
+      { city: shippingAddress.city, state: shippingAddress.state, country: shippingAddress.country || 'Nigeria' },
+      totalWeightKg,
+      shippingMethod || 'road_standard'
+    )
 
-      shippingCost = calculateShippingCost(
-        originLocation,
-        { city: shippingAddress.city, state: shippingAddress.state, country: shippingAddress.country || 'Nigeria' },
-        items.reduce((sum, item) => sum + Number(item.quantity), 0), // Total weight
-        shippingMethod
-      )
-    }
-    
     const tax = 0 // VAT removed
     const total = subtotal + shippingCost
 
@@ -755,6 +765,13 @@ router.put('/listings/:id', authenticate, authorize('farmer','partner','admin'),
       status
     } = req.body || {}
 
+    if (basePrice !== undefined && !(Number(basePrice) > 0)) {
+      return res.status(400).json({ status: 'error', message: 'basePrice must be a positive number' })
+    }
+    if (quantity !== undefined && !(Number(quantity) > 0)) {
+      return res.status(400).json({ status: 'error', message: 'quantity must be a positive number' })
+    }
+
     // Update fields if provided
     if (cropName !== undefined) listing.cropName = cropName
     if (category !== undefined) listing.category = category
@@ -788,6 +805,12 @@ router.patch('/listings/:id', authenticate, authorize('farmer','partner','admin'
       return res.status(403).json({ status: 'error', message: 'Forbidden' })
     }
     const { status, description, images, basePrice, quantity } = req.body || {}
+    if (basePrice !== undefined && !(Number(basePrice) > 0)) {
+      return res.status(400).json({ status: 'error', message: 'basePrice must be a positive number' })
+    }
+    if (quantity !== undefined && !(Number(quantity) > 0)) {
+      return res.status(400).json({ status: 'error', message: 'quantity must be a positive number' })
+    }
     if (status) listing.status = status
     if (description !== undefined) listing.description = description
     if (images !== undefined) listing.images = images
@@ -959,6 +982,8 @@ router.get('/orders/:id/receipt', authenticate, async (req, res) => {
   }
 })
 
+const { ORDER_STATUS_TRANSITIONS } = require('../utils/orderStatus.util')
+
 router.get('/orders/buyer/:buyerId', authenticate, async (req, res) => {
   if (req.user.id !== req.params.buyerId && req.user.role !== 'admin') {
     return res.status(403).json({ status: 'error', message: 'Forbidden' })
@@ -1017,10 +1042,47 @@ router.patch('/orders/:id/status', authenticate, async (req, res) => {
     } else if (req.user.role !== 'admin') {
       return res.status(403).json({ status: 'error', message: 'Insufficient permissions' })
     }
-    
-    // When cancelling a paid order, restore listing inventory (stock was decremented on payment)
-    const wasPaid = order.paymentStatus === 'paid' || ['paid', 'processing', 'shipped', 'delivered'].includes(order.status)
-    if (status === 'cancelled' && wasPaid && order.status !== 'cancelled') {
+
+    // Enforce a valid state machine for farmer/partner/admin updates (buyers
+    // are already fully constrained above to pending -> cancelled only).
+    // Without this, any of those roles could set an order straight from
+    // e.g. 'pending' to 'delivered', or to 'refunded' without any money
+    // actually moving.
+    if (req.user.role !== 'buyer' && status !== order.status) {
+      const allowedNext = ORDER_STATUS_TRANSITIONS[order.status] || []
+      if (!allowedNext.includes(status)) {
+        return res.status(400).json({
+          status: 'error',
+          message: `Cannot change order status from '${order.status}' to '${status}'`
+        })
+      }
+    }
+
+    // Cancelling an order that was actually paid must actually refund the
+    // buyer — not just put the stock back and mark it "cancelled" while
+    // their money silently stays captured with no ledger record. Reuses the
+    // same locked, provider-calling refund flow as POST /payment/refund
+    // (it also restores inventory as part of its own DB transaction, so
+    // this path no longer needs its own separate restore-stock step).
+    if (status === 'cancelled' && order.paymentStatus === 'paid' && order.status !== 'cancelled') {
+      const { refundOrderCore } = require('../controllers/payment.controller')
+      const result = await refundOrderCore(order._id, {
+        reason: `Order cancelled by ${req.user.role}`,
+        resultingOrderStatus: 'cancelled'
+      })
+      if (!result.success) {
+        return res.status(result.statusCode).json({ status: 'error', message: result.message })
+      }
+      const updatedOrder = await Order.findById(order._id)
+      return res.json({ status: 'success', data: updatedOrder })
+    }
+
+    // Cancelling an order whose status implies stock was reserved, but
+    // paymentStatus isn't 'paid' (either never charged, or an inconsistent
+    // legacy state) — just restore inventory, since no money was captured
+    // for refundOrderCore to act on.
+    const wasReserved = ['paid', 'processing', 'shipped', 'delivered'].includes(order.status)
+    if (status === 'cancelled' && wasReserved && order.paymentStatus !== 'paid' && order.status !== 'cancelled') {
       const session = await mongoose.startSession()
       session.startTransaction()
       try {

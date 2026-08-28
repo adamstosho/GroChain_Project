@@ -18,6 +18,8 @@ import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { ShoppingCart, Package, Heart, TrendingUp, Search, QrCode, Eye, RefreshCw, Brain, Sparkles, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import { useAuthStore } from "@/lib/auth"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { dashboard, textStyles } from "@/lib/design-system"
 
 interface DashboardStats {
   totalOrders: number
@@ -389,8 +391,8 @@ export function BuyerDashboard() {
 
   if (isInitialLoading) {
     return (
-      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
+      <DashboardPageShell>
+        <div className={dashboard.statsGrid4}>
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader className="space-y-0 pb-2">
@@ -400,14 +402,14 @@ export function BuyerDashboard() {
             </Card>
           ))}
         </div>
-      </div>
+      </DashboardPageShell>
     )
   }
 
   const buyerName = useAuthStore.getState().user?.name || "Buyer"
 
   return (
-    <div className="space-y-6 sm:space-y-10 px-4 sm:px-6 max-w-full overflow-hidden">
+    <DashboardPageShell>
       <DashboardPageHeader
         badge="Buyer Intelligence Active"
         title="Buyer"
@@ -444,34 +446,30 @@ export function BuyerDashboard() {
       />
 
       {/* Stats Overview */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={dashboard.statsGrid4}>
         <StatsCard
           title="Total Orders"
           value={stats?.totalOrders || 0}
           description="All time purchases"
           icon={ShoppingCart}
-          trend={(stats?.totalOrders || 0) > 0 ? { value: Math.min(Math.floor(Math.random() * 20) + 1, 25), isPositive: true } : undefined}
         />
         <StatsCard
           title="Total Spent"
           value={`₦${(stats?.totalSpent || 0).toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
           description="Lifetime spending"
           icon={TrendingUp}
-          trend={(stats?.totalSpent || 0) > 0 ? { value: Math.min(Math.floor(Math.random() * 30) + 5, 35), isPositive: true } : undefined}
         />
         <StatsCard
           title="Favorites"
           value={stats?.favorites || 0}
           description="Saved products"
           icon={Heart}
-          trend={(stats?.favorites || 0) > 0 ? { value: Math.min(Math.floor(Math.random() * 15) + 1, 20), isPositive: true } : undefined}
         />
         <StatsCard
           title="This Month"
           value={`₦${(stats?.monthlySpent || 0).toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
           description="Monthly spending"
           icon={Package}
-          trend={(stats?.monthlySpent || 0) > 0 ? { value: Math.min(Math.floor(Math.random() * 25) + 10, 30), isPositive: true } : undefined}
         />
       </div>
 
@@ -489,9 +487,9 @@ export function BuyerDashboard() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className={dashboard.contentGrid}>
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className={dashboard.contentMain}>
           {/* Quick Actions */}
           <QuickActions actions={quickActions} />
 
@@ -499,7 +497,7 @@ export function BuyerDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Featured Products</CardTitle>
+                <CardTitle className={textStyles.cardTitle}>Featured Products</CardTitle>
                 <CardDescription>Fresh, verified produce from local farmers</CardDescription>
               </div>
               <Button asChild size="sm">
@@ -535,7 +533,7 @@ export function BuyerDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Recent Orders</CardTitle>
+                <CardTitle className={textStyles.cardTitle}>Recent Orders</CardTitle>
                 <CardDescription>Your latest purchases</CardDescription>
               </div>
               <Button asChild size="sm">
@@ -593,13 +591,13 @@ export function BuyerDashboard() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className={dashboard.contentSide}>
           <RecentActivity />
 
           {/* QR Scanner */}
           <Card>
             <CardHeader>
-              <CardTitle>QR Code Scanner</CardTitle>
+              <CardTitle className={textStyles.cardTitleSm}>QR Code Scanner</CardTitle>
               <CardDescription>Verify product authenticity</CardDescription>
             </CardHeader>
             <CardContent>
@@ -614,7 +612,7 @@ export function BuyerDashboard() {
             </CardContent>
           </Card>
 
-          {/* AI Shopping Advice */}
+          {/* Buyer tips */}
           <Card className="relative overflow-hidden border border-primary/15 bg-gradient-to-br from-primary/5 to-secondary/10">
             <div className="pointer-events-none absolute right-0 top-0 p-4 opacity-20">
               <Brain className="h-20 w-20 text-primary" />
@@ -622,7 +620,7 @@ export function BuyerDashboard() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm sm:text-base">AI Shopping Advice</CardTitle>
+                <CardTitle className={textStyles.cardTitleSm}>Buyer tips</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
@@ -631,9 +629,9 @@ export function BuyerDashboard() {
                   <div className="flex items-start gap-3">
                     <ShieldCheck className="mt-0.5 h-4 w-4 text-primary" />
                     <div>
-                      <p className="mb-1 text-xs font-semibold text-foreground">Verify Authenticity</p>
+                      <p className="mb-1 text-xs font-semibold text-foreground">Verify before you pay</p>
                       <p className="text-[10px] leading-relaxed text-muted-foreground">
-                        Always use the QR scanner to verify crop origin and harvest batch before finalizing payments.
+                        Use the QR scanner to confirm batch ID, farmer, and harvest details on the public verify page.
                       </p>
                     </div>
                   </div>
@@ -643,9 +641,9 @@ export function BuyerDashboard() {
                   <div className="flex items-start gap-3">
                     <TrendingUp className="mt-0.5 h-4 w-4 text-primary" />
                     <div>
-                      <p className="mb-1 text-xs font-semibold text-foreground">Market Pulse Insight</p>
+                      <p className="mb-1 text-xs font-semibold text-foreground">Check seller trust signals</p>
                       <p className="text-[10px] leading-relaxed text-muted-foreground">
-                        Potato prices are expected to stabilize this week. Good time to stock up on bulk grains from northern farmers.
+                        Review order history and trust badges on shipments — scores reflect platform activity, not a credit guarantee.
                       </p>
                     </div>
                   </div>
@@ -655,9 +653,9 @@ export function BuyerDashboard() {
                   <div className="flex items-start gap-3">
                     <Heart className="mt-0.5 h-4 w-4 text-destructive" />
                     <div>
-                      <p className="mb-1 text-xs font-semibold text-foreground">Quality First</p>
+                      <p className="mb-1 text-xs font-semibold text-foreground">Save favourites</p>
                       <p className="text-[10px] leading-relaxed text-muted-foreground">
-                        Look for farmers with &quot;Grade A&quot; trust score for highly sensitive produce like tomatoes and berry crops.
+                        Bookmark trusted sellers from your orders to reorder quickly from the Favorites page.
                       </p>
                     </div>
                   </div>
@@ -667,6 +665,6 @@ export function BuyerDashboard() {
           </Card>
         </div>
       </div>
-    </div>
+    </DashboardPageShell>
   )
 }

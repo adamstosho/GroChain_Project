@@ -3,6 +3,8 @@
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display } from "@/components/ui/typography"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -215,7 +217,7 @@ function CreateShipmentContent() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-[1400px] mx-auto pb-10">
+      <DashboardPageShell className="max-w-[1400px] mx-auto pb-10">
         {/* Premium Header */}
         <div className="bg-background/40 backdrop-blur-md p-6 rounded-3xl border border-border/40 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -229,7 +231,7 @@ function CreateShipmentContent() {
               Back
             </Button>
             <div className="space-y-1">
-              <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground tracking-tight">Create Shipment</h1>
+              <Display as="h1" variant="page">Create Shipment</Display>
               <p className="text-muted-foreground font-medium">Initialize fulfillment for your paid farmer orders</p>
             </div>
           </div>
@@ -379,7 +381,7 @@ function CreateShipmentContent() {
             )}
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }
@@ -388,18 +390,14 @@ export default function CreateShipmentPage() {
   return (
     <Suspense fallback={
       <DashboardLayout>
-        <div className="space-y-4 sm:space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Create Shipment</h1>
-              <p className="text-sm sm:text-base text-muted-foreground">Loading...</p>
-            </div>
-          </div>
+        <DashboardPageShell>
+          <Display as="h1" variant="page">Create Shipment</Display>
+          <p className="text-sm sm:text-base text-muted-foreground">Loading...</p>
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
             <div className="h-64 sm:h-72 lg:h-80 bg-muted rounded animate-pulse" />
             <div className="xl:col-span-2 h-64 sm:h-72 lg:h-80 bg-muted rounded animate-pulse" />
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     }>
       <CreateShipmentContent />

@@ -39,6 +39,10 @@ import { getTokenFromStorage } from "@/lib/auth-storage"
 import type { Product } from "@/lib/types"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { StaggerGrid } from "@/components/motion/stagger-grid"
+import { PageContainer } from "@/components/layout/page-container"
+import { Display, Text } from "@/components/ui/typography"
+import { layout } from "@/lib/design-system"
 
 function formatLocation(location: unknown): string {
   if (!location) return ""
@@ -160,17 +164,6 @@ export default function MarketplacePage() {
       }
     }
   }, [hasHydrated, isAuthenticated, user, fetchFavorites])
-
-  // Check refresh needed after checkouts
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const needsRefresh = localStorage.getItem('marketplace_refresh_needed')
-      if (needsRefresh === 'true') {
-        localStorage.removeItem('marketplace_refresh_needed')
-        fetchProducts()
-      }
-    }
-  }, [])
 
   const fetchProducts = useCallback(async () => {
     const generation = begin()
@@ -448,8 +441,8 @@ export default function MarketplacePage() {
     <div className="min-h-screen flex flex-col bg-background antialiased">
       <Header />
       
-      <main className="flex-1 py-8 bg-gradient-to-b from-muted via-white to-success/15">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="flex-1 bg-gradient-to-b from-muted via-background to-success/15 py-8">
+        <PageContainer>
           
           {/* Breadcrumbs / Back navigation */}
           <div className="flex items-center justify-between mb-8">
@@ -481,29 +474,28 @@ export default function MarketplacePage() {
                 <span className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse" />
                 Zero Middlemen & Blockchain Verified
               </div>
-              <h1 className="text-3xl sm:text-5xl font-bold tracking-tight mb-4 text-primary-foreground leading-tight font-serif">
-                {greeting}{user?.name ? ` ${user.name.split(" ")[0]}` : ""}, welcome to the <span className="underline decoration-secondary decoration-2 underline-offset-4">GroChain Marketplace</span>
-              </h1>
-              <p className="text-primary-foreground/90 text-sm sm:text-base leading-relaxed mb-6 font-medium">
+              <Display as="h1" variant="hero" className="mb-4 text-primary-foreground">
+                {[greeting, user?.name?.trim().split(" ")[0]].filter(Boolean).join(", ")}, welcome to the <span className="underline decoration-secondary decoration-2 underline-offset-4">GroChain Marketplace</span>
+              </Display>
+              <Text variant="sm" className="mb-6 font-medium text-primary-foreground/90 sm:text-base">
                 Source premium, traceably verified farm products directly from certified Nigerian smallholders. Safe escrow payments and integrated cold-chain logistics.
-              </p>
+              </Text>
 
-              {/* Stats Strip */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-5 border-t border-white/20">
+              <div className={layout.gridStats + " border-t border-white/20 pt-5"}>
                 <div className="flex flex-col">
-                  <span className="text-2xl font-bold text-primary-foreground">5,000+</span>
+                  <Text as="span" variant="stat" className="text-primary-foreground">5,000+</Text>
                   <span className="text-xs text-primary-foreground/70 font-medium">Verified Farmers</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-2xl font-bold text-primary-foreground">12,000+</span>
+                  <Text as="span" variant="stat" className="text-primary-foreground">12,000+</Text>
                   <span className="text-xs text-primary-foreground/70 font-medium">Tons Traced</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-2xl font-bold text-primary-foreground">₦0</span>
+                  <Text as="span" variant="stat" className="text-primary-foreground">₦0</Text>
                   <span className="text-xs text-primary-foreground/70 font-medium">Broker Commission</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-2xl font-bold text-primary-foreground">100%</span>
+                  <Text as="span" variant="stat" className="text-primary-foreground">100%</Text>
                   <span className="text-xs text-primary-foreground/70 font-medium">Escrow Protected</span>
                 </div>
               </div>
@@ -836,12 +828,13 @@ export default function MarketplacePage() {
                   </div>
                 )}
                 
-                <div
+                <StaggerGrid
                   className={
                     viewMode === "grid"
                       ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4"
                       : "space-y-4"
                   }
+                  resetKey={`${viewMode}-${adjustedProducts.map((p) => (p as any).id || (p as any)._id).join(",")}`}
                 >
                   {adjustedProducts.map((product) => (
                     <MarketplaceCard
@@ -854,7 +847,7 @@ export default function MarketplacePage() {
                       onShare={(id) => handleMarketplaceAction("share", id)}
                     />
                   ))}
-                </div>
+                </StaggerGrid>
               </div>
 
               {/* Empty state */}
@@ -1013,7 +1006,7 @@ export default function MarketplacePage() {
             </div>
           </div>
 
-        </div>
+        </PageContainer>
       </main>
 
       <Footer />

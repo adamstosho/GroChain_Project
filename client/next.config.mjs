@@ -29,9 +29,14 @@ const nextConfig = {
   },
   // Silence the warning about multiple lockfiles in monorepo
   outputFileTracingRoot: path.join(__dirname, '../'),
-  // Add experimental features for better chunk loading
-  experimental: {
-    optimizePackageImports: ['@/components', '@/lib', '@/hooks'],
+  async rewrites() {
+    const apiOrigin = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${apiOrigin}/api/:path*`,
+      },
+    ]
   },
   // Add webpack optimization for chunk loading
   webpack: (config, { isServer, dev }) => {
@@ -79,7 +84,7 @@ const pwaConfig = withPWA({
   dest: 'public',
   register: !isVercel && !isDevelopment,
   skipWaiting: !isVercel && !isDevelopment,
-  disable: isDevelopment || isVercel, // Disable in development and Vercel
+  disable: isDevelopment || isVercel || process.env.DISABLE_PWA === '1',
   buildExcludes: [/middleware-manifest\.json$/, /routes-manifest\.json$/, /app-build-manifest\.json$/],
   fallbacks: {
     document: '/offline',

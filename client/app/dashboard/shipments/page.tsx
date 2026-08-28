@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -112,7 +115,7 @@ export default function ShipmentsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-[1600px] mx-auto pb-10">
+      <DashboardPageShell className="max-w-[1600px] mx-auto pb-10">
         <DashboardPageHeader
           badge="Logistics Intelligence Active"
           title="Shipments"
@@ -151,7 +154,7 @@ export default function ShipmentsPage() {
         />
 
         {/* Stats Grid */}
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <div className={dashboard.statsGrid4}>
           {[
             { label: 'Total Shipments', value: stats?.totalShipments || 0, icon: Package, color: 'text-primary', bg: 'bg-primary/10' },
             { label: 'In Transit', value: getStatusCount('in_transit'), icon: Clock, color: 'text-warning', bg: 'bg-warning/10' },
@@ -164,9 +167,9 @@ export default function ShipmentsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground mb-1">{item.label}</p>
-                    <p className="text-3xl font-bold text-foreground">
+                    <Text as="p" variant="stat" className="text-foreground">
                       {statsLoading ? <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" /> : item.value}
-                    </p>
+                    </Text>
                   </div>
                   <div className={`p-3 rounded-xl ${item.bg}`}>
                     <item.icon className={`h-6 w-6 ${item.color}`} />
@@ -487,7 +490,7 @@ export default function ShipmentsPage() {
             </Card>
           )}
         </div>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

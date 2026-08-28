@@ -3,6 +3,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display, Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { 
   CheckCircle, 
   AlertTriangle,
@@ -42,11 +45,11 @@ export function OnboardingWorkflow() {
   })
 
   return (
-    <div className="space-y-6">
+    <DashboardPageShell>
       {/* Workflow Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">{workflow.name}</h3>
+          <Display as="h3" variant="sub">{workflow.name}</Display>
           <p className="text-sm text-muted-foreground">
             Standard farmer onboarding process with {workflow.stages.length} stages
           </p>
@@ -152,26 +155,26 @@ export function OnboardingWorkflow() {
           <CardDescription>Overall onboarding process statistics</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className={`${dashboard.statsGrid4} md:grid-cols-3`}>
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">{workflow.stages.length}</div>
+              <Text as="div" variant="stat" className="text-primary">{workflow.stages.length}</Text>
               <p className="text-sm text-muted-foreground">Total Stages</p>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-success">
+              <Text as="div" variant="stat" className="text-success">
                 {workflow.stages.filter(s => s.required).length}
-              </div>
+              </Text>
               <p className="text-sm text-muted-foreground">Required Stages</p>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-accent">
+              <Text as="div" variant="stat" className="text-accent">
                 {workflow.stages.reduce((sum, stage) => sum + stage.estimatedDuration, 0)}
-              </div>
+              </Text>
               <p className="text-sm text-muted-foreground">Total Duration (days)</p>
             </div>
           </div>
         </CardContent>
       </Card>
-    </div>
+    </DashboardPageShell>
   )
 }

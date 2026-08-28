@@ -13,7 +13,12 @@ class ApiService {
   private isRefreshing: boolean = false
 
   constructor() {
-    this.baseUrl = APP_CONFIG.api.baseUrl
+    // In the browser during local dev, use same-origin /api rewrites to avoid CORS on alternate ports.
+    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+      this.baseUrl = ""
+    } else {
+      this.baseUrl = APP_CONFIG.api.baseUrl
+    }
     this.loadTokenFromStorage()
   }
 
@@ -712,9 +717,14 @@ class ApiService {
     }
   }
 
-  async createHarvest(harvestData: Partial<Harvest>) {
+  async createHarvest(harvestData: Partial<Harvest>, options?: { idempotencyKey?: string }) {
+    const headers: Record<string, string> = {}
+    if (options?.idempotencyKey) {
+      headers['Idempotency-Key'] = options.idempotencyKey.slice(0, 128)
+    }
     return this.request<Harvest>("/api/harvests", {
       method: "POST",
+      headers,
       body: JSON.stringify(harvestData as any),
     })
   }
@@ -767,13 +777,25 @@ class ApiService {
   }
 
   async createOrder(orderData: Partial<Order>, options?: { idempotencyKey?: string }) {
+    const idempotencyKey =
+      options?.idempotencyKey ||
+      (orderData as { idempotencyKey?: string }).idempotencyKey ||
+      (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : undefined)
+
     const headers: Record<string, string> = {}
-    if (options?.idempotencyKey) {
-      headers['Idempotency-Key'] = options.idempotencyKey.slice(0, 128)
+    if (idempotencyKey) {
+      headers['Idempotency-Key'] = idempotencyKey.slice(0, 128)
     }
+
+    const { idempotencyKey: _ignored, ...payload } = orderData as Partial<Order> & {
+      idempotencyKey?: string
+    }
+
     return this.request<Order>("/api/marketplace/orders", {
       method: "POST",
-      body: JSON.stringify(orderData),
+      body: JSON.stringify(
+        idempotencyKey ? { ...payload, idempotencyKey } : payload
+      ),
       headers,
     })
   }
@@ -1023,10 +1045,45 @@ class ApiService {
     return this.request(`/api/fintech/loan-applications?${params.toString()}`)
   }
 
-  async createLoanApplication(data: { amount: number; purpose: string; term: number; description?: string }) {
+  async getLoanApplication(id: string) {
+    return this.request(`/api/fintech/loan-applications/${id}`)
+  }
+
+  async createLoanApplication(data: {
+    amount: number
+    purpose: string
+    term: number
+    description?: string
+    interestRate?: number
+    collateral?: string
+    collateralValue?: number
+    monthlyIncome?: number
+    existingLoans?: number
+    documents?: string[]
+    farmerId?: string
+  }) {
     return this.request(`/api/fintech/loan-applications`, {
       method: "POST",
       body: JSON.stringify(data),
+    })
+  }
+
+  async acceptLoanApplication(id: string) {
+    return this.request(`/api/fintech/loan-applications/${id}/accept`, {
+      method: "POST",
+    })
+  }
+
+  async recordLoanPayment(id: string) {
+    return this.request(`/api/fintech/loan-applications/${id}/payments`, {
+      method: "POST",
+    })
+  }
+
+  async initializeLoanPayment(loanApplicationId: string, callbackUrl?: string) {
+    return this.request(`/api/payments/loan/initialize`, {
+      method: "POST",
+      body: JSON.stringify({ loanApplicationId, callbackUrl }),
     })
   }
 
@@ -1604,6 +1661,21 @@ class ApiService {
     }>(`/api/commissions?${queryString}`)
   }
 
+  // Partner-facing: requests a payout (records payout details for an admin
+  // to review) — does not mark anything paid.
+  async requestCommissionPayout(data: {
+    commissionIds: string[]
+    payoutMethod: string
+    payoutDetails: any
+    notes?: string
+  }) {
+    return this.request('/api/commissions/payout-request', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+  }
+
+  // Admin-only: actually executes the payout (marks paid + writes the ledger entry)
   async processCommissionPayout(data: {
     commissionIds: string[]
     payoutMethod: string
@@ -2092,26 +2164,19 @@ class ApiService {
 
   // QR Code Verification Methods
   async verifyQRCode(batchId: string) {
-    // Try the public verify endpoint first, if it fails, return a mock response for testing
-    try {
-      return await this.request<{
-        verified: boolean
-        batchId: string
-        cropType: string
-        harvestDate: string
-        quantity: number
-        unit: string
-        quality: string
-        location: any
-        farmer: string
-        status: string
-        message?: string
-      }>(`/api/verify/${batchId}`)
-    } catch (error) {
-      console.warn('Verify endpoint failed, using fallback:', error)
-      // Return a fallback response for testing
-      throw error
-    }
+    return await this.request<{
+      verified: boolean
+      batchId: string
+      cropType: string
+      harvestDate: string
+      quantity: number
+      unit: string
+      quality: string
+      location: any
+      farmer: string
+      status: string
+      message?: string
+    }>(`/api/verify/${batchId}`)
   }
 
   async getQRProvenance(batchId: string) {

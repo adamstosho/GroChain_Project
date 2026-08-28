@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { 
@@ -284,41 +286,36 @@ export default function QRCodeDetailPage() {
 
   return (
     <DashboardLayout pageTitle={`QR Code: ${qrCode.batchId}`}>
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
-                <Link href="/dashboard/qr-codes" className="flex items-center gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to QR Codes
+      <DashboardPageShell>
+        <Button variant="ghost" asChild className="w-fit text-muted-foreground hover:text-foreground">
+          <Link href="/dashboard/qr-codes" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to QR Codes
+          </Link>
+        </Button>
+
+        <DashboardSubpageHeader
+          title="QR Code Details"
+          description="Comprehensive information about your QR code and its usage"
+          actions={
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button variant="outline" onClick={handleCopyLink}>
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Link
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href={`/verify/${qrCode.batchId}`} target="_blank">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Verify Online
                 </Link>
               </Button>
+              <Button onClick={() => handleDownload('png')}>
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
             </div>
-            <h1 className="text-2xl font-semibold text-foreground">QR Code Details</h1>
-            <p className="text-muted-foreground">
-              Comprehensive information about your QR code and its usage
-            </p>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button variant="outline" onClick={handleCopyLink}>
-              <Copy className="h-4 w-4 mr-2" />
-              Copy Link
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href={`/verify/${qrCode.batchId}`} target="_blank">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Verify Online
-              </Link>
-            </Button>
-            <Button onClick={() => handleDownload('png')}>
-              <Download className="h-4 w-4 mr-2" />
-              Download
-            </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* QR Code Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -684,7 +681,7 @@ export default function QRCodeDetailPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </DashboardPageShell>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

@@ -2,6 +2,20 @@ const User = require('../models/user.model')
 const Harvest = require('../models/harvest.model')
 const Listing = require('../models/listing.model')
 const Order = require('../models/order.model')
+const Partner = require('../models/partner.model')
+const { escapeRegex } = require('../utils/regex.util')
+
+// Partner staff authenticate as a User, but User.partner (on a farmer
+// record) refs the Partner *organization* document, never the staff user's
+// own User _id. Comparing/assigning against req.user.id directly always
+// mismatches — either silently denying a partner their own farmers, or (on
+// create) writing a farmer's `partner` field to a value that doesn't
+// reference any real Partner document. Resolve the acting partner org once.
+async function resolveActingPartnerId(user) {
+  if (!user || user.role !== 'partner') return null
+  const partner = await Partner.findOne({ email: user.email }).select('_id')
+  return partner ? partner._id.toString() : null
+}
 
 const userController = {
   // Get user overview (Admin/Manager)
@@ -16,7 +30,7 @@ const userController = {
       
       const query = {}
       if (req.user.role === 'partner') {
-        query.partner = req.user.id
+        query.partner = await resolveActingPartnerId(req.user)
       }
       
       const [totalUsers, activeUsers, suspendedUsers] = await Promise.all([
@@ -84,7 +98,7 @@ const userController = {
       
       // Role-based filtering
       if (req.user.role === 'partner') {
-        query.partner = req.user.id
+        query.partner = await resolveActingPartnerId(req.user)
       }
       
       // Apply filters
@@ -94,10 +108,11 @@ const userController = {
       
       // Search functionality
       if (search) {
+        const searchRegex = new RegExp(escapeRegex(search), 'i')
         query.$or = [
-          { name: new RegExp(search, 'i') },
-          { email: new RegExp(search, 'i') },
-          { phone: new RegExp(search, 'i') }
+          { name: searchRegex },
+          { email: searchRegex },
+          { phone: searchRegex }
         ]
       }
       
@@ -149,7 +164,7 @@ const userController = {
       
       const query = { _id: userId }
       if (req.user.role === 'partner') {
-        query.partner = req.user.id
+        query.partner = await resolveActingPartnerId(req.user)
       }
       
       const user = await User.findOne(query)
@@ -212,9 +227,20 @@ const userController = {
             message: 'Partners can only create farmer accounts'
           })
         }
-        req.body.partner = req.user.id
+        // Must be the Partner *organization* _id (User.partner refs Partner,
+        // not User) — using req.user.id here would silently mislink every
+        // farmer a partner creates, making them invisible to that partner's
+        // own farmer/loan/insurance/commission queries.
+        const actingPartnerId = await resolveActingPartnerId(req.user)
+        if (!actingPartnerId) {
+          return res.status(403).json({
+            status: 'error',
+            message: 'Partner profile not found'
+          })
+        }
+        req.body.partner = actingPartnerId
       }
-      
+
       const user = await User.create(req.body)
       
       res.status(201).json({
@@ -244,7 +270,7 @@ const userController = {
       
       const query = { _id: userId }
       if (req.user.role === 'partner') {
-        query.partner = req.user.id
+        query.partner = await resolveActingPartnerId(req.user)
       }
       
       const user = await User.findOne(query)
@@ -335,15 +361,25 @@ const userController = {
       
       const createdUsers = []
       const errors = []
-      
+
+      // Must be the Partner *organization* _id (User.partner refs Partner,
+      // not User) — see createUser for why req.user.id would be wrong here.
+      const actingPartnerId = req.user.role === 'partner' ? await resolveActingPartnerId(req.user) : null
+      if (req.user.role === 'partner' && !actingPartnerId) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Partner profile not found'
+        })
+      }
+
       for (const userData of users) {
         try {
           // Set partner ID for partner users
           if (req.user.role === 'partner') {
-            userData.partner = req.user.id
+            userData.partner = actingPartnerId
             userData.role = 'farmer'
           }
-          
+
           const user = await User.create(userData)
           createdUsers.push(user)
         } catch (error) {
@@ -386,7 +422,7 @@ const userController = {
       
       const query = { _id: userId }
       if (req.user.role === 'partner') {
-        query.partner = req.user.id
+        query.partner = await resolveActingPartnerId(req.user)
       }
       
       const user = await User.findOne(query)
@@ -448,16 +484,17 @@ const userController = {
         })
       }
       
+      const searchRegex = new RegExp(escapeRegex(q), 'i')
       const query = {
         $or: [
-          { name: new RegExp(q, 'i') },
-          { email: new RegExp(q, 'i') },
-          { phone: new RegExp(q, 'i') }
+          { name: searchRegex },
+          { email: searchRegex },
+          { phone: searchRegex }
         ]
       }
       
       if (req.user.role === 'partner') {
-        query.partner = req.user.id
+        query.partner = await resolveActingPartnerId(req.user)
       }
       
       if (role) query.role = role
@@ -510,7 +547,7 @@ const userController = {
       
       const query = { _id: userId }
       if (req.user.role === 'partner') {
-        query.partner = req.user.id
+        query.partner = await resolveActingPartnerId(req.user)
       }
       
       const user = await User.findOne(query)
@@ -555,7 +592,7 @@ const userController = {
       
       const query = { _id: userId }
       if (req.user.role === 'partner') {
-        query.partner = req.user.id
+        query.partner = await resolveActingPartnerId(req.user)
       }
       
       const user = await User.findOne(query)
@@ -600,7 +637,7 @@ const userController = {
       
       const query = { _id: userId }
       if (req.user.role === 'partner') {
-        query.partner = req.user.id
+        query.partner = await resolveActingPartnerId(req.user)
       }
       
       const user = await User.findOne(query)

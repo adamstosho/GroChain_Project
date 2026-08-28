@@ -24,6 +24,9 @@ import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { MarketplaceCard, type MarketplaceProduct } from "@/components/agricultural/marketplace-card"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { dashboard } from "@/lib/design-system"
 
 interface ListingFormData {
   cropName: string
@@ -379,32 +382,26 @@ function CreateListingPage() {
 
   return (
     <DashboardLayout pageTitle="Create New Listing">
-      <div className="space-y-4 sm:space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
-          <div className="space-y-1 sm:space-y-2 min-w-0 flex-1">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground h-8 sm:h-9">
-                <Link href="/dashboard/marketplace" className="flex items-center gap-2 text-sm sm:text-base">
-                  <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Back to Listings</span>
-                  <span className="sm:hidden">Back</span>
-                </Link>
-              </Button>
-            </div>
-            <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-foreground">
-              {harvestId ? 'List Your Harvest' : 'Create New Listing'}
-            </h1>
-            <p className="text-xs sm:text-sm lg:text-base text-muted-foreground">
-              {harvestId
-                ? 'Set a price and list your approved harvest in your listings'
-                : 'List your agricultural products in your listings to reach more customers'
-              }
-            </p>
-          </div>
-        </div>
+      <DashboardPageShell>
+        <DashboardSubpageHeader
+          title={harvestId ? "List Your Harvest" : "Create New Listing"}
+          description={
+            harvestId
+              ? "Set a price and list your approved harvest in your listings"
+              : "List your agricultural products in your listings to reach more customers"
+          }
+          actions={
+            <Button variant="ghost" asChild className="h-8 text-muted-foreground hover:text-foreground sm:h-9">
+              <Link href="/dashboard/marketplace" className="flex items-center gap-2 text-sm sm:text-base">
+                <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Back to Listings</span>
+                <span className="sm:hidden">Back</span>
+              </Link>
+            </Button>
+          }
+        />
 
-        <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3">
+        <div className={dashboard.contentGrid}>
           {/* Main Form */}
           <div className="lg:col-span-2">
             {loadingHarvest ? (
@@ -826,7 +823,7 @@ function CreateListingPage() {
             </Card>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

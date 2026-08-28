@@ -18,6 +18,9 @@ import { ReviewList } from "@/components/reviews/review-list"
 import type { Review } from "@/lib/types"
 import Link from "next/link"
 import Image from "next/image"
+import { SafeImage } from "@/components/ui/safe-image"
+import { Display, Text } from "@/components/ui/typography"
+import { PageContainer } from "@/components/layout/page-container"
 
 export default function ProductDetailPage() {
   const params = useParams()
@@ -174,7 +177,7 @@ export default function ProductDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10">
-        <div className="container mx-auto px-4 py-8">
+        <PageContainer className="py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-muted rounded w-32 mb-8"></div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -186,7 +189,7 @@ export default function ProductDetailPage() {
               </div>
             </div>
           </div>
-        </div>
+        </PageContainer>
       </div>
     )
   }
@@ -195,8 +198,8 @@ export default function ProductDetailPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-foreground mb-2">Product not found</h2>
-          <p className="text-muted-foreground mb-4">The product you're looking for doesn't exist.</p>
+          <Display as="h2" variant="card" className="mb-2">Product not found</Display>
+          <Text variant="sm" className="mb-4">The product you're looking for doesn't exist.</Text>
           <Button asChild>
             <Link href="/marketplace">Back to Marketplace</Link>
           </Button>
@@ -207,7 +210,7 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-success/10 to-warning/10">
-      <div className="container mx-auto px-4 py-8">
+      <PageContainer className="py-8">
         {/* Back Button */}
         <Button variant="ghost" asChild className="mb-6">
           <Link href="/marketplace" className="flex items-center gap-2">
@@ -221,10 +224,11 @@ export default function ProductDetailPage() {
           {/* Product Images */}
           <div className="space-y-4">
             <div className="relative h-96 rounded-lg overflow-hidden">
-              <Image
-                src={product.images?.[0] || "/placeholder.svg?height=400&width=600&query=fresh agricultural product"}
+              <SafeImage
+                src={product.images?.[0] || "/placeholder-harvest.jpg"}
                 alt={typeof (product as any).name === 'string' ? (product as any).name : 'Fresh agricultural product'}
                 fill
+                sizes="(min-width: 1024px) 50vw, 100vw"
                 className="object-cover"
               />
               {(product as any).isVerified && (
@@ -239,10 +243,11 @@ export default function ProductDetailPage() {
               <div className="grid grid-cols-4 gap-2">
                 {product.images.slice(1, 5).map((image: any, index: number) => (
                   <div key={index} className="relative h-20 rounded overflow-hidden">
-                    <Image
-                      src={image || "/placeholder.svg"}
+                    <SafeImage
+                      src={image || "/placeholder-harvest.jpg"}
                       alt={`${typeof product.name === 'string' ? product.name : 'Product'} view ${index + 2}`}
                       fill
+                      sizes="80px"
                       className="object-cover"
                     />
                   </div>
@@ -255,9 +260,9 @@ export default function ProductDetailPage() {
           <div className="space-y-6">
             <div>
               <div className="flex items-start justify-between mb-2">
-                <h1 className="text-3xl font-bold text-foreground">
+                <Display as="h1" variant="page">
                   {typeof (product as any).name === 'string' ? (product as any).name : 'Unnamed Product'}
-                </h1>
+                </Display>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline">
                     <Heart className="h-4 w-4" />
@@ -279,9 +284,9 @@ export default function ProductDetailPage() {
                 </Badge>
               </div>
 
-              <p className="text-muted-foreground text-lg">
+              <Text variant="lead">
                 {typeof product.description === 'string' ? product.description : 'No description available.'}
-              </p>
+              </Text>
             </div>
 
             <div className="flex items-center gap-2">
@@ -306,7 +311,7 @@ export default function ProductDetailPage() {
             <div className="border-t border-b py-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <span className="text-3xl font-bold text-success">₦{product.price}</span>
+                  <Text as="span" variant="price">₦{product.price}</Text>
                   <span className="text-muted-foreground ml-2">per {product.unit}</span>
                 </div>
                 <div className="text-right">
@@ -572,7 +577,7 @@ export default function ProductDetailPage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
+      </PageContainer>
     </div>
   )
 }

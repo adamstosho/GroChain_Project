@@ -103,6 +103,27 @@
   --font-sans: var(--font-dm-sans);
   --font-serif: var(--font-fraunces);
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  /* Typography scale — major third (1.25), mobile-first */
+  --text-display-hero: clamp(2.25rem, 1.5rem + 3vw, 3.75rem);
+  --text-display-hero--line-height: 1.08;
+  --text-display-page: clamp(1.5rem, 1.25rem + 1.25vw, 2.25rem);
+  --text-display-page--line-height: 1.15;
+  --text-heading-section: clamp(1.875rem, 1.5rem + 1.5vw, 2.25rem);
+  --text-heading-section--line-height: 1.2;
+  --text-heading-card: 1.25rem;
+  --text-heading-card--line-height: 1.3;
+  --text-body: 1rem;
+  --text-body--line-height: 1.625;
+  --text-body-lg: clamp(1.125rem, 1rem + 0.5vw, 1.25rem);
+  --text-body-lg--line-height: 1.625;
+  --text-body-sm: 0.875rem;
+  --text-body-sm--line-height: 1.5;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.4;
+  /* Layout — consistent max-width & section rhythm */
+  --container-max: 80rem;
+  --section-py: clamp(4rem, 3rem + 2vw, 6rem);
+  --section-py-hero: clamp(5rem, 4rem + 3vw, 9rem);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -156,8 +177,51 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground text-base leading-relaxed antialiased;
+    font-feature-settings: "kern" 1, "liga" 1;
+  }
+
+  /* Brand typography hierarchy — Fraunces for H1/H2, DM Sans for H3+ */
+  h1,
+  h2 {
+    @apply font-serif font-bold tracking-tight text-foreground;
+  }
+
+  h1 {
+    font-size: var(--text-display-page);
+    line-height: var(--text-display-page--line-height);
+  }
+
+  h2 {
+    font-size: var(--text-heading-section);
+    line-height: var(--text-heading-section--line-height);
+  }
+
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-sans font-semibold tracking-tight text-foreground;
+  }
+
+  h3 {
+    font-size: var(--text-heading-card);
+    line-height: var(--text-heading-card--line-height);
+  }
+
+  p {
+    line-height: 1.625;
+  }
+
+  small {
+    @apply text-caption text-muted-foreground;
   }
 
   /* Hover colors are owned by each component's variant classes. Do not use
@@ -274,4 +338,35 @@
 
 .animate-shimmer-slide {
   animation: shimmer-slide 2s ease-in-out infinite;
+}
+
+/* Respect user motion preferences — WCAG 2.2 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .agricultural-pattern {
+    animation: none;
+  }
+}
+
+/* Layout utilities — single rhythm across marketing & app surfaces */
+@layer utilities {
+  .section-padding {
+    padding-block: var(--section-py);
+  }
+
+  .section-padding-hero {
+    padding-block: var(--section-py-hero);
+  }
+
+  .content-max {
+    max-width: var(--container-max);
+  }
 }

@@ -7,6 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
@@ -344,8 +348,8 @@ export default function TransactionsPage() {
   if (loading) {
     return (
       <DashboardLayout pageTitle="Transactions">
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <DashboardPageShell>
+          <div className={dashboard.statsGrid4}>
             {[...Array(4)].map((_, i) => (
               <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-3">
@@ -359,40 +363,36 @@ export default function TransactionsPage() {
               </Card>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout pageTitle="Transactions">
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-foreground">Transactions</h1>
-            <p className="text-muted-foreground">
-              View and manage your financial transaction history
-            </p>
-          </div>
-
-          <Button onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
-          </Button>
-        </div>
+      <DashboardPageShell>
+        <DashboardSubpageHeader
+          title="Transactions"
+          description="View and manage your financial transaction history"
+          actions={
+            <Button onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
+              Export Report
+            </Button>
+          }
+        />
 
         {/* Transaction Stats */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className={dashboard.statsGrid4}>
             <Card className="border border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Income</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-success">
+                <Text as="div" variant="stat" className="text-success">
                   {formatCompactCurrency(stats.totalIncome)}
-                </div>
+                </Text>
                 <div className="flex items-center gap-2 mt-2">
                   <TrendingUp className="h-4 w-4 text-success" />
                   <span className="text-sm text-success">+12.5% from last month</span>
@@ -405,9 +405,9 @@ export default function TransactionsPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-destructive">
+                <Text as="div" variant="stat" className="text-destructive">
                   {formatCompactCurrency(stats.totalExpenses)}
-                </div>
+                </Text>
                 <div className="flex items-center gap-2 mt-2">
                   <TrendingDown className="h-4 w-4 text-destructive" />
                   <span className="text-sm text-destructive">-8.2% from last month</span>
@@ -420,9 +420,9 @@ export default function TransactionsPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Net Amount</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-primary">
+                <Text as="div" variant="stat" className="text-primary">
                   {formatCompactCurrency(stats.netAmount)}
-                </div>
+                </Text>
                 <div className="flex items-center gap-2 mt-2">
                   <TrendingUp className="h-4 w-4 text-primary" />
                   <span className="text-sm text-primary">+18.7% from last month</span>
@@ -435,9 +435,9 @@ export default function TransactionsPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Pending Amount</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-warning">
+                <Text as="div" variant="stat" className="text-warning">
                   {formatCompactCurrency(stats.pendingAmount)}
-                </div>
+                </Text>
                 <div className="flex items-center gap-2 mt-2">
                   <Clock className="h-4 w-4 text-warning" />
                   <span className="text-sm text-warning">1 transaction pending</span>
@@ -675,7 +675,7 @@ export default function TransactionsPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

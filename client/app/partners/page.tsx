@@ -14,6 +14,10 @@ import { Users, Search, Download, TrendingUp, Banknote, CheckCircle, Clock, Sett
 import { api } from "@/lib/api"
 import Link from "next/link"
 import { GroChainLogo } from "@/components/ui/grochain-logo"
+import { Display, Text } from "@/components/ui/typography"
+import { PageContainer } from "@/components/layout/page-container"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { dashboard, layout } from "@/lib/design-system"
 
 interface PartnerStats {
   totalFarmers?: number
@@ -186,7 +190,7 @@ export default function PartnersPage() {
       <div className="container mx-auto p-6">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-muted rounded w-1/3"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className={dashboard.statsGrid4}>
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-32 bg-muted rounded"></div>
             ))}
@@ -304,18 +308,16 @@ export default function PartnersPage() {
       </nav>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Partner Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Manage your farmer network and track performance</p>
-          </div>
-        </div>
+      <PageContainer variant="dashboard">
+        <DashboardSubpageHeader
+          title="Partner Dashboard"
+          description="Manage your farmer network and track performance"
+          className="mb-8"
+        />
 
       {/* Stats Cards */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className={dashboard.statsGrid4}>
           {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -330,14 +332,14 @@ export default function PartnersPage() {
           ))}
         </div>
       ) : stats && typeof stats === 'object' && Object.keys(stats).length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className={dashboard.statsGrid4}>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Farmers</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalFarmers || 0}</div>
+              <Text as="div" variant="stat">{stats.totalFarmers || 0}</Text>
               <p className="text-xs text-muted-foreground">{stats.activeFarmers || 0} active farmers</p>
             </CardContent>
           </Card>
@@ -348,7 +350,7 @@ export default function PartnersPage() {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pendingApprovals || 0}</div>
+              <Text as="div" variant="stat">{stats.pendingApprovals || 0}</Text>
               <p className="text-xs text-muted-foreground">{stats.approvalRate || 0}% approval rate</p>
             </CardContent>
           </Card>
@@ -359,7 +361,7 @@ export default function PartnersPage() {
               <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₦{(stats.monthlyCommissions || stats.monthlyCommission || 0).toLocaleString()}</div>
+              <Text as="div" variant="stat">₦{(stats.monthlyCommissions || stats.monthlyCommission || 0).toLocaleString()}</Text>
               <p className="text-xs text-muted-foreground">₦{(stats.totalCommissions || stats.totalCommission || 0).toLocaleString()} total earned</p>
             </CardContent>
           </Card>
@@ -370,7 +372,7 @@ export default function PartnersPage() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.approvalRate || 0}%</div>
+              <Text as="div" variant="stat">{stats.approvalRate || 0}%</Text>
               <p className="text-xs text-muted-foreground">Approval rate</p>
             </CardContent>
           </Card>
@@ -517,7 +519,7 @@ export default function PartnersPage() {
                   <div className="flex items-center gap-3">
                     <Clock className="h-8 w-8 text-primary" />
                     <div>
-                      <h3 className="font-semibold text-primary">Pending Approvals: {stats?.pendingApprovals || 0}</h3>
+                      <Display as="h3" variant="sub" className="text-primary">Pending Approvals: {stats?.pendingApprovals || 0}</Display>
                       <p className="text-sm text-primary">Farmers are waiting for harvest approval</p>
                     </div>
                   </div>
@@ -579,27 +581,27 @@ export default function PartnersPage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-success">
+                    <Text as="div" variant="stat" className="text-success">
                       {stats?.approvalRate || 0}%
-                    </div>
+                    </Text>
                     <p className="text-sm text-muted-foreground">Approval Rate</p>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">
+                    <Text as="div" variant="stat" className="text-primary">
                       {stats?.activeFarmers || 0}
-                    </div>
+                    </Text>
                     <p className="text-sm text-muted-foreground">Active Farmers</p>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-warning">
+                    <Text as="div" variant="stat" className="text-warning">
                       {stats?.totalFarmers ? Math.round(((stats.activeFarmers || 0) / stats.totalFarmers) * 100) : 0}%
-                    </div>
+                    </Text>
                     <p className="text-sm text-muted-foreground">Activation Rate</p>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-accent">
+                    <Text as="div" variant="stat" className="text-accent">
                       {filteredFarmers.length}
-                    </div>
+                    </Text>
                     <p className="text-sm text-muted-foreground">Filtered Results</p>
                   </div>
                 </div>
@@ -701,7 +703,7 @@ export default function PartnersPage() {
           </Card>
         </TabsContent>
       </Tabs>
-      </div>
+      </PageContainer>
     </div>
   )
 }

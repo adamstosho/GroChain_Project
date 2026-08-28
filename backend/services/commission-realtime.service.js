@@ -11,6 +11,8 @@ const User = require('../models/user.model');
 const Order = require('../models/order.model');
 const Notification = require('../models/notification.model');
 const websocketService = require('./websocket.service');
+const { createCommissionIdempotent } = require('../utils/commission-idempotency');
+const { resolveFarmerCommissionRate } = require('../utils/commission-rate.util');
 
 class RealTimeCommissionService {
   constructor() {
@@ -40,61 +42,60 @@ class RealTimeCommissionService {
       // Process each item in the order
       for (const item of populatedOrder.items) {
         if (!item.listing) continue;
-        
+
         const listing = item.listing;
         const itemAmount = item.price * item.quantity;
-        const partnerCommission = itemAmount * 0.02; // 2% commission
-        
-        if (partnerCommission > 0) {
-          // Get the farmer and their partner
-          const farmer = await User.findById(listing.farmer).populate('partner');
-          if (!farmer || !farmer.partner) continue;
-          
-          const partner = farmer.partner;
-          
-          // Check if commission already exists to prevent duplicates
-          const existingCommission = await Commission.findOne({
-            partner: partner._id,
-            farmer: farmer._id,
-            order: order._id,
-            listing: listing._id
-          });
 
-          if (existingCommission) {
-            console.log('ℹ️ Commission already exists for this order item:', existingCommission._id);
-            continue; // Skip this item
-          }
-          
-          // Create commission record
-          const commission = new Commission({
+        // Get the farmer and their partner
+        const farmer = await User.findById(listing.farmer).populate('partner');
+        if (!farmer) continue;
+
+        // This must match every other consumer of this rate (fintech
+        // dashboard estimates, etc.) exactly — this is the only commission
+        // path actually run on a successful payment, so getting the rate
+        // wrong here can never be corrected later (Commission has a unique
+        // index per order/listing).
+        const { partner, referral, commissionRate, commissionType } = await resolveFarmerCommissionRate(farmer);
+
+        if (!partner) continue;
+
+        const partnerCommission = itemAmount * commissionRate;
+
+        if (partnerCommission > 0) {
+          const platformFeeRate = parseFloat(process.env.PLATFORM_FEE_RATE) || 0.03;
+
+          const commissionPayload = {
             partner: partner._id,
             farmer: farmer._id,
             order: order._id,
             listing: listing._id,
             amount: partnerCommission,
-            rate: 0.02,
+            rate: commissionRate,
             orderAmount: itemAmount,
             orderDate: order.createdAt,
             status: 'pending',
             metadata: {
-              commissionType: 'direct',
-              platformFee: itemAmount * 0.03,
-              platformFeeRate: 0.03,
+              commissionType,
+              platformFee: itemAmount * platformFeeRate,
+              platformFeeRate,
               orderNumber: order.orderNumber,
               buyerName: populatedOrder.buyer.name,
-              productName: listing.cropName
+              productName: listing.cropName,
+              referralId: referral?._id
             }
-          });
-          
-          await commission.save();
-          console.log('✅ Commission record created:', commission._id);
-          
-          // Update partner's total commissions
-          await Partner.findByIdAndUpdate(
-            partner._id,
-            { $inc: { totalCommissions: partnerCommission } }
+          };
+
+          const { commission, created } = await createCommissionIdempotent(
+            commissionPayload,
+            partnerCommission
           );
-          
+
+          if (!created || !commission) {
+            console.log('ℹ️ Commission already exists for this order item:', commission?._id);
+            continue;
+          }
+
+          console.log('✅ Commission record created:', commission._id);
           // Emit real-time update to partner
           await this.emitCommissionUpdate(partner._id, {
             type: 'commission_earned',

@@ -10,6 +10,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
@@ -254,8 +258,8 @@ export default function InsuranceClaimsPage() {
   if (loading) {
     return (
       <DashboardLayout pageTitle="Insurance Claims">
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <DashboardPageShell>
+          <div className={dashboard.statsGrid4}>
             {[...Array(4)].map((_, i) => (
               <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-3">
@@ -269,44 +273,40 @@ export default function InsuranceClaimsPage() {
               </Card>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout pageTitle="Insurance Claims">
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-foreground">Insurance Claims</h1>
-            <p className="text-muted-foreground">
-              Submit and track your insurance claims for farm protection
-            </p>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleRefresh}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-            <Button onClick={() => setShowNewClaimForm(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Submit New Claim
-            </Button>
-          </div>
-        </div>
+      <DashboardPageShell>
+        <DashboardSubpageHeader
+          title="Insurance Claims"
+          description="Submit and track your insurance claims for farm protection"
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleRefresh}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+              <Button onClick={() => setShowNewClaimForm(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Submit New Claim
+              </Button>
+            </div>
+          }
+        />
 
         {/* Key Metrics */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className={dashboard.statsGrid4}>
             <Card className="border border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Claims</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">{stats.totalClaims}</div>
+                <Text as="div" variant="stat" className="text-foreground">{stats.totalClaims}</Text>
                 <div className="text-sm text-muted-foreground mt-1">
                   {stats.pendingClaims} pending
                 </div>
@@ -318,7 +318,7 @@ export default function InsuranceClaimsPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Claimed</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalClaimed)}</div>
+                <Text as="div" variant="stat" className="text-foreground">{formatCurrency(stats.totalClaimed)}</Text>
                 <div className="text-sm text-muted-foreground mt-1">
                   {stats.approvedClaims} approved
                 </div>
@@ -330,7 +330,7 @@ export default function InsuranceClaimsPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Paid</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalPaid)}</div>
+                <Text as="div" variant="stat" className="text-foreground">{formatCurrency(stats.totalPaid)}</Text>
                 <div className="text-sm text-muted-foreground mt-1">
                   {stats.totalClaimed > 0 ? ((stats.totalPaid / stats.totalClaimed) * 100).toFixed(1) : '0'}% of claimed
                 </div>
@@ -342,7 +342,7 @@ export default function InsuranceClaimsPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Avg Processing</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">{stats.averageProcessingTime} days</div>
+                <Text as="div" variant="stat" className="text-foreground">{stats.averageProcessingTime} days</Text>
                 <div className="text-sm text-muted-foreground mt-1">
                   Time to decision
                 </div>
@@ -775,7 +775,7 @@ export default function InsuranceClaimsPage() {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

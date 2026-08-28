@@ -12,6 +12,8 @@ import { useToast } from '@/hooks/use-toast'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/auth'
+import { Display, Text } from '@/components/ui/typography'
+import { PageContainer } from '@/components/layout/page-container'
 
 function NotificationsContent() {
   const { unreadCount, connected, fetchNotifications } = useNotificationContext()
@@ -100,7 +102,7 @@ function NotificationsContent() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <PageContainer variant="dashboard">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="bg-card rounded-lg border border-border shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">
@@ -111,12 +113,12 @@ function NotificationsContent() {
                   <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
+                  <Display as="h1" variant="page">
                     Notifications
-                  </h1>
-                  <p className="text-sm sm:text-base text-muted-foreground mt-1">
+                  </Display>
+                  <Text variant="sm" className="mt-1">
                     Stay updated with your latest activities and system notifications
-                  </p>
+                  </Text>
                 </div>
               </div>
 
@@ -196,7 +198,7 @@ function NotificationsContent() {
             </Tabs>
           </div>
         </div>
-      </div>
+      </PageContainer>
 
       {/* Mobile Floating Action Button */}
       <div className="fixed bottom-4 right-4 z-50 sm:hidden">
@@ -217,14 +219,14 @@ function NotificationsContent() {
 export default function NotificationsPage() {
   return (
     <Suspense fallback={
-      <div className="container mx-auto px-4 py-8">
+      <PageContainer className="py-8">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <span className="ml-2">Loading notifications...</span>
+            <Text variant="sm" className="ml-2">Loading notifications...</Text>
           </div>
         </div>
-      </div>
+      </PageContainer>
     }>
       <NotificationsContent />
     </Suspense>

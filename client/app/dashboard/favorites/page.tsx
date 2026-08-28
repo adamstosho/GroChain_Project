@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { useToast } from "@/hooks/use-toast"
 import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { useAuthStore } from "@/lib/auth"
@@ -361,7 +364,7 @@ export default function FavoritesPage() {
 
   return (
     <DashboardLayout pageTitle="My Favorites">
-      <div className="space-y-6">
+      <DashboardPageShell>
 
         <DashboardPageHeader
           badge="Favorites Active"
@@ -413,14 +416,14 @@ export default function FavoritesPage() {
         />
 
         {/* Stats Cards - Using Design System */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6">
+        <div className={dashboard.statsGrid4}>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Favorites</CardTitle>
               <Heart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{favorites.length}</div>
+              <Text as="div" variant="stat" className="text-foreground">{favorites.length}</Text>
               <p className="text-xs text-muted-foreground">
                 Products in your favorites
               </p>
@@ -433,9 +436,9 @@ export default function FavoritesPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <Text as="div" variant="stat" className="text-foreground">
                 {new Set(favorites.map(fav => fav.listing?.farmer?._id)).size}
-              </div>
+              </Text>
               <p className="text-xs text-muted-foreground">
                 Different farmers
               </p>
@@ -448,9 +451,9 @@ export default function FavoritesPage() {
               <Leaf className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <Text as="div" variant="stat" className="text-foreground">
                 {favorites.filter(fav => fav.listing?.organic).length}
-              </div>
+              </Text>
               <p className="text-xs text-muted-foreground">
                 Certified organic items
               </p>
@@ -463,9 +466,9 @@ export default function FavoritesPage() {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <Text as="div" variant="stat" className="text-foreground">
                 {new Set(favorites.map(fav => fav.listing?.category)).size}
-              </div>
+              </Text>
               <p className="text-xs text-muted-foreground">
                 Different categories
               </p>
@@ -611,7 +614,7 @@ export default function FavoritesPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
 
       {/* Price Alert Dialog */}
       {selectedProduct && (

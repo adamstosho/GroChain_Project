@@ -1,7 +1,14 @@
+"use client"
+
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Star, Quote } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ScrollReveal } from "@/components/motion/scroll-reveal"
+import { ScrollStagger, StaggerItem } from "@/components/motion/stagger-container"
+import { MarketingSection } from "@/components/layout/marketing-section"
+import { SectionHeader, Text } from "@/components/ui/typography"
+import { layout } from "@/lib/design-system"
 
 export function Testimonials() {
   const testimonials = [
@@ -38,38 +45,37 @@ export function Testimonials() {
   ]
 
   return (
-    <section className="py-16 sm:py-24 bg-muted/30">
-      <div className="container px-4 sm:px-6 lg:px-8">
-        <div className="text-center space-y-4 mb-16">
-          <Badge variant="secondary">What Our Users Say</Badge>
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-serif">
-            Real experiences from farmers, buyers, and agencies across Nigeria
-          </h2>
-        </div>
+    <MarketingSection className="bg-muted/40">
+      <ScrollReveal>
+        <SectionHeader
+          badge={<Badge variant="secondary">What Our Users Say</Badge>}
+          title="Real experiences from farmers, buyers, and agencies across Nigeria"
+        />
+      </ScrollReveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {testimonials.map((testimonial, index) => (
-            <Card
-              key={index}
-              className="group hover:shadow-lg transition-all duration-300 border-0 bg-card/50 backdrop-blur-sm"
-            >
-              <CardContent className="p-6 space-y-4">
+      <ScrollStagger className={layout.gridCards}>
+        {testimonials.map((testimonial) => (
+          <StaggerItem key={testimonial.name}>
+            <Card className="group h-full border border-border/60 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/15 hover:shadow-lg">
+              <CardContent className="space-y-5 p-6 sm:p-7">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-1">
-                    {[...Array(testimonial.rating)].map((_, i) => (
+                  <div className="flex items-center gap-0.5">
+                    {Array.from({ length: testimonial.rating }).map((_, i) => (
                       <Star key={i} className="h-4 w-4 fill-secondary text-secondary" />
                     ))}
                   </div>
-                  <Quote className="h-5 w-5 text-muted-foreground" />
+                  <Quote className="h-5 w-5 text-primary/30" />
                 </div>
 
-                <p className="text-muted-foreground leading-relaxed">"{testimonial.content}"</p>
+                <Text variant="sm" className="text-[0.9375rem]">
+                  &ldquo;{testimonial.content}&rdquo;
+                </Text>
 
-                <div className="flex items-center justify-between pt-4 border-t">
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="h-10 w-10">
+                <div className="flex items-center justify-between border-t border-border/60 pt-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 ring-2 ring-primary/10">
                       <AvatarImage src={testimonial.avatar || "/placeholder.svg"} alt={testimonial.name} />
-                      <AvatarFallback>
+                      <AvatarFallback className="bg-primary-soft text-xs text-primary">
                         {testimonial.name
                           .split(" ")
                           .map((n) => n[0])
@@ -77,21 +83,21 @@ export function Testimonials() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-semibold text-sm">{testimonial.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {testimonial.role}, {typeof testimonial.location === 'string' ? testimonial.location : `${(testimonial.location as any)?.city || 'Unknown'}, ${(testimonial.location as any)?.state || 'Unknown State'}`}
-                      </p>
+                      <p className="text-sm font-semibold text-foreground">{testimonial.name}</p>
+                      <Text variant="caption">
+                        {testimonial.role}, {testimonial.location}
+                      </Text>
                     </div>
                   </div>
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className="shrink-0 text-xs">
                     {testimonial.highlight}
                   </Badge>
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      </div>
-    </section>
+          </StaggerItem>
+        ))}
+      </ScrollStagger>
+    </MarketingSection>
   )
 }

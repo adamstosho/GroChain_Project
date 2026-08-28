@@ -1,6 +1,7 @@
 const Onboarding = require('../models/onboarding.model')
 const User = require('../models/user.model')
 const Partner = require('../models/partner.model')
+const { escapeRegex } = require('../utils/regex.util')
 
 // Get all onboardings with filters and pagination
 exports.getOnboardings = async (req, res) => {
@@ -46,10 +47,11 @@ exports.getOnboardings = async (req, res) => {
     }
 
     if (searchTerm) {
+      const safeSearchTerm = escapeRegex(searchTerm)
       filter.$or = [
-        { 'farmer.name': { $regex: searchTerm, $options: 'i' } },
-        { 'farmer.email': { $regex: searchTerm, $options: 'i' } },
-        { 'farmer.phone': { $regex: searchTerm, $options: 'i' } }
+        { 'farmer.name': { $regex: safeSearchTerm, $options: 'i' } },
+        { 'farmer.email': { $regex: safeSearchTerm, $options: 'i' } },
+        { 'farmer.phone': { $regex: safeSearchTerm, $options: 'i' } }
       ]
     }
 

@@ -25,6 +25,9 @@ module.exports = [
         clearInterval: 'readonly',
         setImmediate: 'readonly',
         fetch: 'readonly',
+        URL: 'readonly',
+        AbortController: 'readonly',
+        AbortSignal: 'readonly',
       }
     },
     rules: {

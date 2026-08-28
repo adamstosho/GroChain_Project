@@ -94,7 +94,7 @@ export default function RootLayout({
       <body className={`font-sans ${dmSans.variable} ${fraunces.variable} antialiased`}>
         <a
           href="#main-content"
-          className="absolute left-4 top-4 z-[100] -translate-y-[200%] rounded-md bg-primary px-4 py-2 text-primary-foreground shadow-md transition-transform focus:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="absolute left-4 top-4 z-[100] -translate-y-[200%] rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-md transition-transform focus:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Skip to main content
         </a>

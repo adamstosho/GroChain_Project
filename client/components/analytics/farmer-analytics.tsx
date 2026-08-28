@@ -8,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { Display, Text } from "@/components/ui/typography"
+import { dashboard, textStyles } from "@/lib/design-system"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import {
   TrendingUp,
   Banknote,
@@ -127,7 +130,7 @@ export function FarmerAnalytics() {
 
       const [farmerAnalytics, creditScore, cropAnalytics] = await Promise.all([
         apiService.getFarmerAnalytics(),
-        apiService.getMyCreditScore().catch(() => ({ data: { creditScore: 0 } })),
+        apiService.getMyCreditScore().catch(() => ({ data: { score: 0 } })),
         apiService.getFarmerCropAnalytics(undefined, period || timeRange).catch(() => ({ data: null }))
       ])
 
@@ -135,13 +138,13 @@ export function FarmerAnalytics() {
       console.log('🔍 Analytics API Response:', {
         status: farmerAnalytics.status,
         data: farmerAnalytics.data,
-        creditScore: (creditScore.data as any)?.creditScore
+        creditScore: (creditScore.data as any)?.score
       })
 
       // Process and combine the data
       const combinedData: FarmerAnalyticsData = {
         ...(farmerAnalytics.data as any),
-        creditScore: (creditScore.data as any)?.creditScore || 0,
+        creditScore: (creditScore.data as any)?.score || 0,
         qualityMetrics: (farmerAnalytics.data as any)?.qualityMetrics || {
           excellent: 0,
           good: 0,
@@ -219,7 +222,7 @@ export function FarmerAnalytics() {
 
   // Loading skeleton component
   const LoadingSkeleton = () => (
-    <div className="space-y-6">
+    <DashboardPageShell>
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <Skeleton className="h-8 w-64" />
@@ -232,7 +235,7 @@ export function FarmerAnalytics() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className={dashboard.statsGrid4}>
         {Array.from({ length: 4 }).map((_, i) => (
           <Card key={i}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -256,13 +259,14 @@ export function FarmerAnalytics() {
           <Skeleton className="h-80 w-full" />
         </CardContent>
       </Card>
-    </div>
+    </DashboardPageShell>
   )
 
   // Error state
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+      <DashboardPageShell>
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <AlertCircle className="h-12 w-12 text-destructive" />
         <div className="text-center space-y-2">
           <h3 className="text-lg font-medium">Failed to load analytics</h3>
@@ -273,6 +277,7 @@ export function FarmerAnalytics() {
           Try Again
         </Button>
       </div>
+      </DashboardPageShell>
     )
   }
 
@@ -291,11 +296,11 @@ export function FarmerAnalytics() {
   }
 
   return (
-    <div className="space-y-6">
+    <DashboardPageShell>
       {/* Header */}
       <div className="space-y-4">
         <div className="flex flex-col space-y-2">
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Farmer Analytics</h2>
+          <Display as="h2" variant="page">Farmer Analytics</Display>
           <p className="text-muted-foreground text-sm sm:text-base">
             Monitor your harvest performance, earnings, and farm productivity
           </p>
@@ -380,21 +385,21 @@ export function FarmerAnalytics() {
           </div>
         </div>
 
-        {/* AI Branding & Insights */}
+        {/* Growth insights */}
         <AiAnalyticsInsights />
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+      <div className={dashboard.statsGrid4}>
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Harvests</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Total Harvests</CardTitle>
             <div className="p-1.5 sm:p-2 bg-primary/10 rounded-full flex-shrink-0">
               <Package className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{formatNumber(analyticsData?.totalHarvests || 0)}</div>
+            <Text as="div" variant="stat">{formatNumber(analyticsData?.totalHarvests || 0)}</Text>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <CheckCircle className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">{analyticsData?.approvalRate || 0}% approval rate</span>
@@ -405,15 +410,15 @@ export function FarmerAnalytics() {
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Revenue</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Total Revenue</CardTitle>
             <div className="p-1.5 sm:p-2 bg-success/10 rounded-full flex-shrink-0">
               <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-success" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold break-words">
+            <Text as="div" variant="stat" className="break-words">
               {formatCurrency(analyticsData?.totalRevenue || 0)}
-            </div>
+            </Text>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <TrendingUp className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">{analyticsData?.totalOrders || 0} orders completed</span>
@@ -429,13 +434,13 @@ export function FarmerAnalytics() {
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Active Listings</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Active Listings</CardTitle>
             <div className="p-1.5 sm:p-2 bg-accent/10 rounded-full flex-shrink-0">
               <Leaf className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{analyticsData?.marketplaceStats?.activeListings || 0}</div>
+            <Text as="div" variant="stat">{analyticsData?.marketplaceStats?.activeListings || 0}</Text>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <Users className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
               <span className="truncate">{analyticsData?.marketplaceStats?.totalViews || 0} total views</span>
@@ -446,13 +451,13 @@ export function FarmerAnalytics() {
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Credit Score</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Credit Score</CardTitle>
             <div className="p-1.5 sm:p-2 bg-warning/10 rounded-full flex-shrink-0">
               <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-warning" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{analyticsData?.creditScore || 0}</div>
+            <Text as="div" variant="stat">{analyticsData?.creditScore || 0}</Text>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <Zap className="h-3 w-3 mr-1 text-warning flex-shrink-0" />
               <span className="truncate">Financial health indicator</span>
@@ -1323,13 +1328,13 @@ export function FarmerAnalytics() {
                 <CardTitle className="text-sm font-medium text-success">High Quality Rate</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-success">
+                <Text as="div" variant="stat" className="text-success">
                   {analyticsData?.qualityDistribution?.insights
                     ? Math.round(analyticsData.qualityDistribution.insights
                       .filter(q => q.isHighQuality)
                       .reduce((sum, q) => sum + q.percentage, 0))
                     : 0}%
-                </div>
+                </Text>
                 <p className="text-xs text-muted-foreground mt-1">
                   Excellent + Good quality harvests
                 </p>
@@ -1341,7 +1346,7 @@ export function FarmerAnalytics() {
                 <CardTitle className="text-sm font-medium text-primary">Average Quality Score</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-primary">
+                <Text as="div" variant="stat" className="text-primary">
                   {analyticsData?.qualityDistribution?.insights?.length
                     ? (() => {
                       const avgScore = analyticsData.qualityDistribution.insights.reduce((sum, q) => {
@@ -1351,7 +1356,7 @@ export function FarmerAnalytics() {
                       return Math.round(avgScore * 100) / 100
                     })()
                     : 0}/5
-                </div>
+                </Text>
                 <p className="text-xs text-muted-foreground mt-1">
                   Weighted quality average
                 </p>
@@ -1363,11 +1368,11 @@ export function FarmerAnalytics() {
                 <CardTitle className="text-sm font-medium text-accent">Total Quality Harvests</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-accent">
+                <Text as="div" variant="stat" className="text-accent">
                   {analyticsData?.qualityDistribution?.insights
                     ? analyticsData.qualityDistribution.insights.reduce((sum, q) => sum + q.count, 0)
                     : 0}
-                </div>
+                </Text>
                 <p className="text-xs text-muted-foreground mt-1">
                   Harvests with quality ratings
                 </p>
@@ -1385,7 +1390,7 @@ export function FarmerAnalytics() {
             <span className="truncate">Performance Insights & Recommendations</span>
           </CardTitle>
           <CardDescription className="text-xs sm:text-sm">
-            AI-powered insights to help you optimize your farming operations
+            Data-driven recommendations from your GroChain harvest and sales records
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
@@ -1500,7 +1505,7 @@ export function FarmerAnalytics() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </DashboardPageShell>
   )
 }
 

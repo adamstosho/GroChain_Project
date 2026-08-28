@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
+import { motion } from "framer-motion"
 import { CheckCircle, XCircle, Package, Truck, Clock, MapPin, Phone, Copy, ArrowRight, ShoppingBag, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,8 +11,14 @@ import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import { usePaymentVerification } from "@/hooks/use-payment-verification"
+import { ConfettiBurst } from "@/components/motion/confetti-burst"
+import { GroChainLoader } from "@/components/ui/grochain-loader"
+import { StaggerContainer, StaggerItem } from "@/components/motion/stagger-container"
 import Link from "next/link"
 import Image from "next/image"
+import { Display, Text } from "@/components/ui/typography"
+import { PageContainer } from "@/components/layout/page-container"
+import { layout } from "@/lib/design-system"
 
 interface OrderItem {
   listing: {
@@ -66,6 +73,7 @@ export default function OrderSuccessPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [countdown, setCountdown] = useState(5)
+  const [celebrate, setCelebrate] = useState(false)
 
   const orderId = params.orderId as string
   const paymentMethod = searchParams.get('payment_method') || 'paystack'
@@ -115,6 +123,7 @@ export default function OrderSuccessPage() {
 
         if (response && response.status === 'success' && response.data) {
           setOrder(response.data as any)
+          setCelebrate(true)
           console.log('✅ Order details loaded for success page:', response.data)
 
           // Start countdown for auto-redirect
@@ -158,11 +167,7 @@ export default function OrderSuccessPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-success/10 border-t-success mx-auto mb-4"></div>
-          <h2 className="text-lg font-semibold text-foreground mb-2">Loading order confirmation...</h2>
-          <p className="text-muted-foreground">Please wait while we fetch your order details.</p>
-        </div>
+        <GroChainLoader message="Loading order confirmation…" variant="inline" />
       </div>
     )
   }
@@ -173,8 +178,8 @@ export default function OrderSuccessPage() {
         <div className="text-center max-w-md">
           <div className="text-destructive mb-6">
             <CheckCircle className="h-16 w-16 mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-3">Unable to load order</h2>
-            <p className="text-muted-foreground mb-6">{error || 'Order not found'}</p>
+            <Display as="h2" variant="card" className="mb-3">Unable to load order</Display>
+            <Text variant="sm" className="mb-6">{error || 'Order not found'}</Text>
           </div>
           <div className="space-y-3">
             <Button asChild size="lg" className="w-full">
@@ -191,24 +196,36 @@ export default function OrderSuccessPage() {
 
   return (
     <div className="min-h-screen bg-muted">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <ConfettiBurst active={celebrate && !isPaymentPending} />
+      <PageContainer className={`max-w-4xl py-8 ${layout.stackMd}`}>
         {/* Success Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-success/10 rounded-full mb-6">
-            <CheckCircle className="h-8 w-8 text-success" />
-          </div>
+        <StaggerContainer className="text-center mb-8">
+          <StaggerItem>
+            <motion.div
+              className="inline-flex items-center justify-center w-16 h-16 bg-success/10 rounded-full mb-6"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 380, damping: 18 }}
+            >
+              <CheckCircle className="h-8 w-8 text-success" />
+            </motion.div>
+          </StaggerItem>
 
-          <h1 className="text-3xl font-bold text-foreground mb-4">
-            {isPaymentPending ? "Order Placed! 🎉" : "Payment Successful! 🎉"}
-          </h1>
+          <StaggerItem>
+            <Display as="h1" variant="page" className="mb-4">
+              {isPaymentPending ? "Order Placed!" : "Payment Successful!"}
+            </Display>
+          </StaggerItem>
 
-          <p className="text-lg text-muted-foreground mb-6">
+          <StaggerItem>
+            <Text variant="lead" className="mb-6 max-w-2xl mx-auto">
             {isPaymentPending
               ? paymentMethod === 'bank_transfer'
                 ? "Thank you for your order! Please complete your bank transfer using the details below — your order will be processed once payment is confirmed."
                 : "Thank you for your order! Please have the payment ready — you'll pay in cash when your order is delivered."
               : "Thank you for your purchase! Your payment has been processed successfully."}
-          </p>
+            </Text>
+          </StaggerItem>
 
           {/* Payment Verification Status */}
           {order?.paymentReference && (
@@ -238,8 +255,8 @@ export default function OrderSuccessPage() {
           <div className="bg-card border border-border rounded-lg p-6 max-w-md mx-auto mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Order Number</p>
-                <p className="text-lg font-bold text-foreground">{orderNumber}</p>
+                <Text variant="caption">Order Number</Text>
+                <Text as="div" variant="stat" className="text-foreground">{orderNumber}</Text>
                 <p className="text-sm text-muted-foreground">
                   Placed on {new Date(order.createdAt).toLocaleDateString('en-US', {
                     weekday: 'long',
@@ -260,7 +277,7 @@ export default function OrderSuccessPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </StaggerContainer>
 
         <div className="space-y-6">
           {/* Order Summary */}
@@ -319,7 +336,7 @@ export default function OrderSuccessPage() {
                   <Separator className="my-2" />
                   <div className="flex justify-between py-2 bg-success/10 rounded-lg px-4">
                     <span className="font-bold text-lg text-foreground">Total</span>
-                    <span className="font-bold text-xl text-success">₦{order.total.toLocaleString()}</span>
+                    <Text as="span" variant="price">₦{order.total.toLocaleString()}</Text>
                   </div>
                 </div>
               </div>
@@ -481,7 +498,7 @@ export default function OrderSuccessPage() {
             </Button>
           </div>
         </div>
-      </div>
+      </PageContainer>
     </div>
   )
 }

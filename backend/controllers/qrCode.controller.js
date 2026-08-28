@@ -1,6 +1,7 @@
 const QRCodeLib = require('qrcode')
 const QRCodeModel = require('../models/qrcode.model')
 const Harvest = require('../models/harvest.model')
+const { escapeRegex } = require('../utils/regex.util')
 
 const qrCodeController = {
   // Get user's QR codes with detailed information
@@ -21,10 +22,11 @@ const qrCodeController = {
       }
 
       if (search) {
+        const searchRegex = new RegExp(escapeRegex(search), 'i')
         query.$or = [
-          { code: new RegExp(search, 'i') },
-          { batchId: new RegExp(search, 'i') },
-          { 'metadata.cropType': new RegExp(search, 'i') }
+          { code: searchRegex },
+          { batchId: searchRegex },
+          { 'metadata.cropType': searchRegex }
         ]
       }
 

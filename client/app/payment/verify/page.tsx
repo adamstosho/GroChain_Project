@@ -31,10 +31,14 @@ function PaymentVerificationContent() {
   const testMode = searchParams.get('test_mode') === 'true'
 
   useEffect(() => {
+    let cancelled = false
+
     const verifyPayment = async () => {
       if (!trxref) {
-        setError('No payment reference provided')
-        setLoading(false)
+        if (!cancelled) {
+          setError('No payment reference provided')
+          setLoading(false)
+        }
         return
       }
 
@@ -42,6 +46,7 @@ function PaymentVerificationContent() {
 
         // Try manual verification first
         const response = await apiService.verifyPayment(trxref, { testMode })
+        if (cancelled) return
 
         if (response && response.status === 'success') {
 
@@ -252,6 +257,7 @@ function PaymentVerificationContent() {
         }
 
       } catch (error: any) {
+        if (cancelled) return
         console.error('❌ Payment verification error:', error)
 
         setVerificationResult({
@@ -267,11 +273,14 @@ function PaymentVerificationContent() {
           variant: "destructive",
         })
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     verifyPayment()
+    return () => {
+      cancelled = true
+    }
   }, [trxref, testMode, router, toast])
 
   if (loading) {

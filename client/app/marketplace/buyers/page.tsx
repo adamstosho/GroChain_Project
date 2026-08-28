@@ -8,6 +8,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MapPin, ShoppingCart, ArrowLeft, Home } from "lucide-react"
 import { apiService } from "@/lib/api"
 import Link from "next/link"
+import { Display, Text } from "@/components/ui/typography"
+import { PageContainer } from "@/components/layout/page-container"
+import { dashboard, layout } from "@/lib/design-system"
 
 interface BuyerActivity {
   activeBuyers: number
@@ -91,9 +94,9 @@ export default function BuyersDirectoryPage() {
 
   return (
     <div className="min-h-screen bg-muted">
-      <div className="container mx-auto px-4 py-6">
+      <PageContainer variant="dashboard" className="py-6">
         {/* Header */}
-        <div className="mb-6">
+        <div className={layout.stackSm + " mb-6"}>
           <div className="flex items-center gap-4 mb-4">
             <Link href="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="h-4 w-4" />
@@ -104,17 +107,17 @@ export default function BuyersDirectoryPage() {
               <span className="text-sm">Home</span>
             </Link>
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Active Buyers Directory</h1>
-          <p className="text-muted-foreground text-sm">Discover verified buyers actively purchasing from our marketplace</p>
+          <Display as="h1" variant="page" className="mb-2">Active Buyers Directory</Display>
+          <Text variant="sm">Discover verified buyers actively purchasing from our marketplace</Text>
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className={dashboard.statsGrid4 + " mb-6"}>
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-success">{buyerActivity.activeBuyers || buyers.length}</div>
-                <div className="text-sm text-muted-foreground">Active Buyers</div>
+                <Text as="div" variant="stat" className="text-success">{buyerActivity.activeBuyers || buyers.length}</Text>
+                <Text variant="sm">Active Buyers</Text>
                 <div className="text-xs text-muted-foreground">Last 30 days</div>
               </div>
             </CardContent>
@@ -123,8 +126,8 @@ export default function BuyersDirectoryPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-primary">{buyerActivity.todaysTransactions}</div>
-                <div className="text-sm text-muted-foreground">Transactions Today</div>
+                <Text as="div" variant="stat" className="text-primary">{buyerActivity.todaysTransactions}</Text>
+                <Text variant="sm">Transactions Today</Text>
                 <div className="text-xs text-muted-foreground">Successful purchases</div>
               </div>
             </CardContent>
@@ -133,10 +136,10 @@ export default function BuyersDirectoryPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-accent">
+                <Text as="div" variant="stat" className="text-accent">
                   {buyerActivity.averageRating ? `${buyerActivity.averageRating}★` : '—'}
-                </div>
-                <div className="text-sm text-muted-foreground">Average Rating</div>
+                </Text>
+                <Text variant="sm">Average Rating</Text>
                 <div className="text-xs text-muted-foreground">From verified buyers</div>
               </div>
             </CardContent>
@@ -148,7 +151,7 @@ export default function BuyersDirectoryPage() {
           <Card className="text-center py-12">
             <CardContent>
               <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">No Active Buyers Yet</h3>
+              <Display as="h3" variant="sub" className="mb-2">No Active Buyers Yet</Display>
               <p className="text-muted-foreground">
                 Once buyers start purchasing from the marketplace, they'll appear here.
               </p>
@@ -215,9 +218,9 @@ export default function BuyersDirectoryPage() {
         <div className="mt-8 text-center">
           <Card className="bg-gradient-to-r from-success/10 to-primary/10 border-success/10">
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-foreground mb-2">
+              <Display as="h3" variant="sub" className="mb-2">
                 Join Our Growing Marketplace
-              </h3>
+              </Display>
               <p className="text-muted-foreground mb-4">
                 List your products and connect with these active buyers today.
                 {buyers.length} verified buyers are waiting to purchase from farmers like you.
@@ -237,7 +240,7 @@ export default function BuyersDirectoryPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </PageContainer>
     </div>
   )
 }

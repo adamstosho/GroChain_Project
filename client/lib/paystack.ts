@@ -273,6 +273,72 @@ export const processOrderPayment = async (
   }
 }
 
+export interface LoanPaymentData {
+  loanApplicationId: string
+  amount: number
+  email: string
+  reference?: string
+}
+
+/**
+ * Process loan repayment via Paystack
+ */
+export const processLoanPayment = async (
+  loanApplicationId: string,
+  amount: number,
+  email: string,
+  onSuccess?: (response: PaystackResponse) => void,
+  onClose?: () => void
+): Promise<PaystackResponse> => {
+  const token = getTokenFromStorage()
+  const initResponse = await fetch(`${APP_CONFIG.api.baseUrl}/api/payments/loan/initialize`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({
+      loanApplicationId,
+      callbackUrl: `${window.location.origin}/payment/verify`
+    })
+  })
+
+  if (!initResponse.ok) {
+    const err = await initResponse.json().catch(() => ({}))
+    throw new Error(err.message || 'Failed to initialize loan payment')
+  }
+
+  const initData = await initResponse.json()
+  const reference = initData?.data?.paystack?.reference || initData?.data?.transaction?.reference
+  const payAmount = initData?.data?.transaction?.amount || amount
+
+  if (!reference) {
+    throw new Error('Server did not return a payment reference')
+  }
+
+  if (initData?.data?.testMode) {
+    const verifyRes = await fetch(
+      `${APP_CONFIG.api.baseUrl}/api/payments/verify/${reference}?test_mode=true`,
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      }
+    )
+    const verifyData = await verifyRes.json()
+    if (verifyData.status === 'success') {
+      const result: PaystackResponse = { status: 'success', reference }
+      onSuccess?.(result)
+      return result
+    }
+    throw new Error(verifyData.message || 'Test payment verification failed')
+  }
+
+  return initializePaystackPayment(
+    { orderId: loanApplicationId, amount: payAmount, email, reference },
+    onSuccess,
+    onClose
+  )
+}
+
 /**
  * Get payment configuration
  */

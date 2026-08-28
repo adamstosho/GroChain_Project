@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -39,6 +39,7 @@ import { apiService } from "@/lib/api"
 import { format } from "date-fns"
 import { useGeolocation } from "@/hooks/useGeolocation"
 import { useToast } from "@/hooks/use-toast"
+import { useAuthStore } from "@/lib/auth"
 
 interface HarvestFormProps {
   initialData?: Partial<HarvestFormData>
@@ -132,6 +133,12 @@ export function HarvestForm({
 
   const { location: geoLocation, loading: geoLoading, error: geoError, requestLocation } = useGeolocation()
   const { toast } = useToast()
+  const { user } = useAuthStore()
+  // True only while an explicit user click on "Auto-detect" is in flight — lets
+  // the geolocation effect below distinguish "user asked to refresh their
+  // location" (should overwrite) from the hook's automatic background fetch on
+  // mount (should not clobber coordinates already loaded from an existing harvest).
+  const explicitLocationRequest = useRef(false)
 
   const form = useForm<HarvestFormData>({
     resolver: zodResolver(harvestSchema),
@@ -151,6 +158,7 @@ export function HarvestForm({
       soilType: initialData?.soilType || "loam",
       irrigationType: initialData?.irrigationType || "rainfed",
       pestManagement: initialData?.pestManagement || "conventional",
+      coordinates: initialData?.coordinates,
     },
   })
 
@@ -230,10 +238,19 @@ export function HarvestForm({
   useEffect(() => {
     if (geoLocation && !geoLoading && !geoError) {
       setLocationStatus('success')
-      form.setValue('coordinates', {
-        latitude: geoLocation.lat,
-        longitude: geoLocation.lng
-      })
+
+      // Never clobber coordinates that are already set — whether loaded from
+      // an existing harvest being edited, or already captured this session —
+      // with a fresh GPS reading of wherever the farmer happens to be right
+      // now, which may not be the actual field this batch came from. An
+      // explicit "Auto-detect" click is the one case that should overwrite.
+      if (!form.getValues('coordinates') || explicitLocationRequest.current) {
+        form.setValue('coordinates', {
+          latitude: geoLocation.lat,
+          longitude: geoLocation.lng
+        })
+        explicitLocationRequest.current = false
+      }
 
       if (!form.getValues('location')) {
         const locationString = `${geoLocation.city || 'Current Farm Location'}, ${geoLocation.state || 'Nigeria'}`
@@ -262,6 +279,7 @@ export function HarvestForm({
 
   const handleGetLocation = async () => {
     setLocationStatus('detecting')
+    explicitLocationRequest.current = true
     try {
       await requestLocation()
     } catch {
@@ -350,13 +368,32 @@ export function HarvestForm({
   }
 
   const handleSubmit = async (data: HarvestFormData) => {
+    if (isLoading) return
     try {
       const finalData = { ...data }
-      if (data.location && !data.coordinates && geoLocation) {
-        finalData.coordinates = {
-          latitude: geoLocation.lat,
-          longitude: geoLocation.lng
+
+      if (!finalData.coordinates) {
+        // Fall back to the live GPS reading if the field wasn't set directly,
+        // then to the farmer's saved profile coordinates. Never fabricate a
+        // default — an untraceable batch is better than a falsely-traced one.
+        if (geoLocation) {
+          finalData.coordinates = { latitude: geoLocation.lat, longitude: geoLocation.lng }
+        } else {
+          const profileCoords = (user as any)?.profile?.coordinates
+          if (typeof profileCoords?.lat === 'number' && typeof profileCoords?.lng === 'number') {
+            finalData.coordinates = { latitude: profileCoords.lat, longitude: profileCoords.lng }
+          }
         }
+      }
+
+      if (!finalData.coordinates) {
+        toast({
+          title: "Farm Location Required",
+          description: "Click \"Auto-detect\" on the Farm Field Location field (Step 1) to record real GPS coordinates for this batch.",
+          variant: "destructive"
+        })
+        setCurrentStep(1)
+        return
       }
 
       const validImages = images.filter(url => url && !url.startsWith('blob:'))
@@ -368,7 +405,7 @@ export function HarvestForm({
       console.error("Submission error:", error)
       toast({
         title: "Error Saving Harvest",
-        description: "Failed to record the harvest batch on-chain. Please try again.",
+        description: "Failed to save the harvest record. Please try again.",
         variant: "destructive"
       })
     }

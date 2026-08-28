@@ -1,6 +1,7 @@
 const Partner = require('../models/partner.model')
 const User = require('../models/user.model')
 const NotificationService = require('../services/notification.service')
+const { escapeRegex } = require('../utils/regex.util')
 
 exports.getAllPartners = async (req, res) => {
   try {
@@ -10,10 +11,11 @@ exports.getAllPartners = async (req, res) => {
     if (status) query.status = status
     if (type) query.type = type
     if (search) {
+      const safeSearch = escapeRegex(search)
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { organization: { $regex: search, $options: 'i' } },
-        { location: { $regex: search, $options: 'i' } }
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { organization: { $regex: safeSearch, $options: 'i' } },
+        { location: { $regex: safeSearch, $options: 'i' } }
       ]
     }
     
@@ -577,15 +579,28 @@ exports.getPartnerDashboard = async (req, res) => {
       }
     }
 
+    // Real farmer/harvest counts for this partner, not fabricated placeholders.
+    const Harvest = require('../models/harvest.model')
+    const farmerIds = partner.farmers || []
+    const [activeFarmersCount, pendingApprovals, approvedHarvests, rejectedHarvests] = await Promise.all([
+      farmerIds.length > 0 ? User.countDocuments({ _id: { $in: farmerIds }, status: 'active' }) : 0,
+      farmerIds.length > 0 ? Harvest.countDocuments({ farmer: { $in: farmerIds }, status: 'pending' }) : 0,
+      farmerIds.length > 0 ? Harvest.countDocuments({ farmer: { $in: farmerIds }, status: 'approved' }) : 0,
+      farmerIds.length > 0 ? Harvest.countDocuments({ farmer: { $in: farmerIds }, status: 'rejected' }) : 0
+    ])
+    const approvalRate = (approvedHarvests + rejectedHarvests) > 0
+      ? Math.round((approvedHarvests / (approvedHarvests + rejectedHarvests)) * 1000) / 10
+      : 0
+
     // Return dashboard data
     const dashboard = {
-      totalFarmers: partner.farmers?.length || 0,
-      activeFarmers: partner.farmers?.length || 0, // For now, assume all are active
-      pendingApprovals: 0, // Mock data for now
+      totalFarmers: farmerIds.length,
+      activeFarmers: activeFarmersCount,
+      pendingApprovals,
       monthlyCommission: partner.totalCommissions || 0,
       totalCommission: partner.totalCommissions || 0,
       commissionRate: partner.commissionRate || 0.02,
-      approvalRate: 85, // Mock data
+      approvalRate,
       recentActivity: [],
       joinedAt: partner.createdAt
     }

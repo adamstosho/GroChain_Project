@@ -2,12 +2,15 @@
 
 import React from "react"
 import Image from "next/image"
+import { GroChainBrandMark } from "@/components/ui/grochain-brand-mark"
 import { cn } from "@/lib/utils"
 
 interface GroChainLogoProps {
   variant?: "full" | "icon" | "text"
   size?: "sm" | "md" | "lg" | "xl"
   animated?: boolean
+  /** Use high-fidelity 3D mark with rotation (hero surfaces) */
+  brand3d?: boolean
   className?: string
 }
 
@@ -20,8 +23,22 @@ export function GroChainLogo({
   variant = "full",
   size = "md",
   animated = false,
+  brand3d = false,
   className,
 }: GroChainLogoProps) {
+  if (brand3d) {
+    const brandSize = size === "sm" ? "sm" : size === "lg" ? "lg" : size === "xl" ? "xl" : "md"
+    return (
+      <GroChainBrandMark
+        size={brandSize}
+        rotate={animated}
+        showRing
+        glow
+        float={animated}
+        className={className}
+      />
+    )
+  }
   const iconBox = {
     sm: "h-6 w-6",
     md: "h-8 w-8",

@@ -225,6 +225,20 @@ export class CommissionService {
     }
   }
 
+  // Partner-facing: requests a payout — records details for admin review,
+  // does not mark anything paid.
+  async requestCommissionPayout(data: { commissionIds: string[]; payoutMethod: string; payoutDetails: any; notes?: string }): Promise<any> {
+    try {
+      const response = await apiService.requestCommissionPayout(data)
+      this.clearCache()
+      return response.data
+    } catch (error) {
+      console.error('Failed to request commission payout:', error)
+      throw error
+    }
+  }
+
+  // Admin-only: actually executes the payout (marks paid + writes the ledger entry)
   async processCommissionPayout(data: { commissionIds: string[]; payoutMethod: string; payoutDetails: any }): Promise<any> {
     try {
       const response = await apiService.processCommissionPayout(data)

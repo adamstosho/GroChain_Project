@@ -25,6 +25,10 @@ import {
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart as RechartsPieChart, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Pie, Legend } from "recharts"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { Display, Text } from "@/components/ui/typography"
+import { dashboard, textStyles } from "@/lib/design-system"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { cn } from "@/lib/utils"
 
 interface BuyerAnalyticsData {
   totalOrders: number
@@ -132,7 +136,7 @@ export function BuyerAnalytics() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
+      <DashboardPageShell className="max-w-full overflow-hidden">
         {/* Header skeleton */}
         <div className="flex flex-col space-y-3 sm:space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
           <div className="space-y-2">
@@ -146,7 +150,7 @@ export function BuyerAnalytics() {
         </div>
 
         {/* Key metrics skeleton */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        <div className={dashboard.statsGrid4}>
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
@@ -182,16 +186,16 @@ export function BuyerAnalytics() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </DashboardPageShell>
     )
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
+    <DashboardPageShell className="max-w-full overflow-hidden">
       {/* Header */}
       <div className="space-y-3 sm:space-y-4">
         <div className="flex flex-col space-y-2">
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Buyer Analytics</h2>
+          <Display as="h2" variant="page">Buyer Analytics</Display>
           <p className="text-muted-foreground text-sm sm:text-base">
             Track your purchasing patterns, spending analysis, and supplier performance
           </p>
@@ -229,16 +233,16 @@ export function BuyerAnalytics() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+      <div className={dashboard.statsGrid4}>
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Orders</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Total Orders</CardTitle>
             <div className="p-1 sm:p-1.5 lg:p-2 bg-primary/10 rounded-full flex-shrink-0">
               <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
             </div>
           </CardHeader>
           <CardContent className="pb-2 sm:pb-3 lg:pb-6">
-            <div className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold">{analyticsData?.totalOrders || 0}</div>
+            <Text as="div" variant="stat">{analyticsData?.totalOrders || 0}</Text>
             <div className="flex items-center text-xs text-muted-foreground mt-0.5 sm:mt-1">
               <CheckCircle className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">{analyticsData?.completedOrders || 0} completed</span>
@@ -249,15 +253,15 @@ export function BuyerAnalytics() {
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Spent</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Total Spent</CardTitle>
             <div className="p-1 sm:p-1.5 lg:p-2 bg-success/10 rounded-full flex-shrink-0">
               <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-success" />
             </div>
           </CardHeader>
           <CardContent className="pb-2 sm:pb-3 lg:pb-6">
-            <div className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold break-words">
+            <Text as="div" variant="stat" className="break-words">
               {formatCurrency(analyticsData?.totalSpent || 0)}
-            </div>
+            </Text>
             <div className="flex items-center text-xs text-muted-foreground mt-0.5 sm:mt-1">
               <TrendingUp className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">Avg: {formatCurrency(analyticsData?.averageOrderValue || 0)}</span>
@@ -268,13 +272,13 @@ export function BuyerAnalytics() {
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Completion Rate</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Completion Rate</CardTitle>
             <div className="p-1 sm:p-1.5 lg:p-2 bg-accent/10 rounded-full flex-shrink-0">
               <Target className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />
             </div>
           </CardHeader>
           <CardContent className="pb-2 sm:pb-3 lg:pb-6">
-            <div className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold">{analyticsData?.completionRate || 0}%</div>
+            <Text as="div" variant="stat">{analyticsData?.completionRate || 0}%</Text>
             <div className="flex items-center text-xs text-muted-foreground mt-0.5 sm:mt-1">
               <Activity className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
               <span className="truncate">Order success rate</span>
@@ -285,15 +289,15 @@ export function BuyerAnalytics() {
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Active Orders</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Active Orders</CardTitle>
             <div className="p-1 sm:p-1.5 lg:p-2 bg-warning/10 rounded-full flex-shrink-0">
               <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-warning" />
             </div>
           </CardHeader>
           <CardContent className="pb-2 sm:pb-3 lg:pb-6">
-            <div className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold">
+            <Text as="div" variant="stat">
               {(analyticsData?.totalOrders || 0) - (analyticsData?.completedOrders || 0)}
-            </div>
+            </Text>
             <div className="flex items-center text-xs text-muted-foreground mt-0.5 sm:mt-1">
               <Package className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
               <span className="truncate">Pending completion</span>
@@ -748,7 +752,7 @@ export function BuyerAnalytics() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+    </DashboardPageShell>
   )
 }
 

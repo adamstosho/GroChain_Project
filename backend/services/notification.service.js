@@ -295,26 +295,14 @@ class NotificationService {
       throw new Error('Push notifications disabled by user')
     }
 
-    // This would integrate with Firebase Cloud Messaging or similar
-    // For now, we'll simulate the push notification
-    const pushData = {
-      to: user.pushToken,
-      notification: {
-        title: notification.title,
-        body: notification.message,
-        icon: '/icon.png',
-        click_action: notification.actionUrl || '/notifications'
-      },
-      data: {
-        notificationId: notification._id.toString(),
-        category: notification.category,
-        type: notification.type
-      }
-    }
-
-    // Simulate push notification (replace with actual FCM implementation)
-    console.log('Push notification would be sent:', pushData)
-    return { success: true, message: 'Push notification sent' }
+    // Real Web Push delivery is not wired up yet — VAPID keys exist in .env,
+    // but no `web-push` package call, service worker subscription listener,
+    // or subscription-storage endpoint has been built. Rather than report a
+    // fake success (as this used to), fail honestly so the caller's
+    // per-channel error tracking reflects reality — see
+    // notification.service.js sendNotification(), which already handles a
+    // per-channel failure gracefully without breaking email/SMS/in-app.
+    throw new Error('Push notifications are not yet configured for this deployment')
   }
 
   // Send in-app notification

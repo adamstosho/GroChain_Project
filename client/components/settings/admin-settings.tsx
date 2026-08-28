@@ -9,6 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import { getExportService } from "@/lib/export-utils"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { textStyles } from "@/lib/design-system"
+import { cn } from "@/lib/utils"
 import {
   Globe,
   Shield,
@@ -353,21 +357,18 @@ export function AdminSettings() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
-      {/* Header */}
-      <div className="flex flex-col space-y-3 sm:space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
-        <div className="space-y-1">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">System Settings</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Configure system-wide administrative preferences and data management
-          </p>
-        </div>
-        <Button onClick={handleSaveSettings} disabled={saving} className="self-start md:self-auto w-full sm:w-auto">
-          <Save className="mr-2 h-4 w-4" />
-          <span className="hidden sm:inline">{saving ? "Saving..." : "Save Settings"}</span>
-          <span className="sm:hidden">{saving ? "Saving..." : "Save"}</span>
-        </Button>
-      </div>
+    <DashboardPageShell>
+      <DashboardSubpageHeader
+        title="System Settings"
+        description="Configure system-wide administrative preferences and data management"
+        actions={
+          <Button onClick={handleSaveSettings} disabled={saving} className="w-full self-start sm:w-auto md:self-auto">
+            <Save className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">{saving ? "Saving..." : "Save Settings"}</span>
+            <span className="sm:hidden">{saving ? "Saving..." : "Save"}</span>
+          </Button>
+        }
+      />
 
       <div className="grid gap-4 sm:gap-6 xl:grid-cols-2">
 
@@ -703,6 +704,6 @@ export function AdminSettings() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </DashboardPageShell>
   )
 }

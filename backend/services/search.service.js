@@ -3,6 +3,7 @@ const Listing = require('../models/listing.model')
 const User = require('../models/user.model')
 const Partner = require('../models/partner.model')
 const Shipment = require('../models/shipment.model')
+const { escapeRegex } = require('../utils/regex.util')
 
 class SearchService {
   constructor() {
@@ -287,12 +288,13 @@ class SearchService {
 
     // Text search
     if (query) {
+      const safeQuery = escapeRegex(query)
       searchQuery.$or = [
-        { cropType: { $regex: query, $options: 'i' } },
-        { description: { $regex: query, $options: 'i' } },
-        { 'location.city': { $regex: query, $options: 'i' } },
-        { 'location.state': { $regex: query, $options: 'i' } },
-        { batchId: { $regex: query, $options: 'i' } }
+        { cropType: { $regex: safeQuery, $options: 'i' } },
+        { description: { $regex: safeQuery, $options: 'i' } },
+        { 'location.city': { $regex: safeQuery, $options: 'i' } },
+        { 'location.state': { $regex: safeQuery, $options: 'i' } },
+        { batchId: { $regex: safeQuery, $options: 'i' } }
       ]
     }
 
@@ -316,11 +318,11 @@ class SearchService {
     }
 
     if (filters.location) {
-      searchQuery['location.city'] = { $regex: filters.location, $options: 'i' }
+      searchQuery['location.city'] = { $regex: escapeRegex(filters.location), $options: 'i' }
     }
 
     if (filters.state) {
-      searchQuery['location.state'] = { $regex: filters.state, $options: 'i' }
+      searchQuery['location.state'] = { $regex: escapeRegex(filters.state), $options: 'i' }
     }
 
     if (filters.organic !== undefined) {
@@ -364,17 +366,18 @@ class SearchService {
 
     // Text search
     if (query) {
+      const safeQuery = escapeRegex(query)
       searchQuery.$or = [
-        { cropName: { $regex: query, $options: 'i' } },
-        { description: { $regex: query, $options: 'i' } },
-        { 'location.city': { $regex: query, $options: 'i' } },
-        { 'location.state': { $regex: query, $options: 'i' } }
+        { cropName: { $regex: safeQuery, $options: 'i' } },
+        { description: { $regex: safeQuery, $options: 'i' } },
+        { 'location.city': { $regex: safeQuery, $options: 'i' } },
+        { 'location.state': { $regex: safeQuery, $options: 'i' } }
       ]
     }
 
     // Apply filters
     if (filters.cropName) {
-      searchQuery.cropName = { $regex: filters.cropName, $options: 'i' }
+      searchQuery.cropName = { $regex: escapeRegex(filters.cropName), $options: 'i' }
     }
 
     if (filters.minPrice || filters.maxPrice) {
@@ -392,11 +395,11 @@ class SearchService {
     }
 
     if (filters.location) {
-      searchQuery['location.city'] = { $regex: filters.location, $options: 'i' }
+      searchQuery['location.city'] = { $regex: escapeRegex(filters.location), $options: 'i' }
     }
 
     if (filters.state) {
-      searchQuery['location.state'] = { $regex: filters.state, $options: 'i' }
+      searchQuery['location.state'] = { $regex: escapeRegex(filters.state), $options: 'i' }
     }
 
     if (filters.deliveryMethod) {
@@ -421,11 +424,12 @@ class SearchService {
 
     // Text search
     if (query) {
+      const safeQuery = escapeRegex(query)
       searchQuery.$or = [
-        { name: { $regex: query, $options: 'i' } },
-        { email: { $regex: query, $options: 'i' } },
-        { 'location.city': { $regex: query, $options: 'i' } },
-        { 'location.state': { $regex: query, $options: 'i' } }
+        { name: { $regex: safeQuery, $options: 'i' } },
+        { email: { $regex: safeQuery, $options: 'i' } },
+        { 'location.city': { $regex: safeQuery, $options: 'i' } },
+        { 'location.state': { $regex: safeQuery, $options: 'i' } }
       ]
     }
 
@@ -439,11 +443,11 @@ class SearchService {
     }
 
     if (filters.location) {
-      searchQuery['location.city'] = { $regex: filters.location, $options: 'i' }
+      searchQuery['location.city'] = { $regex: escapeRegex(filters.location), $options: 'i' }
     }
 
     if (filters.state) {
-      searchQuery['location.state'] = { $regex: filters.state, $options: 'i' }
+      searchQuery['location.state'] = { $regex: escapeRegex(filters.state), $options: 'i' }
     }
 
     if (filters.startDate || filters.endDate) {
@@ -466,11 +470,12 @@ class SearchService {
 
     // Text search
     if (query) {
+      const safeQuery = escapeRegex(query)
       searchQuery.$or = [
-        { name: { $regex: query, $options: 'i' } },
-        { description: { $regex: query, $options: 'i' } },
-        { 'location.city': { $regex: query, $options: 'i' } },
-        { 'location.state': { $regex: query, $options: 'i' } }
+        { name: { $regex: safeQuery, $options: 'i' } },
+        { description: { $regex: safeQuery, $options: 'i' } },
+        { 'location.city': { $regex: safeQuery, $options: 'i' } },
+        { 'location.state': { $regex: safeQuery, $options: 'i' } }
       ]
     }
 
@@ -484,11 +489,11 @@ class SearchService {
     }
 
     if (filters.location) {
-      searchQuery['location.city'] = { $regex: filters.location, $options: 'i' }
+      searchQuery['location.city'] = { $regex: escapeRegex(filters.location), $options: 'i' }
     }
 
     if (filters.state) {
-      searchQuery['location.state'] = { $regex: filters.state, $options: 'i' }
+      searchQuery['location.state'] = { $regex: escapeRegex(filters.state), $options: 'i' }
     }
 
     if (filters.certified !== undefined) {
@@ -509,11 +514,12 @@ class SearchService {
 
     // Text search
     if (query) {
+      const safeQuery = escapeRegex(query)
       searchQuery.$or = [
-        { shipmentNumber: { $regex: query, $options: 'i' } },
-        { trackingNumber: { $regex: query, $options: 'i' } },
-        { 'origin.city': { $regex: query, $options: 'i' } },
-        { 'destination.city': { $regex: query, $options: 'i' } }
+        { shipmentNumber: { $regex: safeQuery, $options: 'i' } },
+        { trackingNumber: { $regex: safeQuery, $options: 'i' } },
+        { 'origin.city': { $regex: safeQuery, $options: 'i' } },
+        { 'destination.city': { $regex: safeQuery, $options: 'i' } }
       ]
     }
 
@@ -523,15 +529,15 @@ class SearchService {
     }
 
     if (filters.carrier) {
-      searchQuery.carrier = { $regex: filters.carrier, $options: 'i' }
+      searchQuery.carrier = { $regex: escapeRegex(filters.carrier), $options: 'i' }
     }
 
     if (filters.origin) {
-      searchQuery['origin.city'] = { $regex: filters.origin, $options: 'i' }
+      searchQuery['origin.city'] = { $regex: escapeRegex(filters.origin), $options: 'i' }
     }
 
     if (filters.destination) {
-      searchQuery['destination.city'] = { $regex: filters.destination, $options: 'i' }
+      searchQuery['destination.city'] = { $regex: escapeRegex(filters.destination), $options: 'i' }
     }
 
     if (filters.startDate || filters.endDate) {
@@ -585,24 +591,25 @@ class SearchService {
   async getSearchSuggestions(query, type = 'all', limit = 10) {
     try {
       const suggestions = []
+      const safeQuery = escapeRegex(query)
 
       if (type === 'all' || type === 'harvest') {
         const harvestSuggestions = await Harvest.distinct('cropType', {
-          cropType: { $regex: query, $options: 'i' }
+          cropType: { $regex: safeQuery, $options: 'i' }
         }).limit(limit)
         suggestions.push(...harvestSuggestions.map(s => ({ text: s, type: 'harvest' })))
       }
 
       if (type === 'all' || type === 'listing') {
         const listingSuggestions = await Listing.distinct('cropName', {
-          cropName: { $regex: query, $options: 'i' }
+          cropName: { $regex: safeQuery, $options: 'i' }
         }).limit(limit)
         suggestions.push(...listingSuggestions.map(s => ({ text: s, type: 'listing' })))
       }
 
       if (type === 'all' || type === 'location') {
         const locationSuggestions = await Harvest.distinct('location.city', {
-          'location.city': { $regex: query, $options: 'i' }
+          'location.city': { $regex: safeQuery, $options: 'i' }
         }).limit(limit)
         suggestions.push(...locationSuggestions.map(s => ({ text: s, type: 'location' })))
       }

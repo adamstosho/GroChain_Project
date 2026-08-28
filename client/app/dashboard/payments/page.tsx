@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -330,7 +333,7 @@ export default function PaymentsPage() {
 
   return (
     <DashboardLayout pageTitle="Payment Management">
-      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
+      <DashboardPageShell className="px-4 sm:px-6 max-w-full overflow-hidden">
         <DashboardPageHeader
           badge="Payments Active"
           title="Payment"
@@ -446,7 +449,7 @@ export default function PaymentsPage() {
           {/* Transactions Tab */}
           <TabsContent value="transactions" className="mt-4 sm:mt-6">
             {/* Statistics */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className={`${dashboard.statsGrid4} mb-4 sm:mb-6`}>
               <Card>
                 <CardContent className="p-2 sm:p-4">
                   <div className="flex items-center space-x-1 sm:space-x-2">
@@ -456,7 +459,7 @@ export default function PaymentsPage() {
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold mt-1 sm:mt-2">{stats.total}</p>
+                  <Text as="p" variant="stat" className="mt-1 sm:mt-2 text-foreground">{stats.total}</Text>
                   )}
                 </CardContent>
               </Card>
@@ -469,7 +472,7 @@ export default function PaymentsPage() {
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold text-success mt-1 sm:mt-2">{stats.successful}</p>
+                  <Text as="p" variant="stat" className="mt-1 sm:mt-2 text-success">{stats.successful}</Text>
                   )}
                 </CardContent>
               </Card>
@@ -482,7 +485,7 @@ export default function PaymentsPage() {
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold text-warning mt-1 sm:mt-2">{stats.pending}</p>
+                  <Text as="p" variant="stat" className="mt-1 sm:mt-2 text-warning">{stats.pending}</Text>
                   )}
                 </CardContent>
               </Card>
@@ -495,7 +498,7 @@ export default function PaymentsPage() {
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold text-destructive mt-1 sm:mt-2">{stats.failed}</p>
+                  <Text as="p" variant="stat" className="mt-1 sm:mt-2 text-destructive">{stats.failed}</Text>
                   )}
                 </CardContent>
               </Card>
@@ -611,7 +614,7 @@ export default function PaymentsPage() {
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold mt-1 sm:mt-2">{billingHistory.length}</p>
+                  <Text as="p" variant="stat" className="mt-1 sm:mt-2 text-foreground">{billingHistory.length}</Text>
                   )}
                 </CardContent>
               </Card>
@@ -624,9 +627,9 @@ export default function PaymentsPage() {
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold text-success mt-1 sm:mt-2">
+                  <Text as="p" variant="stat" className="mt-1 sm:mt-2 text-success">
                     {billingHistory.filter(b => b.status === 'paid').length}
-                  </p>
+                  </Text>
                   )}
                 </CardContent>
               </Card>
@@ -639,9 +642,9 @@ export default function PaymentsPage() {
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold text-warning mt-1 sm:mt-2">
+                  <Text as="p" variant="stat" className="mt-1 sm:mt-2 text-warning">
                     {billingHistory.filter(b => b.status === 'pending').length}
-                  </p>
+                  </Text>
                   )}
                 </CardContent>
               </Card>
@@ -695,7 +698,7 @@ export default function PaymentsPage() {
                         </p>
                       </div>
                       <div className="text-right w-full sm:w-auto">
-                        <p className="text-lg sm:text-2xl font-bold text-foreground">{formatPrice(invoice.amount)}</p>
+                        <Text as="p" variant="stat" className="text-foreground">{formatPrice(invoice.amount)}</Text>
                         <Badge className={`${getStatusColor(invoice.status)} text-xs`}>
                           {invoice.status}
                         </Badge>
@@ -760,7 +763,7 @@ export default function PaymentsPage() {
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold mt-1 sm:mt-2">{refunds.length}</p>
+                  <Text as="p" variant="stat" className="mt-1 sm:mt-2 text-foreground">{refunds.length}</Text>
                   )}
                 </CardContent>
               </Card>
@@ -773,9 +776,9 @@ export default function PaymentsPage() {
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold text-success mt-1 sm:mt-2">
+                  <Text as="p" variant="stat" className="mt-1 sm:mt-2 text-success">
                     {refunds.filter(r => r.status === 'approved').length}
-                  </p>
+                  </Text>
                   )}
                 </CardContent>
               </Card>
@@ -788,9 +791,9 @@ export default function PaymentsPage() {
                   {loading ? (
                     <Skeleton className="h-6 w-12 sm:h-8 sm:w-16 mt-1 sm:mt-2" />
                   ) : (
-                  <p className="text-lg sm:text-2xl font-bold text-warning mt-1 sm:mt-2">
+                  <Text as="p" variant="stat" className="mt-1 sm:mt-2 text-warning">
                     {refunds.filter(r => r.status === 'pending').length}
-                  </p>
+                  </Text>
                   )}
                 </CardContent>
               </Card>
@@ -845,7 +848,7 @@ export default function PaymentsPage() {
                         </p>
                       </div>
                       <div className="text-right w-full sm:w-auto">
-                        <p className="text-lg sm:text-2xl font-bold text-foreground">{formatPrice(refund.amount)}</p>
+                        <Text as="p" variant="stat" className="text-foreground">{formatPrice(refund.amount)}</Text>
                         <Badge className={`${getStatusColor(refund.status)} text-xs`}>
                           {refund.status}
                         </Badge>
@@ -882,7 +885,7 @@ export default function PaymentsPage() {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

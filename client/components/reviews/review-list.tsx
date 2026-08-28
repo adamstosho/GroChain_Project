@@ -11,6 +11,7 @@ import { Star, MessageCircle, ThumbsUp, MoreHorizontal, Edit, Trash2 } from "luc
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { Text } from "@/components/ui/typography"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -163,7 +164,7 @@ export function ReviewList({ listingId, className }: ReviewListProps) {
             {/* Overall Rating */}
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="text-3xl font-bold">{stats.averageRating.toFixed(1)}</div>
+                <Text as="div" variant="stat">{stats.averageRating.toFixed(1)}</Text>
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <Star

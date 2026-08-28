@@ -19,6 +19,9 @@ import {
   Package
 } from "lucide-react"
 import { apiService } from "@/lib/api"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display, Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 
 interface HarvestAnalytics {
   totalHarvests: number
@@ -186,8 +189,8 @@ export function HarvestAnalytics({ farmerId, className }: HarvestAnalyticsProps)
 
   if (loading) {
     return (
-      <div className={`space-y-6 ${className}`}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <DashboardPageShell className={className}>
+        <div className={dashboard.statsGrid4}>
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
@@ -197,7 +200,7 @@ export function HarvestAnalytics({ farmerId, className }: HarvestAnalyticsProps)
             </Card>
           ))}
         </div>
-      </div>
+      </DashboardPageShell>
     )
   }
 
@@ -214,12 +217,12 @@ export function HarvestAnalytics({ farmerId, className }: HarvestAnalyticsProps)
   }
 
   return (
-    <div className={`space-y-4 sm:space-y-6 ${className}`}>
+    <DashboardPageShell className={className}>
       {/* Header with Time Range Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold truncate">Harvest Analytics</h2>
-          <p className="text-xs sm:text-sm text-muted-foreground truncate">Comprehensive insights into your farming performance</p>
+          <Display as="h2" variant="page">Harvest Analytics</Display>
+          <Text variant="sm">Comprehensive insights into your farming performance</Text>
         </div>
         <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-full sm:w-48 h-8 sm:h-9 text-xs sm:text-sm">
@@ -235,13 +238,13 @@ export function HarvestAnalytics({ farmerId, className }: HarvestAnalyticsProps)
       </div>
 
       {/* Key Metrics */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      <div className={dashboard.statsGrid}>
         <Card className="h-full">
           <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Total Harvests</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold truncate">{formatNumber(analytics.totalHarvests)}</p>
+                <Text as="p" variant="stat" className="truncate text-foreground">{formatNumber(analytics.totalHarvests)}</Text>
               </div>
               <Package className="h-6 w-6 sm:h-8 sm:w-8 text-primary flex-shrink-0" />
             </div>
@@ -257,7 +260,7 @@ export function HarvestAnalytics({ farmerId, className }: HarvestAnalyticsProps)
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Total Quantity</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold truncate">{formatNumber(analytics.totalQuantity)}kg</p>
+                <Text as="p" variant="stat" className="truncate text-foreground">{formatNumber(analytics.totalQuantity)}kg</Text>
               </div>
               <Scale className="h-6 w-6 sm:h-8 sm:w-8 text-success flex-shrink-0" />
             </div>
@@ -272,7 +275,7 @@ export function HarvestAnalytics({ farmerId, className }: HarvestAnalyticsProps)
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Total Value</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold truncate">{formatCurrency(analytics.totalValue)}</p>
+                <Text as="p" variant="stat" className="truncate text-foreground">{formatCurrency(analytics.totalValue)}</Text>
               </div>
               <Banknote className="h-6 w-6 sm:h-8 sm:w-8 text-warning flex-shrink-0" />
             </div>
@@ -287,7 +290,7 @@ export function HarvestAnalytics({ farmerId, className }: HarvestAnalyticsProps)
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Avg Quality</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold truncate capitalize">{analytics.averageQuality}</p>
+                <Text as="p" variant="stat" className="truncate capitalize text-foreground">{analytics.averageQuality}</Text>
               </div>
               <Award className="h-6 w-6 sm:h-8 sm:w-8 text-accent flex-shrink-0" />
             </div>
@@ -501,7 +504,7 @@ export function HarvestAnalytics({ farmerId, className }: HarvestAnalyticsProps)
                 </div>
                 <div className="text-center p-3 sm:p-4 bg-accent/10 rounded-lg">
                   <p className="text-xs sm:text-sm text-accent font-medium">Yield Prediction</p>
-                  <p className="text-lg sm:text-2xl font-bold text-accent">{formatNumber(analytics.seasonalInsights.yieldPrediction)}kg</p>
+                  <Text as="p" variant="stat" className="text-accent">{formatNumber(analytics.seasonalInsights.yieldPrediction)}kg</Text>
                   <p className="text-xs text-accent">Next season estimate</p>
                 </div>
               </CardContent>
@@ -535,6 +538,6 @@ export function HarvestAnalytics({ farmerId, className }: HarvestAnalyticsProps)
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+    </DashboardPageShell>
   )
 }

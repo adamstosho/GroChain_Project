@@ -55,6 +55,11 @@ class RateLimitMiddleware {
         max: relaxedSecurity ? 300 : 60,
         message: 'Too many AI insight requests, please try again later.'
       },
+      bvn: {
+        windowMs: 60 * 60 * 1000, // 1 hour
+        max: relaxedSecurity ? 100 : 5, // BVN checks hit a paid, PII-sensitive external verification API
+        message: 'Too many BVN verification attempts, please try again later.'
+      },
       api: {
         windowMs: apiWindowMs,
         max: apiMax,

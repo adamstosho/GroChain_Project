@@ -329,9 +329,12 @@ export const useBuyerStore = create<BuyerState>()(
         }
         set({ isLoading: true, error: null })
         try {
-          const { idempotencyKey, ...payload } = orderData || {}
+          let { idempotencyKey, ...payload } = orderData || {}
+          if (!idempotencyKey && typeof crypto !== 'undefined' && crypto.randomUUID) {
+            idempotencyKey = crypto.randomUUID()
+          }
           const response = await apiService.createOrder(
-            payload,
+            { ...payload, idempotencyKey },
             idempotencyKey ? { idempotencyKey: String(idempotencyKey) } : undefined
           )
           if (response?.status === 'success' && response?.data) {

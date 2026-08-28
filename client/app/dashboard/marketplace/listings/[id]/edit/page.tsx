@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -282,7 +284,7 @@ export default function EditListingPage() {
   if (loadingListing) {
     return (
       <DashboardLayout pageTitle="Edit Listing">
-        <div className="space-y-6">
+        <DashboardPageShell>
           <div className="flex items-center gap-4">
             <div className="h-6 bg-muted rounded w-32 animate-pulse"></div>
             <div className="h-6 bg-muted rounded w-48 animate-pulse"></div>
@@ -295,33 +297,25 @@ export default function EditListingPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout pageTitle="Edit Listing">
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
-                <Link href="/dashboard/marketplace/listings" className="flex items-center gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Listings
-                </Link>
-              </Button>
-            </div>
-            <h1 className="text-2xl font-semibold text-foreground">
-              Edit Listing
-            </h1>
-            <p className="text-muted-foreground">
-              Update your product listing information
-            </p>
-          </div>
-        </div>
+      <DashboardPageShell>
+        <Button variant="ghost" asChild className="w-fit text-muted-foreground hover:text-foreground">
+          <Link href="/dashboard/marketplace/listings" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Listings
+          </Link>
+        </Button>
+
+        <DashboardSubpageHeader
+          title="Edit Listing"
+          description="Update your product listing information"
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
@@ -755,7 +749,7 @@ export default function EditListingPage() {
             </Card>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

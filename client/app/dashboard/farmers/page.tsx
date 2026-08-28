@@ -11,6 +11,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { useFarmers } from "@/hooks/use-farmers"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -89,14 +92,14 @@ export default function FarmersPage() {
   if (isLoading) {
     return (
       <DashboardLayout pageTitle="Farmers Management">
-        <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
+        <DashboardPageShell className="px-4 sm:px-6 max-w-full overflow-hidden">
           <DashboardPageHeader
             badge="Farmer Network Active"
             title="Farmers"
             titleHighlight="Management"
             description="Manage your partner farmers and track their performance."
           />
-          <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className={dashboard.statsGrid4}>
             {[...Array(4)].map((_, i) => (
               <Card key={i} className="animate-pulse">
                 <CardHeader className="space-y-0 pb-1 sm:pb-2">
@@ -109,7 +112,7 @@ export default function FarmersPage() {
               </Card>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
@@ -117,7 +120,7 @@ export default function FarmersPage() {
   if (hasError) {
     return (
       <DashboardLayout pageTitle="Farmers Management">
-        <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
+        <DashboardPageShell className="px-4 sm:px-6 max-w-full overflow-hidden">
           <DashboardPageHeader
             badge="Farmer Network Active"
             title="Farmers"
@@ -143,14 +146,14 @@ export default function FarmersPage() {
               </Button>
             </CardContent>
           </Card>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout pageTitle="Farmers Management">
-      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
+      <DashboardPageShell className="px-4 sm:px-6 max-w-full overflow-hidden">
         <DashboardPageHeader
           badge="Farmer Network Active"
           title="Farmers"
@@ -199,14 +202,14 @@ export default function FarmersPage() {
         />
 
         {/* Stats Cards */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className={dashboard.statsGrid4}>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
               <CardTitle className="text-xs sm:text-sm font-medium truncate pr-2 min-w-0 flex-1">Total Farmers</CardTitle>
               <Users className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
             </CardHeader>
             <CardContent className="pb-2 sm:pb-3">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold">{stats.totalFarmers}</div>
+              <Text as="div" variant="stat" className="text-foreground">{stats.totalFarmers}</Text>
               <p className="text-xs text-muted-foreground">
                 Real data from database
               </p>
@@ -218,7 +221,7 @@ export default function FarmersPage() {
               <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-success flex-shrink-0" />
             </CardHeader>
             <CardContent className="pb-2 sm:pb-3">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold">{stats.activeFarmers}</div>
+              <Text as="div" variant="stat" className="text-foreground">{stats.activeFarmers}</Text>
               <p className="text-xs text-muted-foreground">
                 <span className="text-success">{stats.totalFarmers > 0 ? Math.round((stats.activeFarmers / stats.totalFarmers) * 100) : 0}%</span> active rate
               </p>
@@ -230,7 +233,7 @@ export default function FarmersPage() {
               <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-warning flex-shrink-0" />
             </CardHeader>
             <CardContent className="pb-2 sm:pb-3">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold">{stats.inactiveFarmers}</div>
+              <Text as="div" variant="stat" className="text-foreground">{stats.inactiveFarmers}</Text>
               <p className="text-xs text-muted-foreground">
                 <span className="text-warning">{stats.totalFarmers > 0 ? Math.round((stats.inactiveFarmers / stats.totalFarmers) * 100) : 0}%</span> of total
               </p>
@@ -242,7 +245,7 @@ export default function FarmersPage() {
               <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive flex-shrink-0" />
             </CardHeader>
             <CardContent className="pb-2 sm:pb-3">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold">{stats.suspendedFarmers}</div>
+              <Text as="div" variant="stat" className="text-foreground">{stats.suspendedFarmers}</Text>
               <p className="text-xs text-muted-foreground">
                 <span className="text-destructive">{stats.totalFarmers > 0 ? Math.round((stats.suspendedFarmers / stats.totalFarmers) * 100) : 0}%</span> of total
               </p>
@@ -423,7 +426,7 @@ export default function FarmersPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

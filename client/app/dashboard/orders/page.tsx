@@ -10,6 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 import { apiService } from "@/lib/api"
@@ -284,21 +287,18 @@ export default function OrdersPage() {
   }, [toast])
 
   useEffect(() => {
-    fetchOrdersData()
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+    const fromPayment = urlParams?.get('from_payment') === 'true'
+    const paymentRef = urlParams?.get('payment_ref')
 
-    // Check if user came from payment verification
-    const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
-    const fromPayment = urlParams.get('from_payment')
-    const paymentRef = urlParams.get('payment_ref')
-
-    if (fromPayment === 'true' && paymentRef) {
-      console.log('🔄 User returned from payment verification, refreshing data...')
-      // Force refresh after a short delay to ensure backend has processed everything
+    if (fromPayment && paymentRef) {
       const timer = setTimeout(() => {
         fetchOrdersData()
-      }, 2000)
+      }, 1500)
       return () => clearTimeout(timer)
     }
+
+    fetchOrdersData()
   }, [fetchOrdersData])
 
   const handleRefresh = useCallback(async () => {
@@ -734,7 +734,7 @@ export default function OrdersPage() {
   if (loading) {
     return (
       <DashboardLayout pageTitle="My Orders">
-        <div className="space-y-6">
+        <DashboardPageShell>
           {/* Loading Header */}
           <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
             <div>
@@ -794,14 +794,14 @@ export default function OrdersPage() {
               </div>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout pageTitle="My Orders">
-      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
+      <DashboardPageShell className="px-4 sm:px-6 max-w-full overflow-hidden">
         <DashboardPageHeader
           badge="Order Tracking Active"
           title="My"
@@ -865,14 +865,14 @@ export default function OrdersPage() {
         />
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
+        <div className={dashboard.statsGrid}>
           <Card className="hover:shadow-md transition-shadow">
             <CardContent className="p-2 sm:p-3 md:p-4">
               <div className="flex items-center space-x-1.5 sm:space-x-2">
                 <Package className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">Total Orders</p>
-                  <p className="text-sm sm:text-lg md:text-2xl font-bold truncate">{stats.total}</p>
+                  <Text as="p" variant="stat" className="truncate text-foreground">{stats.total}</Text>
                 </div>
               </div>
             </CardContent>
@@ -883,7 +883,7 @@ export default function OrdersPage() {
                 <Clock className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-warning flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">Pending</p>
-                  <p className="text-sm sm:text-lg md:text-2xl font-bold truncate">{stats.pending}</p>
+                  <Text as="p" variant="stat" className="truncate text-foreground">{stats.pending}</Text>
                 </div>
               </div>
             </CardContent>
@@ -894,7 +894,7 @@ export default function OrdersPage() {
                 <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">Confirmed</p>
-                  <p className="text-sm sm:text-lg md:text-2xl font-bold truncate">{stats.confirmed}</p>
+                  <Text as="p" variant="stat" className="truncate text-foreground">{stats.confirmed}</Text>
                 </div>
               </div>
             </CardContent>
@@ -905,7 +905,7 @@ export default function OrdersPage() {
                 <Truck className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">Shipped</p>
-                  <p className="text-sm sm:text-lg md:text-2xl font-bold truncate">{stats.shipped}</p>
+                  <Text as="p" variant="stat" className="truncate text-foreground">{stats.shipped}</Text>
                 </div>
               </div>
             </CardContent>
@@ -916,7 +916,7 @@ export default function OrdersPage() {
                 <Banknote className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-success flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">Total Spent</p>
-                  <p className="text-xs sm:text-sm md:text-lg font-bold truncate">{formatPrice(stats.totalSpent)}</p>
+                  <Text as="p" variant="stat" className="truncate text-foreground">{formatPrice(stats.totalSpent)}</Text>
                 </div>
               </div>
             </CardContent>
@@ -1144,7 +1144,7 @@ export default function OrdersPage() {
             </Tabs>
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

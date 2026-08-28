@@ -30,11 +30,24 @@ const LoanApplicationSchema = new mongoose.Schema({
   documents: [{ type: String }], // URLs to uploaded documents
   notes: { type: String },
   creditScore: { type: Number },
-  riskAssessment: { type: String, enum: ['low', 'medium', 'high'] }
+  riskAssessment: { type: String, enum: ['low', 'medium', 'high'] },
+  lenderPartner: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' },
+  lenderName: { type: String },
+  lenderType: { type: String, enum: ['partner_mfi', 'platform_mfi', 'cooperative'], default: 'platform_mfi' },
+  submittedToLenderAt: { type: Date },
+  idempotencyKey: { type: String, maxlength: 128 },
 }, { timestamps: true })
 
 LoanApplicationSchema.index({ farmer: 1 })
 LoanApplicationSchema.index({ status: 1 })
 LoanApplicationSchema.index({ createdAt: -1 })
+LoanApplicationSchema.index(
+  { farmer: 1 },
+  { unique: true, partialFilterExpression: { status: 'pending' } }
+)
+LoanApplicationSchema.index(
+  { farmer: 1, idempotencyKey: 1 },
+  { unique: true, partialFilterExpression: { idempotencyKey: { $type: 'string' } } }
+)
 
 module.exports = mongoose.model('LoanApplication', LoanApplicationSchema)

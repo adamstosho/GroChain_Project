@@ -7,6 +7,8 @@ import { Progress } from "@/components/ui/progress"
 import { useAi } from "@/hooks/use-ai"
 import { Brain, TrendingUp, TrendingDown, Target, Lightbulb, ShieldCheck } from "lucide-react"
 import { formatCompactCurrency } from "@/lib/format"
+import { Display, Text } from "@/components/ui/typography"
+import { textStyles } from "@/lib/design-system"
 
 export function AiAnalyticsInsights() {
   const { getGrowthForecast, loading } = useAi()
@@ -58,7 +60,7 @@ export function AiAnalyticsInsights() {
               <Brain className="h-6 w-6 text-primary" aria-hidden />
             </div>
             <div>
-              <CardTitle className="text-xl font-bold tracking-tight text-foreground">
+              <CardTitle className={textStyles.cardTitle}>
                 Growth insights
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
@@ -80,9 +82,9 @@ export function AiAnalyticsInsights() {
                 30-day revenue outlook
               </p>
               <div className="flex items-baseline gap-2">
-                <h2 className="text-3xl font-bold text-foreground">
+                <Display as="h2" variant="page" className="text-foreground">
                   {formatCompactCurrency(forecastedRevenue)}
-                </h2>
+                </Display>
                 <div
                   className={`flex items-center gap-1 text-xs font-bold ${
                     growthIndicator === "rising" ? "text-success" : "text-destructive"

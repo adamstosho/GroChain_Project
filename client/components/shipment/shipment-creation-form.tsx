@@ -15,7 +15,9 @@ import { useToast } from "@/hooks/use-toast"
 import { useCreateShipment } from "@/hooks/use-shipments"
 import { useOfflineApi } from "@/hooks/use-offline-api"
 import { CreateShipmentRequest } from "@/types/shipment"
+import { calculateShippingCost, unitToKg, type ShippingLocation } from "@/lib/shipping-calculator"
 import { Package, Truck, Shield, Thermometer, AlertTriangle } from "lucide-react"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 
 const shipmentFormSchema = z.object({
   shippingMethod: z.enum(['road_standard', 'road_express', 'air', 'courier'], {
@@ -55,6 +57,7 @@ export function ShipmentCreationForm({
   className 
 }: ShipmentCreationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { guard, reset: resetSubmitGuard } = useSubmitOnce()
   const { toast } = useToast()
   const { loading } = useCreateShipment()
   const { createShipment: createShipmentOffline } = useOfflineApi()
@@ -95,14 +98,27 @@ export function ShipmentCreationForm({
         setValue('shippingMethod', orderData.shippingMethod)
       }
       
-      // Set shipping cost from order
+      // Set shipping cost from the order (the authoritative, server-computed
+      // amount actually charged at checkout). Only orders predating that
+      // calculation would ever land in the fallback below.
       if (orderData.shipping && orderData.shipping > 0) {
         setValue('shippingCost', orderData.shipping)
       } else {
-        // Calculate shipping cost if not provided
-        const totalWeight = orderData.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 1
-        const estimatedCost = totalWeight * 100 // Basic calculation
-        setValue('shippingCost', estimatedCost)
+        const orderWeightKg = orderData.items?.reduce(
+          (sum: number, item: any) => sum + unitToKg(item.quantity, item.unit), 0
+        ) || 1
+        const destination: ShippingLocation = {
+          city: orderData.shippingAddress?.city || 'Unknown City',
+          state: orderData.shippingAddress?.state || 'Unknown State',
+          country: orderData.shippingAddress?.country || 'Nigeria'
+        }
+        // Seller location isn't available on this order shape — the shared
+        // calculator falls back to a reasoned average interstate distance
+        // for an unresolved origin state rather than a flat, distance-blind
+        // per-unit rate.
+        const origin: ShippingLocation = { city: 'Unknown City', state: 'Unknown State', country: 'Nigeria' }
+        const estimated = calculateShippingCost(origin, destination, orderWeightKg, orderData.shippingMethod || 'road_standard')
+        setValue('shippingCost', estimated.totalCost)
       }
       
       // Calculate estimated delivery based on shipping method
@@ -111,8 +127,11 @@ export function ShipmentCreationForm({
       const estimatedDelivery = new Date(Date.now() + estimatedDays * 24 * 60 * 60 * 1000)
       setValue('estimatedDelivery', estimatedDelivery.toISOString().slice(0, 16))
       
-      // Calculate total weight from order items
-      const totalWeight = orderData.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0
+      // Calculate total weight from order items, converting each item's
+      // actual unit (bags, tons, kg, etc.) to kg
+      const totalWeight = orderData.items?.reduce(
+        (sum: number, item: any) => sum + unitToKg(item.quantity, item.unit), 0
+      ) || 0
       setValue('packagingWeight', totalWeight)
       
       // Set carrier based on shipping method
@@ -128,6 +147,8 @@ export function ShipmentCreationForm({
   }, [orderData, setValue])
 
   const onSubmit = async (data: ShipmentFormData) => {
+    if (!guard()) return
+
     try {
       setIsSubmitting(true)
 
@@ -181,6 +202,7 @@ export function ShipmentCreationForm({
       })
     } finally {
       setIsSubmitting(false)
+      resetSubmitGuard()
     }
   }
 

@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
@@ -39,6 +42,11 @@ interface FinancialOverview {
   totalSavings: number
   financialGoals: number
   riskLevel: 'low' | 'medium' | 'high'
+  nextPaymentDue?: {
+    amount: number
+    dueDate: string
+    daysUntilDue: number
+  } | null
 }
 
 interface RecentTransaction {
@@ -117,7 +125,8 @@ export default function FinancialServicesPage() {
           insurancePolicies: (data as any).overview?.insurancePolicies || 0,
           totalSavings: (data as any).overview?.totalSavings || 0,
           financialGoals: (data as any).overview?.financialGoals || 0,
-          riskLevel: (data as any).overview?.riskLevel || 'medium'
+          riskLevel: (data as any).overview?.riskLevel || 'medium',
+          nextPaymentDue: (data as any).overview?.nextPaymentDue || null,
         }
 
         // Transform transactions
@@ -236,8 +245,8 @@ export default function FinancialServicesPage() {
   if (loading) {
     return (
       <DashboardLayout pageTitle="Financial Services">
-        <div className="space-y-4 sm:space-y-6">
-          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <DashboardPageShell>
+          <div className={dashboard.statsGrid4}>
             {[...Array(4)].map((_, i) => (
               <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
@@ -250,14 +259,14 @@ export default function FinancialServicesPage() {
               </Card>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout pageTitle="Financial Services">
-      <div className="space-y-4 sm:space-y-6">
+      <DashboardPageShell>
         <DashboardPageHeader
           badge="Financial Services Active"
           title="Financial"
@@ -282,7 +291,7 @@ export default function FinancialServicesPage() {
         />
 
         {/* Financial Overview Cards */}
-        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className={dashboard.statsGrid4}>
           <Card className="border border-border">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1 sm:gap-2">
@@ -291,9 +300,9 @@ export default function FinancialServicesPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">
+              <Text as="div" variant="stat" className="text-foreground">
                 {formatCompactCurrency(overview.totalEarnings)}
-              </div>
+              </Text>
               <p className="text-xs text-muted-foreground">Lifetime earnings</p>
             </CardContent>
           </Card>
@@ -306,9 +315,9 @@ export default function FinancialServicesPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">
+              <Text as="div" variant="stat" className="text-foreground">
                 {formatCompactCurrency(overview.totalSavings)}
-              </div>
+              </Text>
               <p className="text-xs text-muted-foreground">Current savings</p>
             </CardContent>
           </Card>
@@ -321,7 +330,7 @@ export default function FinancialServicesPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{overview.activeLoans}</div>
+              <Text as="div" variant="stat" className="text-foreground">{overview.activeLoans}</Text>
               <p className="text-xs text-muted-foreground">Current loans</p>
             </CardContent>
           </Card>
@@ -334,7 +343,7 @@ export default function FinancialServicesPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{overview.insurancePolicies}</div>
+              <Text as="div" variant="stat" className="text-foreground">{overview.insurancePolicies}</Text>
               <p className="text-xs text-muted-foreground">Active policies</p>
             </CardContent>
           </Card>
@@ -375,7 +384,7 @@ export default function FinancialServicesPage() {
                 <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-4 pb-3 sm:pb-4">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
                     <span className="text-xs sm:text-sm text-muted-foreground">Credit Score:</span>
-                    <span className="text-xl sm:text-2xl font-bold text-foreground">{overview.creditScore}</span>
+                    <Text as="span" variant="stat" className="text-foreground">{overview.creditScore}</Text>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
                     <span className="text-xs sm:text-sm text-muted-foreground">Risk Level:</span>
@@ -493,7 +502,11 @@ export default function FinancialServicesPage() {
               <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                   <div className="text-xs sm:text-sm text-muted-foreground">
-                    Next payment due in 5 days
+                    {overview.nextPaymentDue
+                      ? `Next payment of ₦${overview.nextPaymentDue.amount.toLocaleString()} due in ${overview.nextPaymentDue.daysUntilDue} day${overview.nextPaymentDue.daysUntilDue === 1 ? '' : 's'}`
+                      : overview.pendingPayments > 0
+                        ? `₦${overview.pendingPayments.toLocaleString()} in pending payments`
+                        : 'No pending payments'}
                   </div>
                   <Button size="sm" className="w-full sm:w-auto" asChild>
                     <Link href="/dashboard/financial/transactions">
@@ -739,7 +752,7 @@ export default function FinancialServicesPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

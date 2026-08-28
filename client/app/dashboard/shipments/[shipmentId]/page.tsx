@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display } from "@/components/ui/typography"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -189,7 +191,7 @@ export default function ShipmentDetailsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-[1400px] mx-auto pb-10">
+      <DashboardPageShell className="max-w-[1400px] mx-auto pb-10">
         {/* Header with Glassmorphism */}
         <div className="bg-background/40 backdrop-blur-md p-6 rounded-3xl border border-border/40 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -204,9 +206,9 @@ export default function ShipmentDetailsPage() {
             </Button>
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground tracking-tight">
+                <Display as="h1" variant="page">
                   {shipment.shipmentNumber}
-                </h1>
+                </Display>
                 <AiTrustBadge userId={(typeof shipment.seller === 'string' ? shipment.seller : (shipment.seller._id || shipment.seller)) as string} className="scale-90" />
               </div>
               <div className="flex items-center gap-2">
@@ -601,7 +603,7 @@ export default function ShipmentDetailsPage() {
             </Card>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
 
       {/* Status Update Modal */}
       <Dialog open={showStatusUpdate} onOpenChange={setShowStatusUpdate}>

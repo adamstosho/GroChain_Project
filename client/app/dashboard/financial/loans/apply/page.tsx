@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,11 +8,21 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft, CreditCard, Calculator, FileText, CheckCircle, Info, Upload, X, Loader2, User } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import {
+  calculateMonthlyPayment,
+  calculateTotalInterest,
+  calculateTotalRepayment,
+  interestRateFromCreditScore,
+  assessDebtToIncome,
+} from "@/lib/loan-calculations"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 
 interface LoanApplicationForm {
   amount: number
@@ -59,6 +69,12 @@ export default function LoanApplicationPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const { guard, reset: resetSubmitGuard } = useSubmitOnce()
+  const idempotencyKeyRef = useRef(
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `loan-${Date.now()}`
+  )
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([])
   const [formData, setFormData] = useState<LoanApplicationForm>({
@@ -112,13 +128,10 @@ export default function LoanApplicationPage() {
 
         // Adjust interest rate based on credit score
         const creditScore = (creditScoreResponse.data as any).score
-        let interestRate = 15 // Default
-        if (creditScore >= 750) interestRate = 12
-        else if (creditScore >= 650) interestRate = 14
-        else if (creditScore >= 550) interestRate = 16
-        else interestRate = 18
-
-        setFormData(prev => ({ ...prev, interestRate }))
+        const rate = interestRateFromCreditScore(creditScore)
+        if (rate) {
+          setFormData(prev => ({ ...prev, interestRate: rate }))
+        }
       }
 
     } catch (error) {
@@ -196,6 +209,8 @@ export default function LoanApplicationPage() {
       return
     }
 
+    if (!guard()) return
+
     try {
       setSubmitting(true)
 
@@ -212,15 +227,16 @@ export default function LoanApplicationPage() {
         collateralValue: formData.collateralValue,
         monthlyIncome: formData.monthlyIncome,
         existingLoans: formData.existingLoans,
-        documents: uploadedDocuments.map(doc => doc.url)
+        documents: uploadedDocuments.map(doc => doc.url),
+        idempotencyKey: idempotencyKeyRef.current,
       }
 
       const response = await apiService.createLoanApplication(applicationData)
 
-      if (response.status === 'success') {
+        if (response.status === 'success') {
         toast({
           title: "Loan Application Submitted! 🎉",
-          description: "Your application has been received and is under review. You will receive an email confirmation shortly.",
+          description: (response as any).message || "Your application has been received and is under review.",
           variant: "default"
         })
 
@@ -237,21 +253,20 @@ export default function LoanApplicationPage() {
       })
     } finally {
       setSubmitting(false)
+      resetSubmitGuard()
     }
   }
 
-  const calculateMonthlyPayment = () => {
-    if (!formData.amount || !formData.term) return 0
+  const calculateMonthlyPaymentLocal = () =>
+    calculateMonthlyPayment(formData.amount, formData.interestRate, formData.term)
 
-    // Use the actual interest rate from form data
-    const annualInterestRate = formData.interestRate / 100 // Convert percentage to decimal
-    const monthlyInterestRate = annualInterestRate / 12
-
-    // Calculate total amount with compound interest
-    const monthlyPayment = (formData.amount * monthlyInterestRate * Math.pow(1 + monthlyInterestRate, formData.term)) /
-                          (Math.pow(1 + monthlyInterestRate, formData.term) - 1)
-
-    return Math.round(monthlyPayment)
+  const getLoanEligibility = () => {
+    if (!formData.monthlyIncome || !formData.amount) return "unknown"
+    return assessDebtToIncome(
+      calculateMonthlyPaymentLocal(),
+      formData.existingLoans,
+      formData.monthlyIncome
+    )
   }
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, documentType: 'id' | 'income' | 'farm' | 'business') => {
@@ -324,17 +339,7 @@ export default function LoanApplicationPage() {
     setUploadedDocuments(prev => prev.filter(doc => doc.id !== documentId))
   }
 
-  const getLoanEligibility = () => {
-    if (!formData.monthlyIncome || !formData.amount) return "unknown"
-    
-    const monthlyPayment = calculateMonthlyPayment()
-    const debtToIncomeRatio = (monthlyPayment + formData.existingLoans) / formData.monthlyIncome
-    
-    if (debtToIncomeRatio <= 0.3) return "excellent"
-    if (debtToIncomeRatio <= 0.4) return "good"
-    if (debtToIncomeRatio <= 0.5) return "fair"
-    return "poor"
-  }
+  const getLoanEligibilityDisplay = () => getLoanEligibility()
 
   const getEligibilityColor = (eligibility: string) => {
     switch (eligibility) {
@@ -358,25 +363,19 @@ export default function LoanApplicationPage() {
 
   return (
     <DashboardLayout pageTitle="Apply for Loan">
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
-                <Link href="/dashboard/financial" className="flex items-center gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Financial Services
-                </Link>
-              </Button>
-            </div>
-            <h1 className="text-2xl font-semibold text-foreground">Apply for Loan</h1>
-            <p className="text-muted-foreground">
-              Access affordable financing to grow your farming business
-            </p>
-          </div>
+      <DashboardPageShell>
+        <Button variant="ghost" asChild className="w-fit text-muted-foreground hover:text-foreground">
+          <Link href="/dashboard/financial" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Financial Services
+          </Link>
+        </Button>
 
-          {/* User Profile Card */}
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+          <DashboardSubpageHeader
+            title="Apply for Loan"
+            description="Access affordable financing to grow your farming business"
+          />
           {userProfile && (
             <Card className="bg-primary-soft border-primary/20">
               <CardContent className="p-4">
@@ -699,10 +698,18 @@ export default function LoanApplicationPage() {
                     <span className="text-muted-foreground">Interest Rate:</span>
                     <span className="font-medium">{formData.interestRate}% APR</span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total Interest:</span>
+                    <span className="font-medium">₦{calculateTotalInterest(formData.amount, formData.interestRate, formData.term).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total Repayment:</span>
+                    <span className="font-medium">₦{calculateTotalRepayment(formData.amount, formData.interestRate, formData.term).toLocaleString()}</span>
+                  </div>
                   <div className="border-t pt-2">
                     <div className="flex justify-between text-sm font-medium">
                       <span>Estimated Monthly Payment:</span>
-                      <span className="text-success">₦{calculateMonthlyPayment().toLocaleString()}</span>
+                      <span className="text-success">₦{calculateMonthlyPaymentLocal().toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -724,7 +731,7 @@ export default function LoanApplicationPage() {
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Debt-to-Income Ratio:</span>
                       <span className="font-medium">
-                        {((calculateMonthlyPayment() + formData.existingLoans) / formData.monthlyIncome * 100).toFixed(1)}%
+                        {((calculateMonthlyPaymentLocal() + formData.existingLoans) / formData.monthlyIncome * 100).toFixed(1)}%
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
@@ -804,7 +811,7 @@ export default function LoanApplicationPage() {
             </Card>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

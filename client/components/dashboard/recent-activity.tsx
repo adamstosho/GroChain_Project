@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Leaf, ShoppingCart, Users, Banknote, Loader2, Heart, CheckCircle, UserPlus, TrendingUp, RefreshCw } from "lucide-react"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { textStyles } from "@/lib/design-system"
 
 interface Activity {
   _id: string
@@ -49,39 +50,15 @@ export function RecentActivity() {
     } catch (error: any) {
       console.error('❌ Failed to fetch activities:', error)
 
-      // Create partner-specific fallback data
-      const fallbackActivities: Activity[] = [
-        {
-          _id: "fallback-1",
-          type: "onboarding" as const,
-          description: "Welcome to GroChain Partner Dashboard! Start onboarding farmers",
-          timestamp: new Date(Date.now() - 1000 * 60 * 5),
-          user: "System",
-        },
-        {
-          _id: "fallback-2",
-          type: "verification" as const,
-          description: "Your partner account is ready for farmer verification",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60),
-          user: "System",
-        },
-        {
-          _id: "fallback-3",
-          type: "commission" as const,
-          description: "Commission tracking is now active for your partnerships",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-          user: "System",
-        }
-      ]
+      // Show the real empty state rather than fabricated entries that would
+      // be indistinguishable from genuine activity.
+      setActivities([])
 
-      setActivities(fallbackActivities as Activity[])
-
-      // Only show toast if component is still mounted
       if (typeof window !== 'undefined') {
         toast({
-          title: "Activities temporarily unavailable",
-          description: "Recent partner activities will appear here as you onboard farmers and verify harvests",
-          variant: "default",
+          title: "Couldn't load recent activity",
+          description: "Please try refreshing in a moment.",
+          variant: "destructive",
         })
       }
     } finally {
@@ -169,7 +146,7 @@ export function RecentActivity() {
       <CardHeader className="pb-2 sm:pb-3">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-sm sm:text-base lg:text-lg">Recent Activity</CardTitle>
+            <CardTitle className={textStyles.cardTitle}>Recent Activity</CardTitle>
             <CardDescription className="text-xs sm:text-sm">Latest platform activities</CardDescription>
           </div>
           <Button

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
 const mongoosePaginate = require('mongoose-paginate-v2')
+const { escapeRegex } = require('../utils/regex.util')
 
 const fintechSchema = new mongoose.Schema({
   type: {
@@ -271,14 +272,15 @@ fintechSchema.statics.getRecommendedProducts = function(userProfile, limit = 10)
 
 // Static method to search products
 fintechSchema.statics.searchProducts = function(searchTerm, filters = {}, page = 1, limit = 20) {
+  const safeSearchTerm = escapeRegex(searchTerm)
   const query = {
     status: 'active',
     $or: [
-      { name: { $regex: searchTerm, $options: 'i' } },
-      { description: { $regex: searchTerm, $options: 'i' } },
-      { provider: { $regex: searchTerm, $options: 'i' } },
-      { category: { $regex: searchTerm, $options: 'i' } },
-      { tags: { $in: [new RegExp(searchTerm, 'i')] } }
+      { name: { $regex: safeSearchTerm, $options: 'i' } },
+      { description: { $regex: safeSearchTerm, $options: 'i' } },
+      { provider: { $regex: safeSearchTerm, $options: 'i' } },
+      { category: { $regex: safeSearchTerm, $options: 'i' } },
+      { tags: { $in: [new RegExp(safeSearchTerm, 'i')] } }
     ],
     ...filters
   }

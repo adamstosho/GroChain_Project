@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { useToast } from "@/hooks/use-toast"
 import { api } from "@/lib/api"
 import { 
@@ -242,7 +244,7 @@ Jane Smith,jane.smith@farmer.ng,+2348087654321,"Kano, Nigeria",Female,28,Tertiar
 
   return (
     <DashboardLayout pageTitle="Bulk Farmer Upload">
-      <div className="space-y-4 sm:space-y-6">
+      <DashboardPageShell>
         {/* Header */}
         <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           <div className="space-y-1 min-w-0 flex-1">
@@ -255,8 +257,10 @@ Jane Smith,jane.smith@farmer.ng,+2348087654321,"Kano, Nigeria",Female,28,Tertiar
                 </Link>
               </Button>
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">Bulk Farmer Upload</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Upload multiple farmers at once using CSV format</p>
+            <DashboardSubpageHeader
+              title="Bulk Farmer Upload"
+              description="Upload multiple farmers at once using CSV format"
+            />
           </div>
           <Button variant="outline" onClick={downloadTemplate} className="flex-shrink-0 w-full sm:w-auto">
             <Download className="w-4 h-4 mr-2" />
@@ -515,7 +519,7 @@ Jane Smith,jane.smith@farmer.ng,+2348087654321,"Kano, Nigeria",Female,28,Tertiar
             </div>
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

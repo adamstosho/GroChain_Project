@@ -2,19 +2,54 @@ const CreditScore = require('../models/credit-score.model')
 const LoanReferral = require('../models/loanReferral.model')
 const User = require('../models/user.model')
 const Transaction = require('../models/transaction.model')
-
-// Import additional models
+const {
+  calculateMonthlyPayment,
+  interestRateFromCreditScore,
+  assessRisk,
+  assessDebtToIncome,
+  calculateEligibilityLimits,
+  generateRepaymentSchedule,
+  enrichLoanApplication
+} = require('../utils/loan-calculations')
+const { parseIdempotencyKey } = require('../utils/idempotency')
+const { resolveFarmerCommissionRate } = require('../utils/commission-rate.util')
 const FinancialGoal = require('../models/financial-goal.model')
 const LoanApplication = require('../models/loan-application.model')
 const InsurancePolicy = require('../models/insurance-policy.model')
 const InsuranceClaim = require('../models/insurance-claim.model')
+const Partner = require('../models/partner.model')
+
+// Partner staff authenticate as a User, but ownership of farmers/loans/
+// policies/claims is tracked via the Partner *organization* document —
+// farmer.partner points at a Partner _id, never at the staff user's own
+// User _id. Comparing farmer.partner against req.user.id directly (as this
+// file used to) can never match, which silently denies partners access to
+// their own farmers' data. Resolve the acting partner org once instead.
+async function resolveActingPartnerId(user) {
+  if (!user || user.role !== 'partner') return null
+  const partner = await Partner.findOne({ email: user.email }).select('_id')
+  return partner ? partner._id.toString() : null
+}
+
+// Legal next states per current LoanApplication status. Deliberately has no
+// self-loops — re-submitting the same status is rejected, not a silent
+// no-op — because 'approved' and 'disbursed' both have side effects
+// (regenerating the repayment schedule, setting disbursedAt) that must
+// never run twice against a loan that already has real payment history.
+const LOAN_STATUS_TRANSITIONS = {
+  pending: ['approved', 'rejected'],
+  approved: ['disbursed', 'rejected'],
+  rejected: [],
+  disbursed: ['completed'],
+  completed: []
+}
 
 const fintechController = {
   // Get comprehensive financial dashboard data
   async getFinancialDashboard(req, res) {
     try {
       const userId = req.user.id
-      const user = await User.findById(userId)
+      const user = await User.findById(userId).populate('partner')
 
       if (!user) {
         return res.status(404).json({
@@ -50,9 +85,12 @@ const fintechController = {
       if (user.role === 'farmer') {
         const Order = require('../models/order.model')
         const listingIds = farmerListings.map(listing => listing._id)
-        const hasPartner = !!user.partner
-        const platformFeeRate = 0.03
-        const partnerCommissionRate = hasPartner ? 0.02 : 0
+        const platformFeeRate = parseFloat(process.env.PLATFORM_FEE_RATE) || 0.03
+        // Use this farmer's actual commission rate (active referral, else
+        // their partner's configured rate) rather than assuming a flat 2%
+        // — must stay consistent with commission-realtime.service.js, the
+        // path that actually computes commissions at payment time.
+        const { commissionRate: partnerCommissionRate } = await resolveFarmerCommissionRate(user)
 
         // Calculate total earnings from completed orders, net of platform fee and partner commission
         const earningsResult = await Order.aggregate([
@@ -153,22 +191,27 @@ const fintechController = {
           date: transaction.createdAt.toISOString().split('T')[0],
           status: transaction.status
         })),
-        activeLoans: activeLoans.map(loan => ({
-          _id: loan._id,
-          amount: loan.approvedAmount || loan.amount,
-          purpose: loan.purpose,
-          duration: loan.approvedDuration || loan.duration,
-          interestRate: loan.approvedInterestRate || loan.interestRate,
-          status: loan.status,
-          monthlyPayment: loan.repaymentSchedule.length > 0 ?
-            loan.repaymentSchedule[0].amount : (loan.amount / loan.duration),
-          remainingBalance: loan.repaymentSchedule
-            .filter(payment => payment.status === 'pending')
-            .reduce((sum, payment) => sum + payment.amount, 0),
-          nextPaymentDate: loan.repaymentSchedule
-            .filter(payment => payment.status === 'pending')
-            .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))[0]?.dueDate?.toISOString().split('T')[0]
-        })),
+        activeLoans: activeLoans.map(loan => {
+          const enriched = enrichLoanApplication(loan)
+          return {
+            _id: enriched._id,
+            amount: enriched.approvedAmount || enriched.amount,
+            purpose: enriched.purpose,
+            duration: enriched.approvedDuration || enriched.duration,
+            interestRate: enriched.approvedInterestRate || enriched.interestRate,
+            status: enriched.status,
+            monthlyPayment: enriched.monthlyPayment,
+            remainingBalance: enriched.remainingBalance,
+            nextPaymentDate: enriched.nextPaymentDate
+              ? new Date(enriched.nextPaymentDate).toISOString().split('T')[0]
+              : null,
+            nextPaymentAmount: enriched.nextPaymentAmount,
+            paidInstallments: enriched.paidInstallments,
+            remainingInstallments: enriched.remainingInstallments,
+            totalPayments: enriched.paidInstallments,
+            remainingPayments: enriched.remainingInstallments
+          }
+        }),
         insurancePolicies: activeInsurance.map(policy => ({
           _id: policy._id,
           type: policy.type,
@@ -198,12 +241,16 @@ const fintechController = {
   async getLoanReferrals(req, res) {
     try {
       const query = {}
-      
+
       // Role-based filtering
       if (req.user.role === 'partner') {
-        query.partner = req.user.id
+        query.partner = await resolveActingPartnerId(req.user)
+      } else if (req.user.role === 'farmer') {
+        query.farmer = req.user.id
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({ status: 'error', message: 'Insufficient permissions' })
       }
-      
+
       const stats = await LoanReferral.aggregate([
         { $match: query },
         {
@@ -256,7 +303,7 @@ const fintechController = {
       if (req.user.role !== 'admin' && req.user.id !== userId) {
         if (req.user.role === 'partner') {
           const targetFarmer = await User.findById(userId).select('partner')
-          if (!targetFarmer || targetFarmer.partner?.toString() !== req.user.id) {
+          if (!targetFarmer || targetFarmer.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
             return res.status(403).json({ status: 'error', message: 'Forbidden' })
           }
         } else {
@@ -354,9 +401,11 @@ const fintechController = {
       }
       
       // Check if user has permission to create referral
+      let actingPartnerId = null
       if (req.user.role === 'partner') {
         // Partner can only refer their own farmers
-        if (farmer.partner?.toString() !== req.user.id) {
+        actingPartnerId = await resolveActingPartnerId(req.user)
+        if (!actingPartnerId || farmer.partner?.toString() !== actingPartnerId) {
           return res.status(403).json({
             status: 'error',
             message: 'You can only refer your own farmers'
@@ -368,14 +417,17 @@ const fintechController = {
           message: 'Only partners and admins can create loan referrals'
         })
       }
-      
+
       // Generate referral ID
       const referralId = `LOAN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      
+
       // Create loan referral
       const loanReferral = await LoanReferral.create({
         referralId,
-        partner: req.user.role === 'partner' ? req.user.id : undefined,
+        // Must be the Partner *organization* _id, not this staff user's own
+        // User _id (LoanReferral.partner refs Partner) — see
+        // resolveActingPartnerId above for why.
+        partner: actingPartnerId || undefined,
         farmer: farmerId,
         loanAmount: Number(loanAmount),
         purpose,
@@ -404,36 +456,38 @@ const fintechController = {
     try {
       const { page = 1, limit = 10, status, farmerId } = req.query
       const query = {}
-      
-      // Filter by status if provided
+
       if (status) query.status = status
-      
-      // Filter by farmer if provided
       if (farmerId) query.farmer = farmerId
-      
-      // Role-based filtering
+
       if (req.user.role === 'partner') {
-        query.partner = req.user.id
+        const actingPartnerId = await resolveActingPartnerId(req.user)
+        const farmers = actingPartnerId ? await User.find({ partner: actingPartnerId }).select('_id') : []
+        query.farmer = { $in: farmers.map(f => f._id) }
       } else if (req.user.role === 'farmer') {
         query.farmer = req.user.id
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({ status: 'error', message: 'Insufficient permissions' })
       }
-      
+
       const skip = (parseInt(page) - 1) * parseInt(limit)
-      
+
       const [applications, total] = await Promise.all([
-        LoanReferral.find(query)
+        LoanApplication.find(query)
           .populate('farmer', 'name email phone')
-          .populate('partner', 'name organization')
-          .sort({ submittedAt: -1 })
+          .populate('approvedBy', 'name')
+          .sort({ createdAt: -1 })
           .skip(skip)
           .limit(parseInt(limit)),
-        LoanReferral.countDocuments(query)
+        LoanApplication.countDocuments(query)
       ])
-      
+
+      const enrichedApplications = applications.map(app => enrichLoanApplication(app))
+
       res.json({
         status: 'success',
         data: {
-          applications,
+          applications: enrichedApplications,
           pagination: {
             currentPage: parseInt(page),
             totalPages: Math.ceil(total / parseInt(limit)),
@@ -455,27 +509,32 @@ const fintechController = {
   async getLoanStats(req, res) {
     try {
       const query = {}
-      
-      // Role-based filtering
+
       if (req.user.role === 'partner') {
-        query.partner = req.user.id
+        const actingPartnerId = await resolveActingPartnerId(req.user)
+        const farmers = actingPartnerId ? await User.find({ partner: actingPartnerId }).select('_id') : []
+        query.farmer = { $in: farmers.map(f => f._id) }
+      } else if (req.user.role === 'farmer') {
+        query.farmer = req.user.id
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({ status: 'error', message: 'Insufficient permissions' })
       }
-      
-      const stats = await LoanReferral.aggregate([
+
+      const stats = await LoanApplication.aggregate([
         { $match: query },
         {
           $group: {
             _id: '$status',
             count: { $sum: 1 },
-            totalAmount: { $sum: '$loanAmount' }
+            totalAmount: { $sum: '$amount' }
           }
         }
       ])
-      
-      const totalApplications = await LoanReferral.countDocuments(query)
-      const totalAmount = await LoanReferral.aggregate([
+
+      const totalApplications = await LoanApplication.countDocuments(query)
+      const totalAmount = await LoanApplication.aggregate([
         { $match: query },
-        { $group: { _id: null, total: { $sum: '$loanAmount' } } }
+        { $group: { _id: null, total: { $sum: '$amount' } } }
       ])
       
       res.json({
@@ -506,8 +565,11 @@ const fintechController = {
       if (req.user.role === 'farmer') {
         query.farmer = req.user.id
       } else if (req.user.role === 'partner') {
-        const farmers = await User.find({ partner: req.user.id }).select('_id')
+        const actingPartnerId = await resolveActingPartnerId(req.user)
+        const farmers = actingPartnerId ? await User.find({ partner: actingPartnerId }).select('_id') : []
         query.farmer = { $in: farmers.map(f => f._id) }
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({ status: 'error', message: 'Insufficient permissions' })
       }
       // admin: no farmer filter, sees all policies
 
@@ -542,7 +604,7 @@ const fintechController = {
       if (req.user.role !== 'admin' && req.user.id !== userId) {
         if (req.user.role === 'partner') {
           const targetFarmer = await User.findById(userId).select('partner')
-          if (!targetFarmer || targetFarmer.partner?.toString() !== req.user.id) {
+          if (!targetFarmer || targetFarmer.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
             return res.status(403).json({ status: 'error', message: 'Forbidden' })
           }
         } else {
@@ -615,8 +677,12 @@ const fintechController = {
   // Get insurance stats
   async getInsuranceStats(req, res) {
     try {
+      if (!['admin', 'partner'].includes(req.user.role)) {
+        return res.status(403).json({ status: 'error', message: 'Insufficient permissions' })
+      }
+
       const { type, region } = req.query
-      
+
       const match = {}
       if (type) match.type = type
       if (region) match.region = region
@@ -794,13 +860,33 @@ const fintechController = {
   async getFinancialProjections(req, res) {
     try {
       const { months = 12, farmerId } = req.query
-      
+
       const Order = require('../models/order.model')
       const Harvest = require('../models/harvest.model')
 
+      // Unlike an admin (who may legitimately want a platform-wide view
+      // with no farmerId), every other role must be scoped to a specific,
+      // authorized farmer — otherwise any authenticated user could pass
+      // ?farmerId=<victim> (or omit it entirely for an unfiltered,
+      // platform-wide result) and see someone else's revenue projections.
       const match = {}
-      if (farmerId) match.seller = farmerId
-      
+      if (req.user.role === 'admin') {
+        if (farmerId) match.seller = farmerId
+      } else if (req.user.role === 'farmer') {
+        match.seller = req.user.id
+      } else if (req.user.role === 'partner') {
+        if (!farmerId) {
+          return res.status(400).json({ status: 'error', message: 'farmerId is required' })
+        }
+        const targetFarmer = await User.findById(farmerId).select('partner')
+        if (!targetFarmer || targetFarmer.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
+          return res.status(403).json({ status: 'error', message: 'Forbidden' })
+        }
+        match.seller = farmerId
+      } else {
+        return res.status(403).json({ status: 'error', message: 'Insufficient permissions' })
+      }
+
       // Historical data for trend analysis
       const historicalOrders = await Order.aggregate([
         { $match: match },
@@ -812,9 +898,18 @@ const fintechController = {
         { $sort: { _id: -1 } },
         { $limit: 24 } // Last 24 months
       ])
-      
+
+      // Harvest uses `farmer`, not `seller` — reusing `match` verbatim here
+      // would silently match zero documents whenever a farmer filter is
+      // actually applied (i.e. for every non-platform-wide-admin request).
+      const harvestMatch = { ...match }
+      if ('seller' in harvestMatch) {
+        harvestMatch.farmer = harvestMatch.seller
+        delete harvestMatch.seller
+      }
+
       const historicalHarvests = await Harvest.aggregate([
-        { $match: match },
+        { $match: harvestMatch },
         { $group: {
           _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
           quantity: { $sum: '$quantity' },
@@ -900,7 +995,7 @@ const fintechController = {
       if (req.user.role !== 'admin' && req.user.id !== resolvedFarmerId) {
         if (req.user.role === 'partner') {
           const targetFarmer = await User.findById(resolvedFarmerId).select('partner')
-          if (!targetFarmer || targetFarmer.partner?.toString() !== req.user.id) {
+          if (!targetFarmer || targetFarmer.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
             return res.status(403).json({ status: 'error', message: 'Forbidden' })
           }
         } else {
@@ -1120,7 +1215,7 @@ const fintechController = {
       }
 
       if (req.user.role === 'partner') {
-        if (farmer.partner?.toString() !== req.user.id) {
+        if (farmer.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
           return res.status(403).json({
             status: 'error',
             message: 'You can only set credit scores for your own farmers'
@@ -1180,7 +1275,7 @@ const fintechController = {
 
       if (req.user.role === 'partner') {
         const farmer = await User.findById(creditScore.farmer)
-        if (farmer?.partner?.toString() !== req.user.id) {
+        if (farmer?.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
           return res.status(403).json({
             status: 'error',
             message: 'You can only update credit scores for your own farmers'
@@ -1217,11 +1312,11 @@ const fintechController = {
   async getLoanApplication(req, res) {
     try {
       const { id } = req.params
-      
-      const loanApplication = await LoanReferral.findById(id)
+
+      const loanApplication = await LoanApplication.findById(id)
         .populate('farmer', 'name email phone')
-        .populate('partner', 'name organization')
-      
+        .populate('approvedBy', 'name')
+
       if (!loanApplication) {
         return res.status(404).json({
           status: 'error',
@@ -1230,19 +1325,20 @@ const fintechController = {
       }
 
       const farmerId = loanApplication.farmer?._id?.toString() || loanApplication.farmer?.toString()
-      const partnerId = loanApplication.partner?._id?.toString() || loanApplication.partner?.toString()
       const isSelf = req.user.id === farmerId
-      const isAssignedPartner = req.user.role === 'partner' && partnerId === req.user.id
-      if (req.user.role !== 'admin' && !isSelf && !isAssignedPartner) {
-        return res.status(403).json({
-          status: 'error',
-          message: 'Forbidden'
-        })
+
+      if (req.user.role === 'partner') {
+        const farmer = await User.findById(farmerId).select('partner')
+        if (!farmer || farmer.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
+          return res.status(403).json({ status: 'error', message: 'Forbidden' })
+        }
+      } else if (req.user.role !== 'admin' && !isSelf) {
+        return res.status(403).json({ status: 'error', message: 'Forbidden' })
       }
-      
+
       res.json({
         status: 'success',
-        data: loanApplication
+        data: enrichLoanApplication(loanApplication)
       })
     } catch (error) {
       console.error('Error getting loan application:', error)
@@ -1253,13 +1349,13 @@ const fintechController = {
     }
   },
 
-  // Update loan application
+  // Update loan application (admin/partner approval)
   async updateLoanApplication(req, res) {
     try {
       const { id } = req.params
-      const { status, notes, approvedAmount } = req.body
+      const { status, notes, approvedAmount, approvedDuration, approvedInterestRate } = req.body
 
-      const loanApplication = await LoanReferral.findById(id)
+      const loanApplication = await LoanApplication.findById(id)
 
       if (!loanApplication) {
         return res.status(404).json({
@@ -1268,12 +1364,21 @@ const fintechController = {
         })
       }
 
-      // Only the referring partner or an admin may decide on a loan application
       if (req.user.role === 'partner') {
-        if (loanApplication.partner?.toString() !== req.user.id) {
+        // partnerOrgId is the Partner *organization* _id this staff user
+        // manages (resolved via Partner.findOne({email}), the convention
+        // used throughout this codebase) — not this user's own User _id,
+        // and not read off their own User.partner field (that field is for
+        // farmer accounts linking to their partner org, not populated on
+        // partner-staff accounts themselves).
+        const partnerOrgId = await resolveActingPartnerId(req.user)
+        const farmer = await User.findById(loanApplication.farmer).select('partner')
+        const isAssignedLender = loanApplication.lenderPartner?.toString() === partnerOrgId
+        const isFarmerPartner = farmer?.partner?.toString() === partnerOrgId
+        if (!partnerOrgId || (!isAssignedLender && !isFarmerPartner)) {
           return res.status(403).json({
             status: 'error',
-            message: 'You can only update loan applications you referred'
+            message: 'You can only review loan applications assigned to your institution'
           })
         }
       } else if (req.user.role !== 'admin') {
@@ -1283,19 +1388,72 @@ const fintechController = {
         })
       }
 
-      if (status !== undefined) loanApplication.status = status
-      if (notes !== undefined) loanApplication.notes = notes
-      if (approvedAmount !== undefined) loanApplication.approvedAmount = Number(approvedAmount)
-      if (status === 'approved') {
-        loanApplication.approvedBy = req.user.id
-        loanApplication.approvedAt = new Date()
+      const updateFields = {}
+      if (notes !== undefined) updateFields.notes = notes
+
+      if (status !== undefined) {
+        // Enforce the state machine — this also blocks re-submitting the
+        // same status (e.g. re-'approved'-ing an already-approved or
+        // already-disbursed loan), which would otherwise wipe paid
+        // installment history by regenerating the schedule from scratch.
+        const allowedNext = LOAN_STATUS_TRANSITIONS[loanApplication.status] || []
+        if (!allowedNext.includes(status)) {
+          return res.status(400).json({
+            status: 'error',
+            message: `Cannot change loan application status from '${loanApplication.status}' to '${status}'`
+          })
+        }
+
+        if (status === 'approved') {
+          const finalAmount = Number(approvedAmount) || loanApplication.amount
+          const finalDuration = Number(approvedDuration) || loanApplication.duration
+          const finalRate = Number(approvedInterestRate) || loanApplication.interestRate
+
+          updateFields.status = 'approved'
+          updateFields.approvedAmount = finalAmount
+          updateFields.approvedDuration = finalDuration
+          updateFields.approvedInterestRate = finalRate
+          updateFields.approvedBy = req.user.id
+          updateFields.approvedAt = new Date()
+
+          const schedule = generateRepaymentSchedule(finalAmount, finalRate, finalDuration)
+          updateFields.repaymentSchedule = schedule.map(item => ({
+            dueDate: item.dueDate,
+            amount: item.amount,
+            status: 'pending'
+          }))
+        } else if (status === 'rejected') {
+          updateFields.status = 'rejected'
+          updateFields.rejectionReason = notes || 'Application rejected'
+          updateFields.rejectedBy = req.user.id
+          updateFields.rejectedAt = new Date()
+        } else if (status === 'disbursed') {
+          updateFields.status = 'disbursed'
+          updateFields.disbursedAt = new Date()
+        } else {
+          updateFields.status = status
+        }
       }
 
-      await loanApplication.save()
+      // Atomic claim keyed on the status we validated against: if another
+      // request changed the loan's status between our read and this write,
+      // this matches nothing and we fail cleanly instead of clobbering it.
+      const updatedLoanApplication = await LoanApplication.findOneAndUpdate(
+        { _id: id, status: loanApplication.status },
+        { $set: updateFields },
+        { new: true }
+      )
+
+      if (!updatedLoanApplication) {
+        return res.status(409).json({
+          status: 'error',
+          message: 'This loan application was already updated by someone else. Please refresh and try again.'
+        })
+      }
 
       res.json({
         status: 'success',
-        data: loanApplication
+        data: enrichLoanApplication(updatedLoanApplication)
       })
     } catch (error) {
       console.error('Error updating loan application:', error)
@@ -1311,7 +1469,7 @@ const fintechController = {
     try {
       const { id } = req.params
 
-      const loanApplication = await LoanReferral.findById(id)
+      const loanApplication = await LoanApplication.findById(id)
 
       if (!loanApplication) {
         return res.status(404).json({
@@ -1320,17 +1478,34 @@ const fintechController = {
         })
       }
 
+      const farmerId = loanApplication.farmer?.toString()
+      const isOwner = req.user.id === farmerId
+
       if (req.user.role === 'partner') {
-        if (loanApplication.partner?.toString() !== req.user.id) {
+        const farmer = await User.findById(farmerId).select('partner')
+        if (!farmer || farmer.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
           return res.status(403).json({
             status: 'error',
-            message: 'You can only delete loan applications you referred'
+            message: 'You can only delete loan applications for your farmers'
           })
         }
-      } else if (req.user.role !== 'admin') {
+      } else if (req.user.role !== 'admin' && !isOwner) {
         return res.status(403).json({
           status: 'error',
-          message: 'Only partners and admins can delete loan applications'
+          message: 'Forbidden'
+        })
+      }
+
+      // No admin exemption here: a disbursed/completed loan has real
+      // repayment history (paid installments, payment references tied to
+      // actual Paystack transactions) — hard-deleting it would erase that
+      // audit trail and orphan the Transaction ledger entries that
+      // reference it. Even admins must use suspension/status changes, not
+      // deletion, once a loan has moved past pending/rejected.
+      if (!['pending', 'rejected'].includes(loanApplication.status)) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Only pending or rejected applications can be deleted'
         })
       }
 
@@ -1349,16 +1524,144 @@ const fintechController = {
     }
   },
 
+  // Farmer accepts an approved loan (activates disbursement)
+  async acceptLoanApplication(req, res) {
+    try {
+      const { id } = req.params
+
+      const loanApplication = await LoanApplication.findById(id)
+
+      if (!loanApplication) {
+        return res.status(404).json({ status: 'error', message: 'Loan application not found' })
+      }
+
+      if (loanApplication.farmer.toString() !== req.user.id) {
+        return res.status(403).json({ status: 'error', message: 'Forbidden' })
+      }
+
+      if (loanApplication.status !== 'approved') {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Only approved loans can be accepted'
+        })
+      }
+
+      // Atomic claim: prevents a double-tap / concurrent accept from both
+      // succeeding and disbursing (or double-notifying) the same loan.
+      const disbursedLoanApplication = await LoanApplication.findOneAndUpdate(
+        { _id: id, status: 'approved' },
+        { $set: { status: 'disbursed', disbursedAt: new Date() } },
+        { new: true }
+      )
+
+      if (!disbursedLoanApplication) {
+        return res.status(409).json({
+          status: 'error',
+          message: 'This loan has already been accepted. Please refresh and try again.'
+        })
+      }
+
+      res.json({
+        status: 'success',
+        data: enrichLoanApplication(disbursedLoanApplication),
+        message: 'Loan accepted and disbursed successfully'
+      })
+    } catch (error) {
+      console.error('Error accepting loan:', error)
+      res.status(500).json({ status: 'error', message: 'Failed to accept loan' })
+    }
+  },
+
+  // Record a loan repayment (admin manual reconciliation only — farmers use Paystack)
+  async recordLoanPayment(req, res) {
+    try {
+      const { id } = req.params
+
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Loan repayments must be made via Paystack. Contact support if you need manual reconciliation.'
+        })
+      }
+
+      const loanApplication = await LoanApplication.findById(id)
+
+      if (!loanApplication) {
+        return res.status(404).json({ status: 'error', message: 'Loan application not found' })
+      }
+
+      if (loanApplication.farmer.toString() !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ status: 'error', message: 'Forbidden' })
+      }
+
+      const nextPayment = loanApplication.repaymentSchedule
+        .filter(p => p.status === 'pending' || p.status === 'overdue')
+        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))[0]
+
+      if (!nextPayment) {
+        return res.status(400).json({ status: 'error', message: 'No pending payments found' })
+      }
+
+      nextPayment.status = 'paid'
+      nextPayment.paidAt = new Date()
+      nextPayment.paymentReference = `ADMIN_${Date.now()}`
+
+      const remainingPending = loanApplication.repaymentSchedule.filter(
+        p => p.status === 'pending' || p.status === 'overdue'
+      )
+      if (remainingPending.length === 0) {
+        loanApplication.status = 'completed'
+      }
+
+      await loanApplication.save()
+
+      res.json({
+        status: 'success',
+        data: enrichLoanApplication(loanApplication),
+        message: `Manual payment of ₦${nextPayment.amount.toLocaleString()} recorded by admin`
+      })
+    } catch (error) {
+      console.error('Error recording loan payment:', error)
+      res.status(500).json({ status: 'error', message: 'Failed to record payment' })
+    }
+  },
+
   // Create insurance policy
   async createInsurancePolicy(req, res) {
     try {
-      const { farmerId, type, provider, policyNumber, coverageAmount, premium, startDate, endDate, region } = req.body
+      const { farmerId, type, provider, policyNumber, coverageAmount, premium, startDate, endDate, region, productId, cropType, farmSize } = req.body
 
       if (!farmerId || !type || !provider || !policyNumber || !coverageAmount || !premium || !startDate || !endDate || !region) {
         return res.status(400).json({
           status: 'error',
           message: 'All required fields must be provided'
         })
+      }
+
+      // When the policy is being filed against a real internal product
+      // (the normal path, via getInsuranceQuotes), recompute the premium
+      // server-side and require it to match what was actually quoted —
+      // otherwise whoever files the policy could enter any premium/coverage
+      // regardless of what the farmer was quoted. Policies recording an
+      // external provider's coverage (no productId) skip this check, since
+      // there is no internal quote to verify against.
+      if (productId) {
+        const Fintech = require('../models/fintech.model')
+        const { calculatePremium } = require('../utils/insurance-calculations')
+        const product = await Fintech.findOne({ _id: productId, type: 'insurance', status: 'active' })
+        if (!product) {
+          return res.status(400).json({ status: 'error', message: 'Insurance product not found' })
+        }
+        const pricing = calculatePremium(product, { cropType, farmSize, location: region })
+        const premiumMatches = Math.abs(Number(premium) - pricing.premium) < 1
+        const coverageMatches = Math.abs(Number(coverageAmount) - pricing.sumInsured) < 1
+        if (!premiumMatches || !coverageMatches) {
+          return res.status(400).json({
+            status: 'error',
+            message: 'Submitted premium/coverage does not match the current quote for this product. Please re-fetch a quote and try again.',
+            expected: { premium: pricing.premium, coverageAmount: pricing.sumInsured }
+          })
+        }
       }
 
       const farmer = await User.findById(farmerId)
@@ -1370,7 +1673,7 @@ const fintechController = {
       }
 
       if (req.user.role === 'partner') {
-        if (farmer.partner?.toString() !== req.user.id) {
+        if (farmer.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
           return res.status(403).json({
             status: 'error',
             message: 'You can only create insurance policies for your own farmers'
@@ -1436,7 +1739,7 @@ const fintechController = {
           })
         }
       } else if (req.user.role === 'partner') {
-        if (insurancePolicy.farmer.partner?.toString() !== req.user.id) {
+        if (insurancePolicy.farmer.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
           return res.status(403).json({
             status: 'error',
             message: 'You can only view insurance policies for your own farmers'
@@ -1480,7 +1783,7 @@ const fintechController = {
 
       if (req.user.role === 'partner') {
         const farmer = await User.findById(insurancePolicy.farmer)
-        if (farmer?.partner?.toString() !== req.user.id) {
+        if (farmer?.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
           return res.status(403).json({
             status: 'error',
             message: 'You can only update insurance policies for your own farmers'
@@ -1537,7 +1840,7 @@ const fintechController = {
 
       if (req.user.role === 'partner') {
         const farmer = await User.findById(insurancePolicy.farmer)
-        if (farmer?.partner?.toString() !== req.user.id) {
+        if (farmer?.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
           return res.status(403).json({
             status: 'error',
             message: 'You can only delete insurance policies for your own farmers'
@@ -1617,7 +1920,7 @@ const fintechController = {
         }
       } else if (req.user.role === 'partner') {
         const farmer = await User.findById(policy.farmer)
-        if (!farmer || farmer.partner?.toString() !== req.user.id) {
+        if (!farmer || farmer.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
           return res.status(403).json({
             status: 'error',
             message: 'You can only file claims for your own farmers'
@@ -1690,7 +1993,7 @@ const fintechController = {
           })
         }
       } else if (req.user.role === 'partner') {
-        if (claim.farmer.partner?.toString() !== req.user.id) {
+        if (claim.farmer.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
           return res.status(403).json({
             status: 'error',
             message: 'You can only view claims for your own farmers'
@@ -1740,7 +2043,7 @@ const fintechController = {
           })
         }
       } else if (req.user.role === 'partner') {
-        if (claim.farmer.partner?.toString() !== req.user.id) {
+        if (claim.farmer.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
           return res.status(403).json({
             status: 'error',
             message: 'You can only update claims for your own farmers'
@@ -1795,315 +2098,8 @@ const fintechController = {
     }
   },
 
-  // Get insurance quotes
-  async getInsuranceQuotes(req, res) {
-    try {
-      const { cropType, farmSize, location, budget, coverageType } = req.query
-
-      // Comprehensive insurance quotes data
-      const allQuotes = [
-        {
-          _id: 'quote_001',
-          name: 'AgriShield Premium',
-          provider: 'Nigerian Agricultural Insurance Corporation',
-          type: 'Crop Insurance',
-          coverage: 'Comprehensive crop protection against drought, flood, pests, and diseases',
-          premium: 75000,
-          deductible: 25000,
-          maxCoverage: 2000000,
-          features: [
-            'Weather-related damage coverage',
-            'Pest and disease protection',
-            'Market price fluctuation protection',
-            '24/7 claims support',
-            'Expert agronomist consultation'
-          ],
-          exclusions: [
-            'Pre-existing crop conditions',
-            'Intentional damage',
-            'War and civil unrest',
-            'Nuclear incidents'
-          ],
-          rating: 4.8,
-          reviews: 156,
-          claimProcess: 'Simple 3-step process with 48-hour response',
-          waitingPeriod: 14,
-          renewalTerms: 'Annual renewal with loyalty discounts',
-          contactInfo: {
-            phone: '+234 1 234 5678',
-            email: 'info@agrishield.ng',
-            website: 'www.agrishield.ng'
-          },
-          logo: '/naic-logo.png',
-          isRecommended: true,
-          specialOffers: ['20% discount for first-time farmers', 'Free soil testing included'],
-          cropTypes: ['Maize', 'Cassava', 'Tomatoes', 'Beans'],
-          farmSize: 'Small (0-2 hectares)',
-          regions: ['North Central', 'North East', 'North West']
-        },
-        {
-          _id: 'quote_002',
-          name: 'FarmGuard Plus',
-          provider: 'Leadway Assurance',
-          type: 'Equipment Insurance',
-          coverage: 'Protection for farm machinery, tools, and equipment',
-          premium: 45000,
-          deductible: 15000,
-          maxCoverage: 1500000,
-          features: [
-            'Equipment breakdown coverage',
-            'Theft and vandalism protection',
-            'Transportation coverage',
-            'Replacement cost coverage',
-            'Emergency repair services'
-          ],
-          exclusions: [
-            'Wear and tear',
-            'Mechanical breakdown due to poor maintenance',
-            'Acts of terrorism',
-            'War damage'
-          ],
-          rating: 4.6,
-          reviews: 89,
-          claimProcess: 'Online claims with photo documentation',
-          waitingPeriod: 7,
-          renewalTerms: 'Flexible payment plans available',
-          contactInfo: {
-            phone: '+234 1 987 6543',
-            email: 'farmguard@leadway.com',
-            website: 'www.leadway.com/farmguard'
-          },
-          logo: '/leadway-logo.png',
-          isRecommended: false,
-          specialOffers: ['15% discount for cooperative members', 'Free equipment maintenance check'],
-          equipmentTypes: ['Tractor', 'Harvester', 'Irrigation System'],
-          farmSize: 'Medium (2-10 hectares)',
-          regions: ['South West', 'South East', 'South South']
-        },
-        {
-          _id: 'quote_003',
-          name: 'LivestockCare Elite',
-          provider: 'AIICO Insurance',
-          type: 'Livestock Insurance',
-          coverage: 'Comprehensive livestock protection including health and mortality',
-          premium: 60000,
-          deductible: 20000,
-          maxCoverage: 3000000,
-          features: [
-            'Animal mortality coverage',
-            'Veterinary care reimbursement',
-            'Breeding stock protection',
-            'Transportation coverage',
-            'Market value protection'
-          ],
-          exclusions: [
-            'Pre-existing health conditions',
-            'Intentional harm',
-            'Diseases from poor husbandry',
-            'Natural disasters in high-risk areas'
-          ],
-          rating: 4.7,
-          reviews: 124,
-          claimProcess: 'Veterinarian assessment required',
-          waitingPeriod: 21,
-          renewalTerms: 'Quarterly or annual options',
-          contactInfo: {
-            phone: '+234 1 456 7890',
-            email: 'livestock@aiico.com',
-            website: 'www.aiico.com/livestock'
-          },
-          logo: '/aiico-logo.png',
-          isRecommended: true,
-          specialOffers: ['Free veterinary consultation', '10% discount for large herds'],
-          livestockTypes: ['Cattle', 'Poultry', 'Goats', 'Sheep'],
-          farmSize: 'Large (10+ hectares)',
-          regions: ['All Locations']
-        },
-        {
-          _id: 'quote_004',
-          name: 'AgriComplete Basic',
-          provider: 'Consolidated Hallmark Insurance',
-          type: 'Crop Insurance',
-          coverage: 'Basic crop protection for smallholder farmers',
-          premium: 25000,
-          deductible: 10000,
-          maxCoverage: 800000,
-          features: [
-            'Drought and flood coverage',
-            'Basic pest protection',
-            'Harvest loss protection',
-            'Mobile claims process'
-          ],
-          exclusions: [
-            'War and civil unrest',
-            'Intentional damage',
-            'Pre-existing conditions'
-          ],
-          rating: 4.2,
-          reviews: 67,
-          claimProcess: 'Mobile app claims processing',
-          waitingPeriod: 21,
-          renewalTerms: 'Annual renewal',
-          contactInfo: {
-            phone: '+234 1 345 6789',
-            email: 'agricomplete@chi.ng',
-            website: 'www.chi.ng/agricomplete'
-          },
-          logo: '/chi-logo.png',
-          isRecommended: false,
-          specialOffers: ['Free mobile app', 'Community training included'],
-          cropTypes: ['Maize', 'Rice', 'Cassava'],
-          farmSize: 'Small (0-2 hectares)',
-          regions: ['North Central', 'South West']
-        },
-        {
-          _id: 'quote_005',
-          name: 'Equipment Shield Pro',
-          provider: 'Custodian & Allied Insurance',
-          type: 'Equipment Insurance',
-          coverage: 'Advanced equipment protection with comprehensive coverage',
-          premium: 65000,
-          deductible: 20000,
-          maxCoverage: 2500000,
-          features: [
-            'Complete equipment breakdown coverage',
-            'Theft and vandalism protection',
-            'Third-party liability',
-            'Emergency roadside assistance',
-            'Replacement value coverage'
-          ],
-          exclusions: [
-            'Wear and tear',
-            'Poor maintenance',
-            'Acts of terrorism',
-            'Nuclear incidents'
-          ],
-          rating: 4.5,
-          reviews: 92,
-          claimProcess: '24/7 claims hotline',
-          waitingPeriod: 10,
-          renewalTerms: 'Flexible payment options',
-          contactInfo: {
-            phone: '+234 1 567 8901',
-            email: 'equipment@caico.ng',
-            website: 'www.caico.ng/equipment'
-          },
-          logo: '/caico-logo.png',
-          isRecommended: false,
-          specialOffers: ['5% discount for annual payment', 'Free equipment valuation'],
-          equipmentTypes: ['Tractor', 'Combine Harvester', 'Irrigation Equipment'],
-          farmSize: 'Medium (2-10 hectares)',
-          regions: ['All Locations']
-        },
-        {
-          _id: 'quote_006',
-          name: 'Premium Livestock Guardian',
-          provider: 'African Alliance Insurance',
-          type: 'Livestock Insurance',
-          coverage: 'Premium livestock protection with veterinary network',
-          premium: 80000,
-          deductible: 25000,
-          maxCoverage: 4000000,
-          features: [
-            'Complete mortality coverage',
-            'Accident and illness protection',
-            'Veterinary network access',
-            'Market value guarantee',
-            'Breeding stock protection',
-            'Emergency veterinary services'
-          ],
-          exclusions: [
-            'Pre-existing conditions',
-            'Intentional harm',
-            'Poor husbandry practices',
-            'Acts of terrorism'
-          ],
-          rating: 4.9,
-          reviews: 203,
-          claimProcess: 'Dedicated veterinary assessors',
-          waitingPeriod: 14,
-          renewalTerms: 'Premium loyalty rewards',
-          contactInfo: {
-            phone: '+234 1 678 9012',
-            email: 'livestock@aaico.ng',
-            website: 'www.aaico.ng/livestock'
-          },
-          logo: '/aaico-logo.png',
-          isRecommended: true,
-          specialOffers: ['Premium veterinary network access', '20% discount for large operations'],
-          livestockTypes: ['Cattle', 'Sheep', 'Goats', 'Poultry'],
-          farmSize: 'Large (10+ hectares)',
-          regions: ['North West', 'North East', 'North Central']
-        }
-      ]
-
-      // Apply filters
-      let filteredQuotes = [...allQuotes]
-
-      if (cropType && cropType !== 'All Crops') {
-        filteredQuotes = filteredQuotes.filter(quote =>
-          quote.cropTypes && quote.cropTypes.some(crop =>
-            crop.toLowerCase().includes(cropType.toLowerCase().split(' ')[0])
-          )
-        )
-      }
-
-      if (farmSize && farmSize !== 'All Farm Sizes') {
-        filteredQuotes = filteredQuotes.filter(quote =>
-          quote.farmSize === farmSize
-        )
-      }
-
-      if (location && location !== 'All Locations') {
-        filteredQuotes = filteredQuotes.filter(quote =>
-          quote.regions && quote.regions.includes(location)
-        )
-      }
-
-      if (budget && budget !== 'Any Budget') {
-        const budgetMap = {
-          "Under ₦50,000/year": 50000,
-          "₦50,000 - ₦100,000/year": 100000,
-          "₦100,000 - ₦200,000/year": 200000,
-          "Over ₦200,000/year": 200000
-        }
-
-        if (budget in budgetMap) {
-          const maxBudget = budgetMap[budget]
-          if (budget === "Over ₦200,000/year") {
-            filteredQuotes = filteredQuotes.filter(quote => quote.premium > maxBudget)
-          } else {
-            filteredQuotes = filteredQuotes.filter(quote => quote.premium <= maxBudget)
-          }
-        }
-      }
-
-      if (coverageType && coverageType !== 'All Coverage') {
-        filteredQuotes = filteredQuotes.filter(quote =>
-          quote.type === coverageType
-        )
-      }
-
-      res.json({
-        status: 'success',
-        data: filteredQuotes,
-        total: filteredQuotes.length,
-        filters: {
-          cropType: cropType || 'All Crops',
-          farmSize: farmSize || 'All Farm Sizes',
-          location: location || 'All Locations',
-          budget: budget || 'Any Budget',
-          coverageType: coverageType || 'All Coverage'
-        }
-      })
-    } catch (error) {
-      console.error('Error getting insurance quotes:', error)
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to get insurance quotes'
-      })
-    }
-  },
+  // Get insurance quotes (DB-backed products with dynamic premium calculation)
+  getInsuranceQuotes: require('./insurance-quotes.handler').getInsuranceQuotesHandler,
 
   // Get insurance claims
   async getInsuranceClaims(req, res) {
@@ -2117,8 +2113,11 @@ const fintechController = {
       if (req.user.role === 'farmer') {
         query.farmer = req.user.id
       } else if (req.user.role === 'partner') {
-        const partnerFarmers = await User.find({ partner: req.user.id }).select('_id')
+        const actingPartnerId = await resolveActingPartnerId(req.user)
+        const partnerFarmers = actingPartnerId ? await User.find({ partner: actingPartnerId }).select('_id') : []
         query.farmer = { $in: partnerFarmers.map(f => f._id) }
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).json({ status: 'error', message: 'Insufficient permissions' })
       }
       // admin: no filter, sees all claims
 
@@ -2187,63 +2186,218 @@ const fintechController = {
   // Create loan application
   async createLoanApplication(req, res) {
     try {
-      const { farmerId, loanAmount, purpose, term, description } = req.body
-      
-      if (!farmerId || !loanAmount || !purpose || !term) {
+      const {
+        farmerId,
+        amount,
+        loanAmount,
+        purpose,
+        term,
+        duration,
+        description,
+        collateral,
+        collateralValue,
+        monthlyIncome,
+        existingLoans,
+        documents
+      } = req.body
+
+      const resolvedAmount = Number(amount || loanAmount)
+      const resolvedTerm = Number(term || duration)
+      const resolvedFarmerId = req.user.role === 'farmer' ? req.user.id : farmerId
+
+      if (!resolvedFarmerId || !resolvedAmount || !purpose || !resolvedTerm) {
         return res.status(400).json({
           status: 'error',
-          message: 'Farmer ID, loan amount, purpose, and term are required'
+          message: 'Loan amount, purpose, and term are required'
         })
       }
-      
-      // Verify farmer exists
-      const farmer = await User.findById(farmerId)
+
+      if (resolvedAmount < 10000) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Minimum loan amount is ₦10,000'
+        })
+      }
+
+      if (resolvedTerm < 3 || resolvedTerm > 60) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Loan term must be between 3 and 60 months'
+        })
+      }
+
+      const farmer = await User.findById(resolvedFarmerId)
       if (!farmer || farmer.role !== 'farmer') {
         return res.status(404).json({
           status: 'error',
           message: 'Farmer not found'
         })
       }
-      
-      // Check if user has permission to create application
+
+      if (req.user.role === 'farmer' && req.user.id !== resolvedFarmerId) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'You can only apply for loans on your own behalf'
+        })
+      }
+
       if (req.user.role === 'partner') {
-        // Partner can only create applications for their own farmers
-        if (farmer.partner?.toString() !== req.user.id) {
+        if (farmer.partner?.toString() !== (await resolveActingPartnerId(req.user))) {
           return res.status(403).json({
             status: 'error',
             message: 'You can only create applications for your own farmers'
           })
         }
-      } else if (req.user.role !== 'admin') {
+      } else if (req.user.role !== 'admin' && req.user.role !== 'farmer') {
         return res.status(403).json({
           status: 'error',
-          message: 'Only partners and admins can create loan applications'
+          message: 'Forbidden'
         })
       }
-      
-      // Generate application ID
-      const applicationId = `LOAN_APP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      
-      // Create loan application
-      const loanApplication = await LoanReferral.create({
-        referralId: applicationId,
-        partner: req.user.role === 'partner' ? req.user.id : undefined,
-        farmer: farmerId,
-        loanAmount: Number(loanAmount),
-        purpose,
-        term: Number(term),
-        description,
-        status: 'pending',
-        submittedBy: req.user.id,
-        submittedAt: new Date()
+
+      const idempotencyKey = parseIdempotencyKey(req)
+
+      if (idempotencyKey) {
+        const existingByKey = await LoanApplication.findOne({
+          farmer: resolvedFarmerId,
+          idempotencyKey,
+        })
+        if (existingByKey) {
+          return res.status(200).json({
+            status: 'success',
+            data: enrichLoanApplication(existingByKey),
+            message: 'Loan application already submitted',
+            idempotent: true,
+          })
+        }
+      }
+
+      // Fetch or calculate credit score
+      let creditScore = await CreditScore.findOne({ farmer: resolvedFarmerId }).sort({ createdAt: -1 })
+      if (!creditScore) {
+        const calculated = await calculateInitialCreditScore(resolvedFarmerId)
+        creditScore = await CreditScore.create({
+          farmer: resolvedFarmerId,
+          score: calculated.score,
+          factors: calculated.factors,
+          riskLevel: assessRisk(calculated.score)
+        })
+      }
+
+      const eligibility = calculateEligibilityLimits(creditScore.score)
+      if (!eligibility.loans) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Your credit score is too low to apply for a loan. Minimum score required: 500.'
+        })
+      }
+
+      if (resolvedAmount > eligibility.maxLoanAmount) {
+        return res.status(400).json({
+          status: 'error',
+          message: `Loan amount exceeds your eligibility limit of ₦${eligibility.maxLoanAmount.toLocaleString()}`
+        })
+      }
+
+      // Always derived from credit score — never accepted from the client,
+      // otherwise a farmer applying for their own loan could submit any rate
+      // they want. An authorized partner/admin can still set a different
+      // rate at approval time via updateLoanApplication's approvedInterestRate.
+      const resolvedRate = interestRateFromCreditScore(creditScore.score)
+      if (!resolvedRate) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Unable to determine interest rate for your credit profile'
+        })
+      }
+
+      // Validate debt-to-income if income provided
+      if (monthlyIncome && monthlyIncome > 0) {
+        const monthlyPayment = calculateMonthlyPayment(resolvedAmount, resolvedRate, resolvedTerm)
+        const dti = assessDebtToIncome(monthlyPayment, existingLoans || 0, monthlyIncome)
+        if (dti === 'poor') {
+          return res.status(400).json({
+            status: 'error',
+            message: 'Debt-to-income ratio exceeds 50%. Please reduce the loan amount or term.'
+          })
+        }
+      }
+
+      // Prevent duplicate pending applications
+      const existingPending = await LoanApplication.findOne({
+        farmer: resolvedFarmerId,
+        status: 'pending'
       })
-      
+      if (existingPending) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'You already have a pending loan application. Please wait for a decision.'
+        })
+      }
+
+      const { resolveLenderForFarmer, notifyLenderOfApplication } = require('../services/lender-routing.service')
+      const lender = await resolveLenderForFarmer(resolvedFarmerId)
+
+      const loanApplication = await LoanApplication.create({
+        farmer: resolvedFarmerId,
+        amount: resolvedAmount,
+        purpose,
+        duration: resolvedTerm,
+        interestRate: resolvedRate,
+        collateral: collateral || '',
+        collateralValue: collateralValue ? Number(collateralValue) : undefined,
+        monthlyIncome: monthlyIncome ? Number(monthlyIncome) : undefined,
+        existingLoans: existingLoans ? Number(existingLoans) : 0,
+        documents: documents || [],
+        notes: description || '',
+        creditScore: creditScore.score,
+        riskAssessment: assessRisk(creditScore.score),
+        lenderPartner: lender.lenderPartner,
+        lenderName: lender.lenderName,
+        lenderType: lender.lenderType,
+        submittedToLenderAt: new Date(),
+        status: 'pending',
+        ...(idempotencyKey ? { idempotencyKey } : {}),
+      })
+
+      await notifyLenderOfApplication(loanApplication, lender.lenderPartner)
+
       res.status(201).json({
         status: 'success',
-        data: loanApplication
+        data: enrichLoanApplication(loanApplication),
+        message: `Loan application submitted to ${lender.lenderName} for review`
       })
     } catch (error) {
       console.error('Error creating loan application:', error)
+      if (error?.code === 11000) {
+        const idempotencyKey = parseIdempotencyKey(req)
+        if (idempotencyKey) {
+          const byKey = await LoanApplication.findOne({
+            farmer: req.user.role === 'farmer' ? req.user.id : req.body?.farmerId,
+            idempotencyKey,
+          })
+          if (byKey) {
+            return res.status(200).json({
+              status: 'success',
+              data: enrichLoanApplication(byKey),
+              message: 'Loan application already submitted',
+              idempotent: true,
+            })
+          }
+        }
+        const pending = await LoanApplication.findOne({
+          farmer: req.user.role === 'farmer' ? req.user.id : req.body?.farmerId,
+          status: 'pending',
+        })
+        if (pending) {
+          return res.status(200).json({
+            status: 'success',
+            data: enrichLoanApplication(pending),
+            message: 'You already have a pending loan application',
+            idempotent: true,
+          })
+        }
+      }
       res.status(500).json({
         status: 'error',
         message: 'Failed to create loan application'

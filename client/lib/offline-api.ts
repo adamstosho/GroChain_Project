@@ -176,7 +176,12 @@ class OfflineApiService {
   }
 
   async createOrder(data: any, offlineHook: ReturnType<typeof useOffline>) {
-    const { idempotencyKey, ...payload } = data || {}
+    const { idempotencyKey: incomingKey, ...payload } = data || {}
+    let idempotencyKey = incomingKey
+
+    if (!idempotencyKey && typeof crypto !== 'undefined' && crypto.randomUUID) {
+      idempotencyKey = crypto.randomUUID()
+    }
 
     if (offlineHook.isOffline) {
       const offlineAction = {
@@ -207,6 +212,17 @@ class OfflineApiService {
         message: 'order create completed successfully'
       }
     } catch (error: any) {
+      const status = error?.status ?? error?.response?.status
+      // Do not queue client validation errors — they will never succeed on retry
+      if (typeof status === 'number' && status >= 400 && status < 500) {
+        return {
+          success: false,
+          queued: false,
+          error: error.message,
+          message: error.message || 'order create rejected',
+        }
+      }
+
       const offlineAction = {
         id: this.generateId(),
         type: 'order' as const,

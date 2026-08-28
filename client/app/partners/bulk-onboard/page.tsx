@@ -7,11 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Upload, Download, FileText, CheckCircle, AlertCircle, Users, ArrowLeft } from "lucide-react"
+import { Upload, Download, FileText, CheckCircle, AlertCircle, Users, ArrowLeft, Loader2 } from "lucide-react"
 import { api } from "@/lib/api"
 import Link from "next/link"
+import { Display, Text } from "@/components/ui/typography"
+import { PageContainer } from "@/components/layout/page-container"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
 
 interface UploadResult {
   success: boolean
@@ -24,7 +26,6 @@ interface UploadResult {
 export default function BulkOnboardPage() {
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
   const [result, setResult] = useState<UploadResult | null>(null)
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,21 +42,13 @@ export default function BulkOnboardPage() {
     if (!file) return
 
     setUploading(true)
-    setUploadProgress(0)
 
     try {
       const formData = new FormData()
       formData.append("csvFile", file)
 
-      // Simulate progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => Math.min(prev + 10, 90))
-      }, 200)
-
       const response = await api.uploadPartnerCSV(file)
 
-      clearInterval(progressInterval)
-      setUploadProgress(100)
       setResult(response.data as any)
     } catch (error) {
       console.error("Upload failed:", error)
@@ -80,7 +73,7 @@ Jane Smith,jane.smith@farmer.ng,+2348087654321,"Kano, Nigeria",Female,28,Tertiar
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <PageContainer className="max-w-4xl py-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" size="sm" asChild>
@@ -89,10 +82,10 @@ Jane Smith,jane.smith@farmer.ng,+2348087654321,"Kano, Nigeria",Female,28,Tertiar
             Back to Partners
           </Link>
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Bulk Farmer Onboarding</h1>
-          <p className="text-muted-foreground">Upload a CSV file to onboard multiple farmers at once</p>
-        </div>
+        <DashboardSubpageHeader
+          title="Bulk Farmer Onboarding"
+          description="Upload a CSV file to onboard multiple farmers at once"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -121,12 +114,9 @@ Jane Smith,jane.smith@farmer.ng,+2348087654321,"Kano, Nigeria",Female,28,Tertiar
             )}
 
             {uploading && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Uploading...</span>
-                  <span>{uploadProgress}%</span>
-                </div>
-                <Progress value={uploadProgress} />
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Uploading and processing your file...</span>
               </div>
             )}
 
@@ -196,16 +186,16 @@ Jane Smith,jane.smith@farmer.ng,+2348087654321,"Kano, Nigeria",Female,28,Tertiar
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <div className="text-center p-4 bg-primary/10 rounded-lg">
-                <div className="text-2xl font-bold text-primary">{result.totalRows}</div>
-                <div className="text-sm text-primary">Total Rows</div>
+                <Text as="div" variant="stat" className="text-primary">{result.totalRows}</Text>
+                <Text variant="sm" className="text-primary">Total Rows</Text>
               </div>
               <div className="text-center p-4 bg-success/10 rounded-lg">
-                <div className="text-2xl font-bold text-success">{result.successfulRows}</div>
-                <div className="text-sm text-success">Successful</div>
+                <Text as="div" variant="stat" className="text-success">{result.successfulRows}</Text>
+                <Text variant="sm" className="text-success">Successful</Text>
               </div>
               <div className="text-center p-4 bg-destructive/10 rounded-lg">
-                <div className="text-2xl font-bold text-destructive">{result.failedRows}</div>
-                <div className="text-sm text-destructive">Failed</div>
+                <Text as="div" variant="stat" className="text-destructive">{result.failedRows}</Text>
+                <Text variant="sm" className="text-destructive">Failed</Text>
               </div>
             </div>
 
@@ -236,6 +226,6 @@ Jane Smith,jane.smith@farmer.ng,+2348087654321,"Kano, Nigeria",Female,28,Tertiar
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageContainer>
   )
 }

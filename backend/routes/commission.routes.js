@@ -36,8 +36,15 @@ router.put('/:id/status',
   commissionController.updateCommissionStatus
 )
 
-router.post('/payout', 
-  authorize(['partner', 'admin']), 
+// Partner-facing: request a payout (records payout details, does not pay)
+router.post('/payout-request',
+  authorize(['partner', 'admin']),
+  commissionController.requestCommissionPayout
+)
+
+// Admin-only: actually execute the payout (marks paid + creates the ledger entry)
+router.post('/payout',
+  authorize(['admin']),
   commissionController.processCommissionPayout
 )
 

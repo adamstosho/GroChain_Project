@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
@@ -201,8 +205,8 @@ export default function MarketplaceAnalyticsPage() {
   if (loading) {
     return (
       <DashboardLayout pageTitle="Marketplace Analytics">
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <DashboardPageShell>
+          <div className={dashboard.statsGrid4}>
             {[...Array(4)].map((_, i) => (
               <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-2">
@@ -215,7 +219,7 @@ export default function MarketplaceAnalyticsPage() {
               </Card>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
@@ -237,73 +241,67 @@ export default function MarketplaceAnalyticsPage() {
 
   return (
     <DashboardLayout pageTitle="Marketplace Analytics">
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
-                <Link href="/dashboard/marketplace" className="flex items-center gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Marketplace
-                </Link>
+      <DashboardPageShell>
+        <Button variant="ghost" asChild className="w-fit text-muted-foreground hover:text-foreground">
+          <Link href="/dashboard/marketplace" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Marketplace
+          </Link>
+        </Button>
+
+        <DashboardSubpageHeader
+          title="Marketplace Analytics"
+          description="Track your sales performance, customer insights, and market trends"
+          actions={
+            <div className="flex gap-2">
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {timePeriods.map((period) => (
+                    <SelectItem key={period.value} value={period.value}>
+                      {period.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    const { getExportService } = await import("@/lib/export-utils")
+                    const exportService = getExportService()
+                    const rows = [
+                      { metric: "Total Revenue", value: analytics?.revenue?.total ?? 0, change: analytics?.revenue?.change ?? 0 },
+                      { metric: "Total Orders", value: analytics?.orders?.total ?? 0, change: analytics?.orders?.change ?? 0 },
+                      { metric: "Customers", value: analytics?.customers?.total ?? 0, change: analytics?.customers?.change ?? 0 },
+                      { metric: "Views", value: analytics?.views?.total ?? 0, change: analytics?.views?.change ?? 0 },
+                      ...(analytics?.topProducts || []).map((p: any, i: number) => ({
+                        metric: `Top Product ${i + 1}`,
+                        value: p.name || p.cropName || "",
+                        change: p.revenue ?? p.sales ?? "",
+                      })),
+                    ]
+                    const result = await exportService.exportCustomData(rows, {
+                      format: "excel",
+                      filename: `grochain-marketplace-analytics-${selectedPeriod}-${new Date().toISOString().slice(0, 10)}.xlsx`,
+                    })
+                    if (!result.success) throw new Error(result.error)
+                    toast({ title: "Export ready", description: "Analytics report downloaded." })
+                  } catch (e: any) {
+                    toast({ title: "Export failed", description: e?.message || "Try again", variant: "destructive" })
+                  }
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export Report
               </Button>
             </div>
-            <h1 className="text-2xl font-semibold text-foreground">Marketplace Analytics</h1>
-            <p className="text-muted-foreground">
-              Track your sales performance, customer insights, and market trends
-            </p>
-          </div>
-          
-          <div className="flex gap-2">
-            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {timePeriods.map((period) => (
-                  <SelectItem key={period.value} value={period.value}>
-                    {period.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              onClick={async () => {
-                try {
-                  const { getExportService } = await import("@/lib/export-utils")
-                  const exportService = getExportService()
-                  const rows = [
-                    { metric: "Total Revenue", value: analytics?.revenue?.total ?? 0, change: analytics?.revenue?.change ?? 0 },
-                    { metric: "Total Orders", value: analytics?.orders?.total ?? 0, change: analytics?.orders?.change ?? 0 },
-                    { metric: "Customers", value: analytics?.customers?.total ?? 0, change: analytics?.customers?.change ?? 0 },
-                    { metric: "Views", value: analytics?.views?.total ?? 0, change: analytics?.views?.change ?? 0 },
-                    ...(analytics?.topProducts || []).map((p: any, i: number) => ({
-                      metric: `Top Product ${i + 1}`,
-                      value: p.name || p.cropName || "",
-                      change: p.revenue ?? p.sales ?? "",
-                    })),
-                  ]
-                  const result = await exportService.exportCustomData(rows, {
-                    format: "excel",
-                    filename: `grochain-marketplace-analytics-${selectedPeriod}-${new Date().toISOString().slice(0, 10)}.xlsx`,
-                  })
-                  if (!result.success) throw new Error(result.error)
-                  toast({ title: "Export ready", description: "Analytics report downloaded." })
-                } catch (e: any) {
-                  toast({ title: "Export failed", description: e?.message || "Try again", variant: "destructive" })
-                }
-              }}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export Report
-            </Button>
-          </div>
-        </div>
+          }
+        />
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={dashboard.statsGrid4}>
           <Card className="border border-border">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -312,9 +310,9 @@ export default function MarketplaceAnalyticsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">
+              <Text as="div" variant="stat" className="text-foreground">
                 {formatCurrency(analytics?.revenue?.total || 0)}
-              </div>
+              </Text>
               <div className={`flex items-center gap-1 text-sm ${getTrendColor(analytics?.revenue?.trend || 'up')}`}>
                 {getTrendIcon(analytics?.revenue?.trend || 'up')}
                 <span>{analytics?.revenue?.change || 0}%</span>
@@ -331,7 +329,7 @@ export default function MarketplaceAnalyticsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{analytics?.orders?.total || 0}</div>
+              <Text as="div" variant="stat" className="text-foreground">{analytics?.orders?.total || 0}</Text>
               <div className={`flex items-center gap-1 text-sm ${getTrendColor(analytics?.orders?.trend || 'up')}`}>
                 {getTrendIcon(analytics?.orders?.trend || 'up')}
                 <span>{analytics?.orders?.change || 0}%</span>
@@ -348,7 +346,7 @@ export default function MarketplaceAnalyticsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{analytics?.customers?.total || 0}</div>
+              <Text as="div" variant="stat" className="text-foreground">{analytics?.customers?.total || 0}</Text>
               <div className={`flex items-center gap-1 text-sm ${getTrendColor(analytics?.customers?.trend || 'up')}`}>
                 {getTrendIcon(analytics?.customers?.trend || 'up')}
                 <span>{analytics?.customers?.change || 0}%</span>
@@ -365,7 +363,7 @@ export default function MarketplaceAnalyticsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{(analytics?.views?.total || 0).toLocaleString()}</div>
+              <Text as="div" variant="stat" className="text-foreground">{(analytics?.views?.total || 0).toLocaleString()}</Text>
               <div className={`flex items-center gap-1 text-sm ${getTrendColor(analytics?.views?.trend || 'up')}`}>
                 {getTrendIcon(analytics?.views?.trend || 'up')}
                 <span>{analytics?.views?.change || 0}%</span>
@@ -505,9 +503,9 @@ export default function MarketplaceAnalyticsPage() {
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {(analytics?.customerSegments || []).map((segment, index) => (
                 <div key={index} className="text-center p-4 border border-border rounded-lg">
-                  <div className="text-2xl font-bold text-foreground mb-1">
+                  <Text as="div" variant="stat" className="text-foreground mb-1">
                     {segment?.count || 0}
-                  </div>
+                  </Text>
                   <div className="text-sm font-medium text-foreground mb-2">
                     {segment?.segment || 'Unknown Segment'}
                   </div>
@@ -578,7 +576,7 @@ export default function MarketplaceAnalyticsPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

@@ -69,11 +69,17 @@ const HarvestSchema = new mongoose.Schema({
       return value ? parseFloat(parseFloat(value).toFixed(2)) : undefined
     }
   },
-  certification: { type: String } // Certification details
+  certification: { type: String }, // Certification details
+  /** Client-supplied key — replays return the same harvest instead of duplicating. */
+  idempotencyKey: { type: String, maxlength: 128 },
 }, { timestamps: true })
 
 // Indexes for efficient querying
 HarvestSchema.index({ farmer: 1, status: 1 })
+HarvestSchema.index({ farmer: 1, idempotencyKey: 1 }, {
+  unique: true,
+  partialFilterExpression: { idempotencyKey: { $type: 'string' } },
+})
 HarvestSchema.index({ 'geoLocation.lat': 1, 'geoLocation.lng': 1 })
 HarvestSchema.index({ cropType: 1, status: 1 })
 HarvestSchema.index({ createdAt: -1 })

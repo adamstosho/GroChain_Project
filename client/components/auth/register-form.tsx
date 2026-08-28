@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -29,6 +30,7 @@ export function RegisterForm() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>("")
+  const { guard, reset } = useSubmitOnce()
 
   const router = useRouter()
   const { register } = useAuthStore()
@@ -97,6 +99,7 @@ export function RegisterForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!guard()) return
     setError("")
 
     if (formData.password !== formData.confirmPassword) {
@@ -146,6 +149,7 @@ export function RegisterForm() {
       setError(errorMessage)
     } finally {
       setIsLoading(false)
+      reset()
     }
   }
 

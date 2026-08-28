@@ -1,5 +1,7 @@
 import { Metadata } from "next"
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "Agricultural Marketplace | GroChain",
   description: "Browse and buy fresh, verified agricultural products directly from local Nigerian farmers. Transparent supply chain and QR code traceability.",

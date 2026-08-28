@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 
 const TransactionSchema = new mongoose.Schema({
-  type: { type: String, enum: ['payment', 'commission', 'refund', 'withdrawal', 'platform_fee'], required: true },
+  type: { type: String, enum: ['payment', 'commission', 'refund', 'withdrawal', 'platform_fee', 'loan_repayment'], required: true },
   status: { type: String, enum: ['pending', 'completed', 'failed', 'cancelled'], default: 'pending' },
   amount: { type: Number, required: true, min: 0 },
   currency: { type: String, default: 'NGN' },
@@ -10,6 +10,7 @@ const TransactionSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   partnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' },
   orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
+  loanApplicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'LoanApplication' },
   harvestId: { type: mongoose.Schema.Types.ObjectId, ref: 'Harvest' },
   listingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Listing' },
   referralId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

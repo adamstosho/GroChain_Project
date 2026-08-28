@@ -126,28 +126,31 @@ export function useCommission() {
     }
   }, [toast])
 
-  // Process commission payout
-  const processPayout = useCallback(async (commissionIds: string[], payoutMethod: string, payoutDetails: any) => {
+  // Partner-facing: request a payout for pending commissions. This only
+  // records where the partner wants to be paid — an admin reviews and
+  // executes the actual payout separately.
+  const requestPayout = useCallback(async (commissionIds: string[], payoutMethod: string, payoutDetails: any, notes?: string) => {
     try {
-      const result = await commissionService.processCommissionPayout({
+      const result = await commissionService.requestCommissionPayout({
         commissionIds,
         payoutMethod,
-        payoutDetails
+        payoutDetails,
+        notes
       })
-      
+
       toast({
-        title: "Payout processed",
-        description: `Successfully processed payout for ${result.processedCommissions} commissions`,
+        title: "Payout request submitted",
+        description: `Submitted for ${result.requestedCommissions} commission(s) — an admin will review and process it`,
       })
-      
+
       // Refresh data to show updated statuses
       await refreshData()
-      
+
       return result
     } catch (error: any) {
       toast({
-        title: "Payout failed",
-        description: error.message || "Failed to process payout",
+        title: "Payout request failed",
+        description: error.message || "Failed to request payout",
         variant: "destructive"
       })
       throw error
@@ -194,7 +197,7 @@ export function useCommission() {
     refreshData,
     updateFilters,
     updateCommissionStatus,
-    processPayout,
+    requestPayout,
     clearCache,
     
     // Computed values

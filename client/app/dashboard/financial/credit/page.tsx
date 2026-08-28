@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
@@ -279,7 +281,7 @@ export default function CreditScorePage() {
   if (loading) {
     return (
       <DashboardLayout pageTitle="Credit Score">
-        <div className="space-y-6">
+        <DashboardPageShell>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {[...Array(3)].map((_, i) => (
               <Card key={i} className="animate-pulse border border-border">
@@ -294,7 +296,7 @@ export default function CreditScorePage() {
               </Card>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
@@ -315,27 +317,23 @@ export default function CreditScorePage() {
 
   return (
     <DashboardLayout pageTitle="Credit Score">
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-foreground">Credit Score</h1>
-            <p className="text-muted-foreground">
-              Monitor your credit health and eligibility for financial services
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleRefresh}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-            <Button onClick={handleDownloadReport}>
-              <Download className="h-4 w-4 mr-2" />
-              Download Report
-            </Button>
-          </div>
-        </div>
+      <DashboardPageShell>
+        <DashboardSubpageHeader
+          title="Credit Score"
+          description="Monitor your credit health and eligibility for financial services"
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleRefresh}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+              <Button onClick={handleDownloadReport}>
+                <Download className="h-4 w-4 mr-2" />
+                Download Report
+              </Button>
+            </div>
+          }
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Credit Score Card */}
@@ -480,14 +478,14 @@ export default function CreditScorePage() {
                     <span className="text-sm text-muted-foreground">Loan Amount</span>
                     <span className="text-sm font-medium">{formatCompactCurrency(creditScore.eligibility.limits.loanAmount)}</span>
                   </div>
-                  <Progress value={75} className="h-2" />
+                  <Progress value={Math.min(100, (creditScore.eligibility.limits.loanAmount / 2000000) * 100)} className="h-2" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Insurance Coverage</span>
                     <span className="text-sm font-medium">{formatCompactCurrency(creditScore.eligibility.limits.insuranceCoverage)}</span>
                   </div>
-                  <Progress value={60} className="h-2" />
+                  <Progress value={Math.min(100, (creditScore.eligibility.limits.insuranceCoverage / 1000000) * 100)} className="h-2" />
                 </div>
               </CardContent>
             </Card>
@@ -583,7 +581,7 @@ export default function CreditScorePage() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

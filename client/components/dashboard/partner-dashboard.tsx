@@ -13,6 +13,10 @@ import { useToast } from "@/hooks/use-toast"
 import { useDashboardRefresh } from "@/hooks/use-dashboard-refresh"
 import { useCommissionUpdates } from "@/hooks/use-commission-updates"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display, Text } from "@/components/ui/typography"
+import { dashboard, textStyles } from "@/lib/design-system"
+import { cn } from "@/lib/utils"
 import { Users, Shield, TrendingUp, Banknote, FileCheck, BarChart3, RefreshCw, AlertCircle, Eye } from "lucide-react"
 import Link from "next/link"
 
@@ -318,25 +322,8 @@ export function PartnerDashboard() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-              <div className="h-8 sm:h-9 bg-muted rounded animate-pulse w-48 sm:w-64"></div>
-            </h1>
-            <div className="text-muted-foreground text-sm sm:text-base mt-2">
-              <div className="h-4 bg-muted rounded animate-pulse w-64 sm:w-80"></div>
-            </div>
-          </div>
-          <div className="flex-shrink-0">
-            <Button disabled size="sm" className="w-full sm:w-auto">
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              Loading...
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
+      <DashboardPageShell>
+        <div className={dashboard.statsGrid4}>
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader className="space-y-0 pb-2">
@@ -350,8 +337,8 @@ export function PartnerDashboard() {
           ))}
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
+        <div className={dashboard.contentGrid}>
+          <div className={dashboard.contentMain}>
             {[...Array(3)].map((_, i) => (
               <Card key={i} className="animate-pulse">
                 <CardHeader>
@@ -369,7 +356,7 @@ export function PartnerDashboard() {
             ))}
           </div>
 
-          <div className="space-y-6">
+          <div className={dashboard.contentSide}>
             {[...Array(2)].map((_, i) => (
               <Card key={i} className="animate-pulse">
                 <CardHeader>
@@ -386,18 +373,18 @@ export function PartnerDashboard() {
             ))}
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     )
   }
 
   // Error state
   if (error) {
     return (
-      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
+      <DashboardPageShell>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Partner Dashboard</h1>
-            <p className="text-muted-foreground">Manage your farmer network and track performance</p>
+            <Display as="h1">Partner Dashboard</Display>
+            <Text variant="sm">Manage your farmer network and track performance</Text>
           </div>
           <Button onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -424,18 +411,18 @@ export function PartnerDashboard() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     )
   }
 
   // Show error state if database connection fails
   if (error && !dashboardData && !farmersData && !commissionData && !metricsData) {
     return (
-      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
+      <DashboardPageShell>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Partner Dashboard</h1>
-            <p className="text-muted-foreground">Manage your farmer network and track performance</p>
+            <Display as="h1">Partner Dashboard</Display>
+            <Text variant="sm">Manage your farmer network and track performance</Text>
           </div>
           <Button onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -465,12 +452,12 @@ export function PartnerDashboard() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     )
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-full overflow-hidden">
+    <DashboardPageShell>
       <DashboardPageHeader
         badge="Partner Network Active"
         title="Partner"
@@ -501,54 +488,36 @@ export function PartnerDashboard() {
       />
 
       {/* Stats Overview */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={dashboard.statsGrid4}>
         <StatsCard
           title="Total Farmers"
           value={dashboardData?.totalFarmers || 0}
           description="Under your partnership"
           icon={Users}
-          trend={{
-            value: dashboardData?.totalFarmers ? Math.round((dashboardData.totalFarmers / Math.max(dashboardData.totalFarmers, 10)) * 100) : 0,
-            isPositive: true
-          }}
         />
         <StatsCard
           title="Active Farmers"
           value={dashboardData?.activeFarmers || 0}
           description="Currently active"
           icon={Users}
-          trend={{
-            value: dashboardData?.totalFarmers && dashboardData?.activeFarmers ?
-              Math.round((dashboardData.activeFarmers / dashboardData.totalFarmers) * 100) : 0,
-            isPositive: true
-          }}
         />
         <StatsCard
           title="Commission Earned"
           value={`₦${(dashboardData?.totalCommission || commissionData?.summary?.thisMonth || dashboardData?.monthlyCommission || dashboardData?.commissionBreakdown?.total || 0).toLocaleString()}`}
           description="This month"
           icon={Banknote}
-          trend={{
-            value: (commissionData?.summary?.thisMonth || dashboardData?.monthlyCommission || 0) ?
-              Math.round(((commissionData?.summary?.thisMonth || dashboardData?.monthlyCommission || 0) / Math.max((commissionData?.totalEarned || commissionData?.summary?.thisMonth || dashboardData?.totalCommission || dashboardData?.commissionBreakdown?.total || 1), 1)) * 100) : 0,
-            isPositive: true
-          }}
         />
         <StatsCard
           title="Commission Rate"
           value={`${((commissionData?.commissionRate || dashboardData?.commissionRate || 0) * 100).toFixed(1)}%`}
           description="Your earning rate"
           icon={TrendingUp}
-          trend={{
-            value: ((commissionData?.commissionRate || dashboardData?.commissionRate || 0) * 100),
-            isPositive: true
-          }}
         />
       </div>
 
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+      <div className={dashboard.contentGrid}>
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+        <div className={dashboard.contentMain}>
           {/* Quick Actions */}
           <QuickActions actions={quickActions} />
 
@@ -556,7 +525,7 @@ export function PartnerDashboard() {
           <Card>
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
               <div className="min-w-0 flex-1">
-                <CardTitle className="truncate">Pending Approvals</CardTitle>
+                <CardTitle className={cn(textStyles.cardTitle, "truncate")}>Pending Approvals</CardTitle>
                 <CardDescription className="truncate">Harvest submissions awaiting your review</CardDescription>
               </div>
               <Button asChild size="sm" className="w-full sm:w-auto flex-shrink-0">
@@ -601,7 +570,7 @@ export function PartnerDashboard() {
           <Card>
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
               <div className="min-w-0 flex-1">
-                <CardTitle className="truncate">Recently Onboarded Farmers</CardTitle>
+                <CardTitle className={cn(textStyles.cardTitle, "truncate")}>Recently Onboarded Farmers</CardTitle>
                 <CardDescription className="truncate">New farmers in your network</CardDescription>
               </div>
               <Button asChild size="sm" className="w-full sm:w-auto flex-shrink-0">
@@ -657,7 +626,7 @@ export function PartnerDashboard() {
           {/* Performance Metrics - Using real data */}
           <Card>
             <CardHeader className="pb-2 sm:pb-3">
-              <CardTitle className="text-sm sm:text-base lg:text-lg">Performance Metrics</CardTitle>
+              <CardTitle className={textStyles.cardTitleSm}>Performance Metrics</CardTitle>
               <CardDescription className="text-xs sm:text-sm">Your partnership performance this month</CardDescription>
             </CardHeader>
             <CardContent className="p-3 sm:p-4 lg:p-6">
@@ -719,13 +688,13 @@ export function PartnerDashboard() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-4 sm:space-y-6">
+        <div className={dashboard.contentSide}>
           <RecentActivity />
 
           {/* Commission Summary - REAL DATABASE DATA ONLY */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base sm:text-lg truncate">Commission Summary</CardTitle>
+              <CardTitle className={cn(textStyles.cardTitle, "truncate")}>Commission Summary</CardTitle>
               <CardDescription className="text-xs sm:text-sm truncate">Your earnings breakdown</CardDescription>
             </CardHeader>
             <CardContent>
@@ -759,7 +728,7 @@ export function PartnerDashboard() {
           {/* Quick Stats - REAL DATABASE DATA ONLY */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base sm:text-lg truncate">Quick Stats</CardTitle>
+              <CardTitle className={cn(textStyles.cardTitle, "truncate")}>Quick Stats</CardTitle>
             </CardHeader>
             <CardContent>
               {dashboardData || commissionData ? (
@@ -791,6 +760,6 @@ export function PartnerDashboard() {
           </Card>
         </div>
       </div>
-    </div>
+    </DashboardPageShell>
   )
 }

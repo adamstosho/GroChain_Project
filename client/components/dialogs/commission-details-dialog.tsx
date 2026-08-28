@@ -13,6 +13,7 @@ import {
   Clock,
   XCircle
 } from "lucide-react"
+import { Text } from "@/components/ui/typography"
 
 interface CommissionDetailsDialogProps {
   open: boolean
@@ -81,7 +82,7 @@ export function CommissionDetailsDialog({ open, onOpenChange, commission }: Comm
               </div>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold">₦{commission.amount.toLocaleString()}</p>
+              <Text as="p" variant="price" className="text-foreground">₦{commission.amount.toLocaleString()}</Text>
               <p className="text-sm text-muted-foreground">
                 {(commission.rate * 100).toFixed(1)}% of ₦{commission.orderAmount.toLocaleString()}
               </p>

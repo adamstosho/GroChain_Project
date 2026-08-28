@@ -314,22 +314,37 @@ const harvestApprovalController = {
       }
 
       console.log('Updating harvest...')
-      // Update harvest with approval details
-      harvest.status = 'approved'
-      harvest.verifiedBy = req.user.id
-      harvest.verifiedAt = new Date()
-      harvest.quality = quality || harvest.quality
-
-      if (agriculturalData) {
-        harvest.agriculturalData = { ...harvest.agriculturalData, ...agriculturalData }
+      // Atomic claim: the check above can race with a concurrent
+      // approve/reject request for the same harvest. Only the request whose
+      // findOneAndUpdate actually matches status:'pending' wins; the loser
+      // gets a clean 409 instead of both proceeding to send duplicate
+      // approval notifications.
+      const claimedHarvest = await Harvest.findOneAndUpdate(
+        { _id: harvest._id, status: 'pending' },
+        {
+          $set: {
+            status: 'approved',
+            verifiedBy: req.user.id,
+            verifiedAt: new Date(),
+            quality: quality || harvest.quality,
+            ...(agriculturalData ? { agriculturalData: { ...harvest.agriculturalData, ...agriculturalData } } : {}),
+            ...(qualityMetrics ? { qualityMetrics: { ...harvest.qualityMetrics, ...qualityMetrics } } : {})
+          }
+        },
+        { new: true }
+      )
+      if (!claimedHarvest) {
+        return res.status(409).json({
+          status: 'error',
+          message: 'This harvest has already been reviewed. Please refresh and try again.'
+        })
       }
-
-      if (qualityMetrics) {
-        harvest.qualityMetrics = { ...harvest.qualityMetrics, ...qualityMetrics }
-      }
-
-      console.log('Saving harvest...')
-      await harvest.save()
+      harvest.status = claimedHarvest.status
+      harvest.verifiedBy = claimedHarvest.verifiedBy
+      harvest.verifiedAt = claimedHarvest.verifiedAt
+      harvest.quality = claimedHarvest.quality
+      harvest.agriculturalData = claimedHarvest.agriculturalData
+      harvest.qualityMetrics = claimedHarvest.qualityMetrics
       console.log('Harvest saved successfully')
 
       console.log('Creating notification...')
@@ -428,15 +443,33 @@ const harvestApprovalController = {
           message: 'Harvest is not pending approval'
         })
       }
-      
-      // Update harvest with rejection details
-      harvest.status = 'rejected'
-      harvest.verifiedBy = req.user.id
-      harvest.verifiedAt = new Date()
-      harvest.rejectionReason = rejectionReason
-      
-      await harvest.save()
-      
+
+      // Atomic claim (see approveHarvest for why): prevents a concurrent
+      // approve/reject request for the same harvest from both succeeding
+      // and sending duplicate notifications.
+      const claimedHarvest = await Harvest.findOneAndUpdate(
+        { _id: harvest._id, status: 'pending' },
+        {
+          $set: {
+            status: 'rejected',
+            verifiedBy: req.user.id,
+            verifiedAt: new Date(),
+            rejectionReason
+          }
+        },
+        { new: true }
+      )
+      if (!claimedHarvest) {
+        return res.status(409).json({
+          status: 'error',
+          message: 'This harvest has already been reviewed. Please refresh and try again.'
+        })
+      }
+      harvest.status = claimedHarvest.status
+      harvest.verifiedBy = claimedHarvest.verifiedBy
+      harvest.verifiedAt = claimedHarvest.verifiedAt
+      harvest.rejectionReason = claimedHarvest.rejectionReason
+
       // Create notification for farmer (persist + realtime)
       await notifyHarvestFarmer({
         farmerId: harvest.farmer,
@@ -495,15 +528,34 @@ const harvestApprovalController = {
           message: 'Harvest is not pending approval'
         })
       }
-      
-      // Update harvest status to revision requested
-      harvest.status = 'revision_requested'
-      harvest.revisionNotes = revisionNotes
-      harvest.requiredChanges = requiredChanges
-      harvest.revisionRequestedBy = req.user.id
-      harvest.revisionRequestedAt = new Date()
-      
-      await harvest.save()
+
+      // Atomic claim (see approveHarvest for why): prevents a concurrent
+      // approve/reject/revision request for the same harvest from both
+      // succeeding and sending duplicate notifications.
+      const claimedHarvest = await Harvest.findOneAndUpdate(
+        { _id: harvest._id, status: 'pending' },
+        {
+          $set: {
+            status: 'revision_requested',
+            revisionNotes,
+            requiredChanges,
+            revisionRequestedBy: req.user.id,
+            revisionRequestedAt: new Date()
+          }
+        },
+        { new: true }
+      )
+      if (!claimedHarvest) {
+        return res.status(409).json({
+          status: 'error',
+          message: 'This harvest has already been reviewed. Please refresh and try again.'
+        })
+      }
+      harvest.status = claimedHarvest.status
+      harvest.revisionNotes = claimedHarvest.revisionNotes
+      harvest.requiredChanges = claimedHarvest.requiredChanges
+      harvest.revisionRequestedBy = claimedHarvest.revisionRequestedBy
+      harvest.revisionRequestedAt = claimedHarvest.revisionRequestedAt
       
       // Create notification for farmer (persist + realtime)
       await notifyHarvestFarmer({
@@ -623,11 +675,28 @@ const harvestApprovalController = {
         ? qualityScores.reduce((sum, score) => sum + score, 0) / qualityScores.length
         : 0
 
-      // Calculate total value (rough estimate)
-      const totalValue = totalApproved * 5000 // Rough estimate per approved harvest
+      // Real total value: sum of each approved harvest's actual recorded
+      // price × quantity, not a flat per-harvest guess.
+      const valueAgg = await Harvest.aggregate([
+        { $match: approvedQuery },
+        { $group: { _id: null, total: { $sum: { $multiply: [{ $ifNull: ['$price', 0] }, { $ifNull: ['$quantity', 0] }] } } } }
+      ])
+      const totalValue = valueAgg[0]?.total || 0
 
-      // Calculate weekly trend (mock data for now)
-      const weeklyTrend = 12.5
+      // Real weekly trend: % change in approved-harvest count between this
+      // week and the previous week (same farmer/partner scope as the rest
+      // of these stats, independent of any startDate/endDate filter passed
+      // in, since a trend needs its own fixed comparison windows).
+      const now = new Date()
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
+      const [thisWeekApproved, lastWeekApproved] = await Promise.all([
+        Harvest.countDocuments({ ...approvedQuery, createdAt: { $gte: weekAgo } }),
+        Harvest.countDocuments({ ...approvedQuery, createdAt: { $gte: twoWeeksAgo, $lt: weekAgo } })
+      ])
+      const weeklyTrend = lastWeekApproved > 0
+        ? Math.round(((thisWeekApproved - lastWeekApproved) / lastWeekApproved) * 1000) / 10
+        : (thisWeekApproved > 0 ? 100 : 0)
 
       console.log('Stats results:')
       console.log('- Total:', total)
@@ -901,14 +970,35 @@ const harvestApprovalController = {
           })
         }
 
-        listing = await Listing.create(listingData)
+        // Atomically claim the harvest for listing — this is the only thing
+        // standing between two concurrent "Create Listing" clicks (or a
+        // double-submit) both passing the earlier status check and each
+        // creating their own listing for the same physical stock. Only one
+        // request can flip approved -> listed; a second gets null back and
+        // aborts before ever calling Listing.create.
+        const claimedHarvest = await Harvest.findOneAndUpdate(
+          { _id: harvest._id, status: 'approved' },
+          { status: 'listed' },
+          { new: true }
+        )
+        if (!claimedHarvest) {
+          return res.status(409).json({
+            status: 'error',
+            message: 'This harvest has already been listed (or its status changed). Please refresh and try again.'
+          })
+        }
+
+        try {
+          listing = await Listing.create(listingData)
+        } catch (createError) {
+          // Listing creation failed after we'd already claimed the harvest —
+          // release the claim so the farmer isn't left with a harvest stuck
+          // as "listed" with no actual listing behind it.
+          await Harvest.findByIdAndUpdate(harvest._id, { status: 'approved' })
+          throw createError
+        }
 
         console.log('✅ Listing created successfully:', listing._id)
-
-        // Update harvest status to listed only if listing was created successfully
-        harvest.status = 'listed'
-        await harvest.save()
-
         console.log('Harvest status updated to "listed"')
 
         res.status(201).json({

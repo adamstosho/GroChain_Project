@@ -7,6 +7,10 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display, Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { useReferrals } from "@/hooks/use-referrals"
 import { ReferralDialog } from "@/components/dialogs/referral-dialog"
 import { ReferralStatusDialog } from "@/components/dialogs/referral-status-dialog"
@@ -177,23 +181,14 @@ export default function ReferralsContent() {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="space-y-4 sm:space-y-6">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">Referral Management</h1>
-              <p className="text-sm sm:text-base text-muted-foreground mt-1">
-                Manage farmer referrals and track performance
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-              <Skeleton className="h-10 w-24" />
-              <Skeleton className="h-10 w-32" />
-            </div>
-          </div>
+        <DashboardPageShell>
+          <DashboardSubpageHeader
+            title="Referral Management"
+            description="Manage farmer referrals and track performance"
+          />
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className={dashboard.statsGrid4}>
             {[...Array(4)].map((_, i) => (
               <Card key={i} className="border border-border">
                 <CardContent className="p-4 sm:p-6">
@@ -251,56 +246,51 @@ export default function ReferralsContent() {
               </Card>
             </div>
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout>
-      <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
-              Referral Management
-            </h1>
-            <p className="text-sm sm:text-base text-muted-foreground mt-1">
-              Manage farmer referrals and track performance
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <Button
-              onClick={handleExport}
-              variant="outline"
-              size="sm"
-              className="w-full sm:w-auto"
-              disabled={filteredReferrals.length === 0}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            <Button
-              onClick={handleCreateReferral}
-              size="sm"
-              className="w-full sm:w-auto"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Referral
-            </Button>
-          </div>
-        </div>
+      <DashboardPageShell>
+        <DashboardSubpageHeader
+          title="Referral Management"
+          description="Manage farmer referrals and track performance"
+          actions={
+            <>
+              <Button
+                onClick={handleExport}
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto"
+                disabled={filteredReferrals.length === 0}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+              <Button
+                onClick={handleCreateReferral}
+                size="sm"
+                className="w-full sm:w-auto"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Referral
+              </Button>
+            </>
+          }
+        />
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className={dashboard.statsGrid4}>
           <Card className="border border-border">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Referrals</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-foreground">
+                  <Text variant="sm">Total Referrals</Text>
+                  <Text as="div" variant="stat">
                     {stats?.totalReferrals || 0}
-                  </p>
+                  </Text>
                   <p className="text-xs text-success flex items-center mt-1">
                     <TrendingUp className="h-3 w-3 mr-1" />
                     +{stats?.monthlyGrowth || 0}% from last month
@@ -317,10 +307,10 @@ export default function ReferralsContent() {
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Active Referrals</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-foreground">
+                  <Text variant="sm">Active Referrals</Text>
+                  <Text as="div" variant="stat">
                     {stats?.activeReferrals || 0}
-                  </p>
+                  </Text>
                   <p className="text-xs text-muted-foreground mt-1">Currently active</p>
                 </div>
                 <div className="h-12 w-12 bg-success/10 rounded-full flex items-center justify-center">
@@ -334,10 +324,10 @@ export default function ReferralsContent() {
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Conversion Rate</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-foreground">
+                  <Text variant="sm">Conversion Rate</Text>
+                  <Text as="div" variant="stat">
                     {stats?.conversionRate || 0}%
-                  </p>
+                  </Text>
                   <p className="text-xs text-muted-foreground mt-1">Success rate</p>
                 </div>
                 <div className="h-12 w-12 bg-accent/10 rounded-full flex items-center justify-center">
@@ -351,10 +341,10 @@ export default function ReferralsContent() {
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Monthly Growth</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-foreground">
+                  <Text variant="sm">Monthly Growth</Text>
+                  <Text as="div" variant="stat">
                     +{stats?.monthlyGrowth || 0}
-                  </p>
+                  </Text>
                   <p className="text-xs text-muted-foreground mt-1">New referrals this month</p>
                 </div>
                 <div className="h-12 w-12 bg-warning/10 rounded-full flex items-center justify-center">
@@ -425,7 +415,7 @@ export default function ReferralsContent() {
                 {filteredReferrals.length === 0 ? (
                   <div className="text-center py-8">
                     <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">No referrals found</h3>
+                    <Display as="h3" variant="sub" className="mb-2">No referrals found</Display>
                     <p className="text-muted-foreground mb-4">
                       {searchTerm || statusFilter !== "all" 
                         ? "No referrals match your current filters." 
@@ -543,7 +533,7 @@ export default function ReferralsContent() {
             </Card>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
 
       {/* Dialogs */}
       <ReferralDialog

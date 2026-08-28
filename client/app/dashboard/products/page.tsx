@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useBuyerStore } from "@/hooks/use-buyer-store"
@@ -434,7 +436,7 @@ export default function ProductsPage() {
 
   return (
     <DashboardLayout pageTitle="Browse Products">
-      <div className="space-y-6">
+      <DashboardPageShell>
         <DashboardPageHeader
           badge="Marketplace Live"
           title="Browse"
@@ -665,7 +667,7 @@ export default function ProductsPage() {
             ))}
           </div>
         )}
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }
@@ -812,9 +814,9 @@ function ProductCard({
                 </div>
 
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-primary mb-1">
+                  <Text as="div" variant="price" className="text-primary mb-1">
                     {formatPrice(product.basePrice)}
-                  </div>
+                  </Text>
                   <div className="text-sm text-muted-foreground">
                     per {product.unit} • {product.availableQuantity} {product.unit} available
                   </div>

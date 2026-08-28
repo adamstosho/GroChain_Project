@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Text } from "@/components/ui/typography"
+import { textStyles } from "@/lib/design-system"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { apiService } from "@/lib/api"
@@ -430,7 +433,7 @@ export function WeatherWidget() {
       <CardHeader className="overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-w-0">
           <div className="min-w-0 flex-1">
-            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+            <CardTitle className={cn("flex items-center gap-2", textStyles.cardTitleSm)}>
               Weather
               {geoLoading && <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-2 border-primary border-t-transparent"></div>}
             </CardTitle>
@@ -469,7 +472,7 @@ export function WeatherWidget() {
                 <WeatherIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-xl sm:text-2xl font-bold">{weather?.current?.temperature}°C</div>
+                <Text as="div" variant="stat">{weather?.current?.temperature}°C</Text>
                 <div className="text-xs sm:text-sm text-muted-foreground capitalize truncate">{weather?.current?.description}</div>
               </div>
             </div>

@@ -4,6 +4,7 @@ const Listing = require('../models/listing.model')
 const Order = require('../models/order.model')
 const CreditScore = require('../models/credit-score.model')
 const Partner = require('../models/partner.model')
+const Review = require('../models/review.model')
 const mongoose = require('mongoose')
 
 // Add export helpers
@@ -1022,6 +1023,7 @@ exports.getFarmerMarketplaceAnalytics = async (req, res) => {
 
     // Top performing products (by revenue)
     const productRevenue = {}
+    const productListingIds = {}
     paidOrders.forEach(order => {
       order.items.forEach(item => {
         if (item.listing) {
@@ -1032,11 +1034,14 @@ exports.getFarmerMarketplaceAnalytics = async (req, res) => {
               revenue: 0,
               orders: 0,
               views: 0,
-              rating: 4.5 + Math.random() * 0.4 // Mock rating
+              rating: 0,
+              reviewCount: 0
             }
+            productListingIds[productName] = new Set()
           }
           productRevenue[productName].revenue += item.total || 0
           productRevenue[productName].orders += 1
+          productListingIds[productName].add(item.listing._id.toString())
         }
       })
     })
@@ -1047,6 +1052,31 @@ exports.getFarmerMarketplaceAnalytics = async (req, res) => {
         productRevenue[listing.cropName].views = listing.views || 0
       }
     })
+
+    // Real average rating per product, from actual buyer reviews on the
+    // listing(s) behind it — not a fabricated placeholder.
+    const allListingIds = [...new Set(Object.values(productListingIds).flatMap((set) => [...set]))]
+    if (allListingIds.length > 0) {
+      const ratingsByListing = await Review.aggregate([
+        { $match: { listing: { $in: allListingIds.map((id) => new mongoose.Types.ObjectId(id)) } } },
+        { $group: { _id: '$listing', avgRating: { $avg: '$rating' }, count: { $sum: 1 } } }
+      ])
+      const ratingMap = new Map(ratingsByListing.map((r) => [r._id.toString(), r]))
+
+      for (const productName of Object.keys(productRevenue)) {
+        let ratingSum = 0
+        let reviewCount = 0
+        for (const listingId of productListingIds[productName]) {
+          const stats = ratingMap.get(listingId)
+          if (stats) {
+            ratingSum += stats.avgRating * stats.count
+            reviewCount += stats.count
+          }
+        }
+        productRevenue[productName].rating = reviewCount > 0 ? Math.round((ratingSum / reviewCount) * 10) / 10 : 0
+        productRevenue[productName].reviewCount = reviewCount
+      }
+    }
 
     const topProducts = Object.values(productRevenue)
       .sort((a, b) => b.revenue - a.revenue)

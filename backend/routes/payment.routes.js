@@ -50,6 +50,7 @@ router.post(
   validateBody(initializePaymentSchema),
   ctrl.initializePayment
 )
+router.post('/loan/initialize', userRateLimit('paymentInitialize'), ctrl.initializeLoanPayment)
 router.get('/verify/:reference', validateParams(verifyPaymentParamsSchema), ctrl.verifyPayment)
 router.post('/refund/:orderId', ctrl.processRefund)
 

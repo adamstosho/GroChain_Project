@@ -2,16 +2,19 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { 
-  Clock, 
-  CheckCircle, 
-  Truck, 
-  Package, 
+import {
+  Clock,
+  CheckCircle,
+  Truck,
+  Package,
   MapPin,
-  AlertTriangle
+  AlertTriangle,
 } from "lucide-react"
+import { motion, useInView, useReducedMotion } from "framer-motion"
+import { useRef } from "react"
 import { TrackingEvent } from "@/types/shipment"
 import { formatDistanceToNow } from "date-fns"
+import { motionDuration, motionEasing } from "@/lib/motion"
 
 interface ShipmentTrackingTimelineProps {
   trackingEvents: TrackingEvent[]
@@ -22,21 +25,25 @@ interface ShipmentTrackingTimelineProps {
 export function ShipmentTrackingTimeline({
   trackingEvents,
   currentStatus: _currentStatus,
-  className
+  className,
 }: ShipmentTrackingTimelineProps) {
+  const prefersReduced = useReducedMotion()
+  const ref = useRef<HTMLDivElement>(null)
+  const inView = useInView(ref, { once: true, margin: "-40px" })
+
   const getEventIcon = (status: string) => {
     switch (status) {
-      case 'pending':
+      case "pending":
         return Clock
-      case 'confirmed':
+      case "confirmed":
         return CheckCircle
-      case 'in_transit':
+      case "in_transit":
         return Truck
-      case 'out_for_delivery':
+      case "out_for_delivery":
         return Package
-      case 'delivered':
+      case "delivered":
         return CheckCircle
-      case 'failed':
+      case "failed":
         return AlertTriangle
       default:
         return Clock
@@ -45,39 +52,39 @@ export function ShipmentTrackingTimeline({
 
   const getEventColor = (status: string) => {
     switch (status) {
-      case 'pending':
-        return 'text-warning'
-      case 'confirmed':
-        return 'text-primary'
-      case 'in_transit':
-        return 'text-accent'
-      case 'out_for_delivery':
-        return 'text-warning'
-      case 'delivered':
-        return 'text-success'
-      case 'failed':
-        return 'text-destructive'
+      case "pending":
+        return "text-warning"
+      case "confirmed":
+        return "text-primary"
+      case "in_transit":
+        return "text-accent"
+      case "out_for_delivery":
+        return "text-warning"
+      case "delivered":
+        return "text-success"
+      case "failed":
+        return "text-destructive"
       default:
-        return 'text-muted-foreground'
+        return "text-muted-foreground"
     }
   }
 
   const getEventBgColor = (status: string) => {
     switch (status) {
-      case 'pending':
-        return 'bg-warning/10'
-      case 'confirmed':
-        return 'bg-primary/10'
-      case 'in_transit':
-        return 'bg-accent/10'
-      case 'out_for_delivery':
-        return 'bg-warning/10'
-      case 'delivered':
-        return 'bg-success/10'
-      case 'failed':
-        return 'bg-destructive/10'
+      case "pending":
+        return "bg-warning/10"
+      case "confirmed":
+        return "bg-primary/10"
+      case "in_transit":
+        return "bg-accent/10"
+      case "out_for_delivery":
+        return "bg-warning/10"
+      case "delivered":
+        return "bg-success/10"
+      case "failed":
+        return "bg-destructive/10"
       default:
-        return 'bg-muted'
+        return "bg-muted"
     }
   }
 
@@ -100,9 +107,8 @@ export function ShipmentTrackingTimeline({
     )
   }
 
-  // Sort events by timestamp (newest first)
-  const sortedEvents = [...trackingEvents].sort((a, b) => 
-    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  const sortedEvents = [...trackingEvents].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   )
 
   return (
@@ -114,42 +120,75 @@ export function ShipmentTrackingTimeline({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div ref={ref} className="relative space-y-4">
+          {/* Vertical progress line */}
+          <div
+            className="absolute left-5 top-2 bottom-2 w-px bg-border"
+            aria-hidden
+          />
+
           {sortedEvents.map((event, index) => {
             const Icon = getEventIcon(event.status)
             const isLatest = index === 0
+            const delay = prefersReduced ? 0 : Math.min(index, 8) * 0.08
 
             return (
-              <div key={index} className="flex items-start gap-4">
-                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                  isLatest ? getEventBgColor(event.status) : 'bg-muted'
-                }`}>
-                  <Icon className={`h-5 w-5 ${
-                    isLatest ? getEventColor(event.status) : 'text-muted-foreground'
-                  }`} />
-                </div>
-                
-                <div className="flex-1 min-w-0">
+              <motion.div
+                key={`${event.timestamp}-${event.status}-${index}`}
+                className="relative flex items-start gap-4"
+                initial={prefersReduced ? false : { opacity: 0, x: -12 }}
+                animate={
+                  inView || prefersReduced
+                    ? { opacity: 1, x: 0 }
+                    : { opacity: 0, x: -12 }
+                }
+                transition={{
+                  duration: motionDuration.base,
+                  delay,
+                  ease: motionEasing.entrance,
+                }}
+              >
+                <motion.div
+                  className={`relative z-10 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                    isLatest ? getEventBgColor(event.status) : "bg-muted"
+                  }`}
+                  initial={prefersReduced ? false : { scale: 0.6 }}
+                  animate={
+                    inView || prefersReduced ? { scale: 1 } : { scale: 0.6 }
+                  }
+                  transition={{
+                    type: "spring",
+                    stiffness: 420,
+                    damping: 22,
+                    delay: delay + 0.05,
+                  }}
+                >
+                  <Icon
+                    className={`h-5 w-5 ${
+                      isLatest ? getEventColor(event.status) : "text-muted-foreground"
+                    }`}
+                  />
+                </motion.div>
+
+                <div className="flex-1 min-w-0 pb-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h4 className={`font-medium ${
-                      isLatest ? 'text-foreground' : 'text-foreground'
-                    }`}>
-                      {event.location}
-                    </h4>
+                    <h4 className="font-medium text-foreground">{event.location}</h4>
                     {isLatest && (
                       <Badge variant="secondary" className="text-xs">
                         Latest
                       </Badge>
                     )}
                   </div>
-                  
-                  <p className={`text-sm ${
-                    isLatest ? 'text-foreground' : 'text-muted-foreground'
-                  }`}>
+
+                  <p
+                    className={`text-sm ${
+                      isLatest ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                  >
                     {event.description}
                   </p>
-                  
-                  <div className="flex items-center gap-2 mt-2">
+
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <Clock className="h-3 w-3 text-muted-foreground" />
                     <span className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(event.timestamp), { addSuffix: true })}
@@ -159,7 +198,7 @@ export function ShipmentTrackingTimeline({
                       {new Date(event.timestamp).toLocaleString()}
                     </span>
                   </div>
-                  
+
                   {event.coordinates && (
                     <div className="flex items-center gap-1 mt-1">
                       <MapPin className="h-3 w-3 text-muted-foreground" />
@@ -169,7 +208,7 @@ export function ShipmentTrackingTimeline({
                     </div>
                   )}
                 </div>
-              </div>
+              </motion.div>
             )
           })}
         </div>
@@ -177,4 +216,3 @@ export function ShipmentTrackingTimeline({
     </Card>
   )
 }
-

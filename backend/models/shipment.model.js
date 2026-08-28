@@ -153,7 +153,7 @@ const ShipmentSchema = new mongoose.Schema({
 
 // Indexes for efficient querying
 ShipmentSchema.index({ shipmentNumber: 1 })
-ShipmentSchema.index({ order: 1 })
+ShipmentSchema.index({ order: 1 }, { unique: true })
 ShipmentSchema.index({ buyer: 1 })
 ShipmentSchema.index({ seller: 1 })
 ShipmentSchema.index({ status: 1 })
@@ -187,15 +187,19 @@ ShipmentSchema.methods.addTrackingEvent = function(status, location, description
     description,
     coordinates
   })
-  
-  // Update main status based on tracking event
-  if (status === 'delivered') {
-    this.status = 'delivered'
-    this.actualDelivery = new Date()
-  } else if (status === 'in_transit') {
-    this.status = 'in_transit'
+
+  // Update main status based on tracking event. Only recognized Shipment
+  // status enum values move `status` — an unrecognized value still gets
+  // logged as a tracking event but leaves the shipment's overall status
+  // untouched, rather than silently corrupting it with an invalid value.
+  const validShipmentStatuses = ['pending', 'confirmed', 'in_transit', 'out_for_delivery', 'delivered', 'failed', 'returned']
+  if (validShipmentStatuses.includes(status)) {
+    this.status = status
+    if (status === 'delivered') {
+      this.actualDelivery = new Date()
+    }
   }
-  
+
   return this.save()
 }
 

@@ -8,6 +8,10 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -395,8 +399,8 @@ export default function MarketplaceListingsPage() {
   if (isInitialLoading) {
     return (
       <DashboardLayout pageTitle="Marketplace Listings">
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <DashboardPageShell>
+          <div className={dashboard.statsGrid4}>
             {[...Array(4)].map((_, i) => (
               <Card key={i} className="animate-pulse border border-border">
                 <CardContent className="p-6">
@@ -420,51 +424,45 @@ export default function MarketplaceListingsPage() {
               </Card>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout pageTitle="Marketplace Listings">
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/dashboard/marketplace">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Marketplace
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground">Listings Management</h1>
-              <p className="text-muted-foreground">
-                Manage your product listings and track their performance
-              </p>
+      <DashboardPageShell>
+        <Button variant="ghost" size="sm" asChild className="w-fit">
+          <Link href="/dashboard/marketplace">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Marketplace
+          </Link>
+        </Button>
+
+        <DashboardSubpageHeader
+          title="Listings Management"
+          description="Manage your product listings and track their performance"
+          actions={
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
+              <Button asChild>
+                <Link href="/dashboard/marketplace/new">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Listing
+                </Link>
+              </Button>
             </div>
-          </div>
+          }
+        />
 
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleRefresh}
-              disabled={refreshing}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
-            <Button asChild>
-              <Link href="/dashboard/marketplace/new">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Listing
-              </Link>
-            </Button>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={dashboard.statsGrid4}>
           <Card className="border border-border">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -473,7 +471,7 @@ export default function MarketplaceListingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.totalListings}</div>
+              <Text as="div" variant="stat" className="text-foreground">{stats.totalListings}</Text>
               <p className="text-xs text-muted-foreground">{stats.activeListings} active</p>
             </CardContent>
           </Card>
@@ -486,7 +484,7 @@ export default function MarketplaceListingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.totalViews.toLocaleString()}</div>
+              <Text as="div" variant="stat" className="text-foreground">{stats.totalViews.toLocaleString()}</Text>
               <p className="text-xs text-muted-foreground">Across all listings</p>
             </CardContent>
           </Card>
@@ -499,7 +497,7 @@ export default function MarketplaceListingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.totalOrders}</div>
+              <Text as="div" variant="stat" className="text-foreground">{stats.totalOrders}</Text>
               <p className="text-xs text-muted-foreground">{stats.conversionRate.toFixed(1)}% conversion rate</p>
             </CardContent>
           </Card>
@@ -512,7 +510,7 @@ export default function MarketplaceListingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalRevenue)}</div>
+              <Text as="div" variant="stat" className="text-foreground">{formatCurrency(stats.totalRevenue)}</Text>
               <p className="text-xs text-muted-foreground">Avg: {formatCurrency(stats.averagePrice)}/unit</p>
             </CardContent>
           </Card>
@@ -993,7 +991,7 @@ export default function MarketplaceListingsPage() {
             </div>
           </div>
         )}
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

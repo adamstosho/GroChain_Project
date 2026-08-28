@@ -11,6 +11,10 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
@@ -357,7 +361,7 @@ export default function FinancialGoalsPage() {
   if (loading) {
     return (
       <DashboardLayout pageTitle="Financial Goals">
-        <div className="space-y-6">
+        <DashboardPageShell>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
               <Card key={i} className="animate-pulse border border-border">
@@ -372,39 +376,34 @@ export default function FinancialGoalsPage() {
               </Card>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout pageTitle="Financial Goals">
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
-                <Link href="/dashboard/financial" className="flex items-center gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Financial Services
-                </Link>
-              </Button>
-            </div>
-            <h1 className="text-2xl font-semibold text-foreground">Financial Goals</h1>
-            <p className="text-muted-foreground">
-              Set, track, and achieve your financial objectives
-            </p>
-          </div>
+      <DashboardPageShell>
+        <Button variant="ghost" asChild className="w-fit text-muted-foreground hover:text-foreground">
+          <Link href="/dashboard/financial" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Financial Services
+          </Link>
+        </Button>
 
-          <Button onClick={() => setShowCreateDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Set New Goal
-          </Button>
-        </div>
+        <DashboardSubpageHeader
+          title="Financial Goals"
+          description="Set, track, and achieve your financial objectives"
+          actions={
+            <Button onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Set New Goal
+            </Button>
+          }
+        />
 
         {/* Goals Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={dashboard.statsGrid4}>
           <Card className="border border-border">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -413,7 +412,7 @@ export default function FinancialGoalsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{goals.length}</div>
+              <Text as="div" variant="stat" className="text-foreground">{goals.length}</Text>
               <p className="text-xs text-muted-foreground">Active objectives</p>
             </CardContent>
           </Card>
@@ -426,9 +425,9 @@ export default function FinancialGoalsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">
+              <Text as="div" variant="stat" className="text-foreground">
                 {formatCompactCurrency(goals.reduce((sum, goal) => sum + goal.targetAmount, 0))}
-              </div>
+              </Text>
               <p className="text-xs text-muted-foreground">Combined target</p>
             </CardContent>
           </Card>
@@ -441,9 +440,9 @@ export default function FinancialGoalsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">
+              <Text as="div" variant="stat" className="text-foreground">
                 {formatCompactCurrency(goals.reduce((sum, goal) => sum + goal.currentAmount, 0))}
-              </div>
+              </Text>
               <p className="text-xs text-muted-foreground">Current progress</p>
             </CardContent>
           </Card>
@@ -456,9 +455,9 @@ export default function FinancialGoalsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">
+              <Text as="div" variant="stat" className="text-foreground">
                 {goals.length > 0 ? Math.round(goals.reduce((sum, goal) => sum + goal.progress, 0) / goals.length) : 0}%
-              </div>
+              </Text>
               <p className="text-xs text-muted-foreground">Average progress</p>
             </CardContent>
           </Card>
@@ -734,7 +733,7 @@ export default function FinancialGoalsPage() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

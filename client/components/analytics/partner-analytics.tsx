@@ -28,6 +28,10 @@ import { useToast } from "@/hooks/use-toast"
 import { getExportService } from "@/lib/export-utils"
 import { brandColors, chartSeries } from "@/lib/brand/colors"
 import { formatCompactCurrency, formatCompactNumber } from "@/lib/format"
+import { Display, Text } from "@/components/ui/typography"
+import { dashboard, textStyles } from "@/lib/design-system"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { cn } from "@/lib/utils"
 
 interface PartnerAnalyticsData {
   // Basic farmer stats
@@ -82,6 +86,7 @@ interface PartnerAnalyticsData {
     harvests: number
     revenue: number
     rating: number
+    reviewCount?: number
     status: string
   }>
 
@@ -489,11 +494,11 @@ export function PartnerAnalytics() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <DashboardPageShell>
         {/* Loading Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Partner Analytics</h2>
+            <Display as="h2" variant="page">Partner Analytics</Display>
             <p className="text-muted-foreground">
               Loading your farmer network performance data...
             </p>
@@ -501,7 +506,7 @@ export function PartnerAnalytics() {
         </div>
 
         {/* Loading Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className={dashboard.statsGrid4}>
           {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -533,16 +538,16 @@ export function PartnerAnalytics() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </DashboardPageShell>
     )
   }
 
   if (error) {
     return (
-      <div className="space-y-6">
+      <DashboardPageShell>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Partner Analytics</h2>
+            <Display as="h2" variant="page">Partner Analytics</Display>
             <p className="text-muted-foreground">
               Monitor your farmer network performance and commission earnings
             </p>
@@ -564,16 +569,16 @@ export function PartnerAnalytics() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     )
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <DashboardPageShell>
       {/* Header */}
       <div className="space-y-4">
         <div className="flex flex-col space-y-2">
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Partner Analytics</h2>
+          <Display as="h2" variant="page">Partner Analytics</Display>
           <p className="text-muted-foreground text-sm sm:text-base">
             Monitor your farmer network performance, commission earnings, and regional impact
           </p>
@@ -621,16 +626,16 @@ export function PartnerAnalytics() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+      <div className={dashboard.statsGrid4}>
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Farmers</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Total Farmers</CardTitle>
             <div className="p-1.5 sm:p-2 bg-primary/10 rounded-full flex-shrink-0">
               <Users className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{formatNumber(analyticsData?.totalFarmers || 0)}</div>
+            <Text as="div" variant="stat">{formatNumber(analyticsData?.totalFarmers || 0)}</Text>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <TrendingUp className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">{formatNumber(analyticsData?.activeFarmers || 0)} active</span>
@@ -641,13 +646,13 @@ export function PartnerAnalytics() {
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Active Farmers</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Active Farmers</CardTitle>
             <div className="p-1.5 sm:p-2 bg-success/10 rounded-full flex-shrink-0">
               <Target className="h-3 w-3 sm:h-4 sm:w-4 text-success" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{formatNumber(analyticsData?.activeFarmers || 0)}</div>
+            <Text as="div" variant="stat">{formatNumber(analyticsData?.activeFarmers || 0)}</Text>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <TrendingUp className="h-3 w-3 mr-1 text-success flex-shrink-0" />
               <span className="truncate">{formatNumber(analyticsData?.pendingFarmers || 0)} pending</span>
@@ -658,15 +663,15 @@ export function PartnerAnalytics() {
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Commissions</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Total Commissions</CardTitle>
             <div className="p-1.5 sm:p-2 bg-accent/10 rounded-full flex-shrink-0">
               <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold break-words">
+            <Text as="div" variant="stat" className="break-words">
               {formatCurrency(analyticsData?.totalCommissions || 0)}
-            </div>
+            </Text>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <Award className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
               <span className="truncate">{((analyticsData?.commissionRate || 0) * 100).toFixed(1)}% rate</span>
@@ -677,15 +682,15 @@ export function PartnerAnalytics() {
 
         <Card className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium truncate">Approval Rate</CardTitle>
+            <CardTitle className={cn(textStyles.caption, "truncate font-medium")}>Approval Rate</CardTitle>
             <div className="p-1.5 sm:p-2 bg-warning/10 rounded-full flex-shrink-0">
               <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-warning" />
             </div>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-6">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">
+            <Text as="div" variant="stat">
               {analyticsData?.approvalRate?.toFixed(1) || 0}%
-            </div>
+            </Text>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <Building className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
               <span className="truncate">Network efficiency</span>
@@ -751,9 +756,9 @@ export function PartnerAnalytics() {
                 <CardTitle className="text-sm font-medium">Monthly Commissions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-success">
+                <Text as="div" variant="stat" className="text-success">
                   {formatCurrency(analyticsData?.monthlyCommissions || 0)}
-                </div>
+                </Text>
                 <p className="text-xs text-muted-foreground">
                   This month's earnings
                 </p>
@@ -765,9 +770,9 @@ export function PartnerAnalytics() {
                 <CardTitle className="text-sm font-medium">Approval Rate</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-primary">
+                <Text as="div" variant="stat" className="text-primary">
                   {analyticsData?.approvalRate?.toFixed(1) || 0}%
-                </div>
+                </Text>
                 <p className="text-xs text-muted-foreground">
                   Harvest approval rate
                 </p>
@@ -779,9 +784,9 @@ export function PartnerAnalytics() {
                 <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-accent">
+                <Text as="div" variant="stat" className="text-accent">
                   {analyticsData?.conversionRate?.toFixed(1) || 0}%
-                </div>
+                </Text>
                 <p className="text-xs text-muted-foreground">
                   Farmer to listing conversion
                 </p>
@@ -857,8 +862,14 @@ export function PartnerAnalytics() {
                           <td className="p-2">{farmer.harvests}</td>
                           <td className="p-2">{formatCurrency(farmer.revenue)}</td>
                           <td className="p-2 flex items-center gap-1">
-                            <span className="text-warning">★</span>
-                            {farmer.rating.toFixed(1)}
+                            {farmer.reviewCount ? (
+                              <>
+                                <span className="text-warning">★</span>
+                                {farmer.rating.toFixed(1)}
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">No reviews yet</span>
+                            )}
                           </td>
                           <td className="p-2">
                             <Badge
@@ -1091,7 +1102,7 @@ export function PartnerAnalytics() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </DashboardPageShell>
   )
 }
 

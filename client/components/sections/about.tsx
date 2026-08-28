@@ -1,6 +1,12 @@
+"use client"
+
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import Image from "next/image"
+import { ScrollReveal } from "@/components/motion/scroll-reveal"
+import { SafeImage } from "@/components/ui/safe-image"
+import { MarketingSection } from "@/components/layout/marketing-section"
+import { Display, Text } from "@/components/ui/typography"
+import { layout, ratio } from "@/lib/design-system"
 
 export function About() {
   const stats = [
@@ -27,69 +33,74 @@ export function About() {
   ]
 
   return (
-    <section id="about" className="py-16 sm:py-24">
-      <div className="container px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          {/* Content */}
-          <div className="space-y-8">
-            <div className="space-y-4">
-              <Badge variant="secondary">About GroChain</Badge>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-serif">
-                Nigeria's first comprehensive digital trust platform for agriculture
-              </h2>
-              <p className="text-lg text-muted-foreground">
-                GroChain is bridging the gap between traditional farming practices and modern technology to create a
-                more transparent, efficient, and trustworthy agricultural supply chain.
-              </p>
-            </div>
-
-            <div className="space-y-6">
-              <p className="text-muted-foreground">
-                The platform covers onboarding, harvest records, QR traceability, marketplace sales, and payments so
-                each batch can be followed from farm to buyer without a separate paper trail.
-              </p>
-
-              <div className="grid grid-cols-2 gap-6">
-                {stats.map((stat, index) => (
-                  <Card key={index} className="border-0 bg-muted/30">
-                    <CardContent className="p-6">
-                      <div className="space-y-2">
-                        <div className="text-2xl font-bold text-primary">{stat.value}</div>
-                        <div className="font-semibold">{stat.label}</div>
-                        <div className="text-sm text-muted-foreground">{stat.description}</div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
+    <MarketingSection id="about" className="bg-background">
+      <div className={layout.gridSplit}>
+        <ScrollReveal variant="slideLeft" className={layout.stackLg}>
+          <div className={layout.stackSm}>
+            <Badge variant="secondary">About GroChain</Badge>
+            <Display as="h2" variant="section">
+              Nigeria&apos;s first comprehensive digital trust platform for agriculture
+            </Display>
+            <Text variant="lead">
+              GroChain bridges the gap between traditional farming practices and modern technology to create a
+              more transparent, efficient, and trustworthy agricultural supply chain.
+            </Text>
           </div>
 
-          {/* Image */}
+          <div className={layout.stackMd}>
+            <Text variant="sm" className="text-muted-foreground">
+              The platform covers onboarding, harvest records, QR traceability, marketplace sales, and payments so
+              each batch can be followed from farm to buyer without a separate paper trail.
+            </Text>
+
+            <div className="grid grid-cols-2 gap-4">
+              {stats.map((stat) => (
+                <Card
+                  key={stat.label}
+                  className="border border-border/60 bg-muted/30 shadow-sm transition-all duration-300 hover:border-primary/15 hover:shadow-md"
+                >
+                  <CardContent className="p-5">
+                    <div className="space-y-1.5">
+                      <div className="font-serif text-2xl font-bold text-primary">{stat.value}</div>
+                      <div className="text-sm font-semibold text-foreground">{stat.label}</div>
+                      <Text variant="caption">{stat.description}</Text>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </ScrollReveal>
+
+        <ScrollReveal variant="slideRight" delay={0.1}>
           <div className="relative">
-            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted">
-              <Image
+            <div
+              className="absolute -inset-2 rounded-3xl bg-gradient-to-tr from-primary/10 to-secondary/10 blur-md"
+              aria-hidden
+            />
+            <div className={`relative overflow-hidden rounded-2xl border border-border/60 bg-muted shadow-lg ${ratio.hero}`}>
+              <SafeImage
                 src="/illustration-about.png"
                 alt="Illustration of maize fields beside a farm storehouse, produce crate, and a tablet showing a leaf mark"
                 fill
                 sizes="(min-width: 1024px) 50vw, 100vw"
                 className="object-cover"
               />
-            </div>
-
-            {/* Overlay Stats */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent rounded-2xl" />
-            <div className="absolute bottom-6 left-6 right-6">
-              <div className="bg-card/90 backdrop-blur-sm rounded-lg p-4">
-                <p className="text-sm font-semibold text-foreground">
-                  Field records, a labelled crate, and a scan at the stall — the same batch, end to end.
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">What GroChain is built to show</p>
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+              <div className="absolute bottom-5 left-5 right-5">
+                <div className="rounded-xl border border-border/60 bg-card/95 p-4 shadow-sm backdrop-blur-md">
+                  <p className="text-sm font-semibold text-foreground">
+                    Field records, a labelled crate, and a scan at the stall — the same batch, end to end.
+                  </p>
+                  <Text variant="caption" className="mt-1.5">
+                    What GroChain is built to show
+                  </Text>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
       </div>
-    </section>
+    </MarketingSection>
   )
 }

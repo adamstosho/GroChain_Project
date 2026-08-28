@@ -13,7 +13,17 @@ const CommissionSchema = new mongoose.Schema({
   paidAt: { type: Date },
   withdrawalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Transaction' },
   notes: { type: String },
-  metadata: { type: Object, default: {} }
+  metadata: { type: Object, default: {} },
+  // A partner requesting payout only records where they want to be paid —
+  // it never marks the commission paid or creates a Transaction itself.
+  // Only an admin, via the real payout process, can do that.
+  payoutRequest: {
+    method: { type: String, enum: ['bank_transfer', 'mobile_money', 'wallet'] },
+    details: { type: Object },
+    notes: { type: String },
+    requestedAt: { type: Date },
+    requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  }
 }, { timestamps: true })
 
 CommissionSchema.index({ partner: 1 })
@@ -21,6 +31,10 @@ CommissionSchema.index({ farmer: 1 })
 CommissionSchema.index({ order: 1 })
 CommissionSchema.index({ status: 1 })
 CommissionSchema.index({ createdAt: -1 })
+CommissionSchema.index(
+  { partner: 1, farmer: 1, order: 1, listing: 1 },
+  { unique: true }
+)
 
 module.exports = mongoose.model('Commission', CommissionSchema)
 

@@ -3,6 +3,8 @@
 import type React from "react"
 
 import { useState, useMemo, useCallback, useEffect } from "react"
+import { GroChainLoader } from "@/components/ui/grochain-loader"
+import { CartBadge, SidebarAccordionPanel } from "@/components/motion/micro-interactions"
 import { useAuthStore } from "@/lib/auth"
 import { getTokenFromStorage } from "@/lib/auth-storage"
 import { useBuyerStore } from "@/hooks/use-buyer-store"
@@ -49,6 +51,10 @@ import Link from "next/link"
 import { GroChainLogo } from "@/components/ui/grochain-logo"
 import { useRouter, usePathname } from "next/navigation"
 import { NotificationBell } from "@/components/notifications/notification-bell"
+import { PageContainer } from "@/components/layout/page-container"
+import { layout, zIndex } from "@/lib/design-system"
+import { Display, Text } from "@/components/ui/typography"
+import { cn } from "@/lib/utils"
 
 interface NavigationItem {
   name: string
@@ -237,12 +243,7 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
     return (
       <div className="flex min-h-screen max-h-screen bg-background overflow-hidden">
         <div className="flex flex-1 flex-col items-center justify-center min-h-0">
-          <div className="text-center space-y-4 p-4">
-            <div className="h-12 w-12 sm:h-16 sm:w-16 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
-            <p className="text-base sm:text-lg font-medium">
-              Loading user data...
-            </p>
-          </div>
+        <GroChainLoader message="Loading user data…" variant="inline" />
         </div>
       </div>
     )
@@ -319,35 +320,36 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
                       <section.icon className="h-4 w-4" />
                       <span>{section.title}</span>
                     </div>
-                    <ChevronDown className={`h-4 w-4 transition-transform ${
+                    <ChevronDown className={`h-4 w-4 transition-transform duration-300 ease-out ${
                       isExpanded ? "rotate-0" : "-rotate-90"
                     }`} />
                   </button>
 
-                  {/* Section items */}
-                  {isExpanded && (
-                    <div className="ml-6 space-y-1 border-l border-border/30 pl-3">
-                      {section.items.map((item) => {
-                        const isActive = pathname === item.href || pathname.startsWith(item.href)
-                        
-                        return (
-                          <Link
-                            key={item.name}
-                            href={item.href}
-                            className={`group flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
-                              isActive
-                                ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
-                                : "text-muted-foreground hover:bg-primary-soft hover:text-primary"
-                            }`}
-                            onClick={() => setSidebarOpen(false)}
-                          >
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.name}</span>
-                          </Link>
-                        )
-                      })}
-                    </div>
-                  )}
+                  {/* Section items — animated accordion */}
+                  <SidebarAccordionPanel
+                    open={isExpanded}
+                    className="ml-6 space-y-1 border-l border-border/30 pl-3"
+                  >
+                    {section.items.map((item) => {
+                      const isActive = pathname === item.href || pathname.startsWith(item.href)
+
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          className={`group flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                            isActive
+                              ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                              : "text-muted-foreground hover:bg-primary-soft hover:text-primary"
+                          }`}
+                          onClick={() => setSidebarOpen(false)}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.name}</span>
+                        </Link>
+                      )
+                    })}
+                  </SidebarAccordionPanel>
                 </div>
               )
             })}
@@ -437,7 +439,7 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
       {/* Main Content */}
       <div className="flex flex-1 flex-col min-h-0 min-w-0 relative z-0">
         {/* Header */}
-        <header className="flex h-14 sm:h-16 items-center justify-between border-b bg-background px-3 sm:px-4 lg:px-6 flex-shrink-0 relative z-10">
+        <header className={cn("relative flex flex-shrink-0 items-center justify-between border-b bg-background", layout.headerHeight, "px-4 sm:px-6", zIndex.sticky)}>
           <div className="flex items-center space-x-4">
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetTrigger asChild>
@@ -448,7 +450,7 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
             </Sheet>
 
             <div className="min-w-0 flex-1">
-              <h1 className="text-sm sm:text-base lg:text-lg font-semibold truncate">
+              <Display as="h1" variant="bar" className="truncate">
                 {pageTitle || (() => {
                   if (userData.role === "farmer") return "Farmer Dashboard"
                   if (userData.role === "buyer") return "Buyer Dashboard"
@@ -456,10 +458,10 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
                   if (userData.role === "admin") return "Admin Dashboard"
                   return "Dashboard"
                 })()}
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">
+              </Display>
+              <Text variant="caption" className="truncate sm:text-sm">
                 Welcome back, {userData.name ? userData.name.split(" ")[0] : "User"}
-              </p>
+              </Text>
             </div>
           </div>
 
@@ -469,11 +471,7 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
               <Button variant="ghost" size="icon" className="relative" asChild>
                 <Link href="/dashboard/cart">
                   <ShoppingCart className="h-5 w-5" />
-                  {cartCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-xs text-primary-foreground flex items-center justify-center font-medium">
-                      {cartCount > 99 ? '99+' : cartCount}
-                    </span>
-                  )}
+                  <CartBadge count={cartCount} />
                 </Link>
               </Button>
             )}
@@ -524,10 +522,8 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-muted/50 min-h-0">
-          <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:px-6 lg:py-8 max-w-7xl">
-            {children}
-          </div>
+        <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-muted/50">
+          <PageContainer variant="dashboard">{children}</PageContainer>
         </main>
       </div>
     </div>

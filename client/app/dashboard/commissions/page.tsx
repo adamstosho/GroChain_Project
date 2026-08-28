@@ -9,7 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
-import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display, Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { useCommission } from "@/hooks/use-commission"
 import { useToast } from "@/hooks/use-toast"
 import { getExportService } from "@/lib/export-utils"
@@ -259,11 +262,9 @@ export default function CommissionsPage() {
 
   return (
     <DashboardLayout pageTitle="Commission Management">
-      <div className="space-y-6">
-        <DashboardPageHeader
-          badge="Earnings Active"
-          title="Commission"
-          titleHighlight="Management"
+      <DashboardPageShell>
+        <DashboardSubpageHeader
+          title="Commission Management"
           description="Track your earnings and manage payouts."
           actions={
             <>
@@ -280,16 +281,16 @@ export default function CommissionsPage() {
         />
 
         {/* Stats Cards - Real Data Only */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className={dashboard.statsGrid4}>
           <Card className="border border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Earned</CardTitle>
               <Banknote className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-foreground">
+              <Text as="div" variant="stat">
                 ₦{(summary?.summary?.totalAmount || stats?.totalAmount || 0).toLocaleString()}
-              </div>
+              </Text>
               <p className="text-xs text-muted-foreground mt-1">
                 Lifetime earnings
               </p>
@@ -302,9 +303,9 @@ export default function CommissionsPage() {
               <Clock className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-foreground">
+              <Text as="div" variant="stat">
                 ₦{(totalPendingAmount || 0).toLocaleString()}
-              </div>
+              </Text>
               <p className="text-xs text-muted-foreground mt-1">
                 Awaiting payout
               </p>
@@ -317,7 +318,7 @@ export default function CommissionsPage() {
               <TrendingUp className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-foreground">2.0%</div>
+              <Text as="div" variant="stat">2.0%</Text>
               <p className="text-xs text-muted-foreground mt-1">
                 Standard rate
               </p>
@@ -330,9 +331,9 @@ export default function CommissionsPage() {
               <BarChart3 className="h-4 w-4 text-accent" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-foreground">
+              <Text as="div" variant="stat">
                 {stats?.totalCommissions || commissions?.length || 0}
-              </div>
+              </Text>
               <p className="text-xs text-muted-foreground mt-1">
                 Commission transactions
               </p>
@@ -402,7 +403,7 @@ export default function CommissionsPage() {
           <CardContent>
             <div className="grid gap-6 lg:grid-cols-2">
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-foreground">Earnings Summary</h3>
+                <Display as="h3" variant="sub">Earnings Summary</Display>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2">
                     <span className="text-sm text-muted-foreground">Total Earned</span>
@@ -424,7 +425,7 @@ export default function CommissionsPage() {
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-foreground">Monthly Performance</h3>
+                <Display as="h3" variant="sub">Monthly Performance</Display>
                 <div className="space-y-3">
                   {stats?.monthlyBreakdown && stats.monthlyBreakdown.length > 0 ? (
                     stats.monthlyBreakdown.slice(0, 6).map((month, index) => (
@@ -527,7 +528,7 @@ export default function CommissionsPage() {
                   {filteredCommissions.length === 0 && (
                     <div className="text-center py-8 sm:py-12">
                       <Banknote className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-foreground mb-2">No commissions found</h3>
+                      <Display as="h3" variant="sub" className="mb-2">No commissions found</Display>
                       <p className="text-sm text-muted-foreground mb-4">
                         {searchTerm || statusFilter !== "all" 
                           ? "No commissions match your current filters." 
@@ -609,7 +610,7 @@ export default function CommissionsPage() {
                   {pendingCommissions.length === 0 && (
                     <div className="text-center py-8 sm:py-12">
                       <CheckCircle className="h-12 w-12 sm:h-16 sm:w-16 text-success mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-foreground mb-2">No pending commissions</h3>
+                      <Display as="h3" variant="sub" className="mb-2">No pending commissions</Display>
                       <p className="text-sm text-muted-foreground">All your commissions have been processed</p>
                     </div>
                   )}
@@ -665,7 +666,7 @@ export default function CommissionsPage() {
                   {paidCommissions.length === 0 && (
                     <div className="text-center py-8 sm:py-12">
                       <Banknote className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-foreground mb-2">No payment history</h3>
+                      <Display as="h3" variant="sub" className="mb-2">No payment history</Display>
                       <p className="text-sm text-muted-foreground">Your commission payments will appear here</p>
                     </div>
                   )}
@@ -719,7 +720,8 @@ export default function CommissionsPage() {
           pendingCommissions={pendingCommissions}
           totalAmount={totalPendingAmount}
         />
-      </div>
+
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

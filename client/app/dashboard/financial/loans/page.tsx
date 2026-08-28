@@ -7,6 +7,10 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
@@ -26,13 +30,21 @@ import {
   Calculator
 } from "lucide-react"
 import Link from "next/link"
+import { calculateMonthlyPayment } from "@/lib/loan-calculations"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface LoanApplication {
   id: string
   amount: number
   purpose: string
   term: number
-  status: 'pending' | 'approved' | 'rejected' | 'active' | 'completed'
+  status: 'pending' | 'approved' | 'rejected' | 'disbursed' | 'completed'
   submittedDate: string
   decisionDate?: string
   monthlyPayment: number
@@ -40,6 +52,15 @@ interface LoanApplication {
   description: string
   collateral?: string
   documents: string[]
+  repaymentSchedule?: Array<{
+    dueDate: string
+    amount: number
+    status: string
+    paidAt?: string
+  }>
+  remainingBalance?: number
+  totalInterest?: number
+  totalRepayment?: number
 }
 
 interface ActiveLoan {
@@ -67,20 +88,20 @@ interface LoanStats {
   totalMonthlyPayments: number
 }
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   pending: 'bg-warning/10 text-warning',
   approved: 'bg-primary/10 text-primary',
   rejected: 'bg-destructive/10 text-destructive',
-  active: 'bg-success/10 text-success',
+  disbursed: 'bg-success/10 text-success',
   completed: 'bg-muted text-foreground',
   overdue: 'bg-destructive/10 text-destructive'
 }
 
-const statusIcons = {
+const statusIcons: Record<string, typeof Clock> = {
   pending: Clock,
   approved: CheckCircle,
   rejected: XCircle,
-  active: TrendingUp,
+  disbursed: TrendingUp,
   completed: CheckCircle,
   overdue: AlertCircle
 }
@@ -92,6 +113,9 @@ export default function LoansPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [selectedLoan, setSelectedLoan] = useState<LoanApplication | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
   const { toast } = useToast()
 
 
@@ -110,20 +134,29 @@ export default function LoansPage() {
         const applicationsData = (applicationsResponse.data as any).applications || applicationsResponse.data || []
 
         // Transform applications data
-        const transformedApplications: LoanApplication[] = applicationsData.map((app: any) => ({
-          id: app._id || app.id,
-          amount: app.amount || app.loanAmount,
-          purpose: app.purpose,
-          term: app.term || app.duration,
-          status: app.status,
-          submittedDate: app.submittedAt || app.createdAt,
-          decisionDate: app.approvedAt,
-          monthlyPayment: app.monthlyPayment || (app.amount && app.term ? Math.round(app.amount / app.term) : 0),
-          interestRate: app.interestRate || 15,
-          description: app.description || '',
-          collateral: app.collateral || '',
-          documents: app.documents || []
-        }))
+        const transformedApplications: LoanApplication[] = applicationsData.map((app: any) => {
+          const amount = app.amount || app.loanAmount
+          const term = app.duration || app.term
+          const rate = app.approvedInterestRate || app.interestRate || 15
+          return {
+            id: app._id || app.id,
+            amount,
+            purpose: app.purpose,
+            term,
+            status: app.status,
+            submittedDate: app.createdAt || app.submittedAt,
+            decisionDate: app.approvedAt,
+            monthlyPayment: app.monthlyPayment || calculateMonthlyPayment(amount, rate, term),
+            interestRate: rate,
+            description: app.notes || app.description || '',
+            collateral: app.collateral || '',
+            documents: app.documents || [],
+            repaymentSchedule: app.repaymentSchedule || [],
+            remainingBalance: app.remainingBalance,
+            totalInterest: app.totalInterest,
+            totalRepayment: app.totalRepayment,
+          }
+        })
 
         setApplications(transformedApplications)
       }
@@ -136,15 +169,15 @@ export default function LoansPage() {
           id: loan._id,
           applicationId: loan.applicationId || loan._id,
           amount: loan.amount,
-          remainingBalance: loan.remainingBalance,
+          remainingBalance: loan.remainingBalance ?? loan.amount,
           monthlyPayment: loan.monthlyPayment,
           nextPaymentDate: loan.nextPaymentDate,
-          totalPayments: loan.totalPayments || 0,
-          remainingPayments: loan.remainingPayments || 0,
+          totalPayments: loan.totalPayments || loan.paidInstallments || 0,
+          remainingPayments: loan.remainingPayments || loan.remainingInstallments || 0,
           interestRate: loan.interestRate,
           startDate: loan.startDate || loan.createdAt,
           endDate: loan.endDate,
-          status: loan.status
+          status: loan.status === 'disbursed' ? 'active' : loan.status
         }))
 
         // Calculate stats from real data
@@ -188,6 +221,82 @@ export default function LoansPage() {
     })
   }
 
+  const handleViewDetails = async (loanId: string) => {
+    try {
+      const response = await apiService.getLoanApplication(loanId)
+      if (response.status === 'success' && response.data) {
+        const app = response.data as any
+        setSelectedLoan({
+          id: app._id,
+          amount: app.approvedAmount || app.amount,
+          purpose: app.purpose,
+          term: app.approvedDuration || app.duration,
+          status: app.status,
+          submittedDate: app.createdAt,
+          decisionDate: app.approvedAt,
+          monthlyPayment: app.monthlyPayment,
+          interestRate: app.approvedInterestRate || app.interestRate,
+          description: app.notes || '',
+          collateral: app.collateral,
+          documents: app.documents || [],
+          repaymentSchedule: app.repaymentSchedule || [],
+          remainingBalance: app.remainingBalance,
+          totalInterest: app.totalInterest,
+          totalRepayment: app.totalRepayment,
+        })
+        setDetailOpen(true)
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to load loan details.", variant: "destructive" })
+    }
+  }
+
+  const handleAcceptLoan = async (loanId: string) => {
+    try {
+      setActionLoading(loanId)
+      const response = await apiService.acceptLoanApplication(loanId)
+      if (response.status === 'success') {
+        toast({ title: "Loan Accepted", description: "Your loan has been activated." })
+        await fetchLoansData()
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.message || "Failed to accept loan.", variant: "destructive" })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleMakePayment = async (loanId: string, amount: number) => {
+    try {
+      setActionLoading(loanId)
+      const profileRes = await apiService.getMyProfile()
+      const email = (profileRes.data as any)?.email
+      if (!email) throw new Error('Email required for payment')
+
+      const { processLoanPayment } = await import('@/lib/paystack')
+      const result = await processLoanPayment(
+        loanId,
+        amount,
+        email,
+        async () => {
+          toast({ title: 'Payment Successful', description: 'Your loan installment has been recorded.' })
+          await fetchLoansData()
+        },
+        () => {
+          toast({ title: 'Payment Cancelled', description: 'You closed the payment window.', variant: 'default' })
+        }
+      )
+
+      if (result.status === 'success') {
+        await fetchLoansData()
+      }
+    } catch (error: any) {
+      toast({ title: 'Payment Failed', description: error?.message || 'Failed to process payment.', variant: 'destructive' })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   const getStatusIcon = (status: string) => {
     const IconComponent = statusIcons[status as keyof typeof statusIcons] || Clock
     return <IconComponent className="h-4 w-4" />
@@ -206,8 +315,8 @@ export default function LoansPage() {
   if (loading) {
     return (
       <DashboardLayout pageTitle="Loans">
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <DashboardPageShell>
+          <div className={dashboard.statsGrid4}>
             {[...Array(4)].map((_, i) => (
               <Card key={i} className="animate-pulse border border-border">
                 <CardHeader className="pb-3">
@@ -221,46 +330,42 @@ export default function LoansPage() {
               </Card>
             ))}
           </div>
-        </div>
+        </DashboardPageShell>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout pageTitle="Loans">
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-foreground">Loan Management</h1>
-            <p className="text-muted-foreground">
-              Track your loan applications and manage active loans
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleRefresh}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-            <Button asChild>
-              <Link href="/dashboard/financial/loans/apply">
-                <Plus className="h-4 w-4 mr-2" />
-                Apply for Loan
-              </Link>
-            </Button>
-          </div>
-        </div>
+      <DashboardPageShell>
+        <DashboardSubpageHeader
+          title="Loan Management"
+          description="Track your loan applications and manage active loans"
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleRefresh}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+              <Button asChild>
+                <Link href="/dashboard/financial/loans/apply">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Apply for Loan
+                </Link>
+              </Button>
+            </div>
+          }
+        />
 
         {/* Key Metrics */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className={dashboard.statsGrid4}>
             <Card className="border border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Applications</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">{stats.totalApplications}</div>
+                <Text as="div" variant="stat" className="text-foreground">{stats.totalApplications}</Text>
                 <div className="text-sm text-muted-foreground mt-1">
                   {stats.approvedLoans} approved
                 </div>
@@ -272,7 +377,7 @@ export default function LoansPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Borrowed</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalBorrowed)}</div>
+                <Text as="div" variant="stat" className="text-foreground">{formatCurrency(stats.totalBorrowed)}</Text>
                 <div className="text-sm text-muted-foreground mt-1">
                   {stats.activeLoans} active loans
                 </div>
@@ -284,7 +389,7 @@ export default function LoansPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Repaid</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalRepaid)}</div>
+                <Text as="div" variant="stat" className="text-foreground">{formatCurrency(stats.totalRepaid)}</Text>
                 <div className="text-sm text-muted-foreground mt-1">
                   {stats.totalBorrowed > 0 ? ((stats.totalRepaid / stats.totalBorrowed) * 100).toFixed(1) : '0'}% of total
                 </div>
@@ -296,7 +401,7 @@ export default function LoansPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Monthly Payments</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalMonthlyPayments)}</div>
+                <Text as="div" variant="stat" className="text-foreground">{formatCurrency(stats.totalMonthlyPayments)}</Text>
                 <div className="text-sm text-muted-foreground mt-1">
                   {stats.averageInterestRate}% avg rate
                 </div>
@@ -426,9 +531,11 @@ export default function LoansPage() {
                     </Link>
                   </Button>
 
-                  <Button variant="outline" className="h-auto p-4 flex-col gap-2">
-                    <Calculator className="h-6 w-6 text-success" />
-                    <span>Loan Calculator</span>
+                  <Button variant="outline" asChild className="h-auto p-4 flex-col gap-2">
+                    <Link href="/dashboard/financial/loans/apply">
+                      <Calculator className="h-6 w-6 text-success" />
+                      <span>Loan Calculator</span>
+                    </Link>
                   </Button>
 
                   <Button
@@ -488,7 +595,7 @@ export default function LoansPage() {
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="disbursed">Active (Disbursed)</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
@@ -550,14 +657,14 @@ export default function LoansPage() {
                         </div>
 
                         <div className="flex flex-col gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetails(app.id)}>
                             <Eye className="h-4 w-4 mr-2" />
                             View Details
                           </Button>
                           {app.status === 'approved' && (
-                            <Button size="sm">
+                            <Button size="sm" disabled={actionLoading === app.id} onClick={() => handleAcceptLoan(app.id)}>
                               <CreditCard className="h-4 w-4 mr-2" />
-                              Accept Loan
+                              {actionLoading === app.id ? 'Processing...' : 'Accept Loan'}
                             </Button>
                           )}
                         </div>
@@ -651,13 +758,13 @@ export default function LoansPage() {
                         </div>
 
                         <div className="flex flex-col gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetails(loan.id)}>
                             <Eye className="h-4 w-4 mr-2" />
                             View Details
                           </Button>
-                          <Button size="sm">
+                          <Button size="sm" disabled={actionLoading === loan.id} onClick={() => handleMakePayment(loan.id, loan.monthlyPayment)}>
                             <Banknote className="h-4 w-4 mr-2" />
-                            Make Payment
+                            {actionLoading === loan.id ? 'Processing...' : 'Make Payment'}
                           </Button>
                           <Button
                             variant="outline"
@@ -713,7 +820,53 @@ export default function LoansPage() {
             )}
           </TabsContent>
         </Tabs>
-      </div>
+
+        <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Loan Details</DialogTitle>
+              <DialogDescription>
+                {selectedLoan?.purpose} — {selectedLoan?.status}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedLoan && (
+              <div className="space-y-4 text-sm">
+                <div className="grid grid-cols-2 gap-3">
+                  <div><span className="text-muted-foreground">Amount:</span> {formatCurrency(selectedLoan.amount)}</div>
+                  <div><span className="text-muted-foreground">Term:</span> {selectedLoan.term} months</div>
+                  <div><span className="text-muted-foreground">Rate:</span> {selectedLoan.interestRate}% APR</div>
+                  <div><span className="text-muted-foreground">Monthly:</span> {formatCurrency(selectedLoan.monthlyPayment)}</div>
+                  {selectedLoan.totalInterest != null && (
+                    <div><span className="text-muted-foreground">Total Interest:</span> {formatCurrency(selectedLoan.totalInterest)}</div>
+                  )}
+                  {selectedLoan.totalRepayment != null && (
+                    <div><span className="text-muted-foreground">Total Repayment:</span> {formatCurrency(selectedLoan.totalRepayment)}</div>
+                  )}
+                  {selectedLoan.remainingBalance != null && selectedLoan.remainingBalance > 0 && (
+                    <div><span className="text-muted-foreground">Remaining:</span> {formatCurrency(selectedLoan.remainingBalance)}</div>
+                  )}
+                </div>
+                {selectedLoan.repaymentSchedule && selectedLoan.repaymentSchedule.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">Repayment Schedule</h4>
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {selectedLoan.repaymentSchedule.map((p, i) => (
+                        <div key={i} className="flex justify-between p-2 bg-muted rounded text-xs">
+                          <span>#{i + 1} — {formatDate(p.dueDate)}</span>
+                          <span className="font-medium">{formatCurrency(p.amount)}</span>
+                          <Badge className={p.status === 'paid' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}>
+                            {p.status}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

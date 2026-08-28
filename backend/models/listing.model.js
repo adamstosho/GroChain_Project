@@ -38,6 +38,15 @@ ListingSchema.index({ category: 1 })
 ListingSchema.index({ status: 1 })
 ListingSchema.index({ featured: 1 })
 ListingSchema.index({ createdAt: -1 })
+// Defense-in-depth alongside the atomic approved->listed claim in
+// harvest-approval.controller.js: a harvest can never back two listings,
+// even from a code path that doesn't go through that atomic claim.
+// Partial so listings not tied to a harvest (harvest is optional) aren't
+// affected by uniqueness.
+ListingSchema.index(
+  { harvest: 1 },
+  { unique: true, partialFilterExpression: { harvest: { $type: 'objectId' } } }
+)
 
 // Transform to remove circular references
 ListingSchema.set('toJSON', {

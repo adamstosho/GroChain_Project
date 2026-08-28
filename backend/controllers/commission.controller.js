@@ -5,6 +5,17 @@ const User = require('../models/user.model')
 const Order = require('../models/order.model')
 const Transaction = require('../models/transaction.model')
 
+// Partner staff authenticate as a User, but Commission.partner refs the
+// Partner *organization* document, never the staff user's own User _id.
+// Comparing commission.partner against req.user.id directly always fails,
+// silently denying partners access to their own commissions. Resolve the
+// acting partner org once instead.
+async function resolveActingPartnerId(user) {
+  if (!user || user.role !== 'partner') return null
+  const partner = await Partner.findOne({ email: user.email }).select('_id')
+  return partner ? partner._id.toString() : null
+}
+
 const commissionController = {
   // Get all commissions with filters
   async getCommissions(req, res) {
@@ -26,7 +37,7 @@ const commissionController = {
 
       // Role-based filtering
       if (req.user.role === 'partner') {
-        query.partner = req.user.id
+        query.partner = await resolveActingPartnerId(req.user)
       } else if (partnerId) {
         query.partner = partnerId
       }
@@ -124,7 +135,7 @@ const commissionController = {
       }
       
       // Check permissions
-      if (req.user.role === 'partner' && commission.partner.toString() !== req.user.id) {
+      if (req.user.role === 'partner' && commission.partner.toString() !== (await resolveActingPartnerId(req.user))) {
         return res.status(403).json({
           status: 'error',
           message: 'Access denied'
@@ -245,13 +256,40 @@ const commissionController = {
       }
       
       // Check permissions
-      if (req.user.role === 'partner' && commission.partner.toString() !== req.user.id) {
+      if (req.user.role === 'partner' && commission.partner.toString() !== (await resolveActingPartnerId(req.user))) {
         return res.status(403).json({
           status: 'error',
           message: 'Access denied'
         })
       }
-      
+
+      const allowedStatuses = ['pending', 'approved', 'paid', 'cancelled']
+      if (!allowedStatuses.includes(status)) {
+        return res.status(400).json({
+          status: 'error',
+          message: `Invalid status. Must be one of: ${allowedStatuses.join(', ')}`
+        })
+      }
+
+      // 'paid' must only ever be set by processCommissionPayout, which
+      // creates the matching Transaction record — setting it here would
+      // leave a commission marked paid with no ledger entry behind it.
+      // 'approved' is an admin financial attestation, not something a
+      // partner should be able to grant themselves — a partner may only
+      // cancel their own still-pending commission (e.g. raised in error).
+      if (status === 'paid') {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Commissions can only be marked paid via the payout process'
+        })
+      }
+      if (req.user.role === 'partner' && status !== 'cancelled') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Partners may only cancel their own pending commissions; approval is admin-only'
+        })
+      }
+
       // Update commission
       commission.status = status
       if (notes) commission.notes = notes
@@ -281,7 +319,7 @@ const commissionController = {
 
       // Role-based filtering
       if (req.user.role === 'partner') {
-        query.partner = req.user.id
+        query.partner = await resolveActingPartnerId(req.user)
       } else if (partnerId) {
         query.partner = partnerId
       }
@@ -401,32 +439,106 @@ const commissionController = {
     }
   },
 
-  // Process commission payout
-  async processCommissionPayout(req, res) {
+  // Partner requests payout for their pending commissions — records where
+  // they want to be paid. Does NOT mark anything paid or move money; an
+  // admin must review and execute the actual payout separately via
+  // processCommissionPayout.
+  async requestCommissionPayout(req, res) {
     try {
-      const { commissionIds, payoutMethod, payoutDetails } = req.body
-      
+      const { commissionIds, payoutMethod, payoutDetails, notes } = req.body
+
       if (!['admin', 'partner'].includes(req.user.role)) {
         return res.status(403).json({
           status: 'error',
           message: 'Insufficient permissions'
         })
       }
-      
+
       if (!Array.isArray(commissionIds) || commissionIds.length === 0) {
         return res.status(400).json({
           status: 'error',
           message: 'Commission IDs are required'
         })
       }
-      
-      const query = { _id: { $in: commissionIds }, status: 'pending' }
-      
-      // Role-based filtering
-      if (req.user.role === 'partner') {
-        query.partner = req.user.id
+
+      const allowedMethods = ['bank_transfer', 'mobile_money', 'wallet']
+      if (!allowedMethods.includes(payoutMethod)) {
+        return res.status(400).json({
+          status: 'error',
+          message: `Invalid payout method. Must be one of: ${allowedMethods.join(', ')}`
+        })
       }
-      
+
+      const query = { _id: { $in: commissionIds }, status: 'pending' }
+      if (req.user.role === 'partner') {
+        query.partner = await resolveActingPartnerId(req.user)
+      }
+
+      const commissions = await Commission.find(query)
+      if (commissions.length === 0) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'No valid pending commissions found for payout request'
+        })
+      }
+
+      const payoutRequest = {
+        method: payoutMethod,
+        details: payoutDetails || {},
+        notes: notes || '',
+        requestedAt: new Date(),
+        requestedBy: req.user.id
+      }
+
+      await Commission.updateMany(
+        { _id: { $in: commissions.map((c) => c._id) } },
+        { payoutRequest }
+      )
+
+      const totalRequestedAmount = commissions.reduce((sum, c) => sum + c.amount, 0)
+
+      res.json({
+        status: 'success',
+        data: {
+          totalRequestedAmount,
+          requestedCommissions: commissions.length
+        },
+        message: 'Payout request submitted — an admin will review and process it'
+      })
+    } catch (error) {
+      console.error('Error requesting commission payout:', error)
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to request commission payout'
+      })
+    }
+  },
+
+  // Process commission payout
+  async processCommissionPayout(req, res) {
+    try {
+      const { commissionIds, payoutMethod, payoutDetails } = req.body
+
+      // Admin-only: this marks commissions 'paid' and writes a 'completed'
+      // Transaction record — a real attestation that money moved. Without
+      // that gate, a partner could self-report their own commissions as
+      // paid out with no actual payment ever happening.
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Only admins can process commission payouts'
+        })
+      }
+
+      if (!Array.isArray(commissionIds) || commissionIds.length === 0) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Commission IDs are required'
+        })
+      }
+
+      const query = { _id: { $in: commissionIds }, status: 'pending' }
+
       const commissions = await Commission.find(query)
       
       if (commissions.length === 0) {
@@ -507,7 +619,7 @@ const commissionController = {
       }
       
       // Check permissions
-      if (req.user.role === 'partner' && partnerId !== req.user.id) {
+      if (req.user.role === 'partner' && partnerId !== (await resolveActingPartnerId(req.user))) {
         return res.status(403).json({
           status: 'error',
           message: 'Access denied'

@@ -229,6 +229,7 @@ setup-*.js
 webhook-setup-*.js
 payment-*.js
 !payment-method.model.js
+!utils/payment-fulfillment.js
 auto-fix-*.js
 clear-*.js
 

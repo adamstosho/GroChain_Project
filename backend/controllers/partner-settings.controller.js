@@ -53,7 +53,8 @@ exports.updatePartnerSettings = async (req, res) => {
       description
     } = req.body
 
-    // Validate commission rate
+    // Commission rate arrives as a 0-100 percentage from the client, but
+    // Partner.commissionRate is stored as a 0-1 fraction (see partner.model.js)
     if (commissionRate !== undefined) {
       if (commissionRate < 0 || commissionRate > 100) {
         return res.status(400).json({
@@ -62,6 +63,7 @@ exports.updatePartnerSettings = async (req, res) => {
         })
       }
     }
+    const commissionRateFraction = commissionRate !== undefined ? commissionRate / 100 : undefined
 
     // Validate service areas
     if (serviceAreas && Array.isArray(serviceAreas)) {
@@ -106,7 +108,7 @@ exports.updatePartnerSettings = async (req, res) => {
     // Update partner settings
     const updateData = {}
     
-    if (commissionRate !== undefined) updateData.commissionRate = commissionRate
+    if (commissionRateFraction !== undefined) updateData.commissionRate = commissionRateFraction
     if (autoApproval !== undefined) updateData.autoApproval = autoApproval
     if (notificationPreferences) updateData.notificationPreferences = notificationPreferences
     if (paymentPreferences) updateData.paymentPreferences = paymentPreferences

@@ -4,6 +4,7 @@ const Transaction = require('../models/transaction.model')
 const FarmerProfile = require('../models/farmer-profile.model')
 const Order = require('../models/order.model')
 const Listing = require('../models/listing.model')
+const { escapeRegex } = require('../utils/regex.util')
 
 const farmerController = {
   // Get farmer's own profile
@@ -281,9 +282,10 @@ const farmerController = {
         query.category = category
       }
       if (search) {
+        const searchRegex = new RegExp(escapeRegex(search), 'i')
         query.$or = [
-          { cropName: new RegExp(search, 'i') },
-          { description: new RegExp(search, 'i') }
+          { cropName: searchRegex },
+          { description: searchRegex }
         ]
       }
 
@@ -595,7 +597,7 @@ const farmerController = {
       }
 
       const skip = (parseInt(page) - 1) * parseInt(limit)
-      const searchRegex = new RegExp(search.trim(), 'i')
+      const searchRegex = new RegExp(escapeRegex(search.trim()), 'i')
 
       // Search farmers by name, email, or phone
       const query = {

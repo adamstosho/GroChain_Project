@@ -27,6 +27,8 @@ import {
 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Display, Text } from "@/components/ui/typography"
 import Link from "next/link"
 import { useRouter, useParams } from "next/navigation"
 import { apiService } from "@/lib/api"
@@ -179,7 +181,7 @@ export default function HarvestDetailPage() {
         await navigator.clipboard.writeText(verificationUrl)
         toast({
           title: "Link Copied",
-          description: "Cryptographic verification link copied to clipboard.",
+          description: "Verification link copied to clipboard.",
         })
       }
     } catch (e) {
@@ -216,7 +218,7 @@ export default function HarvestDetailPage() {
     return (
       <div className="max-w-md mx-auto text-center py-12 space-y-4">
         <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
-        <h2 className="text-lg font-bold text-foreground">Record Not Found</h2>
+        <Display as="h2" variant="sub">Record Not Found</Display>
         <p className="text-sm text-muted-foreground">The harvest record you are looking for is missing or invalid.</p>
         <Button asChild className="bg-success hover:bg-success">
           <Link href="/dashboard/harvests">Back to Registry</Link>
@@ -229,7 +231,7 @@ export default function HarvestDetailPage() {
   const isListed = harvest.status.toLowerCase() === 'listed'
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 px-2 sm:px-4">
+    <DashboardPageShell className="max-w-6xl mx-auto px-2 sm:px-4">
       
       {/* Top Breadcrumb & Actions Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
@@ -243,10 +245,10 @@ export default function HarvestDetailPage() {
             </Button>
           </div>
           <div className="flex items-center flex-wrap gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">{harvest.cropType} Batch</h1>
+            <Display as="h1" variant="page">{harvest.cropType} Batch</Display>
             {getStatusBadge(harvest.status)}
           </div>
-          <p className="text-xs font-mono text-muted-foreground">BATCH ID: {harvest.batchId || harvest._id}</p>
+          <Text as="p" variant="caption" className="font-mono">BATCH ID: {harvest.batchId || harvest._id}</Text>
         </div>
 
         {/* Dynamic CTA Header Actions */}
@@ -426,7 +428,7 @@ export default function HarvestDetailPage() {
           )}
         </div>
 
-        {/* RIGHT COLUMN: On-Chain Traceability & QR Passport (Col-span 1) */}
+        {/* RIGHT COLUMN: Digital traceability & QR passport */}
         <div className="space-y-6">
           
           {/* Visual QR Passport Card */}
@@ -457,8 +459,8 @@ export default function HarvestDetailPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-foreground">Cryptographic Identity Badge</h4>
-                  <p className="text-[11px] text-muted-foreground leading-snug px-2">Buyers scan this QR code directly to verify provenance parameters on the public verify site.</p>
+                  <h4 className="text-xs font-bold text-foreground">Traceability QR badge</h4>
+                  <p className="text-[11px] text-muted-foreground leading-snug px-2">Buyers scan this QR code to open the public verification page for this batch.</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 pt-2">
@@ -474,18 +476,18 @@ export default function HarvestDetailPage() {
 
                 <Button variant="secondary" className="w-full text-xs h-9 bg-muted text-foreground hover:bg-muted" onClick={() => window.open(`/verify/${harvest.batchId}`, '_blank')}>
                   <Eye className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-                  <span>Public Portal Demo</span>
+                  <span>View public verification page</span>
                 </Button>
               </CardContent>
             </Card>
           )}
 
-          {/* On-Chain Verification Timeline */}
+          {/* Traceability timeline */}
           <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-card">
             <CardHeader className="bg-muted/40 border-b border-border px-4 sm:px-5 py-4">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <FileText className="h-4 w-4 text-success" />
-                On-Chain Audit Trails
+                Record timeline
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 sm:p-5">
@@ -497,9 +499,9 @@ export default function HarvestDetailPage() {
                     <CheckCircle2 className="h-3 w-3" />
                   </div>
                   <div>
-                    <h5 className="text-xs font-bold text-foreground">Batch Logged On-Chain</h5>
+                    <h5 className="text-xs font-bold text-foreground">Harvest logged</h5>
                     <p className="text-[10px] text-muted-foreground mt-0.5">{formatDate(harvest.createdAt || harvest.date)}</p>
-                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">Farmer compiled crop volume and verified GPS yield origin.</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">Farmer recorded crop volume and origin on GroChain.</p>
                   </div>
                 </div>
 
@@ -509,9 +511,9 @@ export default function HarvestDetailPage() {
                     <CheckCircle2 className="h-3 w-3" />
                   </div>
                   <div>
-                    <h5 className="text-xs font-bold text-foreground">Quality Verified</h5>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Automatic validation analysis</p>
-                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">Grade {harvest.qualityGrade || "B"} certification matching moisture standards check.</p>
+                    <h5 className="text-xs font-bold text-foreground">Quality recorded</h5>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Farmer-submitted grade</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">Grade {harvest.qualityGrade || harvest.quality || "—"} as entered at harvest logging.</p>
                   </div>
                 </div>
 
@@ -565,6 +567,6 @@ export default function HarvestDetailPage() {
 
       </div>
 
-    </div>
+    </DashboardPageShell>
   )
 }

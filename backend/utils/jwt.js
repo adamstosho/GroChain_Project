@@ -41,4 +41,11 @@ function verifyRefresh(token) {
   return jwt.verify(token, getRefreshSecret())
 }
 
-module.exports = { signAccess, signRefresh, verifyAccess, verifyRefresh }
+// Signature-verified decode that tolerates an expired token — used only for
+// logout, so we can trust the token's `id` claim (rejecting forgeries) even
+// if the access token happened to expire right before the logout call.
+function verifyAccessAllowExpired(token) {
+  return jwt.verify(token, getAccessSecret(), { ignoreExpiration: true })
+}
+
+module.exports = { signAccess, signRefresh, verifyAccess, verifyRefresh, verifyAccessAllowExpired }

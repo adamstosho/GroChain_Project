@@ -19,6 +19,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { HarvestAnalytics } from "@/components/agricultural/harvest-analytics"
@@ -678,7 +681,7 @@ export default function FarmerHarvestsPage() {
 
   return (
     <DashboardLayout pageTitle="Harvest Management">
-      <div className="space-y-6">
+      <DashboardPageShell>
         <DashboardPageHeader
           badge="Harvest Tracking Active"
           title="Harvest"
@@ -709,7 +712,7 @@ export default function FarmerHarvestsPage() {
         />
 
         {/* Stats Overview */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div className={dashboard.statsGrid}>
           <Card className="border border-border h-full">
             <CardHeader className="pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
@@ -724,7 +727,7 @@ export default function FarmerHarvestsPage() {
                   <span className="text-xs sm:text-sm text-muted-foreground">Loading...</span>
                 </div>
               ) : (
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground truncate">{stats.total}</div>
+                <Text as="div" variant="stat" className="text-foreground truncate">{stats.total}</Text>
               )}
               <p className="text-xs text-muted-foreground truncate">All time harvests</p>
             </CardContent>
@@ -744,7 +747,7 @@ export default function FarmerHarvestsPage() {
                   <span className="text-xs sm:text-sm text-muted-foreground">Loading...</span>
                 </div>
               ) : (
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground truncate">{stats.pending}</div>
+                <Text as="div" variant="stat" className="text-foreground truncate">{stats.pending}</Text>
               )}
               <p className="text-xs text-muted-foreground truncate">Awaiting verification</p>
             </CardContent>
@@ -764,7 +767,7 @@ export default function FarmerHarvestsPage() {
                   <span className="text-xs sm:text-sm text-muted-foreground">Loading...</span>
                 </div>
               ) : (
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground truncate">{stats.approved}</div>
+                <Text as="div" variant="stat" className="text-foreground truncate">{stats.approved}</Text>
               )}
               <p className="text-xs text-muted-foreground truncate">Verified harvests</p>
             </CardContent>
@@ -784,7 +787,7 @@ export default function FarmerHarvestsPage() {
                   <span className="text-xs sm:text-sm text-muted-foreground">Loading...</span>
                 </div>
               ) : (
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground truncate">{stats.rejected}</div>
+                <Text as="div" variant="stat" className="text-foreground truncate">{stats.rejected}</Text>
               )}
               <p className="text-xs text-muted-foreground truncate">Rejected harvests</p>
             </CardContent>
@@ -804,7 +807,7 @@ export default function FarmerHarvestsPage() {
                   <span className="text-xs sm:text-sm text-muted-foreground">Loading...</span>
                 </div>
               ) : (
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground truncate">₦{(stats.totalValue || 0).toLocaleString()}</div>
+                <Text as="div" variant="stat" className="text-foreground truncate">₦{(stats.totalValue || 0).toLocaleString()}</Text>
               )}
               <p className="text-xs text-muted-foreground truncate">Estimated value</p>
             </CardContent>
@@ -1195,7 +1198,7 @@ export default function FarmerHarvestsPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </DashboardPageShell>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

@@ -27,6 +27,9 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { Display, Text } from "@/components/ui/typography"
+import { PageContainer } from "@/components/layout/page-container"
+import { layout } from "@/lib/design-system"
 
 interface VerificationData {
   batchId: string
@@ -94,7 +97,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
       }
     } catch (error) {
       console.error('Verification error:', error)
-      setError('This QR code could not be verified. It may be invalid or the batch record is not registered in our blockchain ledger.')
+      setError('This QR code could not be verified. It may be invalid or the batch is not registered on GroChain.')
       setVerified(false)
     } finally {
       setLoading(false)
@@ -142,8 +145,8 @@ export default function VerificationPage({ params }: VerificationPageProps) {
       <div className="min-h-screen bg-muted/50 flex flex-col justify-center items-center py-12 px-4">
         <div className="max-w-md w-full text-center space-y-4">
           <Loader2 className="h-10 w-10 animate-spin text-success mx-auto" />
-          <h3 className="text-base font-bold text-foreground">Authenticating batch coordinates...</h3>
-          <p className="text-xs text-muted-foreground">Running cryptographic signatures check on GroChain ledger.</p>
+          <Display as="h3" variant="sub">Authenticating batch coordinates...</Display>
+          <Text variant="caption">Running cryptographic signatures check on GroChain ledger.</Text>
         </div>
       </div>
     )
@@ -156,7 +159,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
           <Card className="border border-destructive/10 bg-card rounded-2xl overflow-hidden">
             <div className="bg-destructive/10 p-6 text-center border-b border-destructive/50">
               <XCircle className="h-14 w-14 text-destructive mx-auto mb-2" />
-              <h2 className="text-lg font-serif font-bold text-destructive">Verification Unsuccessful</h2>
+              <Display as="h2" variant="card" className="text-destructive">Verification Unsuccessful</Display>
               <p className="text-xs text-destructive/80 mt-1 leading-snug">The scanned QR code is either invalid or missing administrative validation keys.</p>
             </div>
             <CardContent className="p-6 text-center space-y-4">
@@ -185,7 +188,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
 
   return (
     <div className="min-h-screen bg-muted/30 py-8 px-4 sm:px-6">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <PageContainer className={`max-w-4xl ${layout.stackMd}`}>
         
         {/* Verification Status Header Certificate */}
         <Card className="border-0 shadow-lg bg-primary text-primary-foreground rounded-2xl overflow-hidden relative">
@@ -194,13 +197,13 @@ export default function VerificationPage({ params }: VerificationPageProps) {
             <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-3">
               <Badge className="bg-secondary text-secondary-foreground border-none px-3.5 py-1 text-xs font-bold gap-1 rounded-full shadow-sm hover:bg-secondary">
                 <ShieldCheck className="h-4 w-4" />
-                <span>On-Chain Authenticated</span>
+                <span>Platform verified</span>
               </Badge>
               <div className="space-y-1">
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary-foreground font-serif">Agricultural Provenance Certificate</h1>
-                <p className="text-primary-foreground/70 text-xs sm:text-sm max-w-lg">
-                  GroChain blockchain ledger certifies that this batch has undergone inspection standards.
-                </p>
+                <Display as="h1" variant="page" className="text-primary-foreground">Agricultural Provenance Certificate</Display>
+                <Text variant="sm" className="text-primary-foreground/70 max-w-lg">
+                  This batch record is registered on GroChain with the details below. Verification reflects platform data, not laboratory testing.
+                </Text>
               </div>
               <div className="pt-2 flex items-center gap-2">
                 <span className="text-[10px] font-mono bg-primary-foreground/10 text-primary-foreground border border-primary-foreground/20 px-2 py-0.5 rounded-md">
@@ -365,30 +368,48 @@ export default function VerificationPage({ params }: VerificationPageProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-5 space-y-3.5">
-                
                 <div className="flex items-start gap-2.5">
                   <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                   <div>
-                    <h5 className="text-xs font-bold text-foreground leading-none">Administrative Inspection</h5>
-                    <p className="text-[10px] text-muted-foreground mt-1 leading-snug">Authorized auditor cleared the produce for export and trade.</p>
+                    <h5 className="text-xs font-bold text-foreground leading-none">Batch record found</h5>
+                    <p className="text-[10px] text-muted-foreground mt-1 leading-snug">
+                      Batch {verificationData.batchId} exists on GroChain and matches this QR code.
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5">
                   <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                   <div>
-                    <h5 className="text-xs font-bold text-foreground leading-none">Chemical Safety Cleared</h5>
-                    <p className="text-[10px] text-muted-foreground mt-1 leading-snug">No residual fertilizer contamination. Complies with organic policy.</p>
+                    <h5 className="text-xs font-bold text-foreground leading-none">Platform status</h5>
+                    <p className="text-[10px] text-muted-foreground mt-1 leading-snug capitalize">
+                      Current record status: {verificationData.status.replace(/_/g, " ")}.
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5">
                   <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                   <div>
-                    <h5 className="text-xs font-bold text-foreground leading-none">On-Chain Ledger Sealed</h5>
-                    <p className="text-[10px] text-muted-foreground mt-1 leading-snug">Cryptographic signature transaction logged to distributed network.</p>
+                    <h5 className="text-xs font-bold text-foreground leading-none">Farmer on file</h5>
+                    <p className="text-[10px] text-muted-foreground mt-1 leading-snug">
+                      Linked to {verificationData.farmer.name}
+                      {verificationData.farmer.farmName ? ` (${verificationData.farmer.farmName})` : ""}.
+                    </p>
                   </div>
                 </div>
+
+                {verificationData.organic != null && (
+                  <div className="flex items-start gap-2.5">
+                    <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h5 className="text-xs font-bold text-foreground leading-none">Organic flag</h5>
+                      <p className="text-[10px] text-muted-foreground mt-1 leading-snug">
+                        Recorded as {verificationData.organic ? "organic" : "conventional"} on the harvest listing.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -427,14 +448,16 @@ export default function VerificationPage({ params }: VerificationPageProps) {
         <div className="text-center text-[11px] text-muted-foreground space-y-1.5 pt-4">
           <p className="flex items-center justify-center gap-1">
             <Shield className="h-3.5 w-3.5 text-success" />
-            <span>Cryptographically secured by GroChain Distributed Agricultural Ledger.</span>
+            <span>Verified against GroChain platform records.</span>
           </p>
-          <p className="font-mono text-[9px] break-all select-all bg-muted/50 py-1 px-3 border border-border rounded-lg max-w-lg mx-auto">
-            SHA256: {verificationData.verificationUrl || `hash-batch-${verificationData.batchId}`}
-          </p>
+          {verificationData.verificationUrl && (
+            <p className="font-mono text-[9px] break-all select-all bg-muted/50 py-1 px-3 border border-border rounded-lg max-w-lg mx-auto">
+              {verificationData.verificationUrl}
+            </p>
+          )}
         </div>
 
-      </div>
+      </PageContainer>
     </div>
   )
 }

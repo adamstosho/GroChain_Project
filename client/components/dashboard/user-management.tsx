@@ -12,6 +12,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import {
   Users,
@@ -440,63 +444,60 @@ export function UserManagement() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold text-foreground">Users Management</h1>
-          <p className="text-muted-foreground">Manage all platform users, roles, and permissions</p>
-        </div>
-        
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={fetchUsers} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button
-            variant="outline"
-            onClick={async () => {
-              try {
-                const { getExportService } = await import("@/lib/export-utils")
-                const exportService = getExportService()
-                const result = await exportService.exportUsers({ format: "excel" })
-                if (!result.success) {
-                  // Fallback to filtered local users
-                  await exportService.exportCustomData(
-                    filteredUsers.map((u) => ({
-                      name: u.name,
-                      email: u.email,
-                      role: u.role,
-                      status: u.status,
-                      phone: u.phone || "",
-                      emailVerified: u.emailVerified,
-                      createdAt: u.createdAt,
-                    })),
-                    { format: "csv", filename: `grochain-users-${new Date().toISOString().slice(0, 10)}.csv` }
-                  )
+    <DashboardPageShell>
+      <DashboardSubpageHeader
+        title="Users Management"
+        description="Manage all platform users, roles, and permissions"
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={fetchUsers} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const { getExportService } = await import("@/lib/export-utils")
+                  const exportService = getExportService()
+                  const result = await exportService.exportUsers({ format: "excel" })
+                  if (!result.success) {
+                    await exportService.exportCustomData(
+                      filteredUsers.map((u) => ({
+                        name: u.name,
+                        email: u.email,
+                        role: u.role,
+                        status: u.status,
+                        phone: u.phone || "",
+                        emailVerified: u.emailVerified,
+                        createdAt: u.createdAt,
+                      })),
+                      { format: "csv", filename: `grochain-users-${new Date().toISOString().slice(0, 10)}.csv` }
+                    )
+                  }
+                  toast({ title: "Export ready", description: "Users file downloaded." })
+                } catch (e: any) {
+                  toast({ title: "Export failed", description: e?.message || "Try again", variant: "destructive" })
                 }
-                toast({ title: "Export ready", description: "Users file downloaded." })
-              } catch (e: any) {
-                toast({ title: "Export failed", description: e?.message || "Try again", variant: "destructive" })
-              }
-            }}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button variant="outline">
-            <Upload className="h-4 w-4 mr-2" />
-            Import
-          </Button>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Add User
-          </Button>
-        </div>
-      </div>
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button variant="outline">
+              <Upload className="h-4 w-4 mr-2" />
+              Import
+            </Button>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add User
+            </Button>
+          </div>
+        }
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={dashboard.statsGrid4}>
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
@@ -505,7 +506,7 @@ export function UserManagement() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.totalUsers}</div>
+            <Text as="div" variant="stat" className="text-foreground">{stats.totalUsers}</Text>
             <div className="text-sm text-muted-foreground mt-1">All platform users</div>
           </CardContent>
         </Card>
@@ -518,7 +519,7 @@ export function UserManagement() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.activeUsers}</div>
+            <Text as="div" variant="stat" className="text-foreground">{stats.activeUsers}</Text>
             <div className="text-sm text-muted-foreground mt-1">Currently active</div>
           </CardContent>
         </Card>
@@ -531,7 +532,7 @@ export function UserManagement() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.pendingUsers}</div>
+            <Text as="div" variant="stat" className="text-foreground">{stats.pendingUsers}</Text>
             <div className="text-sm text-muted-foreground mt-1">Awaiting approval</div>
           </CardContent>
         </Card>
@@ -544,14 +545,14 @@ export function UserManagement() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.suspendedUsers}</div>
+            <Text as="div" variant="stat" className="text-foreground">{stats.suspendedUsers}</Text>
             <div className="text-sm text-muted-foreground mt-1">Account suspended</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Role Distribution */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={dashboard.statsGrid4}>
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
@@ -560,7 +561,7 @@ export function UserManagement() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.farmers}</div>
+            <Text as="div" variant="stat" className="text-foreground">{stats.farmers}</Text>
             <div className="text-sm text-muted-foreground mt-1">Agricultural producers</div>
           </CardContent>
         </Card>
@@ -573,7 +574,7 @@ export function UserManagement() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.buyers}</div>
+            <Text as="div" variant="stat" className="text-foreground">{stats.buyers}</Text>
             <div className="text-sm text-muted-foreground mt-1">Product purchasers</div>
           </CardContent>
         </Card>
@@ -586,7 +587,7 @@ export function UserManagement() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.partners}</div>
+            <Text as="div" variant="stat" className="text-foreground">{stats.partners}</Text>
             <div className="text-sm text-muted-foreground mt-1">Business partners</div>
           </CardContent>
         </Card>
@@ -599,7 +600,7 @@ export function UserManagement() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.admins}</div>
+            <Text as="div" variant="stat" className="text-foreground">{stats.admins}</Text>
             <div className="text-sm text-muted-foreground mt-1">System administrators</div>
           </CardContent>
         </Card>
@@ -1147,6 +1148,6 @@ export function UserManagement() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardPageShell>
   )
 }

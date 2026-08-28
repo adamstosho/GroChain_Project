@@ -12,6 +12,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
+import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
+import { Text } from "@/components/ui/typography"
+import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -178,7 +181,7 @@ export default function ReviewsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <DashboardPageShell>
         <DashboardPageHeader
           badge="Feedback Active"
           title="Reviews"
@@ -187,14 +190,14 @@ export default function ReviewsPage() {
         />
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className={dashboard.statsGrid4}>
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
                 <MessageCircle className="h-5 w-5 text-primary" />
                 <div>
                   <p className="text-sm text-muted-foreground">Total Reviews</p>
-                  <p className="text-2xl font-bold">{stats.totalReviews}</p>
+                  <Text as="p" variant="stat">{stats.totalReviews}</Text>
                 </div>
               </div>
             </CardContent>
@@ -206,7 +209,7 @@ export default function ReviewsPage() {
                 <Star className="h-5 w-5 text-warning" />
                 <div>
                   <p className="text-sm text-muted-foreground">Average Rating</p>
-                  <p className="text-2xl font-bold">{stats.averageRating.toFixed(1)}</p>
+                  <Text as="p" variant="stat">{stats.averageRating.toFixed(1)}</Text>
                 </div>
               </div>
             </CardContent>
@@ -218,7 +221,7 @@ export default function ReviewsPage() {
                 <Clock className="h-5 w-5 text-warning" />
                 <div>
                   <p className="text-sm text-muted-foreground">Pending</p>
-                  <p className="text-2xl font-bold">{stats.pendingReviews}</p>
+                  <Text as="p" variant="stat">{stats.pendingReviews}</Text>
                 </div>
               </div>
             </CardContent>
@@ -230,7 +233,7 @@ export default function ReviewsPage() {
                 <CheckCircle className="h-5 w-5 text-success" />
                 <div>
                   <p className="text-sm text-muted-foreground">Approved</p>
-                  <p className="text-2xl font-bold">{stats.approvedReviews}</p>
+                  <Text as="p" variant="stat">{stats.approvedReviews}</Text>
                 </div>
               </div>
             </CardContent>
@@ -451,7 +454,7 @@ export default function ReviewsPage() {
             )}
           </DialogContent>
         </Dialog>
-      </div>
+      </DashboardPageShell>
     </DashboardLayout>
   )
 }

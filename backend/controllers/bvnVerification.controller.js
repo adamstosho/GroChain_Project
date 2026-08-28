@@ -361,92 +361,21 @@ exports.getBVNStats = async (req, res) => {
 }
 
 // Bulk BVN verification (admin only)
+//
+// Unlike the single-user flow above (which genuinely calls Flutterwave's
+// BVN API), this used to just flip status to 'pending' and report success —
+// no verification ever happened. It can't be made real as-is: the actual
+// verification API call requires firstName/lastName/dateOfBirth, which are
+// only ever submitted transiently in a single verifyBVN request body and
+// are never persisted anywhere on the user record for a later retry to use.
+// Making this genuinely functional needs those fields to be stored
+// alongside bvnVerification.bvn at submission time — a real schema/flow
+// change, not something to bolt on silently here. No frontend page calls
+// this endpoint today, so it's marked honestly unimplemented instead.
 exports.bulkBVNVerification = async (req, res) => {
-  try {
-    const { userIds } = req.body
-
-    if (!Array.isArray(userIds) || userIds.length === 0) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'User IDs array is required'
-      })
-    }
-
-    if (userIds.length > 100) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Maximum 100 users can be processed at once'
-      })
-    }
-
-    const users = await User.find({
-      _id: { $in: userIds },
-      'bvnVerification.bvn': { $exists: true, $ne: null },
-      'bvnVerification.verified': false
-    }).select('bvnVerification email name')
-
-    if (users.length === 0) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'No eligible users found for BVN verification'
-      })
-    }
-
-    const results = []
-    const batchSize = 10 // Process in batches to avoid overwhelming the API
-
-    for (let i = 0; i < users.length; i += batchSize) {
-      const batch = users.slice(i, i + batchSize)
-      
-      const batchPromises = batch.map(async (user) => {
-        try {
-          // Simulate API call (in real implementation, call the actual BVN service)
-          // For now, we'll just mark as pending
-          await User.findByIdAndUpdate(user._id, {
-            'bvnVerification.status': 'pending'
-          })
-
-          return {
-            userId: user._id,
-            email: user.email,
-            name: user.name,
-            status: 'pending',
-            message: 'Queued for verification'
-          }
-        } catch (error) {
-          return {
-            userId: user._id,
-            email: user.email,
-            name: user.name,
-            status: 'error',
-            message: error.message
-          }
-        }
-      })
-
-      const batchResults = await Promise.all(batchPromises)
-      results.push(...batchResults)
-
-      // Add delay between batches to avoid rate limiting
-      if (i + batchSize < users.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-      }
-    }
-
-    return res.json({
-      status: 'success',
-      message: `Processed ${results.length} users for BVN verification`,
-      data: {
-        totalProcessed: results.length,
-        results
-      }
-    })
-  } catch (error) {
-    console.error('Bulk BVN verification error:', error)
-    return res.status(500).json({
-      status: 'error',
-      message: 'Internal server error during bulk BVN verification'
-    })
-  }
+  return res.status(501).json({
+    status: 'error',
+    message: 'Bulk BVN verification is not yet implemented — retrying verification requires each user\'s BVN details, which aren\'t currently stored for reuse. Use single-user verification for now.'
+  })
 }
 
