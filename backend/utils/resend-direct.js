@@ -1,51 +1,10 @@
 const RESEND_API = 'https://api.resend.com/emails'
 const MAX_RETRIES = 2
+const { resolveResendFromEmail } = require('./email-config')
 
-const PUBLIC_MAILBOX_DOMAINS = [
-  'gmail.com',
-  'googlemail.com',
-  'yahoo.com',
-  'hotmail.com',
-  'outlook.com',
-  'live.com'
-]
-
-/**
- * Resend requires a verified domain or onboarding@resend.dev (test mode).
- * Reject public mailbox domains that will always fail with 403.
- */
+/** @deprecated Use resolveResendFromEmail from email-config.js */
 function resolveFromEmail() {
-  const configured =
-    process.env.RESEND_FROM_EMAIL ||
-    process.env.EMAIL_FROM ||
-    'GroChain <onboarding@resend.dev>'
-
-  const extractDomain = (value) => {
-    const match = value.match(/<([^>]+)>/) || value.match(/([^\s<>]+@[^\s<>]+)/)
-    const email = (match ? match[1] : value).trim()
-    return email.split('@')[1]?.toLowerCase() || ''
-  }
-
-  const domain = extractDomain(configured)
-  const isPublicMailbox = PUBLIC_MAILBOX_DOMAINS.some(
-    (blocked) => domain === blocked || domain.endsWith(`.${blocked}`)
-  )
-
-  if (isPublicMailbox) {
-    const fallback =
-      process.env.RESEND_FALLBACK_FROM_EMAIL || 'GroChain <onboarding@resend.dev>'
-    console.warn(
-      `⚠️ Resend cannot send from ${configured} (public/unverified domain). Using ${fallback}`
-    )
-    return fallback
-  }
-
-  if (configured.includes('<') && configured.includes('>')) {
-    return configured
-  }
-
-  const name = process.env.RESEND_FROM_NAME || process.env.SENDGRID_FROM_NAME || 'GroChain'
-  return `${name} <${configured}>`
+  return resolveResendFromEmail()
 }
 
 /**
@@ -55,7 +14,7 @@ function resolveFromEmail() {
  */
 async function sendEmailViaResend(to, subject, html) {
   const RESEND_API_KEY = process.env.RESEND_API_KEY
-  const EMAIL_FROM = resolveFromEmail()
+  const EMAIL_FROM = resolveResendFromEmail()
 
   if (!RESEND_API_KEY) {
     throw new Error('Missing RESEND_API_KEY in environment variables')

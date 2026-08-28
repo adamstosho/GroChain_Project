@@ -22,33 +22,21 @@ services:
         value: https://gro-chain.vercel.app
       - key: FRONTEND_URL
         value: https://gro-chain.vercel.app
-      # Email Configuration - Using SendGrid API (works on Render)
-      # Render blocks outbound SMTP ports, so we MUST use HTTP API
+      # Email Configuration — HTTP APIs only (Render blocks outbound SMTP)
       - key: EMAIL_PROVIDER
-        value: sendgrid
-      # SendGrid Configuration - Get fresh API key from new account
-      # Set SENDGRID_API_KEY in Render dashboard: Settings > Environment
+        value: resend
+      # Resend (primary on Render — works over HTTPS, no SMTP ports needed)
+      - key: RESEND_API_KEY
+        sync: false  # Set in Render dashboard: Settings > Environment
+      - key: RESEND_FROM_EMAIL
+        value: GroChain <onboarding@resend.dev>
+      - key: RESEND_FROM_NAME
+        value: GroChain
+      # SendGrid (optional fallback — requires verified sender, NOT gmail.com)
       - key: SENDGRID_API_KEY
-        sync: false  # IMPORTANT: Set this in Render dashboard!
+        sync: false
       - key: SENDGRID_FROM_EMAIL
-        value: grochain.ng@gmail.com
+        value: onboarding@resend.dev
       - key: SENDGRID_FROM_NAME
         value: GroChain
-      # Resend Configuration - Fallback (keep for backup)
-      - key: RESEND_API_KEY
-        sync: false  # Set in Render dashboard if needed
-      - key: RESEND_FROM_EMAIL
-        value: onboarding@resend.dev
-      # SMTP Configuration (kept as fallback, but won't work on Render free tier)
-      - key: SMTP_HOST
-        value: smtp.gmail.com
-      - key: SMTP_PORT
-        value: "587"
-      - key: SMTP_SECURE
-        value: "false"
-      - key: SMTP_USER
-        value: grochain.ng@gmail.com
-      - key: SMTP_PASS
-        sync: false
-      - key: SMTP_FROM
-        value: grochain.ng@gmail.com
+      # SMTP will NOT work on Render free tier (ports 587/465 blocked) — local dev only

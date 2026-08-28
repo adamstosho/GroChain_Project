@@ -8,6 +8,15 @@ const cookieParser = require('cookie-parser')
 const http = require('http')
 require('dotenv').config()
 
+const {
+  validateEmailConfigOnStartup,
+  logEmailConfigValidation,
+  getConfiguredEmailProviders,
+  resolveResendFromEmail
+} = require('./utils/email-config')
+
+logEmailConfigValidation(validateEmailConfigOnStartup())
+
 // Keep the process alive on errors that would otherwise silently take the
 // whole API down (e.g. an async controller path missing a try/catch). Express
 // already isolates each request, so logging and continuing is safer here than
@@ -505,6 +514,8 @@ const initializeApp = async () => {
     
     // Update health check endpoint with WebSocket info
     app.get('/api/health', (req, res) => {
+      const emailValidation = validateEmailConfigOnStartup()
+      const emailProviders = getConfiguredEmailProviders()
       res.status(200).json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
@@ -512,6 +523,14 @@ const initializeApp = async () => {
         environment: process.env.NODE_ENV || 'development',
         version: '1.0.0',
         database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        email: {
+          provider: process.env.EMAIL_PROVIDER || 'resend',
+          configured: emailProviders,
+          resendFrom: emailProviders.resend ? resolveResendFromEmail() : null,
+          ok: emailValidation.ok,
+          warnings: emailValidation.warnings.length,
+          errors: emailValidation.errors.length
+        },
         websocket: {
           enabled: !!webSocketService,
           connections: webSocketService ? webSocketService.getConnectionStats().totalConnections : 0

@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { HarvestForm, type HarvestFormData } from "@/components/agricultural"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { useToast } from "@/hooks/use-toast"
-import { useOfflineApi } from "@/hooks/use-offline-api"
 import { apiService } from "@/lib/api"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
@@ -16,7 +15,6 @@ export default function NewHarvestPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
-  const { createHarvest, isOffline } = useOfflineApi()
 
   const handleSubmit = async (data: HarvestFormData & { images?: string[] }) => {
     try {
@@ -48,22 +46,8 @@ export default function NewHarvestPage() {
         certification: data.certification
       }
 
-      let created: any = null
-
-      if (isOffline) {
-        const result = await createHarvest(payload)
-        if (result.queued) {
-          sessionStorage.removeItem("harvest-form-draft")
-          router.push('/dashboard/harvests')
-          return
-        }
-        if (!result.success) {
-          throw new Error(result.error || "Failed to queue harvest for sync")
-        }
-      } else {
-        const response = await apiService.createHarvest(payload) as any
-        created = response?.harvest || response?.data?.harvest || response?.data || response
-      }
+      const response = await apiService.createHarvest(payload) as any
+      const created = response?.harvest || response?.data?.harvest || response?.data || response
 
       sessionStorage.removeItem("harvest-form-draft")
 

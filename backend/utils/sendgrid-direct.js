@@ -1,5 +1,6 @@
 const SENDGRID_API = 'https://api.sendgrid.com/v3/mail/send'
 const MAX_RETRIES = 2
+const { isPublicMailboxDomain } = require('./email-config')
 
 /**
  * Send email using SendGrid HTTP API directly
@@ -7,14 +8,21 @@ const MAX_RETRIES = 2
  */
 async function sendEmailViaSendGrid(to, subject, html) {
   const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY
-  const EMAIL_FROM = process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM || 'grochain.ng@gmail.com'
+  const EMAIL_FROM = process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM
   const FROM_NAME = process.env.SENDGRID_FROM_NAME || 'GroChain'
 
   if (!SENDGRID_API_KEY) {
     throw new Error('Missing SENDGRID_API_KEY in environment variables')
   }
   if (!EMAIL_FROM) {
-    throw new Error('Missing EMAIL_FROM in environment variables')
+    throw new Error(
+      'Missing SENDGRID_FROM_EMAIL — set a SendGrid-verified sender (not a raw gmail.com address)'
+    )
+  }
+  if (isPublicMailboxDomain(EMAIL_FROM)) {
+    throw new Error(
+      `SendGrid cannot send from ${EMAIL_FROM} — verify a sender identity in SendGrid or use Resend with onboarding@resend.dev`
+    )
   }
 
   const payload = {

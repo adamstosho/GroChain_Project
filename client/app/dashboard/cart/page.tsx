@@ -23,7 +23,7 @@ export default function CartPage() {
   }, [setHasHydrated])
 
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0)
-  const subtotal = cart.reduce((sum, item) => sum + item.total, 0)
+  const subtotal = cart.reduce((sum, item) => sum + (item.total ?? item.price * item.quantity), 0)
   const shipping = 0 // Shipping calculated at checkout
   const tax = 0 // VAT removed
   const total = subtotal + shipping

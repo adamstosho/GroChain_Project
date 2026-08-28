@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const net = require('net')
 const { authenticate, authorize } = require('../middlewares/auth.middleware')
+const { resolveResendFromEmail, validateEmailConfigOnStartup } = require('../utils/email-config')
 
 // Lock debug endpoints to admin users only
 router.use(authenticate)
@@ -118,7 +119,8 @@ router.get('/diag-email', async (req, res) => {
 
   const RESEND_API_KEY = process.env.RESEND_API_KEY
   const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY
-  const EMAIL_FROM = process.env.RESEND_FROM_EMAIL || process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM || 'grochain.ng@gmail.com'
+  const EMAIL_FROM = resolveResendFromEmail()
+  const emailValidation = validateEmailConfigOnStartup()
   const APP_URL = process.env.FRONTEND_URL
   const SMTP_HOST = process.env.SMTP_HOST
   const SMTP_PORT = process.env.SMTP_PORT
@@ -139,7 +141,8 @@ router.get('/diag-email', async (req, res) => {
       SMTP_HOST,
       SMTP_PORT,
       USING_SMTP,
-      EMAIL_PROVIDER: process.env.EMAIL_PROVIDER
+      EMAIL_PROVIDER: process.env.EMAIL_PROVIDER,
+      validation: emailValidation,
     },
     tcpTest: null,
     resendTest: null,
