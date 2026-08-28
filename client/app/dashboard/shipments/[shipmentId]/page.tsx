@@ -323,7 +323,7 @@ export default function ShipmentDetailsPage() {
             {shipment.issues && shipment.issues.length > 0 && (
               <Card className="border-destructive/10">
                 <CardHeader className="bg-destructive/50 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
-                  <CardTitle className="flex items-center gap-2 text-destructive">
+                  <CardTitle className="flex items-center gap-2 text-destructive-foreground">
                     <AlertTriangle className="h-5 w-5" />
                     Logistics Alerts
                   </CardTitle>
