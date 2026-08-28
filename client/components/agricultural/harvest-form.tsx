@@ -107,6 +107,14 @@ const pestManagementTypes = [
 
 const HARVEST_DRAFT_KEY = "harvest-form-draft"
 
+interface PendingUpload {
+  id: string
+  file: File
+  previewUrl: string
+  status: "uploading" | "error"
+  error?: string
+}
+
 export function HarvestForm({
   initialData,
   onSubmit,
@@ -116,7 +124,8 @@ export function HarvestForm({
   mode = "create"
 }: HarvestFormProps) {
   const [images, setImages] = useState<string[]>(initialData?.images || [])
-  const [uploadingImages, setUploadingImages] = useState(false)
+  const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([])
+  const imagesUploading = pendingUploads.some(p => p.status === "uploading")
   const [locationStatus, setLocationStatus] = useState<'idle' | 'detecting' | 'success' | 'error'>('idle')
   const [currentStep, setCurrentStep] = useState(1)
   const [draftRestored, setDraftRestored] = useState(mode !== "create")
@@ -365,16 +374,49 @@ export function HarvestForm({
     }
   }
 
+  const maxImages = 6
+  const maxFileSize = 5 * 1024 * 1024
+  const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+
+  // Revoke local object URLs once they're no longer needed so we don't leak memory.
+  useEffect(() => {
+    return () => {
+      pendingUploads.forEach(p => URL.revokeObjectURL(p.previewUrl))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const uploadOneFile = async (pending: PendingUpload) => {
+    try {
+      const result = await apiService.uploadImage(pending.file)
+      if (!result?.url) {
+        throw new Error("Upload succeeded but no image URL was returned")
+      }
+      setImages(prev => [...prev, result.url])
+      setPendingUploads(prev => prev.filter(p => p.id !== pending.id))
+      URL.revokeObjectURL(pending.previewUrl)
+    } catch (uploadError) {
+      console.error('Single image upload failed:', uploadError)
+      const message = (uploadError as Error).message || "Could not upload image"
+      setPendingUploads(prev => prev.map(p =>
+        p.id === pending.id ? { ...p, status: "error", error: message } : p
+      ))
+      toast({
+        title: "Upload Failed",
+        description: `${pending.file.name}: ${message}`,
+        variant: "destructive"
+      })
+    }
+  }
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
     e.target.value = ""
 
-    const maxFileSize = 5 * 1024 * 1024
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-    const maxImages = 6
+    const currentCount = images.length + pendingUploads.length
 
-    if (images.length + files.length > maxImages) {
+    if (currentCount + files.length > maxImages) {
       toast({
         title: "Limit Exceeded",
         description: `You can upload a maximum of ${maxImages} images.`,
@@ -393,7 +435,7 @@ export function HarvestForm({
         })
         continue
       }
-      if (!allowedTypes.includes(file.type)) {
+      if (!allowedImageTypes.includes(file.type)) {
         toast({
           title: "Invalid Type",
           description: `${file.name} is not a supported format.`,
@@ -406,44 +448,32 @@ export function HarvestForm({
 
     if (validFiles.length === 0) return
 
-    try {
-      setUploadingImages(true)
-      const uploadedUrls: string[] = []
+    // Show the farmer their actual selected photos immediately — don't make
+    // them wait on the network round-trip just to see what they picked.
+    const newPending: PendingUpload[] = validFiles.map(file => ({
+      id: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
+      file,
+      previewUrl: URL.createObjectURL(file),
+      status: "uploading"
+    }))
+    setPendingUploads(prev => [...prev, ...newPending])
 
-      for (const file of validFiles) {
-        try {
-          const result = await apiService.uploadImage(file)
-          if (result?.url) {
-            uploadedUrls.push(result.url)
-          }
-        } catch (uploadError) {
-          console.error('Single image upload failed:', uploadError)
-          toast({
-            title: "Upload Failed",
-            description: `${file.name}: ${(uploadError as Error).message || "Could not upload image"}`,
-            variant: "destructive"
-          })
-        }
-      }
+    await Promise.all(newPending.map(uploadOneFile))
+  }
 
-      const successUrls = uploadedUrls.filter(url => url && !url.startsWith('blob:'))
-      if (successUrls.length > 0) {
-        setImages(prev => [...prev, ...successUrls])
-        toast({
-          title: "Images Processed",
-          description: `Uploaded ${successUrls.length} file(s) to secure cloud storage.`,
-        })
-      }
-    } catch (error) {
-      console.error('Image processing error:', error)
-      toast({
-        title: "Upload Failed",
-        description: (error as Error).message || "Failed to upload image(s). Please try again.",
-        variant: "destructive"
-      })
-    } finally {
-      setUploadingImages(false)
-    }
+  const retryUpload = (id: string) => {
+    const pending = pendingUploads.find(p => p.id === id)
+    if (!pending) return
+    setPendingUploads(prev => prev.map(p => p.id === id ? { ...p, status: "uploading", error: undefined } : p))
+    uploadOneFile({ ...pending, status: "uploading" })
+  }
+
+  const removePendingUpload = (id: string) => {
+    setPendingUploads(prev => {
+      const target = prev.find(p => p.id === id)
+      if (target) URL.revokeObjectURL(target.previewUrl)
+      return prev.filter(p => p.id !== id)
+    })
   }
 
   const removeImage = (index: number) => {
@@ -958,16 +988,17 @@ export function HarvestForm({
               </div>
 
               <div className="space-y-2">
-                <FormLabel className="text-xs sm:text-sm font-semibold">Produce Photographs (Max 6)</FormLabel>
-                
+                <FormLabel className="text-xs sm:text-sm font-semibold">Produce Photographs ({images.length + pendingUploads.length}/{maxImages})</FormLabel>
+
                 {/* Image Upload Zone */}
                 <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
                   {images.map((image, index) => (
-                    <div key={index} className="relative aspect-video rounded-xl overflow-hidden border border-border group shadow-sm bg-muted">
+                    <div key={image} className="relative aspect-video rounded-xl overflow-hidden border border-border group shadow-sm bg-muted">
                       <Image
                         src={image}
                         alt={`Harvest snapshot ${index + 1}`}
                         fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
@@ -983,28 +1014,63 @@ export function HarvestForm({
                       </div>
                     </div>
                   ))}
-                  
-                  {images.length < 6 && (
-                    <label className="aspect-video border-2 border-dashed border-border hover:border-primary rounded-xl flex flex-col items-center justify-center cursor-pointer bg-muted/50 hover:bg-primary-soft transition-colors duration-200 group">
-                      {uploadingImages ? (
-                        <div className="text-center">
-                          <Loader2 className="h-6 w-6 animate-spin text-success mx-auto mb-1" />
-                          <span className="text-[10px] text-muted-foreground font-medium">Uploading to storage...</span>
+
+                  {/* Selected photos that are uploading (or failed) — shown instantly from the
+                      local file, before/without waiting on the network round-trip. */}
+                  {pendingUploads.map((pending) => (
+                    <div key={pending.id} className="relative aspect-video rounded-xl overflow-hidden border border-border shadow-sm bg-muted">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- local blob: preview, next/image can't optimize it */}
+                      <img
+                        src={pending.previewUrl}
+                        alt={pending.file.name}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                      {pending.status === "uploading" ? (
+                        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-1">
+                          <Loader2 className="h-5 w-5 animate-spin text-white" />
+                          <span className="text-[10px] font-medium text-white">Uploading...</span>
                         </div>
                       ) : (
-                        <div className="text-center p-2">
-                          <Upload className="h-5 w-5 text-muted-foreground mx-auto group-hover:text-success group-hover:scale-110 transition-all mb-1" />
-                          <span className="text-[11px] font-semibold text-muted-foreground block group-hover:text-success">Add Image</span>
-                          <span className="text-[9px] text-muted-foreground block mt-0.5">JPEG, PNG up to 5MB</span>
+                        <div className="absolute inset-0 bg-destructive/70 flex flex-col items-center justify-center gap-1.5 p-2 text-center">
+                          <span className="text-[10px] font-medium text-white leading-tight">Upload failed</span>
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              className="h-6 px-2 text-[10px]"
+                              onClick={() => retryUpload(pending.id)}
+                            >
+                              Retry
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="destructive"
+                              className="h-6 w-6"
+                              onClick={() => removePendingUpload(pending.id)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                       )}
+                    </div>
+                  ))}
+
+                  {images.length + pendingUploads.length < maxImages && (
+                    <label className="aspect-video border-2 border-dashed border-border hover:border-primary rounded-xl flex flex-col items-center justify-center cursor-pointer bg-muted/50 hover:bg-primary-soft transition-colors duration-200 group">
+                      <div className="text-center p-2">
+                        <Upload className="h-5 w-5 text-muted-foreground mx-auto group-hover:text-success group-hover:scale-110 transition-all mb-1" />
+                        <span className="text-[11px] font-semibold text-muted-foreground block group-hover:text-success">Add Images</span>
+                        <span className="text-[9px] text-muted-foreground block mt-0.5">JPEG, PNG up to 5MB — select multiple at once</span>
+                      </div>
                       <input
                         type="file"
                         accept="image/*"
                         multiple
                         className="hidden"
                         onChange={handleImageUpload}
-                        disabled={uploadingImages}
                       />
                     </label>
                   )}
@@ -1054,11 +1120,16 @@ export function HarvestForm({
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button type="submit" disabled={isLoading} className="h-10 text-xs sm:text-sm bg-success hover:bg-success-hover text-success-foreground min-w-[140px]">
+                <Button type="submit" disabled={isLoading || imagesUploading} className="h-10 text-xs sm:text-sm bg-success hover:bg-success-hover text-success-foreground min-w-[140px]">
                   {isLoading ? (
                     <div className="flex items-center justify-center gap-1.5">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       <span>Writing to Ledger...</span>
+                    </div>
+                  ) : imagesUploading ? (
+                    <div className="flex items-center justify-center gap-1.5">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Uploading Photos...</span>
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-1.5">
