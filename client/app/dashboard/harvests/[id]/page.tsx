@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -83,13 +83,7 @@ export default function HarvestDetailPage() {
   const [sharing, setSharing] = useState(false)
   const { toast } = useToast()
 
-  useEffect(() => {
-    if (harvestId) {
-      fetchHarvestData()
-    }
-  }, [harvestId])
-
-  const fetchHarvestData = async () => {
+  const fetchHarvestData = useCallback(async () => {
     try {
       setLoading(true)
       const response = await apiService.getHarvestById(harvestId)
@@ -106,7 +100,13 @@ export default function HarvestDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [harvestId, router, toast])
+
+  useEffect(() => {
+    if (harvestId) {
+      fetchHarvestData()
+    }
+  }, [harvestId, fetchHarvestData])
 
   const formatDate = (dateString: string | Date) => {
     try {

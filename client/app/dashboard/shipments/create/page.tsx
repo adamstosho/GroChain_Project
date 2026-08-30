@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, Suspense, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
@@ -91,18 +91,7 @@ function CreateShipmentContent() {
     }
   }, [orderIdFromParams])
 
-  useEffect(() => {
-    fetchOrders()
-  }, [])
-
-  useEffect(() => {
-    if (selectedOrderId) {
-      const order = orders.find(o => o._id === selectedOrderId)
-      setSelectedOrder(order || null)
-    }
-  }, [selectedOrderId, orders])
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoadingOrders(true)
       console.log("🔄 Fetching farmer orders for shipment creation...")
@@ -187,7 +176,18 @@ function CreateShipmentContent() {
     } finally {
       setLoadingOrders(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchOrders()
+  }, [fetchOrders])
+
+  useEffect(() => {
+    if (selectedOrderId) {
+      const order = orders.find(o => o._id === selectedOrderId)
+      setSelectedOrder(order || null)
+    }
+  }, [selectedOrderId, orders])
 
   const handleShipmentCreated = (shipment: Record<string, unknown>) => {
     console.log("✅ Shipment created successfully:", shipment)

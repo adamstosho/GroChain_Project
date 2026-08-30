@@ -292,7 +292,7 @@ const priceAlertController = {
 
           // Send notification through all enabled channels (email, SMS, push, in-app).
           // In-app channel emits Socket.IO via NotificationService.sendInAppNotification.
-          const notification = await NotificationService.createNotification(notificationData)
+          void await NotificationService.createNotification(notificationData)
 
           // Mark alert as notification sent
           alert.resetAfterNotification()

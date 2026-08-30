@@ -144,28 +144,28 @@ export class AnalyticsService {
   }
 
   async getPerformanceAnalytics(filters: AnalyticsFilters = {}): Promise<AnalyticsData['performance']> {
-    const response = await apiService.getPerformanceAnalytics(filters)
-    return response.data
+    const response = await apiService.getPerformanceAnalytics(filters as Record<string, unknown>)
+    return response.data as AnalyticsData['performance']
   }
 
   async getGeographicAnalytics(filters: AnalyticsFilters = {}): Promise<AnalyticsData['geographic']> {
-    const response = await apiService.getGeographicAnalytics(filters)
-    return response.data
+    const response = await apiService.getGeographicAnalytics(filters as Record<string, unknown>)
+    return response.data as AnalyticsData['geographic']
   }
 
   async getFinancialAnalytics(filters: AnalyticsFilters = {}): Promise<AnalyticsData['financials']> {
-    const response = await apiService.getFinancialAnalytics(filters)
-    return response.data
+    const response = await apiService.getFinancialAnalytics(filters as Record<string, unknown>)
+    return response.data as AnalyticsData['financials']
   }
 
   async getTrendAnalytics(filters: AnalyticsFilters = {}): Promise<AnalyticsData['trends']> {
-    const response = await apiService.getTrendAnalytics(filters)
-    return response.data
+    const response = await apiService.getTrendAnalytics(filters as Record<string, unknown>)
+    return response.data as AnalyticsData['trends']
   }
 
   async generateReport(config: ReportConfig): Promise<{ downloadUrl: string; filename: string }> {
     const response = await apiService.generateAnalyticsReport(config)
-    return response.data
+    return response.data as { downloadUrl: string; filename: string }
   }
 
   // apiService.exportAnalyticsData triggers the file download itself; this just forwards the call.

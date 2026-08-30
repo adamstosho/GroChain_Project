@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -78,13 +78,7 @@ export default function QRCodeDetailPage() {
   
   const { toast } = useToast()
 
-  useEffect(() => {
-    if (qrCodeId) {
-      fetchQRCodeDetails()
-    }
-  }, [qrCodeId])
-
-  const fetchQRCodeDetails = async () => {
+  const fetchQRCodeDetails = useCallback(async () => {
     try {
       setLoading(true)
       console.log('🔄 Fetching QR code details for:', qrCodeId)
@@ -141,7 +135,13 @@ export default function QRCodeDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [qrCodeId, router, toast])
+
+  useEffect(() => {
+    if (qrCodeId) {
+      fetchQRCodeDetails()
+    }
+  }, [qrCodeId, fetchQRCodeDetails])
 
   const handleDelete = async () => {
     if (!qrCode) return

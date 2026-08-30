@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -179,11 +179,7 @@ function PartnerProfileView() {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  useEffect(() => {
-    fetchProfile()
-  }, [])
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setIsLoading(true)
       const response = await apiService.getMyProfile()
@@ -235,7 +231,11 @@ function PartnerProfileView() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchProfile()
+  }, [fetchProfile])
 
   const handleSave = async () => {
     if (!profile) return
@@ -488,10 +488,6 @@ function FarmerProfileView() {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  useEffect(() => {
-    fetchFarmerProfile()
-  }, [])
-
   const mapFarmerProfile = (profileData: any): FarmerProfile => ({
     _id: profileData._id,
     name: profileData.name,
@@ -526,7 +522,7 @@ function FarmerProfileView() {
     updatedAt: profileData.updatedAt
   })
 
-  const fetchFarmerProfile = async () => {
+  const fetchFarmerProfile = useCallback(async () => {
     try {
       setIsLoading(true)
       const response = await apiService.getMyProfile()
@@ -546,7 +542,11 @@ function FarmerProfileView() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchFarmerProfile()
+  }, [fetchFarmerProfile])
 
   const handleSave = async () => {
     if (!profile) return

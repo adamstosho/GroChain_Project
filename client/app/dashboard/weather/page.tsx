@@ -395,9 +395,10 @@ export default function WeatherPage() {
         try {
           const geocodeRes = await apiService.reverseGeocode(lat, lng)
           if (geocodeRes.status === 'success' && geocodeRes.data) {
-            resolvedCity = geocodeRes.data.city
-            resolvedState = geocodeRes.data.state
-            resolvedCountry = geocodeRes.data.country
+            const geo = geocodeRes.data as { city?: string; state?: string; country?: string }
+            resolvedCity = geo.city
+            resolvedState = geo.state
+            resolvedCountry = geo.country
           }
         } catch (err) {
           console.error("Reverse geocoding failed, using coordinates as fallback:", err)

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -130,33 +130,7 @@ export function AdminProfile() {
   })
   const { toast } = useToast()
 
-  useEffect(() => {
-    if (!hasHydrated) return
-
-    if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to access your profile",
-        variant: "destructive",
-      })
-      setIsLoading(false)
-      return
-    }
-
-    if (user?.role !== 'admin') {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to access this page",
-        variant: "destructive",
-      })
-      setIsLoading(false)
-      return
-    }
-
-    fetchProfileData()
-  }, [hasHydrated, isAuthenticated, user?.role])
-
-  const fetchProfileData = async () => {
+  const fetchProfileData = useCallback(async () => {
     try {
       setIsLoading(true)
 
@@ -180,8 +154,8 @@ export function AdminProfile() {
         setActivityLogs([])
       }
 
-      if (securityResponse.status === 'fulfilled') {
-        setSecuritySettings(securityResponse.value.data as SecuritySettings)
+      if (securityResponse.status === 'fulfilled' && securityResponse.value.data) {
+        setSecuritySettings(securityResponse.value.data as unknown as SecuritySettings)
       } else {
         setSecuritySettings(null)
       }
@@ -232,7 +206,33 @@ export function AdminProfile() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    if (!hasHydrated) return
+
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to access your profile",
+        variant: "destructive",
+      })
+      setIsLoading(false)
+      return
+    }
+
+    if (user?.role !== 'admin') {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to access this page",
+        variant: "destructive",
+      })
+      setIsLoading(false)
+      return
+    }
+
+    fetchProfileData()
+  }, [hasHydrated, isAuthenticated, user?.role, fetchProfileData, toast])
 
   const handleSave = async () => {
     try {

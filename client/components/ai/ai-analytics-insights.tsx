@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress"
 import { useAi } from "@/hooks/use-ai"
 import { Brain, TrendingUp, TrendingDown, Target, Lightbulb, ShieldCheck } from "lucide-react"
 import { formatCompactCurrency } from "@/lib/format"
-import { Display, Text } from "@/components/ui/typography"
+import { Display } from "@/components/ui/typography"
 import { textStyles } from "@/lib/design-system"
 
 export function AiAnalyticsInsights() {

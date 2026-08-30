@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -104,11 +104,7 @@ export default function InsuranceClaimsPage() {
   })
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchClaimsData()
-  }, [])
-
-  const fetchClaimsData = async () => {
+  const fetchClaimsData = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -164,7 +160,11 @@ export default function InsuranceClaimsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchClaimsData()
+  }, [fetchClaimsData])
 
   const handleSubmitClaim = async (e: React.FormEvent) => {
     e.preventDefault()

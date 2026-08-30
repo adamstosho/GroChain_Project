@@ -736,7 +736,7 @@ const harvestApprovalController = {
   async createListingFromHarvest(req, res) {
     try {
       const { harvestId } = req.params
-      const { price, description, quantity, unit } = req.body
+      const { price, description, quantity, unit, images: bodyImages } = req.body
 
       console.log('Creating listing from harvest:', { harvestId, price, description, quantity, unit })
 
@@ -888,6 +888,13 @@ const harvestApprovalController = {
         })
       }
 
+      const listingImages = [
+        ...new Set([
+          ...(Array.isArray(bodyImages) ? bodyImages.filter(Boolean) : []),
+          ...(Array.isArray(harvest.images) ? harvest.images.filter(Boolean) : [])
+        ])
+      ]
+
       // Create listing with correct field names and validation
       let listing = null
       try {
@@ -901,7 +908,7 @@ const harvestApprovalController = {
           quantity: finalQuantity,
           availableQuantity: finalQuantity,
           unit: finalUnit,
-          images: harvest.images || [],
+          images: listingImages,
           location: `${city || 'Unknown City'}, ${state || 'Unknown State'}, Nigeria`,
           qualityGrade: qualityGrade || 'standard',
           status: 'active',
@@ -996,6 +1003,10 @@ const harvestApprovalController = {
           // as "listed" with no actual listing behind it.
           await Harvest.findByIdAndUpdate(harvest._id, { status: 'approved' })
           throw createError
+        }
+
+        if (listingImages.length > 0) {
+          await Harvest.findByIdAndUpdate(harvest._id, { images: listingImages })
         }
 
         console.log('✅ Listing created successfully:', listing._id)

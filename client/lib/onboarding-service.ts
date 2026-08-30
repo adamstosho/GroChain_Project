@@ -341,7 +341,7 @@ export class OnboardingService {
   // Export onboarding data (real API call)
   async exportOnboardingData(filters: OnboardingFilters, format: 'csv' | 'excel' = 'csv'): Promise<Blob> {
     try {
-      return await apiService.exportOnboardings(filters, format)
+      return await apiService.exportOnboardings(filters as Record<string, unknown>, format)
     } catch (error) {
       console.error('Error exporting onboarding data:', error)
       throw error

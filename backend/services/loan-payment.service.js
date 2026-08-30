@@ -2,7 +2,6 @@
  * Loan repayment completion — shared by Paystack webhook, verify endpoint, and admin override.
  */
 
-const mongoose = require('mongoose')
 const LoanApplication = require('../models/loan-application.model')
 const Transaction = require('../models/transaction.model')
 const { enrichLoanApplication } = require('../utils/loan-calculations')

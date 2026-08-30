@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -81,11 +81,7 @@ export default function ReviewsPage() {
   const [responseText, setResponseText] = useState("")
   const [responding, setResponding] = useState(false)
 
-  useEffect(() => {
-    fetchReviews()
-  }, [])
-
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       setLoading(true)
       const response = await apiService.getFarmerReviews({
@@ -93,7 +89,7 @@ export default function ReviewsPage() {
       })
       const data = response.data || response
       setReviews((data as any).reviews || [])
-      setStats((data as any).stats || stats)
+      setStats(prev => (data as any).stats || prev)
     } catch (error) {
       console.error("Error fetching reviews:", error)
       toast({
@@ -104,7 +100,11 @@ export default function ReviewsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter, toast])
+
+  useEffect(() => {
+    fetchReviews()
+  }, [fetchReviews])
 
   const handleRespondToReview = async () => {
     if (!selectedReview || !responseText.trim()) return

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Text } from "@/components/ui/typography"
 import { textStyles } from "@/lib/design-system"
@@ -106,8 +106,7 @@ export function WeatherWidget() {
     return { lat: null, lng: null, city, state, country }
   }
 
-  useEffect(() => {
-    const fetchWeather = async () => {
+  const fetchWeather = useCallback(async () => {
       // Prevent multiple simultaneous fetches
       if (hasAttemptedFetch && isLoading) {
         console.log('⏳ Weather fetch already in progress, skipping...')
@@ -226,28 +225,25 @@ export function WeatherWidget() {
           description: "Unable to fetch current weather data. Please try again later.",
           variant: "destructive",
         })
-      } finally {
-        setIsLoading(false)
-      }
+    } finally {
+      setIsLoading(false)
     }
+  }, [geoLocation, geoLoading, geoError, user, toast, requestLocation, hasAttemptedFetch, isLoading])
 
-    // Only fetch if we haven't attempted yet
+  useEffect(() => {
     if (!hasAttemptedFetch) {
       if (geoLocation) {
-        // If we have geolocation, use it immediately
         console.log('🌤️ Starting weather fetch with geolocation:', {
           hasGeoLocation: !!geoLocation,
           geoLoading,
           geoError,
           hasAttemptedFetch
         })
-        fetchWeather()
+        void fetchWeather()
       } else if (geoLoading) {
-        // If geolocation is loading, wait for it
         console.log('🌤️ Waiting for geolocation to complete...')
         setIsLoading(false)
       } else if (user && geoError) {
-        // Only use stored data if geolocation failed
         console.log('🌤️ Starting weather fetch with stored data after geolocation failed:', {
           hasUser: !!user,
           hasGeoLocation: !!geoLocation,
@@ -255,13 +251,13 @@ export function WeatherWidget() {
           geoError,
           hasAttemptedFetch
         })
-        fetchWeather()
+        void fetchWeather()
       } else {
         console.log('🌤️ No user data or geolocation available for weather fetch')
         setIsLoading(false)
       }
     }
-  }, [user?._id, user?.location, geoLocation, geoLoading, geoError, hasAttemptedFetch, toast])
+  }, [user, geoLocation, geoLoading, geoError, hasAttemptedFetch, fetchWeather])
 
   const handleRefresh = () => {
     console.log('🔄 Manual refresh requested')

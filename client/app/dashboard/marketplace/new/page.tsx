@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, Suspense, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -107,14 +107,7 @@ function CreateListingPage() {
 
   const { toast } = useToast()
 
-  // Load harvest data if harvestId is provided
-  useEffect(() => {
-    if (harvestId) {
-      loadHarvestData(harvestId)
-    }
-  }, [harvestId])
-
-  const loadHarvestData = async (id: string) => {
+  const loadHarvestData = useCallback(async (id: string) => {
     try {
       setLoadingHarvest(true)
       console.log('Loading harvest data for ID:', id)
@@ -172,7 +165,13 @@ function CreateListingPage() {
     } finally {
       setLoadingHarvest(false)
     }
-  }
+  }, [router, toast])
+
+  useEffect(() => {
+    if (harvestId) {
+      loadHarvestData(harvestId)
+    }
+  }, [harvestId, loadHarvestData])
 
   const getCategoryFromCropType = (cropType: string): string => {
     const crop = cropType.toLowerCase()
@@ -241,7 +240,8 @@ function CreateListingPage() {
           formData.basePrice,
           formData.description,
           formData.quantity,
-          formData.unit
+          formData.unit,
+          formData.images
         )
 
         console.log('Listing created from harvest:', listingResponse)
@@ -329,7 +329,7 @@ function CreateListingPage() {
       console.error('Image upload failed:', error)
       toast({
         title: "Image upload failed",
-        description: "Please try again.",
+        description: (error as Error)?.message || "Please try again.",
         variant: "destructive"
       })
     } finally {
@@ -646,7 +646,7 @@ function CreateListingPage() {
                           />
                         </Label>
                         <p className="text-xs text-muted-foreground mt-1">
-                          PNG, JPG up to 5MB each
+                          PNG, JPG, WebP, or GIF up to 5MB each
                         </p>
                       </div>
 

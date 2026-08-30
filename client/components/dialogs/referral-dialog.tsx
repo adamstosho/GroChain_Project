@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -53,7 +53,7 @@ export function ReferralDialog({ open, onOpenChange, referral: _referral, onCrea
   }, [open])
 
   // Search farmers (API call)
-  const searchFarmers = async (query: string) => {
+  const searchFarmers = useCallback(async (query: string) => {
     const q = query.trim()
     if (q.length < MIN_SEARCH_LEN) {
       setFarmers([])
@@ -79,7 +79,7 @@ export function ReferralDialog({ open, onOpenChange, referral: _referral, onCrea
     } finally {
       setIsSearching(false)
     }
-  }
+  }, [toast])
 
   // Handle search input change (debounced via effect below)
   const handleSearchChange = (value: string) => {
@@ -97,7 +97,7 @@ export function ReferralDialog({ open, onOpenChange, referral: _referral, onCrea
       searchFarmers(q)
     }, 300)
     return () => clearTimeout(id)
-  }, [searchQuery])
+  }, [searchQuery, searchFarmers])
 
   // Select farmer
   const handleSelectFarmer = (farmer: Farmer) => {

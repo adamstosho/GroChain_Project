@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -135,11 +135,7 @@ export default function InsurancePoliciesPage() {
   const { toast } = useToast()
   const router = useRouter()
 
-  useEffect(() => {
-    fetchPolicies()
-  }, [filters, sortBy, sortOrder])
-
-  const fetchPolicies = async () => {
+  const fetchPolicies = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -306,7 +302,11 @@ export default function InsurancePoliciesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchPolicies()
+  }, [fetchPolicies])
 
   const handleNewPolicy = () => {
     router.push('/dashboard/financial/insurance/compare')

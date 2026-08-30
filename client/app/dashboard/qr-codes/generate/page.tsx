@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -80,11 +80,7 @@ export default function GenerateQRCodePage() {
   
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchHarvests()
-  }, [])
-
-  const fetchHarvests = async () => {
+  const fetchHarvests = useCallback(async () => {
     try {
       const response: any = await apiService.getHarvests({ limit: 100 })
       const harvestData = response.harvests || response.data?.harvests || []
@@ -98,7 +94,11 @@ export default function GenerateQRCodePage() {
         variant: "destructive"
       })
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchHarvests()
+  }, [fetchHarvests])
 
   const handleHarvestSelect = (harvest: HarvestData) => {
     setSelectedHarvest(harvest)

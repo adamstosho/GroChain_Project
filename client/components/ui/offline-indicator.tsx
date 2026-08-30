@@ -22,7 +22,7 @@ export function OfflineIndicator() {
         duration: 5000,
       });
     }
-  }, [isOnline, pendingSync.length]);
+  }, [isOnline, pendingSync.length, toast]);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -197,7 +197,7 @@ export function OfflineToast() {
         duration: 5000,
       });
     }
-  }, [isOnline, pendingSync.length]);
+  }, [isOnline, pendingSync.length, toast]);
 
   return null;
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -90,11 +90,7 @@ export default function LoanApplicationPage() {
 
   const { toast } = useToast()
 
-  useEffect(() => {
-    loadUserData()
-  }, [])
-
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -144,7 +140,11 @@ export default function LoanApplicationPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    loadUserData()
+  }, [loadUserData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -338,8 +338,6 @@ export default function LoanApplicationPage() {
   const removeDocument = (documentId: string) => {
     setUploadedDocuments(prev => prev.filter(doc => doc.id !== documentId))
   }
-
-  const getLoanEligibilityDisplay = () => getLoanEligibility()
 
   const getEligibilityColor = (eligibility: string) => {
     switch (eligibility) {

@@ -24,19 +24,23 @@ console.log('📋 Models registered in marketplace routes:', Object.keys(mongoos
 // Use memory storage for multer
 const storage = multer.memoryStorage()
 
-// Custom file filter to allow images and PDFs
+// Custom file filter to allow common image formats and PDFs
 const fileFilter = (req, file, cb) => {
   const allowedMimes = [
     'image/jpeg',
     'image/jpg',
     'image/png',
+    'image/webp',
+    'image/gif',
+    'image/heic',
+    'image/heif',
     'application/pdf'
   ]
 
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true)
   } else {
-    cb(new Error('Only JPEG, PNG images and PDF documents are allowed'), false)
+    cb(new Error('Only JPEG, PNG, WebP, GIF, HEIC images and PDF documents are allowed'), false)
   }
 }
 
@@ -49,7 +53,17 @@ const upload = multer({
   }
 })
 
-router.post('/upload-image', authenticate, authorize('farmer','partner','admin'), upload.array('images', 5), async (req, res) => {
+router.post('/upload-image', authenticate, authorize('farmer','partner','admin'), (req, res, next) => {
+  upload.array('images', 5)(req, res, (err) => {
+    if (err) {
+      const message = err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE'
+        ? 'File size too large. Maximum 5MB allowed.'
+        : (err.message || 'File upload failed')
+      return res.status(400).json({ status: 'error', message })
+    }
+    next()
+  })
+}, async (req, res) => {
   try {
     const files = req.files || []
     if (files.length === 0) {
@@ -93,6 +107,7 @@ router.post('/upload-image', authenticate, authorize('farmer','partner','admin')
     res.status(201).json({
       status: 'success',
       urls,
+      data: { urls },
       count: files.length
     })
   } catch (error) {
@@ -387,7 +402,7 @@ router.delete('/favorites/:userId/:listingId', authenticate, async (req, res) =>
 
 router.post('/listings', authenticate, authorize('farmer','partner','admin'), async (req, res) => {
   // Accept basePrice or legacy price alias
-  const { cropName, category, description, unit, quantity, location } = req.body || {}
+  const { cropName, category, description, unit, quantity, location, images, tags, status } = req.body || {}
   const basePrice = req.body.basePrice ?? req.body.price
   if (!cropName || basePrice == null || !category || !description || !unit || !quantity || !location) {
     return res.status(400).json({ status: 'error', message: 'Missing required listing fields' })
@@ -408,7 +423,9 @@ router.post('/listings', authenticate, authorize('farmer','partner','admin'), as
     quantity,
     availableQuantity: quantity,
     location,
-    status: 'draft'
+    images: Array.isArray(images) ? images.filter(Boolean) : [],
+    tags: Array.isArray(tags) ? tags : [],
+    status: status || 'draft'
   })
   return res.status(201).json({ status: 'success', data: listing })
 })

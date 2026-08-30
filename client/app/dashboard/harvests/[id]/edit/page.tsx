@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -28,28 +28,7 @@ export default function EditHarvestPage() {
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
-  useEffect(() => {
-    if (harvestId && harvestId !== 'undefined' && params.id) {
-      fetchHarvestData()
-    }
-  }, [harvestId])
-
-  // Warn user about unsaved changes when leaving the page
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault()
-        e.returnValue = ''
-      }
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [hasUnsavedChanges])
-
-  // Pre-fetch is done via useEffect
-  
-  const fetchHarvestData = async () => {
+  const fetchHarvestData = useCallback(async () => {
     try {
       setFetching(true)
       const response = await apiService.getHarvestById(harvestId)
@@ -105,7 +84,26 @@ export default function EditHarvestPage() {
     } finally {
       setFetching(false)
     }
-  }
+  }, [harvestId, toast])
+
+  useEffect(() => {
+    if (harvestId && harvestId !== 'undefined' && params.id) {
+      fetchHarvestData()
+    }
+  }, [harvestId, params.id, fetchHarvestData])
+
+  // Warn user about unsaved changes when leaving the page
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
 
   const handleSubmit = async (data: HarvestFormData) => {
     try {

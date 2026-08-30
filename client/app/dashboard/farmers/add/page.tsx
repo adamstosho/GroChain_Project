@@ -10,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
-import { Display } from "@/components/ui/typography"
 import { useToast } from "@/hooks/use-toast"
 import { APP_CONFIG } from "@/lib/constants"
 import {

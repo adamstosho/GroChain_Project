@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -89,14 +89,7 @@ export default function EditListingPage() {
 
   const { toast } = useToast()
 
-  // Load listing data when component mounts
-  useEffect(() => {
-    if (listingId) {
-      loadListingData(listingId)
-    }
-  }, [listingId])
-
-  const loadListingData = async (id: string) => {
+  const loadListingData = useCallback(async (id: string) => {
     try {
       setLoadingListing(true)
       console.log('Loading listing data for ID:', id)
@@ -143,7 +136,13 @@ export default function EditListingPage() {
     } finally {
       setLoadingListing(false)
     }
-  }
+  }, [router, toast])
+
+  useEffect(() => {
+    if (listingId) {
+      loadListingData(listingId)
+    }
+  }, [listingId, loadListingData])
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -110,21 +110,7 @@ export function SystemManagement() {
   const [selectedConfig, setSelectedConfig] = useState<string>("")
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchSystemData()
-  }, [])
-
-  useEffect(() => {
-    if (activeTab === "logs") {
-      fetchSystemLogs()
-    } else if (activeTab === "config") {
-      fetchSystemConfig()
-    } else if (activeTab === "backups") {
-      fetchBackups()
-    }
-  }, [activeTab])
-
-  const fetchSystemData = async () => {
+  const fetchSystemData = useCallback(async () => {
     try {
       setIsLoading(true)
       const [statusResponse] = await Promise.allSettled([
@@ -144,9 +130,9 @@ export function SystemManagement() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [toast])
 
-  const fetchSystemLogs = async () => {
+  const fetchSystemLogs = useCallback(async () => {
     try {
       const params = {
         level: logFilters.level !== 'all' ? logFilters.level : '',
@@ -165,9 +151,9 @@ export function SystemManagement() {
         variant: "destructive"
       })
     }
-  }
+  }, [logFilters.level, toast])
 
-  const fetchSystemConfig = async () => {
+  const fetchSystemConfig = useCallback(async () => {
     try {
       const response = await apiService.getAdminSystemConfig()
       if (response.status === 'success') {
@@ -180,9 +166,9 @@ export function SystemManagement() {
         variant: "destructive"
       })
     }
-  }
+  }, [toast])
 
-  const fetchBackups = async () => {
+  const fetchBackups = useCallback(async () => {
     try {
       const response = await apiService.getSystemBackups()
       if (response.status === 'success') {
@@ -195,7 +181,21 @@ export function SystemManagement() {
         variant: "destructive"
       })
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchSystemData()
+  }, [fetchSystemData])
+
+  useEffect(() => {
+    if (activeTab === "logs") {
+      fetchSystemLogs()
+    } else if (activeTab === "config") {
+      fetchSystemConfig()
+    } else if (activeTab === "backups") {
+      fetchBackups()
+    }
+  }, [activeTab, fetchSystemLogs, fetchSystemConfig, fetchBackups])
 
   const handleMaintenanceToggle = async (enabled: boolean) => {
     try {

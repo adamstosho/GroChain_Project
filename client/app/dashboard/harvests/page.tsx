@@ -482,20 +482,15 @@ export default function FarmerHarvestsPage() {
     }
   }, [])
 
-  const loadHarvestsRef = useRef(loadHarvests)
-  loadHarvestsRef.current = loadHarvests
-  const loadStatsRef = useRef(loadStats)
-  loadStatsRef.current = loadStats
-
   // Only re-fetch when filters change (not when unrelated state updates)
   useEffect(() => {
-    void loadHarvestsRef.current()
-  }, [filterKey])
+    void loadHarvests()
+  }, [filterKey, loadHarvests])
 
   // Stats once on mount
   useEffect(() => {
-    void loadStatsRef.current()
-  }, [])
+    void loadStats()
+  }, [loadStats])
 
 
 

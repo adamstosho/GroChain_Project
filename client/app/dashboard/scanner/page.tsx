@@ -123,19 +123,11 @@ export default function QRScannerPage() {
   const scanIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const { toast } = useToast()
 
-  useEffect(() => {
-    loadScanHistory()
-    checkCameraPermission()
-    return () => {
-      stopCamera()
-    }
-  }, [])
-
   const loadScanHistory = useCallback(() => {
     try {
       const saved = localStorage.getItem('grochain-scan-history')
       if (saved) {
-        const history = JSON.parse(saved).map((item: any) => ({
+        const history = JSON.parse(saved).map((item: ScanHistoryItem) => ({
           ...item,
           scannedAt: new Date(item.scannedAt)
         }))
@@ -146,6 +138,14 @@ export default function QRScannerPage() {
       console.error('Error loading scan history:', error)
     }
   }, [])
+
+  useEffect(() => {
+    loadScanHistory()
+    checkCameraPermission()
+    return () => {
+      stopCamera()
+    }
+  }, [loadScanHistory])
 
   const calculateStats = (history: ScanHistoryItem[]) => {
     const stats = {
@@ -347,7 +347,7 @@ export default function QRScannerPage() {
             quantity: verificationData.quantity,
             unit: verificationData.unit,
             quality: verificationData.quality,
-            location: verificationData.location,
+            location: verificationData.location as ScannedProduct['location'],
             farmer: verificationData.farmer as any,
             status: verificationData.status,
             verified: true,

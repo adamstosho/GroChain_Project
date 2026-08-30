@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button"
 import type { LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { textStyles } from "@/lib/design-system"
-import { cn } from "@/lib/utils"
 
 interface QuickAction {
   title: string

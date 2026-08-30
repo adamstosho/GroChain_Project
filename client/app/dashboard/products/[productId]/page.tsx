@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -83,12 +83,7 @@ export default function ProductDetailPage() {
 
   const productId = params.productId as string
 
-  useEffect(() => {
-    fetchProductDetail()
-    fetchFavorites()
-  }, [productId])
-
-  const fetchProductDetail = async () => {
+  const fetchProductDetail = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -171,7 +166,12 @@ export default function ProductDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [productId])
+
+  useEffect(() => {
+    fetchProductDetail()
+    fetchFavorites()
+  }, [productId, fetchProductDetail, fetchFavorites])
 
   const handleAddToCart = async () => {
     if (!product) return

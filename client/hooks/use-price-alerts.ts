@@ -91,7 +91,8 @@ export const usePriceAlerts = () => {
       console.log('📋 Price alerts response:', response)
       
       if (response && response.status === 'success') {
-        const alertsData = response.data?.alerts || []
+        const payload = response.data as { alerts?: PriceAlert[] } | undefined
+        const alertsData = payload?.alerts || []
         setAlerts(alertsData)
         console.log('✅ Price alerts set:', alertsData.length, 'alerts')
         return response.data
@@ -120,14 +121,14 @@ export const usePriceAlerts = () => {
       console.log('📊 Price alert stats response:', response)
       
       if (response && response.status === 'success') {
-        const statsData = response.data || {
+        const statsData = (response.data || {
           totalAlerts: 0,
           activeAlerts: 0,
           triggeredAlerts: 0,
           totalTriggers: 0,
           avgTargetPrice: 0,
           avgCurrentPrice: 0
-        }
+        }) as unknown as PriceAlertStats
         setStats(statsData)
         console.log('✅ Price alert stats set:', statsData)
         return statsData
@@ -161,7 +162,7 @@ export const usePriceAlerts = () => {
       const response = await apiService.post('/price-alerts', data)
       
       if (response.status === 'success') {
-        const newAlert = response.data
+        const newAlert = response.data as unknown as PriceAlert
         setAlerts(prev => [newAlert, ...prev])
         
         toast({
@@ -198,7 +199,7 @@ export const usePriceAlerts = () => {
       const response = await apiService.put(`/price-alerts/${alertId}`, data)
       
       if (response.status === 'success') {
-        const updatedAlert = response.data
+        const updatedAlert = response.data as unknown as PriceAlert
         setAlerts(prev => prev.map(alert => 
           alert._id === alertId ? updatedAlert : alert
         ))

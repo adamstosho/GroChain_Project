@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -145,11 +145,7 @@ export default function FinancialGoalsPage() {
 
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchGoals()
-  }, [])
-
-  const fetchGoals = async () => {
+  const fetchGoals = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -193,7 +189,11 @@ export default function FinancialGoalsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchGoals()
+  }, [fetchGoals])
 
   const handleCreateGoal = async (e: React.FormEvent) => {
     e.preventDefault()

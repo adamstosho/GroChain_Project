@@ -56,13 +56,13 @@ export class ApprovalsService {
         console.log(`Fetching approvals from API (attempt ${attempt}) with filters:`, filters)
 
         // Try real API first - use getAllHarvests to get all harvests (pending, approved, rejected)
-        const response = await apiService.getAllHarvests(filters)
+        const response = await apiService.getAllHarvests(filters as Record<string, unknown>)
         console.log('API response received:', response)
 
       // Handle different response structures
-      let harvests = []
+      let harvests: any[] = []
       if (response?.data?.harvests) {
-        harvests = response.data.harvests
+        harvests = response.data.harvests as any[]
       } else if (response?.data && Array.isArray(response.data)) {
         harvests = response.data
       } else if (Array.isArray(response)) {
@@ -160,7 +160,7 @@ export class ApprovalsService {
       console.log('Stats API response received:', response)
 
       // Handle different response structures
-      let stats = response?.data || response
+      const stats = response?.data || response
 
       // Ensure all required fields are present with defaults
       const defaultStats: ApprovalStats = {
@@ -174,11 +174,11 @@ export class ApprovalsService {
         weeklyTrend: 0
       }
 
-      stats = { ...defaultStats, ...stats }
-      console.log('Processed stats:', stats)
+      const statsData = { ...defaultStats, ...(stats as ApprovalStats) }
+      console.log('Processed stats:', statsData)
 
-      this.setCache(cacheKey, stats)
-      return stats
+      this.setCache(cacheKey, statsData)
+      return statsData
 
     } catch (apiError: any) {
       console.error('Stats API call failed, error details:', {
@@ -214,7 +214,7 @@ export class ApprovalsService {
   async getApprovalById(approvalId: string): Promise<HarvestApproval> {
     try {
       const response = await apiService.getApprovalById(approvalId)
-      return response.data
+      return response.data as unknown as HarvestApproval
     } catch (error) {
       console.error('Error fetching approval:', error)
       throw error
@@ -229,7 +229,7 @@ export class ApprovalsService {
       agriculturalData: qualityAssessment
     }
     const result = await apiService.approveHarvest(approvalId, requestData)
-    return result
+    return result.data as unknown as HarvestApproval
   }
 
   // Reject a harvest
@@ -239,7 +239,7 @@ export class ApprovalsService {
       reason: reason,
       notes: notes
     })
-    return result
+    return result.data as unknown as HarvestApproval
   }
 
   // Mark harvest for review
@@ -247,7 +247,7 @@ export class ApprovalsService {
     try {
       const response = await apiService.markForReview(approvalId, { notes })
       this.clearCache() // Clear cache after status change
-      return response.data
+      return response.data as unknown as HarvestApproval
     } catch (error) {
       console.error('Error marking for review:', error)
       throw error
@@ -261,7 +261,7 @@ export class ApprovalsService {
       const response = await apiService.bulkProcessApprovals(batchAction)
 
       this.clearCache() // Clear cache after batch processing
-      return response.data
+      return response.data as unknown as { success: number; failed: number }
     } catch (error) {
       console.error('Error processing batch approvals:', error)
       throw error
@@ -278,9 +278,9 @@ export class ApprovalsService {
     }
 
     try {
-      const response = await apiService.getApprovalMetrics(filters)
+      const response = await apiService.getApprovalMetrics(filters as Record<string, unknown>)
       this.setCache(cacheKey, response.data)
-      return response.data
+      return response.data as unknown as ApprovalMetrics
     } catch (error) {
       console.error('Error fetching approval metrics:', error)
       throw error
@@ -291,7 +291,7 @@ export class ApprovalsService {
   async getApprovalHistory(approvalId: string): Promise<any[]> {
     try {
       const response = await apiService.getApprovalHistory(approvalId)
-      return response.data
+      return (response.data as unknown as any[]) || [] as unknown as HarvestApproval
     } catch (error) {
       console.error('Error fetching approval history:', error)
       throw error
@@ -301,7 +301,7 @@ export class ApprovalsService {
   // Export approvals data
   async exportApprovals(filters: ApprovalFilters, format: 'csv' | 'excel' = 'csv'): Promise<Blob> {
     try {
-      const response = await apiService.exportApprovals(filters, format)
+      const response = await apiService.exportApprovals(filters as Record<string, unknown>, format)
       return response
     } catch (error) {
       console.error('Error exporting approvals:', error)

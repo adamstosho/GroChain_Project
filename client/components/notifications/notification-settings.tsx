@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Bell, Mail, Smartphone, MessageSquare, Save, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -65,11 +65,7 @@ export function NotificationSettings() {
     priorityThreshold: 'normal'
   })
 
-  useEffect(() => {
-    loadPreferences()
-  }, [])
-
-  const loadPreferences = async () => {
+  const loadPreferences = useCallback(async () => {
     try {
       const data = await getNotificationPreferences()
       if (data) {
@@ -106,7 +102,11 @@ export function NotificationSettings() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [getNotificationPreferences])
+
+  useEffect(() => {
+    loadPreferences()
+  }, [loadPreferences])
 
   const handleSave = async () => {
     setSaving(true)

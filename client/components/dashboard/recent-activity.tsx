@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -25,7 +25,7 @@ export function RecentActivity() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const { toast } = useToast()
 
-  const fetchActivities = async (showRefreshToast = false) => {
+  const fetchActivities = useCallback(async (showRefreshToast = false) => {
     try {
       if (showRefreshToast) {
         setIsRefreshing(true)
@@ -65,11 +65,11 @@ export function RecentActivity() {
       setIsLoading(false)
       setIsRefreshing(false)
     }
-  }
+  }, [toast])
 
   useEffect(() => {
     fetchActivities()
-  }, []) // Remove toast dependency to prevent re-renders
+  }, [fetchActivities])
 
   const handleRefresh = async () => {
     await fetchActivities(true)

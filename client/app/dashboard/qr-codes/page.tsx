@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -123,23 +123,62 @@ export default function QRCodesPage() {
   const [showQRDetails, setShowQRDetails] = useState(false)
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchQRCodes()
-  }, [filters, sortBy, sortOrder])
+  const fetchStats = useCallback(async () => {
+    try {
+      console.log("🔄 Fetching QR stats...")
+      const statsResponse = await apiService.getQRCodeStats()
 
-  // Ensure stats are fetched when component mounts
-  useEffect(() => {
-    fetchStats()
-  }, [])
+      if (statsResponse?.status === 'success' && statsResponse?.data) {
+        const statsData = statsResponse.data as any
+        const formattedStats: QRStats = {
+          totalCodes: statsData.totalCodes || 0,
+          activeCodes: statsData.activeCodes || 0,
+          verifiedCodes: statsData.verifiedCodes || 0,
+          revokedCodes: statsData.revokedCodes || 0,
+          totalScans: statsData.totalScans || 0,
+          monthlyTrend: Array.isArray(statsData.monthlyTrend) ? statsData.monthlyTrend : [],
+          expiredCodes: statsData.expiredCodes || 0,
+          totalDownloads: statsData.totalDownloads || 0,
+          monthlyGrowth: statsData.monthlyGrowth || 0
+        }
 
-  // Monitor stats changes for debugging
-  useEffect(() => {
-    console.log("📊 Stats updated - Total:", stats.totalCodes, "Active:", stats.activeCodes, "Downloads:", stats.totalDownloads)
-  }, [stats])
+        setStats(formattedStats)
+      } else {
+        const calculatedStats: QRStats = {
+          totalCodes: qrCodes.length,
+          activeCodes: qrCodes.filter(qr => qr.status === 'active').length,
+          verifiedCodes: qrCodes.filter(qr => qr.status === 'verified').length,
+          revokedCodes: qrCodes.filter(qr => qr.status === 'revoked').length,
+          expiredCodes: qrCodes.filter(qr => qr.status === 'expired').length,
+          totalScans: qrCodes.reduce((sum, qr) => sum + (qr.scanCount || 0), 0),
+          totalDownloads: 0,
+          monthlyGrowth: 0,
+          monthlyTrend: []
+        }
+        console.log("⚠️ Using calculated stats:", calculatedStats)
+        setStats(calculatedStats)
+      }
+    } catch (error) {
+      console.error("❌ Failed to fetch QR stats:", error)
+      const fallbackStats: QRStats = {
+        totalCodes: qrCodes.length,
+        activeCodes: qrCodes.filter(qr => qr.status === 'active').length,
+        verifiedCodes: qrCodes.filter(qr => qr.status === 'verified').length,
+        revokedCodes: qrCodes.filter(qr => qr.status === 'revoked').length,
+        expiredCodes: qrCodes.filter(qr => qr.status === 'expired').length,
+        totalScans: qrCodes.reduce((sum, qr) => sum + (qr.scanCount || 0), 0),
+        totalDownloads: 0,
+        monthlyGrowth: 0,
+        monthlyTrend: []
+      }
+      setStats(fallbackStats)
+    }
+  }, [qrCodes])
 
+  const fetchStatsRef = useRef(fetchStats)
+  fetchStatsRef.current = fetchStats
 
-
-  const fetchQRCodes = async () => {
+  const fetchQRCodes = useCallback(async () => {
     try {
       setLoading(true)
       console.log("🔄 Fetching QR codes...")
@@ -199,7 +238,7 @@ export default function QRCodesPage() {
         setQRCodes(formattedQRCodes)
 
         // Fetch stats
-        await fetchStats()
+        await fetchStatsRef.current()
       } else {
         console.warn("⚠️ QR codes response not in expected format:", qrResponse)
         setQRCodes([])
@@ -217,62 +256,20 @@ export default function QRCodesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters, toast])
 
-  const fetchStats = async () => {
-    try {
-      console.log("🔄 Fetching QR stats...")
-      const statsResponse = await apiService.getQRCodeStats()
+  useEffect(() => {
+    fetchQRCodes()
+  }, [fetchQRCodes])
 
-      if (statsResponse?.status === 'success' && statsResponse?.data) {
-        const statsData = statsResponse.data as any
-        const formattedStats: QRStats = {
-          totalCodes: statsData.totalCodes || 0,
-          activeCodes: statsData.activeCodes || 0,
-          verifiedCodes: statsData.verifiedCodes || 0,
-          revokedCodes: statsData.revokedCodes || 0,
-          totalScans: statsData.totalScans || 0,
-          monthlyTrend: Array.isArray(statsData.monthlyTrend) ? statsData.monthlyTrend : [],
-          // Add additional stats from backend if available
-          expiredCodes: statsData.expiredCodes || 0,
-          totalDownloads: statsData.totalDownloads || 0,
-          monthlyGrowth: statsData.monthlyGrowth || 0
-        }
+  useEffect(() => {
+    void fetchStatsRef.current()
+  }, [fetchStats])
 
-        setStats(formattedStats)
-      } else {
-        // Calculate stats from QR codes data if API doesn't provide them
-        const calculatedStats: QRStats = {
-          totalCodes: qrCodes.length,
-          activeCodes: qrCodes.filter(qr => qr.status === 'active').length,
-          verifiedCodes: qrCodes.filter(qr => qr.status === 'verified').length,
-          revokedCodes: qrCodes.filter(qr => qr.status === 'revoked').length,
-          expiredCodes: qrCodes.filter(qr => qr.status === 'expired').length,
-          totalScans: qrCodes.reduce((sum, qr) => sum + (qr.scanCount || 0), 0),
-          totalDownloads: 0, // Not tracked in current data
-          monthlyGrowth: 0, // Would need historical data
-          monthlyTrend: []
-        }
-        console.log("⚠️ Using calculated stats:", calculatedStats)
-        setStats(calculatedStats)
-      }
-    } catch (error) {
-      console.error("❌ Failed to fetch QR stats:", error)
-      // Calculate stats from QR codes data as fallback
-      const fallbackStats: QRStats = {
-        totalCodes: qrCodes.length,
-        activeCodes: qrCodes.filter(qr => qr.status === 'active').length,
-        verifiedCodes: qrCodes.filter(qr => qr.status === 'verified').length,
-        revokedCodes: qrCodes.filter(qr => qr.status === 'revoked').length,
-        expiredCodes: qrCodes.filter(qr => qr.status === 'expired').length,
-        totalScans: qrCodes.reduce((sum, qr) => sum + (qr.scanCount || 0), 0),
-        totalDownloads: 0,
-        monthlyGrowth: 0,
-        monthlyTrend: []
-      }
-      setStats(fallbackStats)
-    }
-  }
+  // Monitor stats changes for debugging
+  useEffect(() => {
+    console.log("📊 Stats updated - Total:", stats.totalCodes, "Active:", stats.activeCodes, "Downloads:", stats.totalDownloads)
+  }, [stats])
 
   const handleGenerateQR = () => {
     // Navigate to QR generation form

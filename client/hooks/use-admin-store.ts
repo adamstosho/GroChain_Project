@@ -170,7 +170,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       const response = await adminApiService.updateUser(userId, data)
       set(state => ({
         users: state.users.map(user =>
-          user._id === userId ? { ...user, ...response.data } : user
+          user._id === userId ? { ...user, ...(response.data as object) } : user
         ),
         isLoading: false
       }))
@@ -354,7 +354,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       const response = await adminApiService.updatePartner(partnerId, data)
       set(state => ({
         partners: state.partners.map(partner =>
-          partner._id === partnerId ? { ...partner, ...response.data } : partner
+          partner._id === partnerId ? { ...partner, ...(response.data as object) } : partner
         ),
         isLoading: false
       }))
@@ -409,7 +409,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       const response = await adminApiService.updateListing(listingId, data)
       set(state => ({
         listings: state.listings.map(listing =>
-          listing._id === listingId ? { ...listing, ...response.data } : listing
+          listing._id === listingId ? { ...listing, ...(response.data as object) } : listing
         ),
         isLoading: false
       }))
@@ -526,9 +526,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   generateFinancialReport: async (reportData: any) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await adminApiService.generateFinancialReport(reportData)
+      await adminApiService.generateFinancialReport(reportData)
       set({ isLoading: false })
-      return response.data
     } catch (error: any) {
       set({ error: error.message, isLoading: false })
       throw error
@@ -566,9 +565,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   generateCustomReport: async (reportData: any) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await adminApiService.generateCustomReport(reportData)
+      await adminApiService.generateCustomReport(reportData)
       set({ isLoading: false })
-      return response.data
     } catch (error: any) {
       set({ error: error.message, isLoading: false })
       throw error

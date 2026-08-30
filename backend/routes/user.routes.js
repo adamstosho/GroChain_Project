@@ -534,7 +534,7 @@ router.post('/profile/avatar', authenticate, (req, res) => {
       }
 
       try {
-        const cloudinary = require('cloudinary').v2
+        const cloudinary = require('../utils/cloudinary')
 
         // Convert buffer to base64
         const b64 = Buffer.from(req.file.buffer).toString('base64')
@@ -557,7 +557,7 @@ router.post('/profile/avatar', authenticate, (req, res) => {
           req.user.id,
           {
             'profile.avatar': result.secure_url,
-            stats: { lastActive: new Date() }
+            'stats.lastActive': new Date()
           },
           { new: true }
         ).select('-password')

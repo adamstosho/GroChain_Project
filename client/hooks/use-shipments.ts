@@ -39,9 +39,10 @@ export function useShipments(filters?: ShipmentFilters) {
 
       const response = await apiService.get(`/shipments?${queryParams.toString()}`)
       
-      if (response.status === 'success') {
-        setShipments(response.data.shipments)
-        setPagination(response.data.pagination)
+      if (response.status === 'success' && response.data) {
+        const data = response.data as { shipments: Shipment[]; pagination: typeof pagination }
+        setShipments(data.shipments)
+        setPagination(data.pagination)
       } else {
         throw new Error(response.message || 'Failed to fetch shipments')
       }
@@ -91,7 +92,7 @@ export function useShipment(shipmentId: string) {
       const response = await apiService.get(`/shipments/${shipmentId}`)
       
       if (response.status === 'success') {
-        setShipment(response.data)
+        setShipment(response.data as unknown as Shipment)
       } else {
         throw new Error(response.message || 'Failed to fetch shipment')
       }
@@ -139,7 +140,7 @@ export function useCreateShipment() {
           title: "Success",
           description: "Shipment created successfully",
         })
-        return response.data
+        return response.data as unknown as Shipment
       } else {
         throw new Error(response.message || 'Failed to create shipment')
       }
@@ -183,7 +184,7 @@ export function useUpdateShipmentStatus() {
           title: "Success",
           description: "Shipment status updated successfully",
         })
-        return response.data
+        return response.data as unknown as Shipment
       } else {
         throw new Error(response.message || 'Failed to update shipment status')
       }
@@ -221,7 +222,7 @@ export function useConfirmDelivery() {
           title: "Success",
           description: "Delivery confirmed successfully",
         })
-        return response.data
+        return response.data as unknown as Shipment
       } else {
         throw new Error(response.message || 'Failed to confirm delivery')
       }
@@ -259,7 +260,7 @@ export function useReportIssue() {
           title: "Success",
           description: "Issue reported successfully",
         })
-        return response.data
+        return response.data as unknown as Shipment
       } else {
         throw new Error(response.message || 'Failed to report issue')
       }
@@ -300,7 +301,7 @@ export function useShipmentStats() {
       const response = await apiService.get(`/shipments/stats/overview?${queryParams.toString()}`)
       
       if (response.status === 'success') {
-        setStats(response.data)
+        setStats(response.data as unknown as ShipmentStats)
       } else {
         throw new Error(response.message || 'Failed to fetch shipment stats')
       }
@@ -353,9 +354,10 @@ export function useSearchShipments() {
       
       const response = await apiService.get(`/shipments/search/query?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`)
       
-      if (response.status === 'success') {
-        setShipments(response.data.shipments)
-        setPagination(response.data.pagination)
+      if (response.status === 'success' && response.data) {
+        const data = response.data as { shipments: Shipment[]; pagination: typeof pagination }
+        setShipments(data.shipments)
+        setPagination(data.pagination)
       } else {
         throw new Error(response.message || 'Failed to search shipments')
       }
@@ -412,7 +414,7 @@ export function useExportShipments() {
         document.body.removeChild(link)
         window.URL.revokeObjectURL(url)
 
-        return response.data
+        return response.data as unknown as Shipment
       } else {
         throw new Error(response?.message || 'Failed to export shipments')
       }

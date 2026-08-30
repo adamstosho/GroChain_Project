@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Upload, Download, FileText, CheckCircle, AlertCircle, Users, ArrowLeft, Loader2 } from "lucide-react"
 import { api } from "@/lib/api"
 import Link from "next/link"
-import { Display, Text } from "@/components/ui/typography"
+import { Text } from "@/components/ui/typography"
 import { PageContainer } from "@/components/layout/page-container"
 import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
 

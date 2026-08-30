@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, use } from "react"
+import { useState, useEffect, use, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -77,11 +77,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
   const [verified, setVerified] = useState(false)
   const [downloading, setDownloading] = useState(false)
 
-  useEffect(() => {
-    fetchVerificationData()
-  }, [resolvedParams.batchId])
-
-  const fetchVerificationData = async () => {
+  const fetchVerificationData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -102,7 +98,11 @@ export default function VerificationPage({ params }: VerificationPageProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [resolvedParams.batchId])
+
+  useEffect(() => {
+    fetchVerificationData()
+  }, [fetchVerificationData])
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Date not available'

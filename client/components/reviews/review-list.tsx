@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -58,7 +58,7 @@ export function ReviewList({ listingId, className }: ReviewListProps) {
   })
   const { toast } = useToast()
 
-  const fetchReviews = async (pageNum = 1, append = false) => {
+  const fetchReviews = useCallback(async (pageNum = 1, append = false) => {
     try {
       setLoading(true)
       const response = await apiService.getListingReviews(listingId, {
@@ -94,11 +94,11 @@ export function ReviewList({ listingId, className }: ReviewListProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [listingId, toast])
 
   useEffect(() => {
     fetchReviews()
-  }, [listingId])
+  }, [fetchReviews])
 
   const handleLoadMore = () => {
     const nextPage = page + 1

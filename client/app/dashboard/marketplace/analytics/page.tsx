@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -97,11 +97,7 @@ export default function MarketplaceAnalyticsPage() {
 
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchAnalytics()
-  }, [selectedPeriod])
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -185,7 +181,11 @@ export default function MarketplaceAnalyticsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedPeriod, toast])
+
+  useEffect(() => {
+    fetchAnalytics()
+  }, [fetchAnalytics])
 
   const getTrendIcon = (trend: 'up' | 'down') => {
     return trend === 'up' ? (

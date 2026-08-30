@@ -86,7 +86,7 @@ export default function CheckoutPage() {
       })
       router.push('/login?redirect=/marketplace/checkout')
     }
-  }, [router, toast])
+  }, [router, toast, setHasHydrated])
 
   // Pre-fill user data when available
   useEffect(() => {

@@ -2,7 +2,6 @@ const crypto = require('crypto')
 const mongoose = require('mongoose')
 const Order = require('../models/order.model')
 const Transaction = require('../models/transaction.model')
-const Commission = require('../models/commission.model')
 const PaymentMethod = require('../models/payment-method.model')
 const notificationController = require('./notification.controller')
 const realTimeCommissionService = require('../services/commission-realtime.service')
@@ -699,7 +698,6 @@ console.log('==== START COMMISSION CALCULATION FOR ORDER:', order._id, '====');
 
     const Referral = require('../models/referral.model')
     const User = require('../models/user.model')
-    const Partner = require('../models/partner.model')
     const Listing = require('../models/listing.model')
 
     for (const item of order.items) {

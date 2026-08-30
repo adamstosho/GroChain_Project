@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -124,11 +124,7 @@ export function BuyerSettingsForm() {
   const [isSaving, setIsSaving] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
-  useEffect(() => {
-    loadSettings()
-  }, [])
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       setIsLoading(true)
       const response = await apiService.getMySettings()
@@ -136,12 +132,12 @@ export function BuyerSettingsForm() {
       if (response.status === 'success') {
         const data = response.data as any
 
-        setSettings({
-          general: data.general || settings.general,
-          notifications: data.notifications || settings.notifications,
-          preferences: data.preferences || settings.preferences,
-          security: data.security || settings.security,
-          passwordData: settings.passwordData,
+        setSettings((prev) => ({
+          general: data.general || prev.general,
+          notifications: data.notifications || prev.notifications,
+          preferences: data.preferences || prev.preferences,
+          security: data.security || prev.security,
+          passwordData: prev.passwordData,
           profile: data.profile || {
             bio: user?.profile?.bio || "",
             address: user?.profile?.address || "",
@@ -150,7 +146,7 @@ export function BuyerSettingsForm() {
             country: user?.profile?.country || "Nigeria",
             postalCode: user?.profile?.postalCode || ""
           }
-        })
+        }))
       }
     } catch (error: any) {
       console.error('Error loading settings:', error)
@@ -162,7 +158,11 @@ export function BuyerSettingsForm() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [toast, user?.profile?.address, user?.profile?.bio, user?.profile?.city, user?.profile?.country, user?.profile?.postalCode, user?.profile?.state])
+
+  useEffect(() => {
+    loadSettings()
+  }, [loadSettings])
 
   const handleNotificationToggle = (key: keyof BuyerSettings['notifications']) => {
     setSettings({

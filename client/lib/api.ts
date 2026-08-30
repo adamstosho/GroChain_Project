@@ -7,6 +7,25 @@ import {
 } from "./auth-storage"
 import type { ApiResponse, User, Harvest, Listing, Order, WeatherData, DashboardStats } from "./types"
 
+type JsonRecord = Record<string, unknown>
+type QueryParams = Record<string, unknown>
+
+function toQueryString(params?: QueryParams): string {
+  if (!params) return ""
+  const search = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null) {
+      search.set(key, String(value))
+    }
+  }
+  return search.toString()
+}
+
+interface UploadImageResponse {
+  urls?: string[]
+  data?: { urls?: string[] }
+}
+
 class ApiService {
   private baseUrl: string
   private token: string | null = null
@@ -303,10 +322,10 @@ class ApiService {
 
       this.isRefreshing = false
 
-      const envelope = (response || {}) as Record<string, any>
-      const data = envelope.data || envelope
-      const newAccessToken = data.accessToken || data.token || envelope.accessToken || envelope.token
-      const newRefreshToken = data.refreshToken || envelope.refreshToken
+      const envelope = (response || {}) as Record<string, unknown>
+      const data = (envelope.data || envelope) as Record<string, unknown>
+      const newAccessToken = (data.accessToken || data.token || envelope.accessToken || envelope.token) as string | undefined
+      const newRefreshToken = (data.refreshToken || envelope.refreshToken) as string | undefined
 
       if (newAccessToken) {
         console.log('✅ New access token received')
@@ -400,7 +419,7 @@ class ApiService {
       })
     } catch {
       // Ignore network errors here; we'll still clear local state
-      return { success: true, message: "Logged out" } as ApiResponse<any>
+      return { success: true, message: "Logged out" } as ApiResponse<JsonRecord>
     }
   }
 
@@ -460,10 +479,10 @@ class ApiService {
 
   // User Settings
   async getSettings() {
-    return this.request<{ settings: any }>("/api/users/settings/me")
+    return this.request<{ settings: JsonRecord }>("/api/users/settings/me")
   }
 
-  async updateSettings(settings: { security?: any; display?: any; performance?: any }) {
+  async updateSettings(settings: { security?: JsonRecord; display?: JsonRecord; performance?: JsonRecord }) {
     return this.request<{ message: string }>("/api/users/settings/me", {
       method: "PUT",
       body: JSON.stringify(settings),
@@ -516,7 +535,7 @@ class ApiService {
     }
   }
 
-  async updateAdminProfile(data: any) {
+  async updateAdminProfile(data: object) {
     return this.request("/api/admin/profile", {
       method: "PUT",
       body: JSON.stringify(data),
@@ -527,7 +546,7 @@ class ApiService {
     return this.request('/api/admin/settings')
   }
 
-  async updateAdminSettings(settings: any) {
+  async updateAdminSettings(settings: object) {
     return this.request('/api/admin/settings', {
       method: 'PUT',
       body: JSON.stringify(settings),
@@ -538,7 +557,7 @@ class ApiService {
     return this.request('/api/admin/settings/notifications')
   }
 
-  async updateAdminNotificationSettings(settings: any) {
+  async updateAdminNotificationSettings(settings: object) {
     return this.request('/api/admin/settings/notifications', {
       method: 'PUT',
       body: JSON.stringify(settings),
@@ -549,7 +568,7 @@ class ApiService {
     return this.request('/api/admin/settings/security')
   }
 
-  async updateAdminSecuritySettings(settings: any) {
+  async updateAdminSecuritySettings(settings: object) {
     return this.request('/api/admin/settings/security', {
       method: 'PUT',
       body: JSON.stringify(settings),
@@ -575,8 +594,8 @@ class ApiService {
     return this.request(`/api/admin/users/recent?limit=${limit}`)
   }
 
-  async getAdminUsers(params?: any) {
-    const queryString = params ? `?${new URLSearchParams(params).toString()}` : ''
+  async getAdminUsers(params?: QueryParams) {
+    const queryString = params ? `?${toQueryString(params)}` : ''
     return this.request(`/api/admin/users${queryString}`)
   }
 
@@ -584,7 +603,7 @@ class ApiService {
     return this.request(`/api/admin/users/${id}`)
   }
 
-  async updateAdminUser(id: string, data: any) {
+  async updateAdminUser(id: string, data: object) {
     return this.request(`/api/admin/users/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -639,8 +658,8 @@ class ApiService {
     return this.request(`/api/admin/analytics/quality?period=${period}`)
   }
 
-  async getAdminAnalyticsExport(params?: any) {
-    const queryString = params ? `?${new URLSearchParams(params)}` : ''
+  async getAdminAnalyticsExport(params?: QueryParams) {
+    const queryString = params ? `?${toQueryString(params)}` : ''
     return this.request(`/api/admin/analytics/export${queryString}`)
   }
 
@@ -649,8 +668,8 @@ class ApiService {
     return this.request('/api/admin/system/status')
   }
 
-  async getAdminSystemLogs(params?: any) {
-    const queryString = params ? `?${new URLSearchParams(params)}` : ''
+  async getAdminSystemLogs(params?: QueryParams) {
+    const queryString = params ? `?${toQueryString(params)}` : ''
     return this.request(`/api/admin/system/logs${queryString}`)
   }
 
@@ -658,7 +677,7 @@ class ApiService {
     return this.request('/api/admin/system/config')
   }
 
-  async updateAdminSystemConfig(section: string, settings: any) {
+  async updateAdminSystemConfig(section: string, settings: object) {
     return this.request('/api/admin/system/config', {
       method: 'PUT',
       body: JSON.stringify({ section, settings })
@@ -691,13 +710,13 @@ class ApiService {
   }
 
   // Harvest Management
-  async getHarvests(filters?: Record<string, any>) {
-    const params = new URLSearchParams(filters || {})
+  async getHarvests(filters?: Record<string, unknown>) {
+    const params = toQueryString(filters)
     return this.request<Harvest[]>(`/api/harvests?${params}`)
   }
 
-  async getHarvestAnalytics(filters?: Record<string, any>) {
-    const params = new URLSearchParams(filters || {})
+  async getHarvestAnalytics(filters?: Record<string, unknown>) {
+    const params = toQueryString(filters)
     const url = `/api/harvests/analytics?${params}`
 
     try {
@@ -725,7 +744,7 @@ class ApiService {
     return this.request<Harvest>("/api/harvests", {
       method: "POST",
       headers,
-      body: JSON.stringify(harvestData as any),
+      body: JSON.stringify(harvestData),
     })
   }
 
@@ -736,7 +755,7 @@ class ApiService {
   async updateHarvest(id: string, harvestData: Partial<Harvest>) {
     return this.request<Harvest>(`/api/harvests/${id}`, {
       method: "PUT",
-      body: JSON.stringify(harvestData as any),
+      body: JSON.stringify(harvestData),
     })
   }
 
@@ -749,8 +768,8 @@ class ApiService {
   }
 
   // Marketplace
-  async getListings(filters?: Record<string, any>) {
-    const params = new URLSearchParams(filters)
+  async getListings(filters?: Record<string, unknown>) {
+    const params = toQueryString(filters)
     return this.request<Listing[]>(`/api/marketplace/listings?${params}`)
   }
 
@@ -839,7 +858,7 @@ class ApiService {
     return this.request('/api/analytics/marketplace')
   }
 
-  async updateListingStatus(id: string, status: string, data?: any) {
+  async updateListingStatus(id: string, status: string, data?: JsonRecord) {
     return this.request(`/api/marketplace/listings/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ status, ...data })
@@ -853,8 +872,8 @@ class ApiService {
   }
 
   // Review Management
-  async getListingReviews(listingId: string, params?: Record<string, any>) {
-    const queryString = new URLSearchParams(params).toString()
+  async getListingReviews(listingId: string, params?: Record<string, unknown>) {
+    const queryString = toQueryString(params)
     return this.request(`/api/reviews/listings/${listingId}?${queryString}`)
   }
 
@@ -894,18 +913,25 @@ class ApiService {
     })
   }
 
-  async getFarmerReviews(params?: Record<string, any>) {
-    const queryString = new URLSearchParams(params).toString()
+  async getFarmerReviews(params?: Record<string, unknown>) {
+    const queryString = toQueryString(params)
     return this.request(`/api/reviews/farmer?${queryString}`)
   }
 
 
 
   // Harvest approval → create listing from harvest (farmer only)
-  async createListingFromHarvest(harvestId: string, price: number, description?: string, quantity?: number, unit?: string) {
+  async createListingFromHarvest(
+    harvestId: string,
+    price: number,
+    description?: string,
+    quantity?: number,
+    unit?: string,
+    images?: string[]
+  ) {
     return this.request(`/api/harvest-approval/${harvestId}/create-listing`, {
       method: "POST",
-      body: JSON.stringify({ price, description, quantity, unit }),
+      body: JSON.stringify({ price, description, quantity, unit, images }),
     })
   }
 
@@ -961,16 +987,26 @@ class ApiService {
   }
 
   async getIPLocation() {
-    return this.request<any>('/api/weather/ip-location')
+    return this.request<{
+      lat: number
+      lng: number
+      city?: string
+      state?: string
+      country?: string
+    }>('/api/weather/ip-location')
   }
 
   async reverseGeocode(lat: number, lng: number) {
-    return this.request<any>(`/api/weather/reverse-geocode?lat=${lat}&lng=${lng}`)
+    return this.request<{
+      city?: string
+      state?: string
+      country?: string
+    }>(`/api/weather/reverse-geocode?lat=${lat}&lng=${lng}`)
   }
 
   // Analytics
-  async getAnalytics(type: string, filters?: Record<string, any>) {
-    const params = new URLSearchParams(filters)
+  async getAnalytics(type: string, filters?: Record<string, unknown>) {
+    const params = toQueryString(filters)
     return this.request(`/api/analytics/${type}?${params}`)
   }
 
@@ -978,28 +1014,36 @@ class ApiService {
   async uploadImage(file: File) {
     const formData = new FormData()
     formData.append("images", file)
-    const res: any = await this.request("/api/marketplace/upload-image", {
+    const token = getTokenFromStorage()
+    const res = await this.request<UploadImageResponse>("/api/marketplace/upload-image", {
       method: "POST",
       body: formData,
       headers: {
-        Authorization: this.token ? `Bearer ${this.token}` : "",
-      } as any,
+        Authorization: token ? `Bearer ${token}` : "",
+      } as Record<string, string>,
     })
     const urls: string[] = res?.urls || res?.data?.urls || []
+    if (!urls[0]) {
+      throw new Error("Upload succeeded but no image URL was returned")
+    }
     return { url: urls[0] }
   }
 
   async uploadImages(files: File[]) {
     const formData = new FormData()
     files.forEach((f) => formData.append("images", f))
-    const res: any = await this.request("/api/marketplace/upload-image", {
+    const token = getTokenFromStorage()
+    const res = await this.request<UploadImageResponse>("/api/marketplace/upload-image", {
       method: "POST",
       body: formData,
       headers: {
-        Authorization: this.token ? `Bearer ${this.token}` : "",
-      } as any,
+        Authorization: token ? `Bearer ${token}` : "",
+      } as Record<string, string>,
     })
     const urls: string[] = res?.urls || res?.data?.urls || []
+    if (urls.length === 0) {
+      throw new Error("Upload succeeded but no image URLs were returned")
+    }
     return urls
   }
 
@@ -1020,15 +1064,19 @@ class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Upload failed' }))
-        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`)
+        throw new Error(
+          errorData.message ||
+            errorData.error ||
+            `HTTP ${response.status}: ${response.statusText}`
+        )
       }
 
       return await response.json()
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw error
       }
-      if (error.message.includes('fetch')) {
+      if (error instanceof Error && error.message.includes('fetch')) {
         throw new Error('Network error: Unable to connect to server')
       }
       throw error
@@ -1040,9 +1088,9 @@ class ApiService {
     return this.request(`/api/fintech/credit-score/me`);
   }
 
-  async getLoanApplications(filters?: Record<string, any>) {
-    const params = new URLSearchParams(filters || {})
-    return this.request(`/api/fintech/loan-applications?${params.toString()}`)
+  async getLoanApplications(filters?: Record<string, unknown>) {
+    const params = toQueryString(filters)
+    return this.request(`/api/fintech/loan-applications?${params}`)
   }
 
   async getLoanApplication(id: string) {
@@ -1138,14 +1186,14 @@ class ApiService {
     return this.request('/api/fintech/insurance-policies/me');
   }
 
-  async getInsuranceQuotes(filters?: Record<string, any>) {
-    const params = new URLSearchParams(filters || {})
-    return this.request(`/api/fintech/insurance-quotes?${params.toString()}`);
+  async getInsuranceQuotes(filters?: Record<string, unknown>) {
+    const params = toQueryString(filters)
+    return this.request(`/api/fintech/insurance-quotes?${params}`);
   }
 
-  async getInsuranceClaims(filters?: Record<string, any>) {
-    const params = new URLSearchParams(filters || {})
-    return this.request(`/api/fintech/insurance-claims?${params.toString()}`);
+  async getInsuranceClaims(filters?: Record<string, unknown>) {
+    const params = toQueryString(filters)
+    return this.request(`/api/fintech/insurance-claims?${params}`);
   }
 
   async createInsuranceClaim(data: {
@@ -1190,7 +1238,7 @@ class ApiService {
     return this.request('/api/users/profile/me');
   }
 
-  async updateMyProfile(data: any) {
+  async updateMyProfile(data: object) {
     return this.request('/api/users/profile/me', {
       method: 'PUT',
       body: JSON.stringify(data)
@@ -1202,7 +1250,7 @@ class ApiService {
     return this.request('/api/users/profile/me');
   }
 
-  async updatePartnerProfile(data: any) {
+  async updatePartnerProfile(data: object) {
     return this.request('/api/users/profile/me', {
       method: 'PUT',
       body: JSON.stringify(data)
@@ -1214,7 +1262,7 @@ class ApiService {
     return this.request('/api/farmers/profile/me');
   }
 
-  async updateFarmerProfile(data: any) {
+  async updateFarmerProfile(data: object) {
     return this.request('/api/farmers/profile/me', {
       method: 'PUT',
       body: JSON.stringify(data)
@@ -1236,7 +1284,7 @@ class ApiService {
     return this.request('/api/users/settings/me');
   }
 
-  async updateMySettings(data: any) {
+  async updateMySettings(data: object) {
     return this.request('/api/users/settings/me', {
       method: 'PUT',
       body: JSON.stringify(data)
@@ -1247,19 +1295,19 @@ class ApiService {
     return this.request(`/api/harvests/${harvestId}`, { method: "DELETE" })
   }
 
-  async exportHarvests(filters?: Record<string, any>) {
+  async exportHarvests(filters?: Record<string, unknown>) {
     const format = (filters || {}).format || 'csv'
     const exportService = (await import('./export-utils')).getExportService()
     return exportService.exportHarvests({
-      format: format as any,
+      format: format as 'csv' | 'excel' | 'pdf',
       filters: { ...(filters || {}) },
     })
   }
 
 
 
-  async getMarketplaceListings(params: any = {}) {
-    const queryString = new URLSearchParams(params).toString()
+  async getMarketplaceListings(params: QueryParams = {}) {
+    const queryString = toQueryString(params)
     return this.request(`/api/marketplace/listings?${queryString}`)
   }
 
@@ -1283,13 +1331,13 @@ class ApiService {
     })
   }
 
-  async getFavorites(userId?: string, params: any = {}) {
+  async getFavorites(userId?: string, params: QueryParams = {}) {
     if (userId && userId !== 'undefined' && userId !== 'null') {
-      const queryString = new URLSearchParams(params).toString()
+      const queryString = toQueryString(params)
       return this.request(`/api/marketplace/favorites/${userId}?${queryString}`)
     } else {
       // Fallback: get favorites for current authenticated user
-      const queryString = new URLSearchParams(params).toString()
+      const queryString = toQueryString(params)
       return this.request(`/api/marketplace/favorites/current?${queryString}`)
     }
   }
@@ -1328,14 +1376,14 @@ class ApiService {
     })
   }
 
-  async getBuyerOrders(buyerId: string, params: any = {}) {
-    const queryString = new URLSearchParams(params).toString()
+  async getBuyerOrders(buyerId: string, params: QueryParams = {}) {
+    const queryString = toQueryString(params)
     return this.request(`/api/marketplace/orders/buyer/${buyerId}?${queryString}`)
   }
 
 
 
-  async initializePayment(paymentData: any) {
+  async initializePayment(paymentData: object) {
     return this.request('/api/payments/initialize', {
       method: 'POST',
       body: JSON.stringify(paymentData),
@@ -1353,8 +1401,8 @@ class ApiService {
     })
   }
 
-  async getTransactionHistory(params: any = {}) {
-    const queryString = new URLSearchParams(params).toString()
+  async getTransactionHistory(params: QueryParams = {}) {
+    const queryString = toQueryString(params)
     return this.request(`/api/payments/transactions?${queryString}`)
   }
 
@@ -1363,14 +1411,14 @@ class ApiService {
     return this.request('/api/payments/methods')
   }
 
-  async addPaymentMethod(data: { type: string; details: any }) {
+  async addPaymentMethod(data: { type: string; details: JsonRecord }) {
     return this.request('/api/payments/methods', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  async updatePaymentMethod(id: string, data: any) {
+  async updatePaymentMethod(id: string, data: object) {
     return this.request(`/api/payments/methods/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -1401,7 +1449,7 @@ class ApiService {
     })
   }
 
-  async reportShipmentIssue(shipmentId: string, issueData: any) {
+  async reportShipmentIssue(shipmentId: string, issueData: object) {
     return this.request(`/api/shipments/${shipmentId}/issues`, {
       method: 'POST',
       body: JSON.stringify(issueData),
@@ -1423,15 +1471,15 @@ class ApiService {
     return this.request(`/api/marketplace/search-suggestions?q=${encodeURIComponent(q)}&limit=${limit}`)
   }
 
-  async getUserOrders(params: any = {}) {
-    const queryString = new URLSearchParams(params).toString()
+  async getUserOrders(params: QueryParams = {}) {
+    const queryString = toQueryString(params)
     const url = queryString ? `/api/marketplace/orders?${queryString}` : '/api/marketplace/orders'
     return this.request(url)
   }
 
 
 
-  async getWeatherData(params?: any) {
+  async getWeatherData(params?: QueryParams) {
     const queryString = params ? new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => [k, String(v)])).toString() : ''
     return this.request(`/api/weather${queryString ? '?' + queryString : ''}`)
   }
@@ -1482,13 +1530,13 @@ class ApiService {
   }
 
   // Farmer-specific marketplace data
-  async getFarmerListings(params?: Record<string, any>) {
-    const queryString = new URLSearchParams(params).toString()
+  async getFarmerListings(params?: Record<string, unknown>) {
+    const queryString = toQueryString(params)
     return this.request(`/api/farmers/listings?${queryString}`)
   }
 
-  async getFarmerOrders(params?: Record<string, any>) {
-    const queryString = new URLSearchParams(params).toString()
+  async getFarmerOrders(params?: Record<string, unknown>) {
+    const queryString = toQueryString(params)
     return this.request(`/api/farmers/orders?${queryString}`)
   }
 
@@ -1666,7 +1714,7 @@ class ApiService {
   async requestCommissionPayout(data: {
     commissionIds: string[]
     payoutMethod: string
-    payoutDetails: any
+    payoutDetails: JsonRecord
     notes?: string
   }) {
     return this.request('/api/commissions/payout-request', {
@@ -1679,7 +1727,7 @@ class ApiService {
   async processCommissionPayout(data: {
     commissionIds: string[]
     payoutMethod: string
-    payoutDetails: any
+    payoutDetails: JsonRecord
   }) {
     return this.request('/api/commissions/payout', {
       method: 'POST',
@@ -1860,8 +1908,8 @@ class ApiService {
 
 
 
-  async getUserNotifications(params: any = {}) {
-    const queryString = new URLSearchParams(params).toString()
+  async getUserNotifications(params: QueryParams = {}) {
+    const queryString = toQueryString(params)
     return this.request(`/api/notifications?${queryString}`)
   }
 
@@ -1872,14 +1920,14 @@ class ApiService {
     })
   }
 
-  async updateNotificationPreferences(preferences: any) {
+  async updateNotificationPreferences(preferences: object) {
     return this.request('/api/notifications/preferences', {
       method: 'PUT',
       body: JSON.stringify({ notifications: preferences }),
     })
   }
 
-  async exportOrderData(exportData: any) {
+  async exportOrderData(exportData: object) {
     return this.request('/api/export-import/export/orders', {
       method: 'POST',
       body: JSON.stringify(exportData),
@@ -1905,7 +1953,7 @@ class ApiService {
     return this.request(`/api/qr-codes?${params.toString()}`)
   }
 
-  async generateQRCodeForHarvest(harvestId: string, customData?: Record<string, any>) {
+  async generateQRCodeForHarvest(harvestId: string, customData?: Record<string, unknown>) {
     return this.request('/api/qr-codes', {
       method: 'POST',
       body: JSON.stringify({ harvestId, customData }),
@@ -1941,7 +1989,7 @@ class ApiService {
           errorMessage = "Authentication error: Please log in again"
         }
 
-        const err: any = new Error(errorMessage)
+        const err = new Error(errorMessage) as Error & { status?: number; data?: JsonRecord }
         err.status = response.status
         throw err
       }
@@ -1987,28 +2035,28 @@ class ApiService {
 
 
 
-  async getPerformanceAnalytics(filters: any = {}): Promise<any> {
-    const queryString = new URLSearchParams(filters).toString()
-    return this.request<any>(`/api/analytics/performance?${queryString}`)
+  async getPerformanceAnalytics(filters: QueryParams = {}): Promise<ApiResponse<JsonRecord>> {
+    const queryString = toQueryString(filters)
+    return this.request<JsonRecord>(`/api/analytics/performance?${queryString}`)
   }
 
-  async getGeographicAnalytics(filters: any = {}): Promise<any> {
-    const queryString = new URLSearchParams(filters).toString()
-    return this.request<any>(`/api/analytics/geographic?${queryString}`)
+  async getGeographicAnalytics(filters: QueryParams = {}): Promise<ApiResponse<JsonRecord>> {
+    const queryString = toQueryString(filters)
+    return this.request<JsonRecord>(`/api/analytics/geographic?${queryString}`)
   }
 
-  async getFinancialAnalytics(filters: any = {}): Promise<any> {
-    const queryString = new URLSearchParams(filters).toString()
-    return this.request<any>(`/api/analytics/financial?${queryString}`)
+  async getFinancialAnalytics(filters: QueryParams = {}): Promise<ApiResponse<JsonRecord>> {
+    const queryString = toQueryString(filters)
+    return this.request<JsonRecord>(`/api/analytics/financial?${queryString}`)
   }
 
-  async getTrendAnalytics(filters: any = {}): Promise<any> {
-    const queryString = new URLSearchParams(filters).toString()
-    return this.request<any>(`/api/analytics/trends?${queryString}`)
+  async getTrendAnalytics(filters: QueryParams = {}): Promise<ApiResponse<JsonRecord>> {
+    const queryString = toQueryString(filters)
+    return this.request<JsonRecord>(`/api/analytics/trends?${queryString}`)
   }
 
-  async generateAnalyticsReport(config: any): Promise<any> {
-    return this.request<any>("/api/analytics/report", {
+  async generateAnalyticsReport(config: object): Promise<ApiResponse<JsonRecord>> {
+    return this.request<JsonRecord>("/api/analytics/report", {
       method: "POST",
       body: JSON.stringify(config)
     })
@@ -2060,34 +2108,34 @@ class ApiService {
     window.URL.revokeObjectURL(url)
   }
 
-  async getApprovals(filters: any = {}): Promise<any> {
+  async getApprovals(filters: QueryParams = {}): Promise<ApiResponse<JsonRecord>> {
     return this.getAllHarvests(filters)
   }
 
-  async getApprovalById(approvalId: string): Promise<any> {
-    return this.request<any>(`/api/harvests/id/${approvalId}`)
+  async getApprovalById(approvalId: string): Promise<ApiResponse<JsonRecord>> {
+    return this.request<JsonRecord>(`/api/harvests/id/${approvalId}`)
   }
 
-  async getPendingHarvests(filters?: any): Promise<any> {
+  async getPendingHarvests(filters?: QueryParams): Promise<ApiResponse<JsonRecord>> {
     const queryString = filters ? new URLSearchParams(Object.entries(filters).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => [k, String(v)])).toString() : ''
-    return this.request<any>(`/api/harvest-approval/pending?${queryString}`)
+    return this.request<JsonRecord>(`/api/harvest-approval/pending?${queryString}`)
   }
 
-  async getAllHarvests(filters?: any): Promise<any> {
+  async getAllHarvests(filters?: QueryParams): Promise<ApiResponse<JsonRecord>> {
     const queryString = filters ? new URLSearchParams(Object.entries(filters).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => [k, String(v)])).toString() : ''
-    return this.request<any>(`/api/harvest-approval/all?${queryString}`)
+    return this.request<JsonRecord>(`/api/harvest-approval/all?${queryString}`)
   }
 
-  async getApprovalStats(): Promise<any> {
-    return this.request<any>('/api/harvest-approval/stats')
+  async getApprovalStats(): Promise<ApiResponse<JsonRecord>> {
+    return this.request<JsonRecord>('/api/harvest-approval/stats')
   }
 
-  async approveHarvest(approvalId: string, data: { quality?: string; notes?: string; agriculturalData?: any }): Promise<any> {
+  async approveHarvest(approvalId: string, data: { quality?: string; notes?: string; agriculturalData?: object }): Promise<ApiResponse<JsonRecord>> {
     console.log('=== API SERVICE: approveHarvest called ===')
     console.log('Approval ID:', approvalId)
     console.log('Data:', data)
     try {
-      const result = await this.request<any>(`/api/harvest-approval/${approvalId}/approve`, {
+      const result = await this.request<JsonRecord>(`/api/harvest-approval/${approvalId}/approve`, {
         method: 'POST',
         body: JSON.stringify(data)
       })
@@ -2100,9 +2148,9 @@ class ApiService {
     }
   }
 
-  async rejectHarvest(approvalId: string, data: { reason: string; notes?: string; rejectionReason?: string }): Promise<any> {
+  async rejectHarvest(approvalId: string, data: { reason: string; notes?: string; rejectionReason?: string }): Promise<ApiResponse<JsonRecord>> {
     const rejectionReason = data.rejectionReason || data.reason
-    return this.request<any>(`/api/harvest-approval/${approvalId}/reject`, {
+    return this.request<JsonRecord>(`/api/harvest-approval/${approvalId}/reject`, {
       method: 'POST',
       body: JSON.stringify({
         rejectionReason,
@@ -2112,17 +2160,17 @@ class ApiService {
     })
   }
 
-  async markForReview(approvalId: string, data: { notes?: string }): Promise<any> {
-    return this.request<any>(`/api/harvest-approval/${approvalId}/revision`, {
+  async markForReview(approvalId: string, data: { notes?: string }): Promise<ApiResponse<JsonRecord>> {
+    return this.request<JsonRecord>(`/api/harvest-approval/${approvalId}/revision`, {
       method: 'POST',
       body: JSON.stringify(data)
     })
   }
 
-  async bulkProcessApprovals(data: { approvalIds?: string[]; harvestIds?: string[]; action: string; notes?: string; reason?: string; rejectionReason?: string }): Promise<any> {
+  async bulkProcessApprovals(data: { approvalIds?: string[]; harvestIds?: string[]; action: string; notes?: string; reason?: string; rejectionReason?: string }): Promise<ApiResponse<JsonRecord>> {
     const harvestIds = data.harvestIds || data.approvalIds || []
     const rejectionReason = data.rejectionReason || data.reason
-    return this.request<any>('/api/harvest-approval/bulk-process', {
+    return this.request<JsonRecord>('/api/harvest-approval/bulk-process', {
       method: 'POST',
       body: JSON.stringify({
         ...data,
@@ -2134,19 +2182,26 @@ class ApiService {
     })
   }
 
-  async batchProcessApprovals(batchAction: any): Promise<any> {
+  async batchProcessApprovals(batchAction: {
+    approvalIds?: string[]
+    harvestIds?: string[]
+    action: string
+    notes?: string
+    reason?: string
+    rejectionReason?: string
+  }): Promise<ApiResponse<JsonRecord>> {
     return this.bulkProcessApprovals(batchAction)
   }
 
-  async getApprovalMetrics(_filters: any = {}): Promise<any> {
+  async getApprovalMetrics(_filters: QueryParams = {}): Promise<ApiResponse<JsonRecord>> {
     return this.getApprovalStats()
   }
 
-  async getApprovalHistory(approvalId: string): Promise<any> {
+  async getApprovalHistory(approvalId: string): Promise<ApiResponse<JsonRecord>> {
     return this.getApprovalById(approvalId)
   }
 
-  async exportApprovals(filters: any, format: string = 'csv'): Promise<Blob> {
+  async exportApprovals(filters: QueryParams, format: string = 'csv'): Promise<Blob> {
     const queryString = new URLSearchParams({ ...filters, format }).toString()
     const response = await fetch(`${this.baseUrl}/api/harvest-approval/export?${queryString}`, {
       headers: {
@@ -2172,7 +2227,7 @@ class ApiService {
       quantity: number
       unit: string
       quality: string
-      location: any
+      location: string | JsonRecord
       farmer: string
       status: string
       message?: string
@@ -2180,19 +2235,19 @@ class ApiService {
   }
 
   async getQRProvenance(batchId: string) {
-    return this.request<any>(`/api/verify/harvest/${batchId}`)
+    return this.request<JsonRecord>(`/api/verify/harvest/${batchId}`)
   }
 
   async getProductProvenance(productId: string) {
-    return this.request<any>(`/api/verify/product/${productId}`)
+    return this.request<JsonRecord>(`/api/verify/product/${productId}`)
   }
 
   // Generic HTTP methods
-  async get<T = any>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
+  async get<T = JsonRecord>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { ...options, method: 'GET' })
   }
 
-  async post<T = any>(endpoint: string, data?: any, options?: RequestInit): Promise<ApiResponse<T>> {
+  async post<T = JsonRecord>(endpoint: string, data?: object, options?: RequestInit): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       ...options,
       method: 'POST',
@@ -2200,7 +2255,7 @@ class ApiService {
     })
   }
 
-  async put<T = any>(endpoint: string, data?: any, options?: RequestInit): Promise<ApiResponse<T>> {
+  async put<T = JsonRecord>(endpoint: string, data?: object, options?: RequestInit): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       ...options,
       method: 'PUT',
@@ -2208,7 +2263,7 @@ class ApiService {
     })
   }
 
-  async patch<T = any>(endpoint: string, data?: any, options?: RequestInit): Promise<ApiResponse<T>> {
+  async patch<T = JsonRecord>(endpoint: string, data?: object, options?: RequestInit): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       ...options,
       method: 'PATCH',
@@ -2216,12 +2271,12 @@ class ApiService {
     })
   }
 
-  async delete<T = any>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
+  async delete<T = JsonRecord>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { ...options, method: 'DELETE' })
   }
 
   // New method to make a raw POST request (e.g., for file downloads) without JSON parsing
-  async postRaw(endpoint: string, data?: any, options?: RequestInit): Promise<Response> {
+  async postRaw(endpoint: string, data?: object, options?: RequestInit): Promise<Response> {
     const url = `${this.baseUrl}${endpoint}`
     const headers: Record<string, string> = {}
 
@@ -2326,10 +2381,26 @@ class ApiService {
         role: string
         joinedDate: string
         emailVerified: boolean
-        profile?: any
-        partner?: any
-        harvests?: any[]
-        performanceMetrics?: any
+        profile?: JsonRecord
+        partner?: JsonRecord
+        harvests?: Array<{
+          _id: string
+          cropType: string
+          quantity: number
+          unit: string
+          quality: string
+          status: string
+          createdAt: string
+          estimatedValue?: number
+        }>
+        performanceMetrics?: {
+          totalHarvests: number
+          totalSales: number
+          averageHarvestValue: number
+          lastHarvestDate?: string
+          cropsGrown: string[]
+          performanceRating: 'excellent' | 'good' | 'average' | 'needs_improvement'
+        }
       }>(`/partners/farmers/${farmerId}`);
       console.log('✅ getFarmerById response:', result);
       return result;
@@ -2387,7 +2458,7 @@ class ApiService {
     })
     const queryString = searchParams.toString()
     return this.request<{
-      onboardings: any[]
+      onboardings: JsonRecord[]
       pagination: {
         currentPage: number
         totalPages: number
@@ -2415,7 +2486,7 @@ class ApiService {
   }
 
   async getOnboardingById(id: string) {
-    return this.request<any>(`/api/onboarding/${id}`)
+    return this.request<JsonRecord>(`/api/onboarding/${id}`)
   }
 
   async createOnboarding(data: {
@@ -2425,44 +2496,44 @@ class ApiService {
     priority?: string
     notes?: string
     estimatedCompletionDate?: string
-    location?: any
+    location?: string | JsonRecord
   }) {
-    return this.request<any>('/api/onboarding', {
+    return this.request<JsonRecord>('/api/onboarding', {
       method: 'POST',
       body: JSON.stringify(data)
     })
   }
 
-  async updateOnboarding(id: string, data: any) {
-    return this.request<any>(`/api/onboarding/${id}`, {
+  async updateOnboarding(id: string, data: object) {
+    return this.request<JsonRecord>(`/api/onboarding/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data)
     })
   }
 
   async updateOnboardingStage(id: string, data: { stage: string; notes?: string }) {
-    return this.request<any>(`/api/onboarding/${id}/stage`, {
+    return this.request<JsonRecord>(`/api/onboarding/${id}/stage`, {
       method: 'PATCH',
       body: JSON.stringify(data)
     })
   }
 
   async deleteOnboarding(id: string) {
-    return this.request<any>(`/api/onboarding/${id}`, { method: 'DELETE' })
+    return this.request<JsonRecord>(`/api/onboarding/${id}`, { method: 'DELETE' })
   }
 
   async getOnboardingProgress(farmerId: string) {
-    return this.request<any>(`/api/onboarding/progress/${farmerId}`)
+    return this.request<JsonRecord>(`/api/onboarding/progress/${farmerId}`)
   }
 
-  async bulkUpdateOnboardings(data: { onboardingIds: string[]; updates: any }) {
+  async bulkUpdateOnboardings(data: { onboardingIds: string[]; updates: JsonRecord }) {
     return this.request<{ modifiedCount: number; matchedCount: number }>('/api/onboarding/bulk-update', {
       method: 'POST',
       body: JSON.stringify(data)
     })
   }
 
-  async exportOnboardings(filters: any = {}, format: 'csv' | 'excel' = 'csv'): Promise<Blob> {
+  async exportOnboardings(filters: QueryParams = {}, format: 'csv' | 'excel' = 'csv'): Promise<Blob> {
     const response = await this.postRaw('/api/onboarding/export', { format, filters })
     if (!response.ok) {
       throw new Error(`Export failed: ${response.statusText}`)

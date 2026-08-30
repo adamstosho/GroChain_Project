@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { ArrowLeft, Star, MapPin, Calendar, Shield, Heart, ShoppingCart, MessageCircle, Share2, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,6 @@ import { ReviewForm } from "@/components/reviews/review-form"
 import { ReviewList } from "@/components/reviews/review-list"
 import type { Review } from "@/lib/types"
 import Link from "next/link"
-import Image from "next/image"
 import { SafeImage } from "@/components/ui/safe-image"
 import { Display, Text } from "@/components/ui/typography"
 import { PageContainer } from "@/components/layout/page-container"
@@ -38,19 +37,11 @@ export default function ProductDetailPage() {
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [userOrders, setUserOrders] = useState<any[]>([])
 
-  useEffect(() => {
-    if (params.id) {
-      fetchProduct()
-      fetchReviews()
-      if (user) {
-        fetchUserOrders()
-      }
-    }
-  }, [params.id, user])
+  const productId = params.id as string
 
-  const fetchProduct = async () => {
+  const fetchProduct = useCallback(async () => {
     try {
-      const response = await apiService.getListing(params.id as string)
+      const response = await apiService.getListing(productId)
       const listing = response.data as any
       
       // Convert Listing to Product format for consistency
@@ -91,26 +82,25 @@ export default function ProductDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [productId])
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
-      const response = await apiService.getListingReviews(params.id as string)
+      const response = await apiService.getListingReviews(productId)
       const reviewsData = response.data || response
       setReviews((reviewsData as any).reviews || [])
     } catch (error) {
       console.error("Failed to fetch reviews:", error)
       setReviews([])
     }
-  }
+  }, [productId])
 
-  const fetchUserOrders = async () => {
+  const fetchUserOrders = useCallback(async () => {
     try {
       const response = await apiService.getOrders()
       const orders = (response.data as any)?.orders || (response as any).orders || []
-      // Filter orders for this specific listing that are delivered
       const relevantOrders = orders.filter((order: any) => 
-        order.items?.some((item: any) => item.listing === params.id) && 
+        order.items?.some((item: any) => item.listing === productId) && 
         order.status === 'delivered'
       )
       setUserOrders(relevantOrders)
@@ -118,7 +108,17 @@ export default function ProductDetailPage() {
       console.error("Failed to fetch user orders:", error)
       setUserOrders([])
     }
-  }
+  }, [productId])
+
+  useEffect(() => {
+    if (productId) {
+      fetchProduct()
+      fetchReviews()
+      if (user) {
+        fetchUserOrders()
+      }
+    }
+  }, [productId, user, fetchProduct, fetchReviews, fetchUserOrders])
 
   const handleReviewSubmitted = () => {
     setShowReviewForm(false)

@@ -143,7 +143,7 @@ export function BuyerDashboard() {
         break
     }
 
-  }, [])
+  }, [toast])
 
   const fetchDashboardData = useCallback(async (reason: string = 'manual') => {
     const generation = begin()

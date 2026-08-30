@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -117,11 +117,7 @@ export default function InsuranceComparisonPage() {
   
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchInsurancePolicies()
-  }, [filters])
-
-  const fetchInsurancePolicies = async () => {
+  const fetchInsurancePolicies = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -180,7 +176,11 @@ export default function InsuranceComparisonPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters, toast])
+
+  useEffect(() => {
+    fetchInsurancePolicies()
+  }, [fetchInsurancePolicies])
 
   const handlePolicySelection = (policyId: string) => {
     setSelectedPolicies(prev => 

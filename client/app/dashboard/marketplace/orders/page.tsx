@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -120,10 +120,6 @@ export default function MarketplaceOrdersPage() {
 
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchOrders()
-  }, [])
-
   // Use useMemo for filtered orders to prevent infinite loops
   const filteredOrdersMemo = useMemo(() => {
     let filtered = [...orders]
@@ -175,7 +171,7 @@ export default function MarketplaceOrdersPage() {
     setFilteredOrders(filteredOrdersMemo)
   }, [filteredOrdersMemo])
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true)
       console.log("🔄 Fetching orders...")
@@ -256,7 +252,11 @@ export default function MarketplaceOrdersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchOrders()
+  }, [fetchOrders])
 
   const calculateStats = (ordersData: Order[]) => {
     const totalOrders = ordersData.length

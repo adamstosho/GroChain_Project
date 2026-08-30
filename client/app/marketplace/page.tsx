@@ -445,21 +445,21 @@ export default function MarketplacePage() {
         <PageContainer>
           
           {/* Breadcrumbs / Back navigation */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-success transition-colors">
-                <ArrowLeft className="h-4 w-4" />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-8">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <Link href="/dashboard" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-success transition-colors shrink-0">
+                <ArrowLeft className="h-4 w-4 shrink-0" />
                 <span>Back to Dashboard</span>
               </Link>
-              <span className="text-muted-foreground">|</span>
-              <Link href="/" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-success transition-colors">
-                <Home className="h-4 w-4" />
+              <span className="text-muted-foreground hidden sm:inline">|</span>
+              <Link href="/" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-success transition-colors shrink-0">
+                <Home className="h-4 w-4 shrink-0" />
                 <span>Home</span>
               </Link>
             </div>
             
-            <Badge variant="outline" className="bg-success/10 text-success border-success/50 flex items-center gap-1 text-[11px] sm:text-xs">
-              <Sparkles className="h-3 w-3 text-success fill-success animate-pulse" />
+            <Badge variant="outline" className="self-start sm:self-auto bg-success/10 text-success border-success/50 flex items-center gap-1.5 text-[11px] sm:text-xs shrink-0">
+              <Sparkles className="h-3 w-3 text-success fill-success animate-pulse shrink-0" />
               Graded Standard Marketplace
             </Badge>
           </div>

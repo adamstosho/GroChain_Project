@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -130,11 +130,7 @@ export function SettingsForm() {
   const [showPassword, setShowPassword] = useState(false)
 
   // Load settings on component mount
-  useEffect(() => {
-    loadSettings()
-  }, [])
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       setIsLoading(true)
       console.log('Loading settings...')
@@ -145,12 +141,12 @@ export function SettingsForm() {
         const data = response.data
         console.log('Settings data:', data)
 
-        setSettings({
-          general: (data as any).general || settings.general,
-          notifications: (data as any).notifications || settings.notifications,
-          preferences: (data as any).preferences || settings.preferences,
-          security: (data as any).security || settings.security,
-          passwordData: settings.passwordData,
+        setSettings((prev) => ({
+          general: (data as any).general || prev.general,
+          notifications: (data as any).notifications || prev.notifications,
+          preferences: (data as any).preferences || prev.preferences,
+          security: (data as any).security || prev.security,
+          passwordData: prev.passwordData,
           profile: (data as any).profile || {
             bio: user?.profile?.bio || "",
             address: user?.profile?.address || "",
@@ -160,7 +156,7 @@ export function SettingsForm() {
             postalCode: user?.profile?.postalCode || "",
             avatar: user?.profile?.avatar || null
           }
-        })
+        }))
 
         console.log('Settings state updated with profile:', (data as any).profile)
       }
@@ -174,7 +170,11 @@ export function SettingsForm() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [toast, user?.profile?.address, user?.profile?.avatar, user?.profile?.bio, user?.profile?.city, user?.profile?.country, user?.profile?.postalCode, user?.profile?.state])
+
+  useEffect(() => {
+    loadSettings()
+  }, [loadSettings])
 
   const handleNotificationToggle = (key: keyof FarmerSettings['notifications']) => {
     setSettings({

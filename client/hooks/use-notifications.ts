@@ -136,7 +136,11 @@ export const useNotifications = () => {
       const response = await api.get(`/api/notifications?${params.toString()}`)
 
       // Handle different response structures
-      const responseData = response.data?.data || response.data
+      const responseData = (response.data?.data || response.data) as {
+        notifications?: unknown[]
+        pagination?: unknown
+        unreadCount?: number
+      } | undefined
       const { notifications: rawNotifications, pagination, unreadCount } = responseData || {}
       
       if (!rawNotifications) {
@@ -176,7 +180,7 @@ export const useNotifications = () => {
       }
       return null
     }
-  }, [user]) // Remove toast dependency
+  }, [user, toast])
 
   // Mark notifications as read
   const markAsRead = useCallback(async (notificationIds: string[]) => {
@@ -219,7 +223,7 @@ export const useNotifications = () => {
       }
       return false
     }
-  }, [user]) // Remove toast dependency
+  }, [user, toast])
 
   // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
@@ -248,7 +252,7 @@ export const useNotifications = () => {
       }
       return false
     }
-  }, [user]) // Remove toast dependency
+  }, [user, toast])
 
   // Delete a notification
   const deleteNotification = useCallback(async (notificationId: string) => {
@@ -324,7 +328,7 @@ export const useNotifications = () => {
       }
       return false
     }
-  }, [user]) // Remove toast dependency
+  }, [user, toast])
 
   // Update push token
   const updatePushToken = useCallback(async (token: string) => {
@@ -520,7 +524,7 @@ export const useNotifications = () => {
       setState(prev => ({ ...prev, connected: false }))
       wsFailures.current++
     }
-  }, [user]) // Remove toast dependency
+  }, [user, toast])
 
   const disconnectSocket = useCallback(() => {
     if (socketRef.current) {

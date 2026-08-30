@@ -17,7 +17,7 @@ import { GroChainLogo } from "@/components/ui/grochain-logo"
 import { Display, Text } from "@/components/ui/typography"
 import { PageContainer } from "@/components/layout/page-container"
 import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
-import { dashboard, layout } from "@/lib/design-system"
+import { dashboard } from "@/lib/design-system"
 
 interface PartnerStats {
   totalFarmers?: number

@@ -60,8 +60,13 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
       // Fetch shipments for this order using API service
       const response = await apiService.get(`/shipments?order=${orderId}`)
       
-      if (response.status === 'success' && response.data.shipments.length > 0) {
-        setShipment(response.data.shipments[0])
+      if (response.status === 'success' && response.data) {
+        const data = response.data as { shipments: Array<Record<string, unknown>> }
+        if (data.shipments.length > 0) {
+          setShipment(data.shipments[0])
+        } else {
+          setShipment(null)
+        }
         if (isRefresh && !silent) {
           toast({
             title: "Updated",

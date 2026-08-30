@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -11,8 +11,6 @@ import { apiService } from "@/lib/api"
 import { getExportService } from "@/lib/export-utils"
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
-import { textStyles } from "@/lib/design-system"
-import { cn } from "@/lib/utils"
 import {
   Globe,
   Shield,
@@ -105,11 +103,7 @@ export function AdminSettings() {
   const { toast } = useToast()
   const exportService = getExportService()
 
-  useEffect(() => {
-    fetchSettings()
-  }, [])
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -255,7 +249,11 @@ export function AdminSettings() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchSettings()
+  }, [fetchSettings])
 
   const handleSaveSettings = async () => {
     if (!settings) return

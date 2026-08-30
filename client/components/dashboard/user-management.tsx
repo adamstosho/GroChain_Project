@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -125,15 +125,7 @@ export function UserManagement() {
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchUsers()
-  }, [currentPage])
-
-  useEffect(() => {
-    applyFilters()
-  }, [users, filters, activeTab])
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true)
       const response = await apiService.getAdminUsers({
@@ -179,7 +171,7 @@ export function UserManagement() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentPage, usersPerPage, toast])
 
   const calculateStats = (usersData: User[]) => {
     const stats = {
@@ -197,7 +189,7 @@ export function UserManagement() {
     setStats(stats)
   }
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...users]
 
     // Search filter
@@ -239,7 +231,15 @@ export function UserManagement() {
     }
 
     setFilteredUsers(filtered)
-  }
+  }, [users, filters, activeTab])
+
+  useEffect(() => {
+    fetchUsers()
+  }, [fetchUsers])
+
+  useEffect(() => {
+    applyFilters()
+  }, [applyFilters])
 
   const handleBulkAction = async (action: string) => {
     if (selectedUsers.length === 0) {
