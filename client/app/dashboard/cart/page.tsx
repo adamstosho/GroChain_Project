@@ -88,103 +88,124 @@ export default function CartPage() {
           description="Review your items and proceed to checkout."
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-w-0">
           {/* Cart Items */}
-          <div className="lg:col-span-2 space-y-4">
-            {cart.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="p-4">
-                  <div className="flex space-x-4">
-                    {/* Product Image */}
-                    <div className="relative w-20 h-20 flex-shrink-0">
-                      <Image
-                        src={item.image || "/placeholder.svg"}
-                        alt={item.cropName}
-                        fill
-                        className="rounded-lg object-cover"
-                      />
-                    </div>
+          <div className="lg:col-span-2 space-y-4 min-w-0">
+            {cart.map((item) => {
+              const farmerName =
+                typeof item.farmer === "object"
+                  ? item.farmer?.name || "Unknown Farmer"
+                  : item.farmer || "Unknown Farmer"
+              const locationLabel =
+                typeof item.location === "object"
+                  ? `${item.location?.city || "Unknown"}, ${item.location?.state || "Unknown State"}`
+                  : item.location || "Unknown Location"
+              const lineTotal = item.total ?? item.price * item.quantity
 
-                    {/* Product Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-foreground mb-1">
-                            {item.cropName}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            Farmer: {typeof item.farmer === 'object' ? item.farmer?.name || 'Unknown Farmer' : item.farmer || 'Unknown Farmer'}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Location: {typeof item.location === 'object' ? `${item.location?.city || 'Unknown'}, ${item.location?.state || 'Unknown State'}` : item.location || 'Unknown Location'}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-primary">
-                            {formatPrice(item.price)}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            per {item.unit}
-                          </div>
-                        </div>
+              return (
+                <Card key={item.id} className="overflow-hidden">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex gap-3 sm:gap-4">
+                      {/* Product Image */}
+                      <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0">
+                        <Image
+                          src={item.image || "/placeholder.svg"}
+                          alt={item.cropName}
+                          fill
+                          className="rounded-lg object-cover"
+                        />
                       </div>
 
-                      {/* Quantity Controls */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateCartQuantity(item.id, item.quantity - 1)}
-                            disabled={item.quantity <= 1}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <Input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => {
-                              const value = parseInt(e.target.value) || 1
-                              updateCartQuantity(item.id, Math.max(1, Math.min(value, item.availableQuantity)))
-                            }}
-                            className="w-16 text-center"
-                            min="1"
-                            max={item.availableQuantity}
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
-                            disabled={item.quantity >= item.availableQuantity}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                          <span className="text-sm text-muted-foreground">
-                            of {item.availableQuantity} {item.unit} available
-                          </span>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-primary">
-                              {formatPrice(item.total)}
+                      {/* Product Info */}
+                      <div className="min-w-0 flex-1 space-y-3">
+                        <div className="flex items-start gap-2">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-foreground truncate">
+                              {item.cropName}
+                            </h3>
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                              Farmer: {farmerName}
+                            </p>
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                              Location: {locationLabel}
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <div className="text-base sm:text-lg font-bold text-primary whitespace-nowrap">
+                              {formatPrice(item.price)}
+                            </div>
+                            <div className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+                              per {item.unit}
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeFromCart(item.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        </div>
+
+                        {/* Quantity + line total */}
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 shrink-0 p-0"
+                                onClick={() => updateCartQuantity(item.id, item.quantity - 1)}
+                                disabled={item.quantity <= 1}
+                                aria-label="Decrease quantity"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <Input
+                                type="number"
+                                value={item.quantity}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value) || 1
+                                  updateCartQuantity(
+                                    item.id,
+                                    Math.max(1, Math.min(value, item.availableQuantity))
+                                  )
+                                }}
+                                className="h-8 w-12 sm:w-16 shrink-0 text-center px-1"
+                                min="1"
+                                max={item.availableQuantity}
+                                aria-label="Quantity"
+                              />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 shrink-0 p-0"
+                                onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
+                                disabled={item.quantity >= item.availableQuantity}
+                                aria-label="Increase quantity"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <span className="text-xs sm:text-sm text-muted-foreground">
+                              of {item.availableQuantity} {item.unit} available
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 sm:justify-end">
+                            <div className="text-base sm:text-lg font-bold text-primary whitespace-nowrap">
+                              {formatPrice(lineTotal)}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeFromCart(item.id)}
+                              className="h-8 w-8 shrink-0 p-0 text-destructive hover:text-destructive"
+                              aria-label={`Remove ${item.cropName} from cart`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            })}
 
             {/* Clear Cart Button */}
             <div className="flex justify-end">
@@ -200,29 +221,29 @@ export default function CartPage() {
           </div>
 
           {/* Order Summary */}
-          <div className="lg:col-span-1">
-            <Card>
+          <div className="lg:col-span-1 min-w-0">
+            <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Items ({totalItems})</span>
-                    <span>{formatPrice(subtotal)}</span>
+                  <div className="flex justify-between gap-3 text-sm">
+                    <span className="shrink-0">Items ({totalItems})</span>
+                    <span className="text-right whitespace-nowrap">{formatPrice(subtotal)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Shipping</span>
-                    <span>{shipping === 0 ? 'Pending' : formatPrice(shipping)}</span>
+                  <div className="flex justify-between gap-3 text-sm">
+                    <span className="shrink-0">Shipping</span>
+                    <span className="text-right whitespace-nowrap">{shipping === 0 ? 'Pending' : formatPrice(shipping)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Tax</span>
-                    <span>{formatPrice(tax)}</span>
+                  <div className="flex justify-between gap-3 text-sm">
+                    <span className="shrink-0">Tax</span>
+                    <span className="text-right whitespace-nowrap">{formatPrice(tax)}</span>
                   </div>
                   <div className="border-t pt-2">
-                    <div className="flex justify-between font-semibold">
-                      <span>Total</span>
-                      <span className="text-lg text-primary">{formatPrice(total)}</span>
+                    <div className="flex justify-between gap-3 font-semibold">
+                      <span className="shrink-0">Total</span>
+                      <span className="text-lg text-primary text-right whitespace-nowrap">{formatPrice(total)}</span>
                     </div>
                   </div>
                 </div>

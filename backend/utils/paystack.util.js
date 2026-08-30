@@ -20,30 +20,48 @@ class PaystackUtil {
     })
   }
   
-  // Initialize transaction
+  // Initialize transaction.
+  // Callers pass `amount` in kobo (same convention as payment.controller.js).
   async initializeTransaction(data) {
     try {
-      const payload = {
-        amount: data.amount * 100, // Convert to kobo (smallest currency unit)
-        email: data.email,
-        reference: data.reference,
-        callback_url: data.callbackUrl,
-        currency: data.currency || 'NGN',
-        metadata: {
-          custom_fields: [
-            {
-              display_name: 'Customer Name',
-              variable_name: 'customer_name',
-              value: data.customerName
-            },
-            {
-              display_name: 'Order ID',
-              variable_name: 'order_id',
-              value: data.orderId
-            }
-          ]
+      const amountKobo = Math.round(Number(data.amount))
+      if (!Number.isFinite(amountKobo) || amountKobo <= 0) {
+        return {
+          success: false,
+          message: 'Invalid payment amount'
         }
       }
+
+      const callbackUrl = data.callback_url || data.callbackUrl
+
+      const metadata = data.metadata ? { ...data.metadata } : {}
+      if (!metadata.custom_fields) {
+        metadata.custom_fields = []
+      }
+      if (data.customerName) {
+        metadata.custom_fields.push({
+          display_name: 'Customer Name',
+          variable_name: 'customer_name',
+          value: data.customerName
+        })
+      }
+      if (data.orderId) {
+        metadata.custom_fields.push({
+          display_name: 'Order ID',
+          variable_name: 'order_id',
+          value: data.orderId
+        })
+      }
+
+      const payload = {
+        amount: amountKobo,
+        email: data.email,
+        reference: data.reference,
+        currency: data.currency || 'NGN',
+        metadata
+      }
+
+      if (callbackUrl) payload.callback_url = callbackUrl
       
       // Add additional fields if provided
       if (data.phone) payload.phone = data.phone

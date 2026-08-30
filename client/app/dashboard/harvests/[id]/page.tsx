@@ -432,7 +432,7 @@ export default function HarvestDetailPage() {
         <div className="space-y-6">
           
           {/* Visual QR Passport Card */}
-          {(harvest.qrCode || harvest.qrCodeData) && (
+          {(harvest.qrCode || harvest.qrCodeData || harvest.batchId) && (
             <Card className="border border-border rounded-2xl shadow-sm overflow-hidden bg-card">
               <CardHeader className="bg-muted/40 border-b border-border px-4 sm:px-5 py-4">
                 <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -443,13 +443,24 @@ export default function HarvestDetailPage() {
               <CardContent className="p-4 sm:p-5 text-center space-y-4">
                 <div className="inline-block p-3 border-2 border-border bg-white rounded-2xl shadow-sm">
                   {harvest.qrCode ? (
-                    <Image
-                      src={harvest.qrCode}
-                      alt="Batch Authenticity QR"
-                      width={160}
-                      height={160}
-                      className="rounded-lg w-40 h-40 mx-auto"
-                    />
+                    harvest.qrCode.startsWith("data:") ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={harvest.qrCode}
+                        alt="Batch Authenticity QR"
+                        width={160}
+                        height={160}
+                        className="rounded-lg w-40 h-40 mx-auto"
+                      />
+                    ) : (
+                      <Image
+                        src={harvest.qrCode}
+                        alt="Batch Authenticity QR"
+                        width={160}
+                        height={160}
+                        className="rounded-lg w-40 h-40 mx-auto"
+                      />
+                    )
                   ) : (
                     <div className="w-40 h-40 bg-muted flex flex-col items-center justify-center rounded-lg border">
                       <QrCode className="h-8 w-8 text-muted-foreground mb-1" />

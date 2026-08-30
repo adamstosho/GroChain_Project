@@ -15,10 +15,12 @@ import { layout, zIndex } from "@/lib/design-system"
 export function Header() {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const { isAuthenticated, isHydrated } = useAuthGuard()
   const prefersReduced = useReducedMotion()
 
   useEffect(() => {
+    setMounted(true)
     const onScroll = () => setScrolled(window.scrollY > 8)
     onScroll()
     window.addEventListener("scroll", onScroll, { passive: true })
@@ -93,62 +95,68 @@ export function Header() {
           )}
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu — Sheet mounts client-side only to avoid Radix ID hydration mismatch */}
         <div className="md:hidden flex items-center space-x-2">
           {isHydrated && isAuthenticated && <NotificationBell />}
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-              <div className="flex flex-col space-y-4 mt-8">
-                {navigation.map((item, i) => (
-                  <motion.div
-                    key={item.name}
-                    initial={prefersReduced ? false : { opacity: 0, x: 16 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.05 * i, duration: 0.3 }}
-                  >
-                    <Link
-                      href={item.href}
-                      className="text-lg font-medium text-muted-foreground hover:text-primary transition-colors block py-1"
-                      onClick={() => setIsOpen(false)}
+          {mounted ? (
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Open menu">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                <div className="flex flex-col space-y-4 mt-8">
+                  {navigation.map((item, i) => (
+                    <motion.div
+                      key={item.name}
+                      initial={prefersReduced ? false : { opacity: 0, x: 16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.05 * i, duration: 0.3 }}
                     >
-                      {item.name}
-                    </Link>
-                  </motion.div>
-                ))}
-                <div className="flex flex-col space-y-2 pt-4 border-t">
-                  {isHydrated ? (
-                    isAuthenticated ? (
-                      <Button asChild>
-                        <Link href="/dashboard" onClick={() => setIsOpen(false)}>
-                          Dashboard
-                        </Link>
-                      </Button>
-                    ) : (
-                      <>
-                        <Button variant="ghost" asChild>
-                          <Link href="/login" onClick={() => setIsOpen(false)}>
-                            Sign In
-                          </Link>
-                        </Button>
+                      <Link
+                        href={item.href}
+                        className="text-lg font-medium text-muted-foreground hover:text-primary transition-colors block py-1"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        {item.name}
+                      </Link>
+                    </motion.div>
+                  ))}
+                  <div className="flex flex-col space-y-2 pt-4 border-t">
+                    {isHydrated ? (
+                      isAuthenticated ? (
                         <Button asChild>
-                          <Link href="/register" onClick={() => setIsOpen(false)}>
-                            Sign Up
+                          <Link href="/dashboard" onClick={() => setIsOpen(false)}>
+                            Dashboard
                           </Link>
                         </Button>
-                      </>
-                    )
-                  ) : (
-                    <div className="h-10 w-full bg-muted rounded animate-pulse" />
-                  )}
+                      ) : (
+                        <>
+                          <Button variant="ghost" asChild>
+                            <Link href="/login" onClick={() => setIsOpen(false)}>
+                              Sign In
+                            </Link>
+                          </Button>
+                          <Button asChild>
+                            <Link href="/register" onClick={() => setIsOpen(false)}>
+                              Sign Up
+                            </Link>
+                          </Button>
+                        </>
+                      )
+                    ) : (
+                      <div className="h-10 w-full bg-muted rounded animate-pulse" />
+                    )}
+                  </div>
                 </div>
-              </div>
-            </SheetContent>
-          </Sheet>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <Button variant="ghost" size="icon" aria-label="Open menu">
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
         </div>
       </div>
     </motion.header>

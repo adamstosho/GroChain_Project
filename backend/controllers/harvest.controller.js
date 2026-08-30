@@ -8,7 +8,6 @@ const { escapeRegex } = require('../utils/regex.util')
 const {
   parseIdempotencyKey,
   findIdempotentRecord,
-  idempotentSuccess,
 } = require('../utils/idempotency')
 
 const harvestSchema = Joi.object({
@@ -32,6 +31,103 @@ const harvestSchema = Joi.object({
   certification: Joi.string().optional(),
 }).unknown(true)
 
+function getVerificationUrl(batchId) {
+  return `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify/${batchId}`
+}
+
+async function ensureHarvestQrCode(harvest, farmer, priceValue = {}) {
+  if (!harvest?.batchId || harvest.qrCode) {
+    return harvest
+  }
+
+  const verificationUrl = getVerificationUrl(harvest.batchId)
+  const qrData = {
+    batchId: harvest.batchId,
+    cropType: harvest.cropType,
+    variety: harvest.variety,
+    quantity: harvest.quantity,
+    unit: harvest.unit,
+    quality: harvest.quality,
+    location: harvest.location,
+    harvestDate: harvest.date,
+    farmer: {
+      id: farmer._id,
+      name: farmer.name,
+      farmName: farmer.profile?.farmName,
+      phone: farmer.profile?.phone
+    },
+    images: harvest.images || [],
+    organic: harvest.sustainability?.organicCertified,
+    price: priceValue.price ?? harvest.price,
+    verificationUrl,
+    timestamp: new Date().toISOString()
+  }
+
+  const qrCodeImage = await QRCode.toDataURL(verificationUrl)
+  harvest.qrCode = qrCodeImage
+  harvest.qrCodeData = qrData
+  await harvest.save()
+  return harvest
+}
+
+function sendHarvestCreatedNotifications(userId, farmer, harvest) {
+  setImmediate(async () => {
+    try {
+      await notificationController.createNotificationForActivity(
+        userId,
+        'farmer',
+        'harvest',
+        'logged',
+        {
+          cropType: harvest.cropType,
+          batchId: harvest.batchId,
+          actionUrl: `/dashboard/harvests/${harvest._id}`
+        }
+      )
+    } catch (notificationError) {
+      console.error('Failed to create harvest logged notification:', notificationError)
+    }
+
+    try {
+      await notificationController.notifyAdmins(
+        'farmer',
+        'harvestLogged',
+        {
+          farmerName: farmer.name,
+          cropType: harvest.cropType,
+          batchId: harvest.batchId,
+          actionUrl: `/admin/harvests/${harvest._id}`
+        }
+      )
+    } catch (notificationError) {
+      console.error('Failed to notify admins about harvest:', notificationError)
+    }
+
+    try {
+      await notificationController.notifyPartners(
+        userId,
+        'farmer',
+        'harvestLogged',
+        {
+          farmerName: farmer.name,
+          cropType: harvest.cropType,
+          batchId: harvest.batchId,
+          actionUrl: `/partner/harvests/${harvest._id}`
+        }
+      )
+    } catch (notificationError) {
+      console.error('Failed to notify partner about harvest:', notificationError)
+    }
+  })
+}
+
+function formatHarvestResponse(harvest) {
+  return {
+    ...harvest.toObject(),
+    qrCodeGenerated: !!harvest.qrCode
+  }
+}
+
 exports.createHarvest = async (req, res) => {
   try {
     const idempotencyKey = parseIdempotencyKey(req)
@@ -43,7 +139,16 @@ exports.createHarvest = async (req, res) => {
         idempotencyKey
       )
       if (existing) {
-        return idempotentSuccess(res, existing, 'Harvest already logged')
+        const farmer = await User.findById(req.user.id).select('name email profile.phone profile.farmName')
+        if (farmer) {
+          await ensureHarvestQrCode(existing, farmer, { price: existing.price })
+        }
+        return res.status(200).json({
+          status: 'success',
+          harvest: formatHarvestResponse(existing),
+          message: 'Harvest already logged',
+          idempotent: true,
+        })
       }
     }
 
@@ -118,101 +223,13 @@ exports.createHarvest = async (req, res) => {
 
     const harvest = await Harvest.create(harvestData)
 
-    // Create notification for farmer
-    try {
-      await notificationController.createNotificationForActivity(
-        req.user.id,
-        'farmer',
-        'harvest',
-        'logged',
-        {
-          cropType: harvest.cropType,
-          batchId: harvest.batchId,
-          actionUrl: `/dashboard/harvests/${harvest._id}`
-        }
-      )
-    } catch (notificationError) {
-      console.error('Failed to create harvest logged notification:', notificationError)
-    }
+    await ensureHarvestQrCode(harvest, farmer, value)
 
-    // Notify admins about new harvest
-    try {
-      await notificationController.notifyAdmins(
-        'farmer',
-        'harvestLogged',
-        {
-          farmerName: farmer.name,
-          cropType: harvest.cropType,
-          batchId: harvest.batchId,
-          actionUrl: `/admin/harvests/${harvest._id}`
-        }
-      )
-    } catch (notificationError) {
-      console.error('Failed to notify admins about harvest:', notificationError)
-    }
-
-    // Notify partner about farmer's harvest
-    try {
-      await notificationController.notifyPartners(
-        req.user.id,
-        'farmer',
-        'harvestLogged',
-        {
-          farmerName: farmer.name,
-          cropType: harvest.cropType,
-          batchId: harvest.batchId,
-          actionUrl: `/partner/harvests/${harvest._id}`
-        }
-      )
-    } catch (notificationError) {
-      console.error('Failed to notify partner about harvest:', notificationError)
-    }
-
-    // Removed automatic approval - harvests now require manual approval by partners/admins
-
-    // Generate QR code automatically
-    try {
-      const qrData = {
-        batchId: harvest.batchId,
-        cropType: harvest.cropType,
-        variety: harvest.variety,
-        quantity: harvest.quantity,
-        unit: harvest.unit,
-        quality: harvest.quality,
-        location: harvest.location,
-        harvestDate: harvest.date,
-        farmer: {
-          id: farmer._id,
-          name: farmer.name,
-          farmName: farmer.profile?.farmName,
-          phone: farmer.profile?.phone
-        },
-        images: harvest.images || [],
-        organic: harvest.sustainability?.organicCertified,
-        price: value.price,
-        verificationUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify/${harvest.batchId}`,
-        timestamp: new Date().toISOString()
-      }
-
-      // Generate QR code with only the verification URL
-      const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify/${harvest.batchId}`
-      const qrCodeImage = await QRCode.toDataURL(verificationUrl)
-
-      // Update harvest with QR code
-      harvest.qrCode = qrCodeImage
-      harvest.qrCodeData = qrData
-      await harvest.save()
-    } catch (qrError) {
-      console.error('QR code generation error:', qrError)
-      // Don't fail the harvest creation if QR code fails
-    }
+    sendHarvestCreatedNotifications(req.user.id, farmer, harvest)
 
     return res.status(201).json({
       status: 'success',
-      harvest: {
-        ...harvest.toObject(),
-        qrCodeGenerated: !!harvest.qrCode
-      }
+      harvest: formatHarvestResponse(harvest)
     })
   } catch (e) {
     console.error('createHarvest error:', e)
@@ -223,7 +240,16 @@ exports.createHarvest = async (req, res) => {
           idempotencyKey: String(req.body.idempotencyKey).trim().slice(0, 128),
         })
         if (existing) {
-          return idempotentSuccess(res, existing, 'Harvest already logged')
+          const farmer = await User.findById(req.user.id).select('name email profile.phone profile.farmName')
+          if (farmer) {
+            await ensureHarvestQrCode(existing, farmer, { price: existing.price })
+          }
+          return res.status(200).json({
+            status: 'success',
+            harvest: formatHarvestResponse(existing),
+            message: 'Harvest already logged',
+            idempotent: true,
+          })
         }
       } catch (replayError) {
         console.error('Harvest idempotency replay failed:', replayError)
@@ -257,6 +283,17 @@ exports.getHarvestById = async (req, res) => {
 
     if (!harvest) {
       return res.status(404).json({ status: 'error', message: 'Harvest not found' })
+    }
+
+    if (!harvest.qrCode && harvest.batchId) {
+      const farmer = await User.findById(req.user.id).select('name email profile.phone profile.farmName')
+      if (farmer) {
+        try {
+          await ensureHarvestQrCode(harvest, farmer, { price: harvest.price })
+        } catch (qrError) {
+          console.error('Lazy QR generation failed for harvest:', harvest._id, qrError)
+        }
+      }
     }
 
     return res.json({ status: 'success', harvest })

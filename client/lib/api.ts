@@ -26,6 +26,8 @@ interface UploadImageResponse {
   data?: { urls?: string[] }
 }
 
+type UploadImageApiResponse = ApiResponse<UploadImageResponse> & UploadImageResponse
+
 class ApiService {
   private baseUrl: string
   private token: string | null = null
@@ -1021,8 +1023,9 @@ class ApiService {
       headers: {
         Authorization: token ? `Bearer ${token}` : "",
       } as Record<string, string>,
-    })
-    const urls: string[] = res?.urls || res?.data?.urls || []
+    }) as UploadImageApiResponse
+    // Backend returns top-level `urls`; also accept nested `data.urls` for safety.
+    const urls: string[] = res.urls || res.data?.urls || []
     if (!urls[0]) {
       throw new Error("Upload succeeded but no image URL was returned")
     }
@@ -1039,8 +1042,9 @@ class ApiService {
       headers: {
         Authorization: token ? `Bearer ${token}` : "",
       } as Record<string, string>,
-    })
-    const urls: string[] = res?.urls || res?.data?.urls || []
+    }) as UploadImageApiResponse
+    // Backend returns top-level `urls`; also accept nested `data.urls` for safety.
+    const urls: string[] = res.urls || res.data?.urls || []
     if (urls.length === 0) {
       throw new Error("Upload succeeded but no image URLs were returned")
     }

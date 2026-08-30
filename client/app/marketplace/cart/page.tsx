@@ -121,85 +121,108 @@ export default function CartPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {cart.map((item) => (
-                      <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                        <div className="relative h-16 w-16 rounded overflow-hidden">
-                          <Image
-                            src={
-                              item.image ||
-                              "/placeholder.svg?height=64&width=64&query=agricultural product"
-                            }
-                            alt={item.cropName}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
+                    {cart.map((item) => {
+                      const farmerName =
+                        typeof item.farmer === "object"
+                          ? item.farmer?.name || "Unknown Farmer"
+                          : item.farmer || "Unknown Farmer"
+                      const locationLabel =
+                        typeof item.location === "object"
+                          ? `${item.location?.city || "Unknown"}, ${item.location?.state || "Unknown State"}`
+                          : item.location || "Unknown Location"
+                      const stock = currentProductData[item.listingId]
 
-                        <div className="flex-1">
-                          <h4 className="font-semibold">{item.cropName}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {typeof item.farmer === 'object' ? item.farmer?.name || 'Unknown Farmer' : item.farmer || 'Unknown Farmer'}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {typeof item.location === 'object' ? `${item.location?.city || 'Unknown'}, ${item.location?.state || 'Unknown State'}` : item.location || 'Unknown Location'}
-                          </p>
-                          {currentProductData[item.listingId] ? (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {currentProductData[item.listingId].quantity <= 0 ? (
-                                <span className="text-destructive font-medium">Out of Stock</span>
-                              ) : (
-                                <span>
-                                  {currentProductData[item.listingId].quantity} {item.unit} available
-                                  {currentProductData[item.listingId].quantity < item.quantity && (
-                                    <span className="text-warning ml-1">(Low stock!)</span>
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex flex-col gap-3 rounded-lg border p-3 sm:p-4 sm:flex-row sm:items-center sm:gap-4"
+                        >
+                          <div className="flex min-w-0 flex-1 gap-3">
+                            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded sm:h-16 sm:w-16">
+                              <Image
+                                src={
+                                  item.image ||
+                                  "/placeholder.svg?height=64&width=64&query=agricultural product"
+                                }
+                                alt={item.cropName}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <h4 className="font-semibold truncate">{item.cropName}</h4>
+                              <p className="text-sm text-muted-foreground truncate">{farmerName}</p>
+                              <p className="text-sm text-muted-foreground truncate">{locationLabel}</p>
+                              {stock ? (
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  {stock.quantity <= 0 ? (
+                                    <span className="font-medium text-destructive">Out of Stock</span>
+                                  ) : (
+                                    <span>
+                                      {stock.quantity} {item.unit} available
+                                      {stock.quantity < item.quantity && (
+                                        <span className="ml-1 text-warning">(Low stock!)</span>
+                                      )}
+                                    </span>
                                   )}
-                                </span>
+                                </div>
+                              ) : (
+                                <div className="mt-1 text-xs text-primary">Loading current stock...</div>
                               )}
                             </div>
-                          ) : (
-                            <div className="text-xs text-primary mt-1">
-                              Loading current stock...
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end sm:gap-4">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 shrink-0 p-0"
+                                onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                                disabled={item.quantity <= 1}
+                                aria-label="Decrease quantity"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-8 shrink-0 text-center">{item.quantity}</span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 shrink-0 p-0"
+                                onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                                disabled={
+                                  item.quantity >=
+                                  (currentProductData[item.listingId]?.quantity || item.availableQuantity)
+                                }
+                                aria-label="Increase quantity"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
                             </div>
-                          )}
-                        </div>
 
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                            disabled={item.quantity <= 1}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-8 text-center">{item.quantity}</span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                            disabled={item.quantity >= (currentProductData[item.listingId]?.quantity || item.availableQuantity)}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
+                            <div className="text-right">
+                              <p className="font-semibold whitespace-nowrap">
+                                ₦{(item.price * item.quantity).toLocaleString()}
+                              </p>
+                              <p className="text-sm text-muted-foreground whitespace-nowrap">
+                                ₦{item.price}/{item.unit}
+                              </p>
+                            </div>
 
-                        <div className="text-right">
-                          <p className="font-semibold">₦{(item.price * item.quantity).toLocaleString()}</p>
-                          <p className="text-sm text-muted-foreground">
-                            ₦{item.price}/{item.unit}
-                          </p>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="h-8 w-8 shrink-0 p-0 text-destructive hover:text-destructive"
+                              aria-label={`Remove ${item.cropName} from cart`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </CardContent>

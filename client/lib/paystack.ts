@@ -240,10 +240,29 @@ export const processOrderPayment = async (
     // with Paystack (or a test-mode Transaction) under this exact value — the charge
     // below MUST use it as-is, or server-side verification/webhooks can never match it.
     const reference: string | undefined =
-      initData?.data?.paystack?.reference || initData?.data?.transaction?.reference
+      initData?.data?.paystack?.data?.reference ||
+      initData?.data?.paystack?.reference ||
+      initData?.data?.transaction?.reference
 
     if (!reference) {
       throw new Error('Server did not return a payment reference')
+    }
+
+    // Test mode: skip inline popup and verify directly on the server
+    if (initData?.data?.testMode) {
+      const verifyRes = await fetch(
+        `${APP_CONFIG.api.baseUrl}/api/payments/verify/${reference}?test_mode=true`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        }
+      )
+      const verifyData = await verifyRes.json()
+      if (verifyData.status === 'success') {
+        const result: PaystackResponse = { status: 'success', reference }
+        onSuccess?.(result)
+        return result
+      }
+      throw new Error(verifyData.message || 'Test payment verification failed')
     }
 
     // If using Paystack inline (recommended)
@@ -255,7 +274,7 @@ export const processOrderPayment = async (
       reference
     }
 
-    return await initializePaystackPayment(
+    const paymentResult = await initializePaystackPayment(
       paymentData,
       (response) => {
         console.log('✅ Payment successful:', response)
@@ -266,6 +285,23 @@ export const processOrderPayment = async (
         if (onClose) onClose()
       }
     )
+
+    // Confirm payment with backend so the order is marked paid (inline popup
+    // does not redirect to /payment/verify like the hosted checkout flow).
+    if (paymentResult.status === 'success' && paymentResult.reference) {
+      const verifyRes = await fetch(
+        `${APP_CONFIG.api.baseUrl}/api/payments/verify/${paymentResult.reference}`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        }
+      )
+      const verifyData = await verifyRes.json()
+      if (verifyData.status !== 'success') {
+        throw new Error(verifyData.message || 'Payment verification failed')
+      }
+    }
+
+    return paymentResult
 
   } catch (error: unknown) {
     console.error('❌ Payment processing error:', error)
@@ -309,7 +345,10 @@ export const processLoanPayment = async (
   }
 
   const initData = await initResponse.json()
-  const reference = initData?.data?.paystack?.reference || initData?.data?.transaction?.reference
+  const reference =
+    initData?.data?.paystack?.data?.reference ||
+    initData?.data?.paystack?.reference ||
+    initData?.data?.transaction?.reference
   const payAmount = initData?.data?.transaction?.amount || amount
 
   if (!reference) {
@@ -332,11 +371,26 @@ export const processLoanPayment = async (
     throw new Error(verifyData.message || 'Test payment verification failed')
   }
 
-  return initializePaystackPayment(
+  const paymentResult = await initializePaystackPayment(
     { orderId: loanApplicationId, amount: payAmount, email, reference },
     onSuccess,
     onClose
   )
+
+  if (paymentResult.status === 'success' && paymentResult.reference) {
+    const verifyRes = await fetch(
+      `${APP_CONFIG.api.baseUrl}/api/payments/verify/${paymentResult.reference}`,
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      }
+    )
+    const verifyData = await verifyRes.json()
+    if (verifyData.status !== 'success') {
+      throw new Error(verifyData.message || 'Payment verification failed')
+    }
+  }
+
+  return paymentResult
 }
 
 /**
