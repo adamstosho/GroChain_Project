@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { apiService } from '@/lib/api'
+import { getErrorMessage } from '@/lib/error-utils'
 import { useToast } from './use-toast'
 import { useAuthStore } from '@/lib/auth'
 
@@ -100,8 +101,8 @@ export const usePriceAlerts = () => {
         console.error('❌ Price alerts API error:', response?.message || 'Unknown error')
         throw new Error(response?.message || 'Failed to fetch alerts')
       }
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to fetch price alerts'
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error) || 'Failed to fetch price alerts'
       setError(errorMessage)
       console.error('❌ Error fetching price alerts:', error)
       
@@ -136,7 +137,7 @@ export const usePriceAlerts = () => {
         console.error('❌ Price alert stats API error:', response?.message || 'Unknown error')
         throw new Error(response?.message || 'Failed to fetch stats')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Error fetching price alert stats:', error)
       
       // Network/timeout errors will still be caught here
@@ -174,8 +175,8 @@ export const usePriceAlerts = () => {
       } else {
         throw new Error(response.message || 'Failed to create alert')
       }
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to create price alert'
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error) || 'Failed to create price alert'
       setError(errorMessage)
       
       toast({
@@ -213,8 +214,8 @@ export const usePriceAlerts = () => {
       } else {
         throw new Error(response.message || 'Failed to update alert')
       }
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to update price alert'
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error) || 'Failed to update price alert'
       setError(errorMessage)
       
       toast({
@@ -249,8 +250,8 @@ export const usePriceAlerts = () => {
       } else {
         throw new Error(response.message || 'Failed to delete alert')
       }
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to delete price alert'
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error) || 'Failed to delete price alert'
       setError(errorMessage)
       
       toast({

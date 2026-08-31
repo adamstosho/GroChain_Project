@@ -383,6 +383,7 @@ class ApiService {
       status: string
       message: string
       requiresVerification: boolean
+      emailSent?: boolean
       user: User
     }>("/api/auth/register", {
       method: "POST",
@@ -434,7 +435,7 @@ class ApiService {
   }
 
   async resendVerification(email: string) {
-    return this.request<{ message: string }>("/api/auth/resend-verification", {
+    return this.request<{ message: string; emailSent?: boolean }>("/api/auth/resend-verification", {
       method: "POST",
       body: JSON.stringify({ email }),
     })

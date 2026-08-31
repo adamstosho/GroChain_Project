@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useStableDataFetch } from "@/hooks/use-stable-data-fetch"
 import { extractListingsFromResponse } from "@/lib/marketplace-listings"
+import { asRecord } from "@/lib/error-utils"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -60,26 +61,37 @@ export function MarketplacePreview() {
       const listings = extractListingsFromResponse(response.data ?? response)
 
       // Convert backend format to frontend format
-      const convertedProducts = listings.slice(0, 6).map((listing: any) => ({
-        id: listing._id,
-        name: listing.cropName,
-        category: listing.category,
-        description: listing.description,
-        price: listing.basePrice,
-        unit: listing.unit,
-        location: listing.location,
-        images: listing.images || [],
-        rating: listing.rating || 4.5,
-        farmerName: listing.farmer?.name || 'Local Farmer',
-        farmerId: listing.farmer?._id || 'unknown',
-        quantity: listing.quantity,
-        availableQuantity: listing.availableQuantity,
-        quality: listing.qualityGrade,
-        organic: listing.organic,
-        tags: listing.tags || [],
-        createdAt: listing.createdAt,
-        qrCode: listing.qrCode
-      }))
+      const convertedProducts = listings.slice(0, 6).map((listing) => {
+        const farmer = asRecord(listing.farmer)
+        const loc = listing.location
+        let location = "Location N/A"
+        if (typeof loc === "string") {
+          location = loc
+        } else if (loc && typeof loc === "object") {
+          const rec = asRecord(loc)
+          location = `${typeof rec.city === "string" ? rec.city : ""}, ${typeof rec.state === "string" ? rec.state : ""}`.replace(/^, |, $/, "").trim() || "Location N/A"
+        }
+        return {
+        id: typeof listing._id === "string" ? listing._id : String(listing.id ?? ""),
+        name: typeof listing.cropName === "string" ? listing.cropName : "",
+        category: typeof listing.category === "string" ? listing.category : "",
+        description: typeof listing.description === "string" ? listing.description : "",
+        price: typeof listing.basePrice === "number" ? listing.basePrice : 0,
+        unit: typeof listing.unit === "string" ? listing.unit : "",
+        location,
+        images: Array.isArray(listing.images) ? listing.images.filter((img): img is string => typeof img === "string") : [],
+        rating: typeof listing.rating === "number" ? listing.rating : 4.5,
+        farmerName: typeof farmer.name === "string" ? farmer.name : "Local Farmer",
+        farmerId: typeof farmer._id === "string" ? farmer._id : "unknown",
+        quantity: typeof listing.quantity === "number" ? listing.quantity : 0,
+        availableQuantity: typeof listing.availableQuantity === "number" ? listing.availableQuantity : 0,
+        quality: typeof listing.qualityGrade === "string" ? listing.qualityGrade : "",
+        organic: Boolean(listing.organic),
+        tags: Array.isArray(listing.tags) ? listing.tags.filter((tag): tag is string => typeof tag === "string") : [],
+        createdAt: typeof listing.createdAt === "string" ? listing.createdAt : "",
+        qrCode: typeof listing.qrCode === "string" ? listing.qrCode : undefined,
+      }
+      })
 
       setProducts(convertedProducts)
       finish(generation)
@@ -117,7 +129,7 @@ export function MarketplacePreview() {
   }
 
   const handleTestQR = (product: MarketplaceProduct) => {
-    const qrCode = product.qrCode || (product as any).qrCode
+    const qrCode = product.qrCode
     if (typeof qrCode === 'string' && qrCode.trim()) {
       router.push(`/verify/${qrCode}`)
     } else {
@@ -211,10 +223,7 @@ export function MarketplacePreview() {
                     <span className="text-sm font-medium text-foreground">
                       {typeof product.farmerName === 'string'
                         ? product.farmerName
-                        : typeof product.farmerName === 'object' && product.farmerName
-                        ? (product.farmerName as any).name || 'Local Farmer'
-                        : 'Local Farmer'
-                      }
+                        : 'Local Farmer'}
                     </span>
                   </div>
 
@@ -224,10 +233,7 @@ export function MarketplacePreview() {
                     <span className="text-sm text-muted-foreground">
                       {typeof product.location === 'string'
                         ? product.location
-                        : typeof product.location === 'object' && product.location
-                        ? `${(product.location as any).city || ''}, ${(product.location as any).state || ''}`.replace(/^, |, $/, '').trim() || 'Location N/A'
-                        : 'Location N/A'
-                      }
+                        : 'Location N/A'}
                     </span>
                   </div>
 
@@ -274,7 +280,7 @@ export function MarketplacePreview() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleTestQR(product)}
-                      disabled={!product.qrCode && !(product as any).qrCode}
+                      disabled={!product.qrCode}
                     >
                       QR
                     </Button>

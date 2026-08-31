@@ -13,6 +13,7 @@ import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { Text } from "@/components/ui/typography"
 import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
+import { asRecord } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import {
   QrCode,
@@ -32,6 +33,17 @@ import {
   ChevronUp
 } from "lucide-react"
 
+interface QRScanEntry {
+  scannedBy?: {
+    name?: string
+  }
+  scannedAt?: string
+  deviceInfo?: {
+    userAgent?: string
+  }
+  verificationResult?: string
+}
+
 interface QRCode {
   id: string
   code: string
@@ -45,6 +57,12 @@ interface QRCode {
   createdAt: string
   lastScanned?: string
   scanCount: number
+  qrImage?: string
+  batchId?: string
+  unit?: string
+  downloadCount?: number
+  scans?: QRScanEntry[]
+  qrData?: unknown
   metadata: {
     farmerId: string
     farmName: string
@@ -129,17 +147,17 @@ export default function QRCodesPage() {
       const statsResponse = await apiService.getQRCodeStats()
 
       if (statsResponse?.status === 'success' && statsResponse?.data) {
-        const statsData = statsResponse.data as any
+        const statsData = asRecord(statsResponse.data)
         const formattedStats: QRStats = {
-          totalCodes: statsData.totalCodes || 0,
-          activeCodes: statsData.activeCodes || 0,
-          verifiedCodes: statsData.verifiedCodes || 0,
-          revokedCodes: statsData.revokedCodes || 0,
-          totalScans: statsData.totalScans || 0,
-          monthlyTrend: Array.isArray(statsData.monthlyTrend) ? statsData.monthlyTrend : [],
-          expiredCodes: statsData.expiredCodes || 0,
-          totalDownloads: statsData.totalDownloads || 0,
-          monthlyGrowth: statsData.monthlyGrowth || 0
+          totalCodes: typeof statsData.totalCodes === "number" ? statsData.totalCodes : 0,
+          activeCodes: typeof statsData.activeCodes === "number" ? statsData.activeCodes : 0,
+          verifiedCodes: typeof statsData.verifiedCodes === "number" ? statsData.verifiedCodes : 0,
+          revokedCodes: typeof statsData.revokedCodes === "number" ? statsData.revokedCodes : 0,
+          totalScans: typeof statsData.totalScans === "number" ? statsData.totalScans : 0,
+          monthlyTrend: Array.isArray(statsData.monthlyTrend) ? statsData.monthlyTrend as QRStats["monthlyTrend"] : [],
+          expiredCodes: typeof statsData.expiredCodes === "number" ? statsData.expiredCodes : 0,
+          totalDownloads: typeof statsData.totalDownloads === "number" ? statsData.totalDownloads : 0,
+          monthlyGrowth: typeof statsData.monthlyGrowth === "number" ? statsData.monthlyGrowth : 0
         }
 
         setStats(formattedStats)
@@ -209,31 +227,73 @@ export default function QRCodesPage() {
         }
 
         // Format QR codes data to match frontend interface
-        const formattedQRCodes: QRCode[] = qrCodesData.map((qr: any) => ({
-          id: qr.id || qr._id,
-          code: qr.code,
-          harvestId: qr.harvestId || qr.harvest,
-          cropType: qr.cropType || qr.metadata?.cropType || 'Unknown',
-          quantity: qr.quantity || qr.metadata?.quantity || 0,
-          quality: qr.quality || qr.metadata?.quality || 'Standard',
-          harvestDate: qr.harvestDate || qr.metadata?.harvestDate,
-          location: qr.metadata?.location?.city || qr.location || 'Unknown',
-          status: qr.status || 'active',
-          createdAt: qr.createdAt,
-          lastScanned: qr.lastScanned,
-          scanCount: qr.scanCount || 0,
-          metadata: {
-            farmerId: qr.metadata?.farmerId || '',
-            farmName: qr.metadata?.location?.farmName || 'Unknown Farm',
-            coordinates: qr.metadata?.location?.coordinates || qr.metadata?.coordinates || { lat: 0, lng: 0 },
-            batchNumber: qr.metadata?.batchNumber || qr.batchId || '',
-            location: qr.metadata?.location || {
-              city: qr.metadata?.location?.city || 'Unknown',
-              state: qr.metadata?.location?.state || 'Unknown',
-              farmName: qr.metadata?.location?.farmName || 'Unknown Farm'
+        const formattedQRCodes: QRCode[] = qrCodesData.map((qrRaw) => {
+          const qr = asRecord(qrRaw)
+          const metadata = asRecord(qr.metadata)
+          const metaLocation = asRecord(metadata.location)
+          const id = typeof qr.id === "string" ? qr.id : typeof qr._id === "string" ? qr._id : ""
+          const harvestId = typeof qr.harvestId === "string" ? qr.harvestId : typeof qr.harvest === "string" ? qr.harvest : ""
+          const scans = Array.isArray(qr.scans)
+            ? qr.scans.map((scanRaw) => {
+                const scan = asRecord(scanRaw)
+                const scannedBy = asRecord(scan.scannedBy)
+                const deviceInfo = asRecord(scan.deviceInfo)
+                return {
+                  scannedBy: { name: typeof scannedBy.name === "string" ? scannedBy.name : undefined },
+                  scannedAt: typeof scan.scannedAt === "string" ? scan.scannedAt : undefined,
+                  deviceInfo: { userAgent: typeof deviceInfo.userAgent === "string" ? deviceInfo.userAgent : undefined },
+                  verificationResult: typeof scan.verificationResult === "string" ? scan.verificationResult : undefined
+                }
+              })
+            : undefined
+          return {
+            id,
+            code: typeof qr.code === "string" ? qr.code : "",
+            harvestId,
+            cropType: (typeof qr.cropType === "string" ? qr.cropType : undefined)
+              || (typeof metadata.cropType === "string" ? metadata.cropType : undefined)
+              || "Unknown",
+            quantity: (typeof qr.quantity === "number" ? qr.quantity : undefined)
+              ?? (typeof metadata.quantity === "number" ? metadata.quantity : 0),
+            quality: (typeof qr.quality === "string" ? qr.quality : undefined)
+              || (typeof metadata.quality === "string" ? metadata.quality : undefined)
+              || "Standard",
+            harvestDate: (typeof qr.harvestDate === "string" ? qr.harvestDate : undefined)
+              || (typeof metadata.harvestDate === "string" ? metadata.harvestDate : ""),
+            location: (typeof metaLocation.city === "string" ? metaLocation.city : undefined)
+              || (typeof qr.location === "string" ? qr.location : "Unknown"),
+            status: (typeof qr.status === "string" ? qr.status : "active") as QRCode["status"],
+            createdAt: typeof qr.createdAt === "string" ? qr.createdAt : "",
+            lastScanned: typeof qr.lastScanned === "string" ? qr.lastScanned : undefined,
+            scanCount: typeof qr.scanCount === "number" ? qr.scanCount : 0,
+            qrImage: typeof qr.qrImage === "string" ? qr.qrImage : undefined,
+            batchId: typeof qr.batchId === "string" ? qr.batchId : undefined,
+            unit: typeof qr.unit === "string" ? qr.unit : undefined,
+            downloadCount: typeof qr.downloadCount === "number" ? qr.downloadCount : undefined,
+            scans,
+            qrData: qr.qrData,
+            metadata: {
+              farmerId: typeof metadata.farmerId === "string" ? metadata.farmerId : "",
+              farmName: typeof metaLocation.farmName === "string" ? metaLocation.farmName : "Unknown Farm",
+              coordinates: (() => {
+                const coords = metaLocation.coordinates ?? metadata.coordinates
+                if (typeof coords === "string") return coords
+                const coordsRecord = asRecord(coords)
+                if (typeof coordsRecord.lat === "number" && typeof coordsRecord.lng === "number") {
+                  return { lat: coordsRecord.lat, lng: coordsRecord.lng }
+                }
+                return { lat: 0, lng: 0 }
+              })(),
+              batchNumber: (typeof metadata.batchNumber === "string" ? metadata.batchNumber : undefined)
+                || (typeof qr.batchId === "string" ? qr.batchId : ""),
+              location: {
+                city: typeof metaLocation.city === "string" ? metaLocation.city : "Unknown",
+                state: typeof metaLocation.state === "string" ? metaLocation.state : "Unknown",
+                farmName: typeof metaLocation.farmName === "string" ? metaLocation.farmName : "Unknown Farm"
+              }
             }
           }
-        }))
+        })
 
         setQRCodes(formattedQRCodes)
 
@@ -388,12 +448,14 @@ export default function QRCodesPage() {
   })
 
   const sortedQRCodes = [...filteredQRCodes].sort((a, b) => {
-    let aValue: any = a[sortBy as keyof QRCode]
-    let bValue: any = b[sortBy as keyof QRCode]
+    const aRaw: unknown = a[sortBy as keyof QRCode]
+    const bRaw: unknown = b[sortBy as keyof QRCode]
+    let aValue: string | number = typeof aRaw === "number" || typeof aRaw === "string" ? aRaw : String(aRaw ?? "")
+    let bValue: string | number = typeof bRaw === "number" || typeof bRaw === "string" ? bRaw : String(bRaw ?? "")
 
     if (sortBy === 'createdAt' || sortBy === 'harvestDate' || sortBy === 'lastScanned') {
-      aValue = new Date(aValue).getTime()
-      bValue = new Date(bValue).getTime()
+      aValue = new Date(String(aRaw ?? "")).getTime()
+      bValue = new Date(String(bRaw ?? "")).getTime()
     }
 
     if (sortOrder === 'asc') {
@@ -861,7 +923,7 @@ export default function QRCodesPage() {
                 </div>
 
                 {/* QR Code Image */}
-                {(selectedQRCode as any).qrImage && (
+                {selectedQRCode.qrImage && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-base">QR Code Image</CardTitle>
@@ -869,7 +931,7 @@ export default function QRCodesPage() {
                     <CardContent className="flex justify-center">
                       <div className="p-2 sm:p-4 bg-white border border-border rounded-lg">
                         <Image
-                          src={(selectedQRCode as any).qrImage}
+                          src={selectedQRCode.qrImage}
                           alt={`QR Code ${selectedQRCode.code}`}
                           width={192}
                           height={192}
@@ -890,7 +952,7 @@ export default function QRCodesPage() {
                     <CardContent className="space-y-3">
                       <div className="flex justify-between">
                         <span className="font-medium">Batch ID:</span>
-                        <span>{selectedQRCode.metadata?.batchNumber || (selectedQRCode as any).batchId || 'Unknown'}</span>
+                        <span>{selectedQRCode.metadata?.batchNumber || selectedQRCode.batchId || 'Unknown'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="font-medium">Crop Type:</span>
@@ -898,7 +960,7 @@ export default function QRCodesPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="font-medium">Quantity:</span>
-                        <span>{selectedQRCode.quantity} {(selectedQRCode as any).unit || 'kg'}</span>
+                        <span>{selectedQRCode.quantity} {selectedQRCode.unit || 'kg'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="font-medium">Quality:</span>
@@ -932,7 +994,7 @@ export default function QRCodesPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="font-medium">Download Count:</span>
-                        <span>{(selectedQRCode as any).downloadCount || 0}</span>
+                        <span>{selectedQRCode.downloadCount || 0}</span>
                       </div>
                       {selectedQRCode.lastScanned && (
                         <div className="flex justify-between">
@@ -949,21 +1011,21 @@ export default function QRCodesPage() {
                 </div>
 
                 {/* Scan History */}
-                {(selectedQRCode as any).scans && (selectedQRCode as any).scans.length > 0 && (
+                {selectedQRCode.scans && selectedQRCode.scans.length > 0 && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-base">Recent Scans</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3 max-h-60 overflow-y-auto">
-                        {(selectedQRCode as any).scans.slice(0, 10).map((scan: any, index: number) => (
+                        {selectedQRCode.scans.slice(0, 10).map((scan, index) => (
                           <div key={index} className="flex items-center justify-between p-3 border border-border rounded-lg">
                             <div className="space-y-1">
                               <div className="text-sm font-medium">
-                                {scan.scannedBy.name || 'Anonymous User'}
+                                {scan.scannedBy?.name || 'Anonymous User'}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {new Date(scan.scannedAt).toLocaleString()}
+                                {scan.scannedAt ? new Date(scan.scannedAt).toLocaleString() : "Unknown time"}
                               </div>
                               {scan.deviceInfo && (
                                 <div className="text-xs text-muted-foreground">
@@ -992,7 +1054,7 @@ export default function QRCodesPage() {
                   </CardHeader>
                   <CardContent>
                     <pre className="text-xs bg-muted p-3 rounded border overflow-x-auto">
-                      {JSON.stringify((selectedQRCode as any).qrData, null, 2)}
+                      {JSON.stringify(selectedQRCode.qrData, null, 2)}
                     </pre>
                   </CardContent>
                 </Card>

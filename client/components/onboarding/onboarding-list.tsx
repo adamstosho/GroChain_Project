@@ -64,10 +64,12 @@ export function OnboardingList() {
   }
 
   const filteredOnboardings = onboardings.filter(onboarding => {
+    const loc = onboarding.farmer.location
+    const locStr = typeof loc === "string" ? loc : `${loc?.city ?? ""} ${loc?.state ?? ""}`
     const matchesSearch = searchTerm === "" || 
       onboarding.farmer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       onboarding.farmer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (onboarding.farmer.location ?? '').toLowerCase().includes(searchTerm.toLowerCase())
+      locStr.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = statusFilter === "all" || onboarding.status === statusFilter
     const matchesStage = stageFilter === "all" || onboarding.stage === stageFilter
@@ -151,7 +153,7 @@ export function OnboardingList() {
                     <div className="flex items-start space-x-4 flex-1">
                       {/* Farmer Avatar */}
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={(onboarding.farmer as any).avatar} />
+                        <AvatarImage src={onboarding.farmer.avatar} />
                         <AvatarFallback>
                           {onboarding.farmer.name.split(' ').map((n: string) => n[0]).join('')}
                         </AvatarFallback>
@@ -175,7 +177,7 @@ export function OnboardingList() {
                           <div className="flex items-center space-x-2">
                             <MapPin className="w-4 h-4 text-muted-foreground" />
                             <span className="text-sm">
-                              {typeof onboarding.farmer.location === 'string' ? onboarding.farmer.location : `${(onboarding.farmer.location as any)?.city || 'Unknown'}, ${(onboarding.farmer.location as any)?.state || 'Unknown State'}`}
+                              {typeof onboarding.farmer.location === 'string' ? onboarding.farmer.location : `${onboarding.farmer.location?.city || 'Unknown'}, ${onboarding.farmer.location?.state || 'Unknown State'}`}
                             </span>
                           </div>
                           <div className="flex items-center space-x-2">

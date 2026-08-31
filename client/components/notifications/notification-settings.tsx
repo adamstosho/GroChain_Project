@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useNotificationContext } from './notification-provider'
 import { useToast } from '@/hooks/use-toast'
+import { asRecord } from '@/lib/error-utils'
 
 interface NotificationPreferences {
   websocket: boolean
@@ -69,7 +70,8 @@ export function NotificationSettings() {
     try {
       const data = await getNotificationPreferences()
       if (data) {
-        const categoryDefaults = {
+        const payload = asRecord(data)
+        const categoryDefaults: Record<string, boolean> = {
           harvest: true,
           marketplace: true,
           financial: true,
@@ -79,22 +81,34 @@ export function NotificationSettings() {
           payment: true,
           partner: true
         }
-        const categories = Array.isArray(data.categories)
+        const rawCategories = payload.categories
+        const categories: Record<string, boolean> = Array.isArray(rawCategories)
           ? Object.fromEntries(
               Object.keys(categoryDefaults).map((key) => [
                 key,
-                data.categories.length === 0 ? categoryDefaults[key as keyof typeof categoryDefaults] : data.categories.includes(key)
+                rawCategories.length === 0
+                  ? Boolean(categoryDefaults[key])
+                  : rawCategories.includes(key)
               ])
             )
-          : { ...categoryDefaults, ...(data.categories || {}) }
+          : {
+              ...categoryDefaults,
+              ...Object.fromEntries(
+                Object.entries(asRecord(rawCategories)).map(([key, value]) => [key, Boolean(value)])
+              )
+            }
 
+        const threshold = payload.priorityThreshold
         setPreferences({
-          websocket: data.websocket !== false,
-          email: data.email !== false,
-          sms: Boolean(data.sms),
-          push: data.push !== false,
+          websocket: payload.websocket !== false,
+          email: payload.email !== false,
+          sms: Boolean(payload.sms),
+          push: payload.push !== false,
           categories,
-          priorityThreshold: data.priorityThreshold || 'normal'
+          priorityThreshold:
+            threshold === "low" || threshold === "high" || threshold === "urgent"
+              ? threshold
+              : "normal"
         })
       }
     } catch (error) {

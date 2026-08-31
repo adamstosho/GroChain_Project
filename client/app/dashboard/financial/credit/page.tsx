@@ -10,6 +10,7 @@ import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import {
   CreditCard,
@@ -99,40 +100,55 @@ export default function CreditScorePage() {
       const creditScoreResponse = await apiService.getMyCreditScore()
 
       if (creditScoreResponse.status === 'success' && creditScoreResponse.data) {
-        const data = creditScoreResponse.data as any
+        const data = asRecord(creditScoreResponse.data)
 
         // Transform backend data to match frontend interface
-        const factorsObj = data.factors || {}
-        const history = (data.history || []).slice().sort((a: any, b: any) =>
-          new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime())
+        const factorsObj = asRecord(data.factors)
+        const historyRaw = Array.isArray(data.history) ? data.history : []
+        const history = historyRaw.slice().sort((a, b) => {
+          const aRec = asRecord(a)
+          const bRec = asRecord(b)
+          return new Date(String(aRec.updatedAt)).getTime() - new Date(String(bRec.updatedAt)).getTime()
+        })
+
+        const eligibility = asRecord(data.eligibility)
+        const limits = asRecord(eligibility.limits)
 
         const transformedCreditScore: CreditScore = {
-          score: data.score ?? 0,
-          grade: data.grade || 'C',
-          status: data.status || 'fair',
-          lastUpdated: data.lastUpdated || data.createdAt,
+          score: (data.score as number) ?? 0,
+          grade: (data.grade as CreditScore['grade']) || 'C',
+          status: (data.status as CreditScore['status']) || 'fair',
+          lastUpdated: (data.lastUpdated as string) || (data.createdAt as string),
           factors: Object.keys(factorLabels)
             .filter((key) => factorsObj[key] !== undefined)
-            .map((key) => ({
-              key,
-              label: factorLabels[key],
-              value: factorsObj[key],
-              impact: getFactorImpact(factorsObj[key])
-            })),
-          history: history.map((entry: any, index: number) => ({
-            score: entry.score,
-            reason: entry.reason || 'Score recalculated',
-            updatedAt: entry.updatedAt,
-            change: index > 0 ? entry.score - history[index - 1].score : null
-          })),
-          recommendations: data.recommendations || [],
+            .map((key) => {
+              const value = factorsObj[key] as number
+              return {
+                key,
+                label: factorLabels[key],
+                value,
+                impact: getFactorImpact(value)
+              }
+            }),
+          history: history.map((item, index) => {
+            const entry = asRecord(item)
+            const score = entry.score as number
+            const prev = index > 0 ? asRecord(history[index - 1]) : null
+            return {
+              score,
+              reason: (entry.reason as string) || 'Score recalculated',
+              updatedAt: entry.updatedAt as string,
+              change: prev ? score - (prev.score as number) : null
+            }
+          }),
+          recommendations: Array.isArray(data.recommendations) ? data.recommendations as string[] : [],
           eligibility: {
-            loans: data.eligibility?.loans ?? false,
-            insurance: data.eligibility?.insurance ?? false,
-            marketplace: data.eligibility?.marketplace ?? false,
+            loans: (eligibility.loans as boolean) ?? false,
+            insurance: (eligibility.insurance as boolean) ?? false,
+            marketplace: (eligibility.marketplace as boolean) ?? false,
             limits: {
-              loanAmount: data.eligibility?.limits?.loanAmount || 0,
-              insuranceCoverage: data.eligibility?.limits?.insuranceCoverage || 0
+              loanAmount: (limits.loanAmount as number) || 0,
+              insuranceCoverage: (limits.insuranceCoverage as number) || 0
             }
           }
         }
@@ -141,12 +157,12 @@ export default function CreditScorePage() {
       } else {
         throw new Error('Failed to fetch credit score data')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to fetch credit score:", error)
       setCreditScore(null)
       toast({
         title: "Error",
-        description: "Failed to load credit score data. Please try again.",
+        description: getErrorMessage(error, "Failed to load credit score data. Please try again."),
         variant: "destructive"
       })
     } finally {

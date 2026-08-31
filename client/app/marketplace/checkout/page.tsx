@@ -15,6 +15,8 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
+import { getErrorMessage } from "@/lib/error-utils"
+import type { Order as ApiOrder } from "@/lib/types"
 import { processOrderPayment, loadPaystackScript } from "@/lib/paystack"
 import { processFlutterwaveOrderPayment, loadFlutterwaveScript } from "@/lib/flutterwave"
 import { calculateShippingCost, unitToKg, SHIPPING_METHODS, type ShippingLocation } from "@/lib/shipping-calculator"
@@ -164,7 +166,7 @@ export default function CheckoutPage() {
   // nothing about the cart/shipping/payment method has changed since — avoids leaving a
   // trail of duplicate unpaid orders when a user cancels/fails and retries.
   // Also sends Idempotency-Key so multi-tab / concurrent creates return the same order.
-  const getOrCreateOrder = async (orderData: any) => {
+  const getOrCreateOrder = async (orderData: Partial<ApiOrder> & Record<string, unknown>) => {
     const signature = getOrderSignature()
     const existing = pendingOrderRef.current
     if (existing && existing.signature === signature) {
@@ -279,11 +281,11 @@ export default function CheckoutPage() {
         throw new Error('Please select a valid payment method.')
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to place order:", error)
       toast({
         title: "Failed to place order",
-        description: error.message || "Please try again later.",
+        description: getErrorMessage(error, "Please try again later."),
         variant: "destructive",
       })
     } finally {
@@ -368,7 +370,7 @@ export default function CheckoutPage() {
         throw new Error('Flutterwave payment failed. Please try again.')
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Flutterwave payment error:', error)
       throw error
     }
@@ -450,7 +452,7 @@ export default function CheckoutPage() {
         throw new Error('Payment failed. Please try again.')
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Paystack payment error:', error)
       throw error
     }

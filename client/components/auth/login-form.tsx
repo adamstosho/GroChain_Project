@@ -16,6 +16,7 @@ import {
   saveRememberEmail,
 } from "@/lib/auth-storage"
 import { Eye, EyeOff, Mail, Lock } from "lucide-react"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
@@ -65,15 +66,17 @@ export function LoginForm() {
       // Check for redirect URL in query parameters
       const redirectUrl = searchParams.get('redirect') || searchParams.get('callbackUrl') || "/dashboard"
       router.push(redirectUrl)
-    } catch (error: any) {
-      const payload = typeof error?.payload === "string"
-        ? (() => { try { return JSON.parse(error.payload) } catch { return {} } })()
-        : error?.payload || {}
-      const requiresVerification = payload.requiresVerification || false
+    } catch (error: unknown) {
+      const rec = asRecord(error)
+      const rawPayload = rec.payload
+      const payload = typeof rawPayload === "string"
+        ? (() => { try { return asRecord(JSON.parse(rawPayload)) } catch { return {} } })()
+        : asRecord(rawPayload)
+      const requiresVerification = Boolean(payload.requiresVerification)
       if (requiresVerification && email) {
         router.push(`/verify-email?email=${encodeURIComponent(email)}`)
       } else {
-        setError(error.message || "Please check your credentials and try again.")
+        setError(getErrorMessage(error, "Please check your credentials and try again."))
       }
     } finally {
       setIsLoading(false)

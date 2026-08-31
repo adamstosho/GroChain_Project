@@ -12,6 +12,7 @@ import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { Text } from "@/components/ui/typography"
 import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import {
   ShoppingCart,
@@ -92,6 +93,82 @@ interface OrderStats {
   totalRevenue: number
   monthlyRevenue: number
   averageOrderValue: number
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" && !Number.isNaN(value) ? value : fallback
+}
+
+function mapFarmerOrder(orderRaw: unknown): Order {
+  const order = asRecord(orderRaw)
+  const customer = asRecord(order.customer)
+  const products = Array.isArray(order.products) ? order.products : []
+  const address = asRecord(order.deliveryAddress)
+  const id = asString(order._id)
+  const fallbackDate = asString(order.orderDate, new Date().toISOString())
+  return {
+    _id: id,
+    orderNumber: asString(order.orderNumber) || `ORD-${id.slice(-6).toUpperCase()}`,
+    buyer: {
+      name: asString(customer.name, "Unknown Customer"),
+      email: asString(customer.email),
+      phone: asString(customer.phone)
+    },
+    seller: { _id: "", name: "You" },
+    items: products.map((productRaw) => {
+      const product = asRecord(productRaw)
+      const quantity = asNumber(product.quantity)
+      const price = asNumber(product.price)
+      return {
+        listing: {
+          _id: asString(product.listingId),
+          cropName: asString(product.cropName, "Unknown Product"),
+          images: []
+        },
+        quantity,
+        price,
+        unit: asString(product.unit, "kg"),
+        total: quantity * price
+      }
+    }),
+    total: asNumber(order.total) || asNumber(order.totalAmount),
+    subtotal: asNumber(order.subtotal) || asNumber(order.total) || asNumber(order.totalAmount),
+    shipping: asNumber(order.shipping),
+    shippingMethod: asString(order.shippingMethod, "road_standard"),
+    discount: 0,
+    status: (asString(order.status, "pending") as Order["status"]),
+    paymentStatus: (asString(order.paymentStatus, "pending") as Order["paymentStatus"]),
+    paymentMethod: "paystack",
+    shippingAddress: order.deliveryAddress && typeof order.deliveryAddress === "object"
+      ? {
+          street: asString(address.street),
+          city: asString(address.city),
+          state: asString(address.state),
+          country: asString(address.country),
+          postalCode: asString(address.postalCode),
+          phone: asString(address.phone)
+        }
+      : {
+          street: "",
+          city: "",
+          state: "",
+          country: "Nigeria",
+          postalCode: "",
+          phone: ""
+        },
+    deliveryInstructions: asString(order.notes),
+    estimatedDelivery: asString(order.expectedDelivery),
+    actualDelivery: "",
+    trackingNumber: "",
+    notes: asString(order.notes),
+    orderDate: fallbackDate,
+    createdAt: fallbackDate,
+    updatedAt: fallbackDate
+  }
 }
 
 export default function MarketplaceOrdersPage() {
@@ -180,56 +257,13 @@ export default function MarketplaceOrdersPage() {
       const response = await apiService.getFarmerOrders()
       console.log("📋 Farmer Orders API Response:", response)
 
-      if (response?.status === 'success' && (response.data as any)?.orders) {
-        const ordersData = (response.data as any).orders
+      const payload = asRecord(response.data)
+      if (response?.status === 'success' && Array.isArray(payload.orders)) {
+        const ordersData = payload.orders
         console.log("✅ Farmer orders data:", ordersData)
 
         // Process and format farmer's orders
-        const processedOrders = ordersData.map((order: any) => ({
-          _id: order._id,
-          orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
-          buyer: {
-            name: order.customer?.name || 'Unknown Customer',
-            email: order.customer?.email || '',
-            phone: order.customer?.phone || ''
-          },
-          seller: { _id: '', name: 'You' },
-          items: order.products?.map((product: any) => ({
-            listing: { 
-              _id: product.listingId || '', 
-              cropName: product.cropName || 'Unknown Product', 
-              images: [] 
-            },
-            quantity: product.quantity || 0,
-            price: product.price || 0,
-            unit: product.unit || 'kg',
-            total: (product.quantity || 0) * (product.price || 0)
-          })) || [],
-          total: order.total ?? order.totalAmount ?? 0,
-          subtotal: order.subtotal || order.total || order.totalAmount || 0,
-          shipping: order.shipping || 0,
-          shippingMethod: order.shippingMethod || 'road_standard',
-          discount: 0,
-          status: order.status || 'pending',
-          paymentStatus: order.paymentStatus || 'pending',
-          paymentMethod: 'paystack',
-          shippingAddress: order.deliveryAddress || {
-            street: '',
-            city: '',
-            state: '',
-            country: 'Nigeria',
-            postalCode: '',
-            phone: ''
-          },
-          deliveryInstructions: order.notes || '',
-          estimatedDelivery: order.expectedDelivery || '',
-          actualDelivery: '',
-          trackingNumber: '',
-          notes: order.notes || '',
-          orderDate: order.orderDate || new Date().toISOString(),
-          createdAt: order.orderDate || new Date().toISOString(),
-          updatedAt: order.orderDate || new Date().toISOString()
-        }))
+        const processedOrders = ordersData.map(mapFarmerOrder)
 
         setOrders(processedOrders)
 
@@ -463,7 +497,7 @@ export default function MarketplaceOrdersPage() {
                     const rows = filteredOrders.map((o) => ({
                       orderNumber: o.orderNumber,
                       status: o.status,
-                      paymentStatus: (o as any).paymentStatus,
+                      paymentStatus: o.paymentStatus,
                       total: o.total,
                       buyer: o.buyer?.name,
                       createdAt: o.createdAt,
@@ -475,8 +509,8 @@ export default function MarketplaceOrdersPage() {
                     })
                     if (!result.success) throw new Error(result.error)
                     toast({ title: "Export ready", description: "Orders file downloaded." })
-                  } catch (e: any) {
-                    toast({ title: "Export failed", description: e?.message || "Try again", variant: "destructive" })
+                  } catch (e: unknown) {
+                    toast({ title: "Export failed", description: getErrorMessage(e, "Try again"), variant: "destructive" })
                   }
                 }}
               >

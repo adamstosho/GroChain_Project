@@ -19,6 +19,7 @@ import {
   Package
 } from "lucide-react"
 import { apiService } from "@/lib/api"
+import { asRecord } from "@/lib/error-utils"
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { Display, Text } from "@/components/ui/typography"
 import { dashboard } from "@/lib/design-system"
@@ -85,45 +86,66 @@ export function HarvestAnalytics({ farmerId, className }: HarvestAnalyticsProps)
       console.log("Analytics API Response:", response)
 
       // Handle different response structures
-      let analyticsData
+      let analyticsData: Record<string, unknown>
+      const rec = asRecord(response)
+      const nested = asRecord(rec.data)
       if (response?.status === 'success' && response?.data) {
-        analyticsData = response.data
-      } else if ((response as any)?.data?.data) {
-        analyticsData = (response as any).data.data
-      } else if ((response as any)?.data) {
-        analyticsData = (response as any).data
+        analyticsData = asRecord(response.data)
+      } else if (nested.data) {
+        analyticsData = asRecord(nested.data)
+      } else if (rec.data) {
+        analyticsData = nested
       } else {
-        analyticsData = response
+        analyticsData = rec
       }
 
       console.log("Processed Analytics Data:", analyticsData)
 
       if (analyticsData && typeof analyticsData === 'object') {
         // Transform monthly trend data to ensure proper format
-        const processedMonthlyTrend = (analyticsData.monthlyTrend || []).map((item: any) => ({
-          month: item.month ? new Date(item.month).toLocaleDateString('en-US', { month: 'short' }) : item.month || 'Unknown',
-          harvests: item.harvests || 0,
-          quantity: item.quantity || 0,
-          value: item.value || 0
-        }))
+        const trend = Array.isArray(analyticsData.monthlyTrend) ? analyticsData.monthlyTrend : []
+        const processedMonthlyTrend = trend.map((item) => {
+          const row = asRecord(item)
+          return {
+          month: row.month ? new Date(String(row.month)).toLocaleDateString('en-US', { month: 'short' }) : String(row.month || 'Unknown'),
+          harvests: Number(row.harvests) || 0,
+          quantity: Number(row.quantity) || 0,
+          value: Number(row.value) || 0
+        }})
 
         // Ensure all required fields are present with fallbacks
-        const processedAnalytics = {
-          totalHarvests: analyticsData.totalHarvests || 0,
-          totalQuantity: analyticsData.totalQuantity || 0,
-          totalValue: analyticsData.totalValue || 0,
-          averageQuality: analyticsData.averageQuality || 'poor',
-          topCrop: analyticsData.topCrop || 'N/A',
+        const processedAnalytics: HarvestAnalytics = {
+          totalHarvests: Number(analyticsData.totalHarvests) || 0,
+          totalQuantity: Number(analyticsData.totalQuantity) || 0,
+          totalValue: Number(analyticsData.totalValue) || 0,
+          averageQuality: String(analyticsData.averageQuality || 'poor'),
+          topCrop: String(analyticsData.topCrop || 'N/A'),
           monthlyTrend: processedMonthlyTrend,
-          cropDistribution: analyticsData.cropDistribution || [],
-          qualityDistribution: analyticsData.qualityDistribution || [],
-          seasonalInsights: analyticsData.seasonalInsights || {
+          cropDistribution: Array.isArray(analyticsData.cropDistribution) ? analyticsData.cropDistribution as HarvestAnalytics['cropDistribution'] : [],
+          qualityDistribution: Array.isArray(analyticsData.qualityDistribution) ? analyticsData.qualityDistribution as HarvestAnalytics['qualityDistribution'] : [],
+          seasonalInsights: asRecord(analyticsData.seasonalInsights).bestSeason
+            ? {
+                bestSeason: String(asRecord(analyticsData.seasonalInsights).bestSeason || 'N/A'),
+                peakMonth: String(asRecord(analyticsData.seasonalInsights).peakMonth || 'N/A'),
+                yieldPrediction: Number(asRecord(analyticsData.seasonalInsights).yieldPrediction) || 0,
+                recommendations: Array.isArray(asRecord(analyticsData.seasonalInsights).recommendations)
+                  ? (asRecord(analyticsData.seasonalInsights).recommendations as string[])
+                  : ['No data available yet']
+              }
+            : {
             bestSeason: 'N/A',
             peakMonth: 'N/A',
             yieldPrediction: 0,
             recommendations: ['No data available yet']
           },
-          performanceMetrics: analyticsData.performanceMetrics || {
+          performanceMetrics: asRecord(analyticsData.performanceMetrics).yieldEfficiency !== undefined
+            ? {
+                yieldEfficiency: Number(asRecord(analyticsData.performanceMetrics).yieldEfficiency) || 0,
+                qualityConsistency: Number(asRecord(analyticsData.performanceMetrics).qualityConsistency) || 0,
+                marketReadiness: Number(asRecord(analyticsData.performanceMetrics).marketReadiness) || 0,
+                growthRate: Number(asRecord(analyticsData.performanceMetrics).growthRate) || 0
+              }
+            : {
             yieldEfficiency: 0,
             qualityConsistency: 0,
             marketReadiness: 0,

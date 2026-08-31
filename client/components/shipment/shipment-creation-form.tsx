@@ -41,10 +41,21 @@ const shipmentFormSchema = z.object({
 
 type ShipmentFormData = z.infer<typeof shipmentFormSchema>
 
+interface OrderForShipment {
+  shippingMethod?: string
+  shipping?: number
+  shippingAddress?: {
+    city?: string
+    state?: string
+    country?: string
+  }
+  items?: Array<{ quantity?: number; unit?: string }>
+}
+
 interface ShipmentCreationFormProps {
   orderId: string
-  orderData?: any // Order data to auto-populate form
-  onSuccess?: (shipment: any) => void
+  orderData?: OrderForShipment
+  onSuccess?: (shipment: unknown) => void
   onCancel?: () => void
   className?: string
 }
@@ -95,7 +106,10 @@ export function ShipmentCreationForm({
     if (orderData) {
       // Set shipping method from order
       if (orderData.shippingMethod) {
-        setValue('shippingMethod', orderData.shippingMethod)
+        const methods = ['road_standard', 'road_express', 'air', 'courier'] as const
+        if ((methods as readonly string[]).includes(orderData.shippingMethod)) {
+          setValue('shippingMethod', orderData.shippingMethod as ShipmentFormData['shippingMethod'])
+        }
       }
       
       // Set shipping cost from the order (the authoritative, server-computed
@@ -105,7 +119,7 @@ export function ShipmentCreationForm({
         setValue('shippingCost', orderData.shipping)
       } else {
         const orderWeightKg = orderData.items?.reduce(
-          (sum: number, item: any) => sum + unitToKg(item.quantity, item.unit), 0
+          (sum, item) => sum + unitToKg(item.quantity ?? 0, item.unit), 0
         ) || 1
         const destination: ShippingLocation = {
           city: orderData.shippingAddress?.city || 'Unknown City',
@@ -130,7 +144,7 @@ export function ShipmentCreationForm({
       // Calculate total weight from order items, converting each item's
       // actual unit (bags, tons, kg, etc.) to kg
       const totalWeight = orderData.items?.reduce(
-        (sum: number, item: any) => sum + unitToKg(item.quantity, item.unit), 0
+        (sum, item) => sum + unitToKg(item.quantity ?? 0, item.unit), 0
       ) || 0
       setValue('packagingWeight', totalWeight)
       
@@ -141,7 +155,7 @@ export function ShipmentCreationForm({
         'air': 'DHL Express',
         'courier': 'Jumia Logistics'
       }
-      const carrier = carrierMap[orderData.shippingMethod] || 'GIG Logistics'
+      const carrier = carrierMap[orderData.shippingMethod ?? "road_standard"] || 'GIG Logistics'
       setValue('carrier', carrier)
     }
   }, [orderData, setValue])
@@ -240,7 +254,7 @@ export function ShipmentCreationForm({
           {/* Shipping Method */}
           <div className="space-y-2">
             <Label htmlFor="shippingMethod">Shipping Method *</Label>
-            <Select onValueChange={(value) => setValue('shippingMethod', value as any)}>
+            <Select onValueChange={(value) => setValue('shippingMethod', value as ShipmentFormData['shippingMethod'])}>
               <SelectTrigger>
                 <SelectValue placeholder="Select shipping method" />
               </SelectTrigger>

@@ -37,20 +37,97 @@ import {
 } from "lucide-react"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { ReceiptGenerator } from "@/lib/receipt-generator"
+import { ReceiptGenerator, type ReceiptData } from "@/lib/receipt-generator"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
+
+interface PaymentTransaction {
+  _id?: string
+  type?: string
+  status?: string
+  amount?: number
+  reference?: string
+  orderId?: string
+  description?: string
+  createdAt?: string
+  date?: string
+  method?: string
+}
+
+interface PaymentOrderItem {
+  listing?: { cropName?: string }
+  product?: { cropName?: string }
+  cropName?: string
+  quantity?: number
+  unit?: string
+  price?: number
+}
+
+interface PaymentOrder {
+  _id?: string
+  orderNumber?: string
+  total?: number
+  amount?: number
+  paymentStatus?: string
+  status?: string
+  createdAt?: string
+  items?: PaymentOrderItem[]
+}
+
+interface PaymentMethodDetails {
+  last4?: string
+  bankName?: string
+  accountNumber?: string
+  phoneNumber?: string
+}
+
+interface PaymentMethod {
+  _id?: string
+  name?: string
+  type?: string
+  details?: PaymentMethodDetails
+  lastUsed?: string
+  isDefault?: boolean
+  isVerified?: boolean
+}
+
+interface BillingItem {
+  name: string
+  quantity: string
+  price: number
+  total: number
+}
+
+function extractTransactions(data: unknown): PaymentTransaction[] {
+  const rec = asRecord(data)
+  return Array.isArray(rec.transactions) ? rec.transactions as PaymentTransaction[] : []
+}
+
+function extractOrders(data: unknown): PaymentOrder[] {
+  if (Array.isArray(data)) return data as PaymentOrder[]
+  const rec = asRecord(data)
+  const nested = asRecord(rec.data)
+  if (Array.isArray(nested.orders)) return nested.orders as PaymentOrder[]
+  if (Array.isArray(rec.orders)) return rec.orders as PaymentOrder[]
+  return []
+}
+
+function extractPaymentMethods(data: unknown): PaymentMethod[] {
+  if (Array.isArray(data)) return data as PaymentMethod[]
+  return []
+}
 
 export default function PaymentsPage() {
   const [activeTab, setActiveTab] = useState("transactions")
   const { toast } = useToast()
 
   // State for API data
-  const [transactions, setTransactions] = useState<any[]>([])
-  const [orders, setOrders] = useState<any[]>([])
+  const [transactions, setTransactions] = useState<PaymentTransaction[]>([])
+  const [orders, setOrders] = useState<PaymentOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // State for payment methods
-  const [paymentMethods, setPaymentMethods] = useState<any[]>([])
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(false)
 
   // Fetch data from API
@@ -65,11 +142,12 @@ export default function PaymentsPage() {
         const transactionResponse = await apiService.getTransactionHistory()
         console.log('✅ Transaction response:', transactionResponse)
 
-        if (transactionResponse?.status === 'success' && (transactionResponse?.data as any)?.transactions) {
-          setTransactions((transactionResponse.data as any).transactions)
-        } else if ((transactionResponse?.data as any)?.transactions) {
+        const txnList = extractTransactions(transactionResponse?.data)
+        if (transactionResponse?.status === 'success' && txnList.length > 0) {
+          setTransactions(txnList)
+        } else if (txnList.length > 0) {
           // Handle direct data structure
-          setTransactions((transactionResponse.data as any).transactions)
+          setTransactions(txnList)
         } else {
           console.warn('⚠️ No transaction data found in response:', transactionResponse)
           setTransactions([])
@@ -82,11 +160,11 @@ export default function PaymentsPage() {
 
         if (ordersResponse?.status === 'success' && ordersResponse?.data) {
           // Handle the structured response from backend
-          const ordersData = (ordersResponse.data as any).orders || []
+          const ordersData = extractOrders(ordersResponse.data)
           setOrders(ordersData)
         } else if (Array.isArray(ordersResponse)) {
           // Handle direct array response
-          setOrders(ordersResponse)
+          setOrders(ordersResponse as PaymentOrder[])
         } else {
           console.warn('⚠️ No orders data found in response:', ordersResponse)
           setOrders([])
@@ -99,22 +177,23 @@ export default function PaymentsPage() {
         console.log('✅ Payment methods response:', paymentMethodsResponse)
 
         if (paymentMethodsResponse?.status === 'success' && paymentMethodsResponse?.data) {
-          setPaymentMethods(paymentMethodsResponse.data as any)
+          setPaymentMethods(extractPaymentMethods(paymentMethodsResponse.data))
         } else if (Array.isArray(paymentMethodsResponse)) {
           // Handle direct array response
-          setPaymentMethods(paymentMethodsResponse)
+          setPaymentMethods(paymentMethodsResponse as PaymentMethod[])
         } else {
           console.warn('⚠️ No payment methods data found in response:', paymentMethodsResponse)
           setPaymentMethods([])
         }
         setPaymentMethodsLoading(false)
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('❌ Error fetching payment data:', err)
-        setError(err.message || 'Failed to load payment data')
+        const message = getErrorMessage(err, 'Failed to load payment data')
+        setError(message)
         toast({
           title: "Error loading data",
-          description: err.message || "Failed to load payment information",
+          description: message,
           variant: "destructive",
         })
       } finally {
@@ -138,36 +217,30 @@ export default function PaymentsPage() {
         apiService.getPaymentMethods()
       ])
 
-      if (transactionResponse?.success && (transactionResponse?.data as any)?.transactions) {
-        setTransactions((transactionResponse.data as any).transactions)
+      const refreshTxns = extractTransactions(transactionResponse?.data)
+      if (transactionResponse?.success && asRecord(transactionResponse?.data).transactions) {
+        setTransactions(refreshTxns)
       }
 
       if (ordersResponse?.success && ordersResponse?.data) {
-        let ordersData = []
-        if ((ordersResponse.data as any)?.data?.orders) {
-          ordersData = (ordersResponse.data as any).data.orders
-        } else if ((ordersResponse.data as any)?.orders) {
-          ordersData = (ordersResponse.data as any).orders
-        } else if (Array.isArray(ordersResponse.data)) {
-          ordersData = ordersResponse.data as any
-        }
-        setOrders(ordersData)
+        setOrders(extractOrders(ordersResponse.data))
       }
 
       if (paymentMethodsResponse?.success && paymentMethodsResponse?.data) {
-        setPaymentMethods(paymentMethodsResponse.data as any)
+        setPaymentMethods(extractPaymentMethods(paymentMethodsResponse.data))
       }
 
       toast({
         title: "Data refreshed",
         description: "Payment information has been updated",
       })
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Error refreshing data:', err)
-      setError(err.message || 'Failed to refresh data')
+      const message = getErrorMessage(err, 'Failed to refresh data')
+      setError(message)
       toast({
         title: "Refresh failed",
-        description: err.message || "Failed to refresh payment data",
+        description: message,
         variant: "destructive",
       })
     } finally {
@@ -187,7 +260,7 @@ export default function PaymentsPage() {
             order.status === 'completed' ? 'paid' : 'pending',
     dueDate: order.createdAt ? new Date(Date.parse(order.createdAt) + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : null,
     issuedDate: order.createdAt ? new Date(order.createdAt).toISOString().split('T')[0] : null,
-    items: order.items?.map((item: any) => ({
+    items: order.items?.map((item): BillingItem => ({
       name: item.listing?.cropName || item.product?.cropName || item.cropName || 'Product',
       quantity: `${item.quantity || 0}${item.unit || 'kg'}`,
       price: item.price || 0,
@@ -278,7 +351,7 @@ export default function PaymentsPage() {
       const response = await apiService.downloadOrderReceipt(orderId)
 
       if (response?.status === 'success' && response?.data) {
-        await ReceiptGenerator.generatePDF(response.data as any)
+        await ReceiptGenerator.generatePDF(response.data as ReceiptData)
         toast({
           title: "Receipt generated!",
           description: "Your receipt has been prepared for download.",
@@ -286,10 +359,10 @@ export default function PaymentsPage() {
       } else {
         throw new Error(response?.message || 'Failed to generate receipt')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Failed to generate receipt",
-        description: err.message || "Please try again later.",
+        description: getErrorMessage(err, "Please try again later."),
         variant: "destructive",
       })
     }
@@ -413,14 +486,14 @@ export default function PaymentsPage() {
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
                         <div className="flex-shrink-0">
-                          {getTypeIcon(method.type)}
+                          {getTypeIcon(method.type || '')}
                         </div>
                         <div className="min-w-0 flex-1">
                           <h4 className="font-semibold text-foreground text-sm sm:text-base truncate">{method.name}</h4>
                           <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                            {method.type === 'card' ? `**** **** **** ${method.details.last4}` : 
-                               method.type === 'bank_account' ? `Bank: ${method.details.bankName} - ****${method.details.accountNumber?.slice(-4)}` :
-                             method.type === 'mobile_money' ? `Phone: ${method.details.phoneNumber}` : ''}
+                            {method.type === 'card' ? `**** **** **** ${method.details?.last4}` : 
+                               method.type === 'bank_account' ? `Bank: ${method.details?.bankName} - ****${method.details?.accountNumber?.slice(-4)}` :
+                             method.type === 'mobile_money' ? `Phone: ${method.details?.phoneNumber}` : ''}
                           </p>
                             {method.lastUsed && (
                               <p className="text-xs text-muted-foreground mt-1">
@@ -574,7 +647,7 @@ export default function PaymentsPage() {
                     <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-start space-x-3 sm:space-x-4 min-w-0 flex-1">
                         <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg flex-shrink-0 mt-0.5">
-                          {getStatusIcon(transaction.status)}
+                          {getStatusIcon(transaction.status || 'pending')}
                         </div>
                         <div className="min-w-0 flex-1 space-y-1">
                             <h4 className="font-semibold text-foreground text-sm sm:text-base break-words leading-tight">
@@ -708,7 +781,7 @@ export default function PaymentsPage() {
                       {/* Order Items */}
                     <div className="border-t pt-3 sm:pt-4">
                         {invoice.items && invoice.items.length > 0 ? (
-                          invoice.items.map((item: any, index: number) => (
+                          invoice.items.map((item: BillingItem, index: number) => (
                         <div key={index} className="flex justify-between items-center py-1 sm:py-2">
                               <span className="text-xs sm:text-sm truncate">{item.name || 'Product'} ({item.quantity || 0})</span>
                               <span className="text-xs sm:text-sm font-medium">{formatPrice(item.total || item.price || 0)}</span>

@@ -12,6 +12,7 @@ import { Text } from "@/components/ui/typography"
 import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import {
   CreditCard,
@@ -114,57 +115,71 @@ export default function FinancialServicesPage() {
       ])
 
       if (financialResponse.status === 'success' && financialResponse.data) {
-        const data = financialResponse.data
+        const data = asRecord(financialResponse.data)
+        const overview = asRecord(data.overview)
+        const farmerData = asRecord(farmerAnalytics.data)
 
         // Transform the data to match frontend interface
         const overviewData: FinancialOverview = {
-          creditScore: (data as any).overview?.creditScore || 0,
-          totalEarnings: (farmerAnalytics.data as any)?.totalRevenue || (data as any).overview?.totalEarnings || 0,
-          pendingPayments: (data as any).overview?.pendingPayments || 0,
-          activeLoans: (data as any).overview?.activeLoans || 0,
-          insurancePolicies: (data as any).overview?.insurancePolicies || 0,
-          totalSavings: (data as any).overview?.totalSavings || 0,
-          financialGoals: (data as any).overview?.financialGoals || 0,
-          riskLevel: (data as any).overview?.riskLevel || 'medium',
-          nextPaymentDue: (data as any).overview?.nextPaymentDue || null,
+          creditScore: (overview.creditScore as number) || 0,
+          totalEarnings: (farmerData.totalRevenue as number) || (overview.totalEarnings as number) || 0,
+          pendingPayments: (overview.pendingPayments as number) || 0,
+          activeLoans: (overview.activeLoans as number) || 0,
+          insurancePolicies: (overview.insurancePolicies as number) || 0,
+          totalSavings: (overview.totalSavings as number) || 0,
+          financialGoals: (overview.financialGoals as number) || 0,
+          riskLevel: (overview.riskLevel as FinancialOverview['riskLevel']) || 'medium',
+          nextPaymentDue: (overview.nextPaymentDue as FinancialOverview['nextPaymentDue']) || null,
         }
 
         // Transform transactions
-        const transactionsData: RecentTransaction[] = ((data as any).recentTransactions || []).map((transaction: any) => ({
-          _id: transaction._id,
-          type: transaction.type === 'payment' || transaction.type === 'commission' ? 'income' :
-            transaction.type === 'withdrawal' ? 'expense' : transaction.type,
-          amount: transaction.amount,
-          description: transaction.description,
-          date: transaction.date,
-          status: transaction.status
-        }))
+        const recentTxns = Array.isArray(data.recentTransactions) ? data.recentTransactions : []
+        const transactionsData: RecentTransaction[] = recentTxns.map((item) => {
+          const transaction = asRecord(item)
+          return {
+            _id: transaction._id as string,
+            type: transaction.type === 'payment' || transaction.type === 'commission' ? 'income' :
+              transaction.type === 'withdrawal' ? 'expense' : transaction.type as RecentTransaction['type'],
+            amount: transaction.amount as number,
+            description: transaction.description as string,
+            date: transaction.date as string,
+            status: transaction.status as RecentTransaction['status']
+          }
+        })
 
         // Transform active loans
-        const loansData: ActiveLoan[] = ((data as any).activeLoans || []).map((loan: any) => ({
-          _id: loan._id,
-          amount: loan.amount,
-          purpose: loan.purpose,
-          duration: loan.duration,
-          interestRate: loan.interestRate,
-          status: loan.status,
-          monthlyPayment: loan.monthlyPayment,
-          remainingBalance: loan.remainingBalance,
-          nextPaymentDate: loan.nextPaymentDate
-        }))
+        const activeLoanItems = Array.isArray(data.activeLoans) ? data.activeLoans : []
+        const loansData: ActiveLoan[] = activeLoanItems.map((item) => {
+          const loan = asRecord(item)
+          return {
+            _id: loan._id as string,
+            amount: loan.amount as number,
+            purpose: loan.purpose as string,
+            duration: loan.duration as number,
+            interestRate: loan.interestRate as number,
+            status: loan.status as string,
+            monthlyPayment: loan.monthlyPayment as number,
+            remainingBalance: loan.remainingBalance as number,
+            nextPaymentDate: loan.nextPaymentDate as string
+          }
+        })
 
         // Transform insurance policies
-        const policiesData: InsurancePolicy[] = ((data as any).insurancePolicies || []).map((policy: any) => ({
-          _id: policy._id,
-          type: policy.type,
-          provider: policy.provider,
-          policyNumber: policy.policyNumber,
-          coverageAmount: policy.coverageAmount,
-          premium: policy.premium,
-          startDate: policy.startDate,
-          endDate: policy.endDate,
-          status: policy.status
-        }))
+        const policyItems = Array.isArray(data.insurancePolicies) ? data.insurancePolicies : []
+        const policiesData: InsurancePolicy[] = policyItems.map((item) => {
+          const policy = asRecord(item)
+          return {
+            _id: policy._id as string,
+            type: policy.type as string,
+            provider: policy.provider as string,
+            policyNumber: policy.policyNumber as string,
+            coverageAmount: policy.coverageAmount as number,
+            premium: policy.premium as number,
+            startDate: policy.startDate as string,
+            endDate: policy.endDate as string,
+            status: policy.status as string
+          }
+        })
 
         setOverview(overviewData)
         setRecentTransactions(transactionsData)
@@ -173,11 +188,11 @@ export default function FinancialServicesPage() {
       } else {
         throw new Error('Failed to fetch financial data')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching financial data:', error)
       toast({
         title: "Error loading financial data",
-        description: error.message || "Failed to load financial dashboard data",
+        description: getErrorMessage(error, "Failed to load financial dashboard data"),
         variant: "destructive",
       })
 

@@ -100,6 +100,70 @@ interface Order {
   paymentStatus: 'pending' | 'paid' | 'failed'
 }
 
+interface BuyerTestimonial {
+  id?: string
+  testimonial?: string
+  location?: string
+  buyerType?: string
+}
+
+interface BuyerActivityPayload {
+  status?: string
+  data?: {
+    activeBuyers?: number
+    recentActivity?: number
+    testimonials?: BuyerTestimonial[]
+  }
+}
+
+interface FarmerDashboardData {
+  activeListings?: number
+  pendingApprovals?: number
+  totalRevenue?: number
+  monthlyRevenue?: number
+}
+
+interface FarmerAnalyticsData {
+  totalRevenue?: number
+}
+
+interface RawFarmerListing {
+  _id?: string
+  cropName?: string
+  category?: string
+  description?: string
+  basePrice?: number
+  quantity?: number
+  unit?: string
+  availableQuantity?: number
+  location?: string | { city?: string; state?: string }
+  images?: string[]
+  tags?: string[]
+  status?: ProductListing['status']
+  createdAt?: string
+  views?: number
+  orders?: number
+  rating?: number
+  reviewCount?: number
+}
+
+interface RawFarmerOrder {
+  _id?: string
+  orderNumber?: string
+  customer?: {
+    name?: string
+    email?: string
+    phone?: string
+  }
+  products?: Order['products']
+  total?: number
+  totalAmount?: number
+  status?: Order['status']
+  orderDate?: string
+  expectedDelivery?: string
+  paymentStatus?: Order['paymentStatus']
+}
+
 export default function MarketplacePage() {
   const router = useRouter()
   const { user, hasHydrated } = useAuthStore()
@@ -125,7 +189,7 @@ export default function MarketplacePage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [refreshing, setRefreshing] = useState(false)
-  const [buyerActivityData, setBuyerActivityData] = useState<any>(null)
+  const [buyerActivityData, setBuyerActivityData] = useState<BuyerActivityPayload | null>(null)
   const { toast } = useToast()
 
 
@@ -145,7 +209,7 @@ export default function MarketplacePage() {
         apiService.getBuyerActivity().catch(() => ({ data: null })) // Get buyer activity data
       ])
 
-      setBuyerActivityData(buyerActivityResponse)
+      setBuyerActivityData(buyerActivityResponse as BuyerActivityPayload)
 
       console.log("📊 Farmer Dashboard Response:", farmerDashboard)
       console.log("📦 Farmer Listings Response:", farmerListings)
@@ -154,24 +218,24 @@ export default function MarketplacePage() {
       // Process farmer dashboard data
       let processedStats: MarketplaceStats
       if (farmerDashboard?.status === 'success' && farmerDashboard?.data) {
-        const dashboardData = farmerDashboard.data
+        const dashboardData = farmerDashboard.data as FarmerDashboardData
         console.log('🔍 Farmer Dashboard Data:', dashboardData)
 
         // Prefer the farmer-analytics endpoint's revenue figure when available —
         // it's computed strictly from the farmer's own sales, vs. the dashboard's.
-        const analyticsRevenue = (farmerAnalytics?.data as any)?.totalRevenue
+        const analyticsRevenue = (farmerAnalytics?.data as FarmerAnalyticsData | undefined)?.totalRevenue
 
         processedStats = {
-          totalListings: (dashboardData as any).activeListings || 0,
-          activeListings: (dashboardData as any).activeListings || 0,
+          totalListings: dashboardData.activeListings || 0,
+          activeListings: dashboardData.activeListings || 0,
           totalOrders: 0, // Will be calculated from orders
-          pendingOrders: (dashboardData as any).pendingApprovals || 0,
-          totalRevenue: analyticsRevenue ?? ((dashboardData as any).totalRevenue || 0),
-          monthlyRevenue: (dashboardData as any).monthlyRevenue || 0,
+          pendingOrders: dashboardData.pendingApprovals || 0,
+          totalRevenue: analyticsRevenue ?? (dashboardData.totalRevenue || 0),
+          monthlyRevenue: dashboardData.monthlyRevenue || 0,
           totalCustomers: 0, // Will be calculated from orders
           averageRating: 0, // Not available in dashboard
-          activeBuyers: Number((buyerActivityResponse?.data as any)?.activeBuyers) || 0,
-          recentBuyerActivity: Number((buyerActivityResponse?.data as any)?.recentActivity) || 0
+          activeBuyers: Number((buyerActivityResponse?.data as BuyerActivityPayload['data'])?.activeBuyers) || 0,
+          recentBuyerActivity: Number((buyerActivityResponse?.data as BuyerActivityPayload['data'])?.recentActivity) || 0
         }
 
         setStats(processedStats)
@@ -196,22 +260,25 @@ export default function MarketplacePage() {
       }
 
       // Process farmer's listings data
-      if (farmerListings?.status === 'success' && (farmerListings.data as any)?.listings && Array.isArray((farmerListings.data as any).listings)) {
-        const listingsData = (farmerListings.data as any).listings
-        const processedListings = listingsData.map((listing: any) => ({
-          _id: listing._id,
-          cropName: listing.cropName,
-          category: listing.category,
+      const listingsPayload = farmerListings?.status === 'success'
+        ? (farmerListings.data as { listings?: RawFarmerListing[] } | undefined)
+        : undefined
+      if (listingsPayload?.listings && Array.isArray(listingsPayload.listings)) {
+        const listingsData = listingsPayload.listings
+        const processedListings: ProductListing[] = listingsData.map((listing) => ({
+          _id: String(listing._id ?? ""),
+          cropName: listing.cropName || "",
+          category: listing.category || "",
           description: listing.description || `${listing.cropName} - Fresh produce`,
-          basePrice: listing.basePrice,
-          quantity: listing.quantity,
+          basePrice: listing.basePrice || 0,
+          quantity: listing.quantity || 0,
           unit: listing.unit || 'kg',
-          availableQuantity: listing.availableQuantity,
-          location: listing.location,
+          availableQuantity: listing.availableQuantity || 0,
+          location: listing.location || "",
           images: listing.images || [],
           tags: listing.tags || [],
-          status: listing.status,
-          createdAt: listing.createdAt,
+          status: listing.status || 'draft',
+          createdAt: listing.createdAt || "",
           views: listing.views || 0,
           orders: listing.orders || 0,
           rating: listing.rating || 0,
@@ -223,27 +290,30 @@ export default function MarketplacePage() {
       }
 
       // Process farmer's orders data
-      if (farmerOrders?.status === 'success' && (farmerOrders.data as any)?.orders && Array.isArray((farmerOrders.data as any).orders)) {
-        const ordersData = (farmerOrders.data as any).orders
-        const processedOrders = ordersData.map((order: any) => ({
-          _id: order._id,
-          orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
+      const ordersPayload = farmerOrders?.status === 'success'
+        ? (farmerOrders.data as { orders?: RawFarmerOrder[] } | undefined)
+        : undefined
+      if (ordersPayload?.orders && Array.isArray(ordersPayload.orders)) {
+        const ordersData = ordersPayload.orders
+        const processedOrders: Order[] = ordersData.map((order) => ({
+          _id: String(order._id ?? ""),
+          orderNumber: order.orderNumber || `ORD-${String(order._id).slice(-6).toUpperCase()}`,
           customer: {
             name: order.customer?.name || 'Unknown',
             email: order.customer?.email || '',
             phone: order.customer?.phone || ''
           },
           products: order.products || [],
-          totalAmount: order.total ?? order.totalAmount,
-          status: order.status,
-          orderDate: order.orderDate,
+          totalAmount: order.total ?? order.totalAmount ?? 0,
+          status: order.status || 'pending',
+          orderDate: order.orderDate || '',
           expectedDelivery: order.expectedDelivery || '',
-          paymentStatus: order.paymentStatus
+          paymentStatus: order.paymentStatus || 'pending'
         }))
 
         // Calculate additional stats from orders
-        const pendingOrdersCount = processedOrders.filter((order: any) => order.status === 'pending').length
-        const uniqueCustomers = new Set(processedOrders.map((order: any) => order.customer.email)).size
+        const pendingOrdersCount = processedOrders.filter((order) => order.status === 'pending').length
+        const uniqueCustomers = new Set(processedOrders.map((order) => order.customer.email)).size
         const totalOrdersCount = processedOrders.length
 
         // Update stats with calculated values
@@ -685,7 +755,7 @@ export default function MarketplacePage() {
                     <div className="space-y-2">
                       <p className="text-xs font-medium text-foreground">Recent Buyer Testimonials</p>
                       <div className="space-y-2">
-                        {buyerActivityData?.data?.testimonials?.slice(0, 2).map((testimonial: any, index: number) => (
+                        {buyerActivityData?.data?.testimonials?.slice(0, 2).map((testimonial: BuyerTestimonial, index: number) => (
                           <div key={testimonial.id || index} className={`p-2 rounded border ${index === 0 ? 'bg-primary/10 border-primary/10' : 'bg-accent/10 border-accent/10'}`}>
                             <p className={`text-xs italic ${index === 0 ? 'text-primary' : 'text-accent'}`}>
                               &quot;{testimonial.testimonial}&quot;

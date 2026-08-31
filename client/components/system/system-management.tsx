@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { cn } from "@/lib/utils"
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
@@ -70,15 +71,15 @@ interface SystemLog {
   message: string
   module: string
   userId?: string
-  metadata?: any
+  metadata?: Record<string, unknown>
 }
 
 interface SystemConfig {
-  application: any
-  database: any
-  security: any
-  features: any
-  limits: any
+  application: Record<string, unknown>
+  database: Record<string, unknown>
+  security: Record<string, unknown>
+  features: Record<string, unknown>
+  limits: Record<string, unknown>
 }
 
 interface Backup {
@@ -90,6 +91,86 @@ interface Backup {
   createdAt: string
   createdBy: string
   collections: string[]
+}
+
+function parseSystemStatus(data: unknown): SystemStatus {
+  const d = asRecord(data)
+  const database = asRecord(d.database)
+  const api = asRecord(d.api)
+  const services = Array.isArray(d.services) ? d.services : []
+  return {
+    overall: typeof d.overall === "string" ? d.overall : "",
+    database: {
+      status: typeof database.status === "string" ? database.status : "",
+      responseTime: typeof database.responseTime === "number" ? database.responseTime : 0,
+    },
+    api: {
+      status: typeof api.status === "string" ? api.status : "",
+      responseTime: typeof api.responseTime === "number" ? api.responseTime : 0,
+    },
+    services: services.map((service) => {
+      const rec = asRecord(service)
+      return {
+        name: typeof rec.name === "string" ? rec.name : "",
+        status: typeof rec.status === "string" ? rec.status : "",
+        uptime: typeof rec.uptime === "number" ? rec.uptime : 0,
+      }
+    }),
+    uptime: typeof d.uptime === "number" ? d.uptime : 0,
+    timestamp: typeof d.timestamp === "string" ? d.timestamp : "",
+  }
+}
+
+function parseSystemLogs(data: unknown): SystemLog[] {
+  const logs = asRecord(data).logs
+  if (!Array.isArray(logs)) return []
+  return logs.map((log) => {
+    const rec = asRecord(log)
+    const timestamp =
+      rec.timestamp instanceof Date
+        ? rec.timestamp
+        : new Date(typeof rec.timestamp === "string" || typeof rec.timestamp === "number" ? rec.timestamp : Date.now())
+    return {
+      id: typeof rec.id === "string" ? rec.id : String(rec._id ?? ""),
+      timestamp,
+      level: typeof rec.level === "string" ? rec.level : "",
+      message: typeof rec.message === "string" ? rec.message : "",
+      module: typeof rec.module === "string" ? rec.module : "",
+      userId: typeof rec.userId === "string" ? rec.userId : undefined,
+      metadata: rec.metadata && typeof rec.metadata === "object" ? asRecord(rec.metadata) : undefined,
+    }
+  })
+}
+
+function parseSystemConfig(data: unknown): SystemConfig {
+  const d = asRecord(data)
+  return {
+    application: asRecord(d.application),
+    database: asRecord(d.database),
+    security: asRecord(d.security),
+    features: asRecord(d.features),
+    limits: asRecord(d.limits),
+  }
+}
+
+function parseBackups(data: unknown): Backup[] {
+  const backups = asRecord(data).backups
+  if (!Array.isArray(backups)) return []
+  return backups.map((backup) => {
+    const rec = asRecord(backup)
+    return {
+      id: typeof rec.id === "string" ? rec.id : String(rec._id ?? ""),
+      type: typeof rec.type === "string" ? rec.type : "",
+      description: typeof rec.description === "string" ? rec.description : "",
+      status: typeof rec.status === "string" ? rec.status : "",
+      size: typeof rec.size === "string" ? rec.size : "",
+      createdAt: typeof rec.createdAt === "string" ? rec.createdAt : "",
+      createdBy: typeof rec.createdBy === "string" ? rec.createdBy : "",
+      collections: Array.isArray(rec.collections)
+        ? rec.collections.filter((item): item is string => typeof item === "string")
+        : [],
+    }
+  })
 }
 
 export function SystemManagement() {
@@ -119,7 +200,7 @@ export function SystemManagement() {
       ])
 
       if (statusResponse.status === 'fulfilled' && statusResponse.value.status === 'success') {
-        setSystemStatus(statusResponse.value.data as any)
+        setSystemStatus(parseSystemStatus(statusResponse.value.data))
       }
     } catch {
       toast({
@@ -142,7 +223,7 @@ export function SystemManagement() {
       
       const response = await apiService.getAdminSystemLogs(params)
       if (response.status === 'success') {
-        setSystemLogs((response.data as any).logs)
+        setSystemLogs(parseSystemLogs(response.data))
       }
     } catch {
       toast({
@@ -157,7 +238,7 @@ export function SystemManagement() {
     try {
       const response = await apiService.getAdminSystemConfig()
       if (response.status === 'success') {
-        setSystemConfig(response.data as any)
+        setSystemConfig(parseSystemConfig(response.data))
       }
     } catch {
       toast({
@@ -172,7 +253,7 @@ export function SystemManagement() {
     try {
       const response = await apiService.getSystemBackups()
       if (response.status === 'success') {
-        setBackups((response.data as any).backups)
+        setBackups(parseBackups(response.data))
       }
     } catch {
       toast({
@@ -245,10 +326,10 @@ export function SystemManagement() {
           description: "Database collections were restored from the selected backup.",
         })
       }
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error?.message || "Failed to restore backup",
+        description: getErrorMessage(error, "Failed to restore backup"),
         variant: "destructive"
       })
     }
@@ -742,7 +823,7 @@ export function SystemManagement() {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2">
-                          {Object.entries(config as any).slice(0, 3).map(([key, value]) => (
+                          {Object.entries(config).slice(0, 3).map(([key, value]) => (
                             <div key={key} className="flex justify-between">
                               <span className="text-xs text-muted-foreground capitalize">{key}:</span>
                               <span className="text-xs font-mono">
@@ -900,7 +981,7 @@ export function SystemManagement() {
           <div className="space-y-4 max-h-96 overflow-y-auto">
             {systemConfig && selectedConfig && systemConfig[selectedConfig as keyof SystemConfig] && (
               <div className="space-y-3">
-                {Object.entries(systemConfig[selectedConfig as keyof SystemConfig] as any).map(([key, value]) => (
+                {Object.entries(systemConfig[selectedConfig as keyof SystemConfig]).map(([key, value]) => (
                   <div key={key} className="space-y-2">
                     <Label className="text-sm font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
                     {typeof value === 'boolean' ? (

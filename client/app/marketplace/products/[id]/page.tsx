@@ -21,6 +21,95 @@ import { SafeImage } from "@/components/ui/safe-image"
 import { Display, Text } from "@/components/ui/typography"
 import { PageContainer } from "@/components/layout/page-container"
 
+interface ProductLocation {
+  city?: string
+  state?: string
+}
+
+interface ProductFarmer {
+  name?: string
+  avatar?: string
+  rating?: number
+  emailVerified?: boolean
+  location?: string | ProductLocation
+}
+
+interface ProductDetail {
+  _id: string
+  cropName?: string
+  name?: string
+  category?: string
+  variety?: string
+  description?: string
+  basePrice?: number
+  price?: number
+  unit?: string
+  quantity?: number
+  availableQuantity?: number
+  location?: string | ProductLocation
+  images?: string[]
+  tags?: string[]
+  status?: string
+  views?: number
+  rating?: number
+  reviewCount?: number
+  organic?: boolean
+  qualityGrade?: string
+  certifications?: string[]
+  farmer?: ProductFarmer
+  harvest?: { harvestDate?: string | Date; batchId?: string }
+  harvestDate?: string | number | Date
+  isVerified?: boolean
+  isOrganic?: boolean
+  createdAt?: string | Date
+  updatedAt?: string | Date
+}
+
+interface ListingApiPayload {
+  _id?: string
+  cropName?: string
+  category?: string
+  variety?: string
+  description?: string
+  basePrice?: number
+  unit?: string
+  quantity?: number
+  availableQuantity?: number
+  location?: string | ProductLocation
+  images?: string[]
+  tags?: string[]
+  status?: string
+  views?: number
+  rating?: number
+  reviewCount?: number
+  organic?: boolean
+  qualityGrade?: string
+  certifications?: string[]
+  farmer?: ProductFarmer
+  harvest?: { harvestDate?: string | Date; batchId?: string }
+  createdAt?: string | Date
+  updatedAt?: string | Date
+}
+
+interface OrderLineItem {
+  listing?: string
+}
+
+interface UserOrder {
+  _id?: string
+  items?: OrderLineItem[]
+  status?: string
+}
+
+function formatProductLocation(location: unknown): string {
+  if (typeof location === 'string') return location
+  if (typeof location === 'object' && location) {
+    const loc = location as ProductLocation
+    return `${loc.city || ''}, ${loc.state || ''}`.replace(/^, |, $/, '').trim() || 'Location N/A'
+  }
+  return 'Location N/A'
+}
+
 export default function ProductDetailPage() {
   const params = useParams()
   const { addToCart } = useBuyerStore()
@@ -29,24 +118,28 @@ export default function ProductDetailPage() {
   // Initialize cart from localStorage
 
   const { toast } = useToast()
-  const [product, setProduct] = useState<any>(null)
+  const [product, setProduct] = useState<ProductDetail | null>(null)
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [addingToCart, setAddingToCart] = useState(false)
   const [showReviewForm, setShowReviewForm] = useState(false)
-  const [userOrders, setUserOrders] = useState<any[]>([])
+  const [userOrders, setUserOrders] = useState<UserOrder[]>([])
 
   const productId = params.id as string
 
   const fetchProduct = useCallback(async () => {
     try {
       const response = await apiService.getListing(productId)
-      const listing = response.data as any
+      if (!response?.data) {
+        setProduct(null)
+        return
+      }
+      const listing = response.data as ListingApiPayload
       
       // Convert Listing to Product format for consistency
-      const productData = {
-        _id: listing._id,
+      const productData: ProductDetail = {
+        _id: String(listing._id ?? ""),
         cropName: listing.cropName,
         name: listing.cropName, // For compatibility
         category: listing.category,
@@ -76,7 +169,7 @@ export default function ProductDetailPage() {
         updatedAt: listing.updatedAt
       }
       
-      setProduct(productData as any)
+      setProduct(productData)
     } catch (error) {
       console.error("Failed to fetch product:", error)
     } finally {
@@ -87,8 +180,8 @@ export default function ProductDetailPage() {
   const fetchReviews = useCallback(async () => {
     try {
       const response = await apiService.getListingReviews(productId)
-      const reviewsData = response.data || response
-      setReviews((reviewsData as any).reviews || [])
+      const reviewsData = (response.data || response) as { reviews?: Review[] }
+      setReviews(reviewsData.reviews || [])
     } catch (error) {
       console.error("Failed to fetch reviews:", error)
       setReviews([])
@@ -98,9 +191,10 @@ export default function ProductDetailPage() {
   const fetchUserOrders = useCallback(async () => {
     try {
       const response = await apiService.getOrders()
-      const orders = (response.data as any)?.orders || (response as any).orders || []
-      const relevantOrders = orders.filter((order: any) => 
-        order.items?.some((item: any) => item.listing === productId) && 
+      const payload = (response.data ?? response) as { orders?: UserOrder[] }
+      const orders = payload.orders || []
+      const relevantOrders = orders.filter((order) => 
+        order.items?.some((item) => item.listing === productId) && 
         order.status === 'delivered'
       )
       setUserOrders(relevantOrders)
@@ -149,10 +243,10 @@ export default function ProductDetailPage() {
         unit: product.unit,
         price: product.basePrice,
         total: (product.basePrice || 0) * quantity,
-        farmer: (product as any).farmer?.name || 'Unknown Farmer',
-        location: (product as any).location,
-        image: (product as any).images?.[0] || "/placeholder.svg",
-        availableQuantity: (product as any).availableQuantity || (product as any).quantity || 0
+        farmer: product.farmer?.name || 'Unknown Farmer',
+        location: product.location,
+        image: product.images?.[0] || "/placeholder.svg",
+        availableQuantity: product.availableQuantity || product.quantity || 0
       }
 
       // Add to cart using buyer store
@@ -226,12 +320,12 @@ export default function ProductDetailPage() {
             <div className="relative h-96 rounded-lg overflow-hidden">
               <SafeImage
                 src={product.images?.[0] || "/placeholder-harvest.jpg"}
-                alt={typeof (product as any).name === 'string' ? (product as any).name : 'Fresh agricultural product'}
+                alt={typeof product.name === 'string' ? product.name : 'Fresh agricultural product'}
                 fill
                 sizes="(min-width: 1024px) 50vw, 100vw"
                 className="object-cover"
               />
-              {(product as any).isVerified && (
+              {product.isVerified && (
                 <Badge className="absolute top-4 left-4 bg-success">
                   <Shield className="h-3 w-3 mr-1" />
                   Verified Product
@@ -241,7 +335,7 @@ export default function ProductDetailPage() {
 
             {product.images && product.images.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
-                {product.images.slice(1, 5).map((image: any, index: number) => (
+                {product.images.slice(1, 5).map((image: string, index: number) => (
                   <div key={index} className="relative h-20 rounded overflow-hidden">
                     <SafeImage
                       src={image || "/placeholder-harvest.jpg"}
@@ -261,7 +355,7 @@ export default function ProductDetailPage() {
             <div>
               <div className="flex items-start justify-between mb-2">
                 <Display as="h1" variant="page">
-                  {typeof (product as any).name === 'string' ? (product as any).name : 'Unnamed Product'}
+                  {typeof product.name === 'string' ? product.name : 'Unnamed Product'}
                 </Display>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline">
@@ -276,7 +370,7 @@ export default function ProductDetailPage() {
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex items-center gap-1">
                   <Star className="h-4 w-4 fill-warning text-warning" />
-                  <span className="font-medium">{(product as any).rating || 4.5}</span>
+                  <span className="font-medium">{product.rating || 4.5}</span>
                   <span className="text-muted-foreground">({reviews.length} reviews)</span>
                 </div>
                 <Badge variant="outline">
@@ -292,19 +386,14 @@ export default function ProductDetailPage() {
             <div className="flex items-center gap-2">
               <MapPin className="h-5 w-5 text-muted-foreground" />
               <span className="text-muted-foreground">
-                {typeof (product as any).location === 'string'
-                  ? (product as any).location
-                  : typeof (product as any).location === 'object' && (product as any).location
-                  ? `${(product as any).location.city || ''}, ${(product as any).location.state || ''}`.replace(/^, |, $/, '').trim() || 'Location N/A'
-                  : 'Location N/A'
-                }
+                {formatProductLocation(product.location)}
               </span>
             </div>
 
             <div className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-muted-foreground" />
               <span className="text-muted-foreground">
-                Harvested: {new Date((product as any).harvestDate || Date.now()).toLocaleDateString()}
+                Harvested: {new Date(product.harvestDate || Date.now()).toLocaleDateString()}
               </span>
             </div>
 
@@ -346,7 +435,7 @@ export default function ProductDetailPage() {
                   ) : (
                     <>
                       <ShoppingCart className="h-4 w-4 mr-2" />
-                      Add to Cart - ₦{(product?.basePrice * quantity).toLocaleString()}
+                      Add to Cart - ₦{((product?.basePrice ?? 0) * quantity).toLocaleString()}
                     </>
                   )}
                 </Button>
@@ -526,7 +615,7 @@ export default function ProductDetailPage() {
                           Harvest details recorded with batch ID: {product.harvest.batchId}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Harvest Date: {new Date(product.harvest.harvestDate || product.harvestDate).toLocaleDateString()}
+                          Harvest Date: {new Date(product.harvest.harvestDate || product.harvestDate || Date.now()).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
@@ -555,7 +644,7 @@ export default function ProductDetailPage() {
                         Product listed on marketplace for buyers
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Listed: {new Date(product.createdAt).toLocaleDateString()}
+                        Listed: {new Date(product.createdAt || Date.now()).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -564,7 +653,7 @@ export default function ProductDetailPage() {
                     <div className="mt-4 p-4 bg-primary/10 rounded-lg">
                       <h4 className="font-semibold mb-2">Certifications</h4>
                       <div className="flex flex-wrap gap-2">
-                        {product.certifications.map((cert: any, index: number) => (
+                        {product.certifications.map((cert: string, index: number) => (
                           <Badge key={index} variant="outline" className="text-xs">
                             {cert}
                           </Badge>

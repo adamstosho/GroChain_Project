@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useToast } from './use-toast'
+import { getErrorMessage } from '@/lib/error-utils'
 import { referralService, Referral, ReferralStats, ReferralFilters, CreateReferralData, UpdateReferralData } from '@/lib/referral-service'
 import { useAuthStore } from '@/lib/auth'
 
@@ -36,7 +37,7 @@ export function useReferrals() {
         totalItems: 0,
         itemsPerPage: 20
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Failed to fetch referrals:', error)
       setReferrals([])
       setPagination({
@@ -47,7 +48,7 @@ export function useReferrals() {
       })
       toast({
         title: "Error loading referrals",
-        description: error.message || "Failed to load referrals",
+        description: getErrorMessage(error) || "Failed to load referrals",
         variant: "destructive"
       })
     } finally {
@@ -60,7 +61,7 @@ export function useReferrals() {
     try {
       const statsData = await referralService.getReferralStats()
       setStats(statsData)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch referral stats:', error)
       // Set default stats to prevent undefined errors
       setStats({
@@ -89,10 +90,10 @@ export function useReferrals() {
         title: "Data refreshed",
         description: "Referral data has been updated",
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Refresh failed",
-        description: error.message || "Failed to refresh data",
+        description: getErrorMessage(error) || "Failed to refresh data",
         variant: "destructive"
       })
     } finally {
@@ -123,10 +124,10 @@ export function useReferrals() {
       })
       
       return newReferral
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Creation failed",
-        description: error.message || "Failed to create referral",
+        description: getErrorMessage(error) || "Failed to create referral",
         variant: "destructive"
       })
       throw error
@@ -151,10 +152,10 @@ export function useReferrals() {
       })
       
       return updatedReferral
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Update failed",
-        description: error.message || "Failed to update referral",
+        description: getErrorMessage(error) || "Failed to update referral",
         variant: "destructive"
       })
       throw error
@@ -173,10 +174,10 @@ export function useReferrals() {
         title: "Referral deleted",
         description: "Referral has been removed successfully",
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Deletion failed",
-        description: error.message || "Failed to delete referral",
+        description: getErrorMessage(error) || "Failed to delete referral",
         variant: "destructive"
       })
       throw error

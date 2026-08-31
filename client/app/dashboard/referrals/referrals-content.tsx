@@ -12,6 +12,8 @@ import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { Display, Text } from "@/components/ui/typography"
 import { dashboard } from "@/lib/design-system"
 import { useReferrals } from "@/hooks/use-referrals"
+import { Referral } from "@/lib/types/referrals"
+import { getErrorMessage } from "@/lib/error-utils"
 import { ReferralDialog } from "@/components/dialogs/referral-dialog"
 import { ReferralStatusDialog } from "@/components/dialogs/referral-status-dialog"
 import { useToast } from "@/hooks/use-toast"
@@ -37,7 +39,7 @@ export default function ReferralsContent() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showStatusDialog, setShowStatusDialog] = useState(false)
-  const [selectedReferral, setSelectedReferral] = useState<any>(null)
+  const [selectedReferral, setSelectedReferral] = useState<Referral | null>(null)
 
   // Backend integration hooks
   const {
@@ -81,7 +83,7 @@ export default function ReferralsContent() {
   }
 
   // Filter referrals with null safety and search
-  const filteredReferrals = referrals.filter((referral: any) => {
+  const filteredReferrals = referrals.filter((referral) => {
     const farmerName = referral.farmer?.name || ''
     const farmerEmail = referral.farmer?.email || ''
     
@@ -96,12 +98,12 @@ export default function ReferralsContent() {
     setShowCreateDialog(true)
   }
 
-  const handleUpdateStatus = (referral: any) => {
+  const handleUpdateStatus = (referral: Referral) => {
     setSelectedReferral(referral)
     setShowStatusDialog(true)
   }
 
-  const handleDeleteReferral = async (referral: any) => {
+  const handleDeleteReferral = async (referral: Referral) => {
     const farmerName = referral.farmer?.name || 'Unknown Farmer'
     if (window.confirm(`Are you sure you want to delete the referral for ${farmerName}?`)) {
       try {
@@ -110,10 +112,10 @@ export default function ReferralsContent() {
           title: "Referral deleted",
           description: "Referral has been removed successfully",
         })
-      } catch (error: any) {
+      } catch (error) {
         toast({
           title: "Deletion failed",
-          description: error.message || "Failed to delete referral",
+          description: getErrorMessage(error, "Failed to delete referral"),
           variant: "destructive"
         })
       }
@@ -132,7 +134,7 @@ export default function ReferralsContent() {
       }
 
       // Export referrals as CSV
-      const csvData = filteredReferrals.map((referral: any) => ({
+      const csvData = filteredReferrals.map((referral) => ({
         'Farmer Name': referral.farmer?.name || 'Unknown',
         'Email': referral.farmer?.email || 'No email',
         'Phone': referral.farmer?.phone || 'No phone',
@@ -430,7 +432,7 @@ export default function ReferralsContent() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {filteredReferrals.map((referral: any) => (
+                    {filteredReferrals.map((referral) => (
                       <div
                         key={referral._id}
                         className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg hover:bg-muted transition-colors gap-4 sm:gap-2"

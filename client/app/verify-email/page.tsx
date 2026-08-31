@@ -12,6 +12,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp"
 import { api } from "@/lib/api"
+import { getErrorMessage } from "@/lib/error-utils"
 import { CheckCircle, Mail, AlertCircle } from "lucide-react"
 
 function VerifyEmailForm() {
@@ -25,11 +26,17 @@ function VerifyEmailForm() {
   const [verificationError, setVerificationError] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [successMessage, setSuccessMessage] = useState("")
+  const [deliveryWarning, setDeliveryWarning] = useState("")
 
   useEffect(() => {
     const e = params?.get("email")
     const verified = params?.get("verified")
     if (e) setEmail(e)
+    if (params?.get("emailSent") === "0") {
+      setDeliveryWarning(
+        "The verification code could not be emailed. Resend is still in test mode and can only send to grochain.ng@gmail.com until your domain is verified. Check the backend terminal for [DEV-EMAIL-OTP] to get this user's code."
+      )
+    }
     if (verified === "1") {
       setVerified(true)
       setSuccessMessage("Email verified successfully! You can now sign in to your account.")
@@ -51,8 +58,8 @@ function VerifyEmailForm() {
       setVerified(true)
       setSuccessMessage("Email verified successfully! You can now sign in to your account.")
       setTimeout(() => router.push("/login"), 3000)
-    } catch (err: any) {
-      setVerificationError(err?.message || "Invalid or expired verification code.")
+    } catch (err: unknown) {
+      setVerificationError(getErrorMessage(err, "Invalid or expired verification code."))
     } finally {
       setSubmitting(false)
     }
@@ -64,11 +71,21 @@ function VerifyEmailForm() {
     setResending(true)
     setVerificationError("")
     try {
-      await api.resendVerification(email)
-      setSuccessMessage("A new 6-digit code was sent to your email.")
+      const result = await api.resendVerification(email)
+      const payload = result as { emailSent?: boolean; message?: string }
+      if (payload?.emailSent === false) {
+        setDeliveryWarning(
+          payload.message ||
+            "The code was generated but could not be emailed. Check the backend terminal for [DEV-EMAIL-OTP]."
+        )
+        setSuccessMessage("")
+      } else {
+        setDeliveryWarning("")
+        setSuccessMessage("A new 6-digit code was sent to your email.")
+      }
       setCode("")
-    } catch (err: any) {
-      setVerificationError(err?.message || "Please try again later.")
+    } catch (err: unknown) {
+      setVerificationError(getErrorMessage(err, "Please try again later."))
     } finally {
       setResending(false)
     }
@@ -172,6 +189,13 @@ function VerifyEmailForm() {
                 Check your inbox and spam folder for an email from GroChain.
               </p>
             </div>
+
+            {deliveryWarning && (
+              <div className="flex items-start space-x-2 rounded-md border border-amber-500/30 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{deliveryWarning}</span>
+              </div>
+            )}
 
             {verificationError && (
               <div className="flex items-center space-x-2 rounded-md border border-destructive/10 bg-destructive/10 p-3 text-sm text-destructive">

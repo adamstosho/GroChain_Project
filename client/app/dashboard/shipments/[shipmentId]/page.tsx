@@ -38,6 +38,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { AiTrustBadge } from "@/components/ai/ai-trust-badge"
 import { ShipmentRiskAlert } from "@/components/ai/shipment-risk-alert"
+import type { ConfirmDeliveryRequest, ReportIssueRequest } from "@/types/shipment"
 
 export default function ShipmentDetailsPage() {
   const params = useParams()
@@ -124,7 +125,7 @@ export default function ShipmentDetailsPage() {
   }
 
   // Fully implemented but not yet wired to any confirm/report UI trigger.
-  const _handleDeliveryConfirm = async (proof: any) => {
+  const _handleDeliveryConfirm = async (proof: ConfirmDeliveryRequest) => {
     try {
       await confirmDelivery(shipmentId, proof)
       setShowDeliveryConfirm(false)
@@ -136,7 +137,11 @@ export default function ShipmentDetailsPage() {
 
   const _handleIssueReport = async (type: string, description: string) => {
     try {
-      await reportIssue(shipmentId, { type: type as any, description })
+      const issueTypes: ReportIssueRequest["type"][] = ["damage", "delay", "loss", "quality", "other"]
+      const issueType = issueTypes.includes(type as ReportIssueRequest["type"])
+        ? (type as ReportIssueRequest["type"])
+        : "other"
+      await reportIssue(shipmentId, { type: issueType, description })
       setShowIssueReport(false)
       refreshShipment()
     } catch (error) {

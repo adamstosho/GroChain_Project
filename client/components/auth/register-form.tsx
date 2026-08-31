@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { useAuthStore } from "@/lib/auth"
 import { Leaf, ShoppingCart, Users, Eye, EyeOff, Mail, User, Phone, Lock, MapPin, AlertCircle } from "lucide-react"
+import { getErrorMessage } from "@/lib/error-utils"
 
 export function RegisterForm() {
   const [step, setStep] = useState(1)
@@ -117,7 +118,7 @@ export function RegisterForm() {
     try {
       console.log("[REGISTRATION] Starting registration for role:", formData.role)
 
-      await register({
+      const response = await register({
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
@@ -128,20 +129,23 @@ export function RegisterForm() {
 
       console.log("[REGISTRATION] Registration successful")
 
-      // Redirect to OTP verification page
-      router.replace("/verify-email?email=" + encodeURIComponent(formData.email))
-    } catch (error: any) {
+      const result = response as { emailSent?: boolean }
+      const params = new URLSearchParams({ email: formData.email })
+      if (result?.emailSent === false) params.set("emailSent", "0")
+      router.replace(`/verify-email?${params.toString()}`)
+    } catch (error: unknown) {
       console.error("[REGISTRATION] Registration error:", error)
 
       let errorMessage = "Registration failed. Please try again."
+      const message = getErrorMessage(error, "")
 
-      if (error.message) {
-        if (error.message.includes("Network error")) {
+      if (message) {
+        if (message.includes("Network error")) {
           errorMessage = "Unable to connect to server. Please check your internet connection and ensure the backend server is running."
-        } else if (error.message.includes("email already exists") || error.message.includes("already registered")) {
+        } else if (message.includes("email already exists") || message.includes("already registered")) {
           errorMessage = "An account with this email already exists. Please try logging in instead."
         } else {
-          errorMessage = error.message
+          errorMessage = message
         }
       }
 

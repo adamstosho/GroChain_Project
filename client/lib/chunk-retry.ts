@@ -10,11 +10,13 @@ export function setupChunkRetry() {
     try {
       const response = await originalFetch(input, init)
       return response
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : ""
+      const name = error instanceof Error ? error.name : ""
       // Check if it's a chunk loading error
-      if (error.message?.includes('Loading chunk') || 
-          error.message?.includes('ChunkLoadError') ||
-          error.name === 'ChunkLoadError') {
+      if (message.includes('Loading chunk') || 
+          message.includes('ChunkLoadError') ||
+          name === 'ChunkLoadError') {
         
         console.log('Chunk loading error detected, retrying...')
         

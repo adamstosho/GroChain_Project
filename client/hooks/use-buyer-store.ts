@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { apiService } from '@/lib/api'
+import { getErrorMessage } from '@/lib/error-utils'
 import { getTokenFromStorage } from '@/lib/auth-storage'
 
 interface BuyerState {
@@ -101,16 +102,16 @@ export const useBuyerStore = create<BuyerState>()(
 
           const response = await apiService.getProfile()
           set({ profile: response.data, isLoading: false })
-        } catch (error: any) {
-          if (error.message?.includes('timeout')) {
+        } catch (error: unknown) {
+          if (getErrorMessage(error).includes('timeout')) {
             set({ 
               error: 'Server timeout. Please try again.', 
               isLoading: false 
             })
-          } else if (error.message?.includes('Invalid token') || error.message?.includes('Unauthorized')) {
+          } else if (getErrorMessage(error).includes('Invalid token') || getErrorMessage(error).includes('Unauthorized')) {
             set({ profile: null, isLoading: false, error: null })
           } else {
-            set({ error: error.message || 'Failed to load profile', isLoading: false })
+            set({ error: getErrorMessage(error) || 'Failed to load profile', isLoading: false })
           }
         }
       },
@@ -120,8 +121,8 @@ export const useBuyerStore = create<BuyerState>()(
         try {
           const response = await apiService.updateProfile(data)
           set({ profile: response.data, isLoading: false })
-        } catch (error: any) {
-          set({ error: error.message || 'Failed to update profile', isLoading: false })
+        } catch (error: unknown) {
+          set({ error: getErrorMessage(error) || 'Failed to update profile', isLoading: false })
         }
       },
 
@@ -149,7 +150,7 @@ export const useBuyerStore = create<BuyerState>()(
           const response = await apiService.getFavorites()
           const favorites = (response.data as any)?.favorites || (response.data as any) || []
           set({ favorites, isLoading: false })
-        } catch (error: any) {
+        } catch (error: unknown) {
           set({ favorites: [], isLoading: false, error: null })
         }
       },
@@ -163,8 +164,8 @@ export const useBuyerStore = create<BuyerState>()(
             const favorites = (favoritesResponse.data as any)?.favorites || (favoritesResponse.data as any) || []
             set({ favorites })
           }
-        } catch (error: any) {
-          set({ error: error.message || 'Failed to add to favorites' })
+        } catch (error: unknown) {
+          set({ error: getErrorMessage(error) || 'Failed to add to favorites' })
           throw error
         }
       },
@@ -178,8 +179,8 @@ export const useBuyerStore = create<BuyerState>()(
           const response = await apiService.getFavorites()
           const favorites = (response.data as any)?.favorites || (response.data as any) || []
           set({ favorites })
-        } catch (error: any) {
-          set({ error: error.message || 'Failed to remove from favorites' })
+        } catch (error: unknown) {
+          set({ error: getErrorMessage(error) || 'Failed to remove from favorites' })
         }
       },
 
@@ -318,8 +319,8 @@ export const useBuyerStore = create<BuyerState>()(
             orders = Array.isArray((response as any).data) ? (response as any).data : []
           }
           set({ orders: Array.isArray(orders) ? orders : [], isLoading: false })
-        } catch (error: any) {
-          set({ error: error.message || 'Failed to load orders', isLoading: false })
+        } catch (error: unknown) {
+          set({ error: getErrorMessage(error) || 'Failed to load orders', isLoading: false })
         }
       },
 
@@ -347,8 +348,8 @@ export const useBuyerStore = create<BuyerState>()(
           } else {
             throw new Error(response?.message || 'Failed to create order')
           }
-        } catch (error: any) {
-          set({ error: error.message || 'Failed to create order', isLoading: false })
+        } catch (error: unknown) {
+          set({ error: getErrorMessage(error) || 'Failed to create order', isLoading: false })
           throw error
         }
       },
@@ -358,8 +359,8 @@ export const useBuyerStore = create<BuyerState>()(
         try {
           const response = await apiService.getUserNotifications()
           set({ notifications: (response.data as any)?.notifications || [], isLoading: false })
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false })
+        } catch (error: unknown) {
+          set({ error: getErrorMessage(error), isLoading: false })
         }
       },
 
@@ -373,8 +374,8 @@ export const useBuyerStore = create<BuyerState>()(
                 : notification
             )
           }))
-        } catch (error: any) {
-          set({ error: error.message })
+        } catch (error: unknown) {
+          set({ error: getErrorMessage(error) })
         }
       },
     }),

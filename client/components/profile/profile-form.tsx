@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import { useAuthStore } from "@/lib/auth"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
+import type { UserProfile } from "@/lib/types"
 import { ProfileHero } from "@/components/profile/profile-hero"
 import { ProfileSectionCard } from "@/components/profile/profile-section-card"
 import { ProfileField, ProfileTagField } from "@/components/profile/profile-field"
@@ -87,9 +89,92 @@ interface FarmerProfile {
     totalRevenue: number
     lastActive: string
   }
-  recentHarvests: any[]
+  recentHarvests: RecentHarvest[]
   createdAt: string
   updatedAt: string
+}
+
+interface RecentHarvest {
+  cropType?: string
+  quantity?: number | string
+  qualityGrade?: string
+  createdAt?: string
+  status?: string
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" && !Number.isNaN(value) ? value : fallback
+}
+
+function asStringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
+}
+
+function toUserProfile(value: unknown): UserProfile | undefined {
+  if (!value || typeof value !== "object") return undefined
+  const p = asRecord(value)
+  const coords = asRecord(p.coordinates)
+  return {
+    avatar: typeof p.avatar === "string" ? p.avatar : undefined,
+    bio: typeof p.bio === "string" ? p.bio : undefined,
+    address: typeof p.address === "string" ? p.address : undefined,
+    city: typeof p.city === "string" ? p.city : undefined,
+    state: typeof p.state === "string" ? p.state : undefined,
+    country: typeof p.country === "string" ? p.country : undefined,
+    postalCode: typeof p.postalCode === "string" ? p.postalCode : undefined,
+    coordinates:
+      typeof coords.lat === "number" && typeof coords.lng === "number"
+        ? { lat: coords.lat, lng: coords.lng }
+        : undefined,
+  }
+}
+
+function mapPartnerProfile(profileData: unknown): PartnerProfile {
+  const data = asRecord(profileData)
+  const partner = asRecord(data.partner)
+  const profile = asRecord(data.profile)
+  const contact = asRecord(partner.contactPerson)
+  return {
+    _id: asString(data._id),
+    name: asString(data.name),
+    email: asString(data.email),
+    phone: asString(data.phone),
+    role: "partner",
+    status: data.status === "inactive" || data.status === "suspended" ? data.status : "active",
+    organization: asString(partner.organization),
+    organizationType:
+      partner.type === "ngo" ||
+      partner.type === "extension_agency" ||
+      partner.type === "market_association" ||
+      partner.type === "other"
+        ? partner.type
+        : "cooperative",
+    address: {
+      street: asString(profile.address),
+      city: asString(profile.city),
+      state: asString(profile.state),
+      postalCode: asString(profile.postalCode),
+      country: asString(profile.country, "Nigeria"),
+    },
+    website: asString(partner.website),
+    description: asString(partner.description),
+    logo: asString(partner.logo) || asString(profile.avatar),
+    contactPerson: {
+      name: asString(contact.name, asString(data.name)),
+      position: asString(contact.position),
+      phone: asString(contact.phone, asString(data.phone)),
+      email: asString(contact.email, asString(data.email)),
+    },
+    services: asStringList(partner.services),
+    coverageAreas: asStringList(partner.coverageAreas),
+    certifications: asStringList(partner.certifications),
+    createdAt: asString(data.createdAt),
+    updatedAt: asString(data.updatedAt),
+  }
 }
 
 const ORGANIZATION_TYPE_OPTIONS = [
@@ -185,47 +270,15 @@ function PartnerProfileView() {
       const response = await apiService.getMyProfile()
 
       if (response.status === 'success' && response.data) {
-        const profileData = response.data as any
-        const partnerProfile: PartnerProfile = {
-          _id: profileData._id,
-          name: profileData.name,
-          email: profileData.email,
-          phone: profileData.phone,
-          role: profileData.role,
-          status: profileData.status,
-          organization: profileData.partner?.organization || '',
-          organizationType: profileData.partner?.type || 'cooperative',
-          address: {
-            street: profileData.profile?.address || '',
-            city: profileData.profile?.city || '',
-            state: profileData.profile?.state || '',
-            postalCode: profileData.profile?.postalCode || '',
-            country: profileData.profile?.country || 'Nigeria'
-          },
-          website: profileData.partner?.website || '',
-          description: profileData.partner?.description || '',
-          logo: profileData.partner?.logo || profileData.profile?.avatar || '',
-          contactPerson: {
-            name: profileData.partner?.contactPerson?.name || profileData.name || '',
-            position: profileData.partner?.contactPerson?.position || '',
-            phone: profileData.partner?.contactPerson?.phone || profileData.phone || '',
-            email: profileData.partner?.contactPerson?.email || profileData.email || ''
-          },
-          services: profileData.partner?.services || [],
-          coverageAreas: profileData.partner?.coverageAreas || [],
-          certifications: profileData.partner?.certifications || [],
-          createdAt: profileData.createdAt,
-          updatedAt: profileData.updatedAt
-        }
-        setProfile(partnerProfile)
+        setProfile(mapPartnerProfile(response.data))
       } else {
         throw new Error('Failed to fetch profile data')
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching profile:', error)
       toast({
         title: "Error loading profile",
-        description: error.message || "Failed to load profile data",
+        description: getErrorMessage(error, "Failed to load profile data"),
         variant: "destructive"
       })
     } finally {
@@ -279,45 +332,15 @@ function PartnerProfileView() {
       const response = await apiService.updateMyProfile(updateData)
 
       if (response.status === 'success' && response.data) {
-        const updatedData = response.data as any
-        const updatedProfile: PartnerProfile = {
-          _id: updatedData._id,
-          name: updatedData.name,
-          email: updatedData.email,
-          phone: updatedData.phone,
-          role: updatedData.role,
-          status: updatedData.status,
-          organization: updatedData.partner?.organization || '',
-          organizationType: updatedData.partner?.type || 'cooperative',
-          address: {
-            street: updatedData.profile?.address || '',
-            city: updatedData.profile?.city || '',
-            state: updatedData.profile?.state || '',
-            postalCode: updatedData.profile?.postalCode || '',
-            country: updatedData.profile?.country || 'Nigeria'
-          },
-          website: updatedData.partner?.website || '',
-          description: updatedData.partner?.description || '',
-          logo: updatedData.partner?.logo || updatedData.profile?.avatar || '',
-          contactPerson: {
-            name: updatedData.partner?.contactPerson?.name || updatedData.name || '',
-            position: updatedData.partner?.contactPerson?.position || '',
-            phone: updatedData.partner?.contactPerson?.phone || updatedData.phone || '',
-            email: updatedData.partner?.contactPerson?.email || updatedData.email || ''
-          },
-          services: updatedData.partner?.services || [],
-          coverageAreas: updatedData.partner?.coverageAreas || [],
-          certifications: updatedData.partner?.certifications || [],
-          createdAt: updatedData.createdAt,
-          updatedAt: updatedData.updatedAt
-        }
+        const updatedProfile = mapPartnerProfile(response.data)
+        const updatedData = asRecord(response.data)
 
         setProfile(updatedProfile)
         updateUser({
           name: updatedProfile.name,
           email: updatedProfile.email,
           phone: updatedProfile.phone,
-          profile: updatedData.profile
+          profile: toUserProfile(updatedData.profile)
         })
 
         toast({ title: "Profile updated", description: "Your profile has been updated successfully" })
@@ -325,11 +348,11 @@ function PartnerProfileView() {
       } else {
         throw new Error('Failed to update profile')
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating profile:', error)
       toast({
         title: "Error saving profile",
-        description: error.message || "Failed to save profile. Please try again.",
+        description: getErrorMessage(error, "Failed to save profile. Please try again."),
         variant: "destructive"
       })
     } finally {
@@ -488,39 +511,55 @@ function FarmerProfileView() {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  const mapFarmerProfile = (profileData: any): FarmerProfile => ({
-    _id: profileData._id,
-    name: profileData.name,
-    email: profileData.email,
-    phone: profileData.phone,
-    role: profileData.role,
-    status: profileData.status,
-    location: profileData.location || '',
-    gender: profileData.gender || '',
-    age: profileData.age?.toString() || '',
-    education: profileData.education || '',
-    farmSize: profileData.profile?.farmSize || '',
-    primaryCrops: profileData.preferences?.cropTypes || [],
-    experience: profileData.profile?.experience || '',
-    certifications: profileData.profile?.certifications || [],
-    bio: profileData.profile?.bio || '',
-    address: profileData.profile?.address || '',
-    city: profileData.profile?.city || '',
-    state: profileData.profile?.state || '',
-    country: profileData.profile?.country || 'Nigeria',
-    postalCode: profileData.profile?.postalCode || '',
-    avatar: profileData.profile?.avatar || '',
+  const mapFarmerProfile = (profileData: unknown): FarmerProfile => {
+    const data = asRecord(profileData)
+    const profile = asRecord(data.profile)
+    const preferences = asRecord(data.preferences)
+    const stats = asRecord(data.stats)
+    const harvests = Array.isArray(data.recentHarvests) ? data.recentHarvests : []
+    return {
+    _id: asString(data._id),
+    name: asString(data.name),
+    email: asString(data.email),
+    phone: asString(data.phone),
+    role: "farmer",
+    status: data.status === "inactive" || data.status === "suspended" ? data.status : "active",
+    location: asString(data.location),
+    gender: asString(data.gender),
+    age: data.age !== undefined && data.age !== null ? String(data.age) : '',
+    education: asString(data.education),
+    farmSize: asString(profile.farmSize),
+    primaryCrops: asStringList(preferences.cropTypes),
+    experience: asString(profile.experience),
+    certifications: asStringList(profile.certifications),
+    bio: asString(profile.bio),
+    address: asString(profile.address),
+    city: asString(profile.city),
+    state: asString(profile.state),
+    country: asString(profile.country, 'Nigeria'),
+    postalCode: asString(profile.postalCode),
+    avatar: asString(profile.avatar),
     stats: {
-      totalHarvests: profileData.stats?.totalHarvests || 0,
-      totalListings: profileData.stats?.totalListings || 0,
-      totalOrders: profileData.stats?.totalOrders || 0,
-      totalRevenue: profileData.stats?.totalRevenue || 0,
-      lastActive: profileData.stats?.lastActive || new Date().toISOString()
+      totalHarvests: asNumber(stats.totalHarvests),
+      totalListings: asNumber(stats.totalListings),
+      totalOrders: asNumber(stats.totalOrders),
+      totalRevenue: asNumber(stats.totalRevenue),
+      lastActive: asString(stats.lastActive, new Date().toISOString())
     },
-    recentHarvests: profileData.recentHarvests || [],
-    createdAt: profileData.createdAt,
-    updatedAt: profileData.updatedAt
-  })
+    recentHarvests: harvests.map((harvest) => {
+      const rec = asRecord(harvest)
+      return {
+        cropType: asString(rec.cropType),
+        quantity: typeof rec.quantity === "number" || typeof rec.quantity === "string" ? rec.quantity : undefined,
+        qualityGrade: asString(rec.qualityGrade),
+        createdAt: asString(rec.createdAt),
+        status: asString(rec.status),
+      }
+    }),
+    createdAt: asString(data.createdAt),
+    updatedAt: asString(data.updatedAt)
+  }
+  }
 
   const fetchFarmerProfile = useCallback(async () => {
     try {
@@ -532,11 +571,11 @@ function FarmerProfileView() {
       } else {
         throw new Error('Failed to fetch farmer profile')
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching farmer profile:', error)
       toast({
         title: "Error loading profile",
-        description: error.message || "Failed to load farmer profile",
+        description: getErrorMessage(error, "Failed to load farmer profile"),
         variant: "destructive"
       })
     } finally {
@@ -590,11 +629,12 @@ function FarmerProfileView() {
 
       if (response.status === 'success' && response.data) {
         setProfile(mapFarmerProfile(response.data))
+        const updatedData = asRecord(response.data)
         updateUser({
-          name: (response.data as any).name,
-          email: (response.data as any).email,
-          phone: (response.data as any).phone,
-          profile: (response.data as any).profile
+          name: asString(updatedData.name),
+          email: asString(updatedData.email),
+          phone: asString(updatedData.phone),
+          profile: toUserProfile(updatedData.profile)
         })
 
         toast({ title: "Profile updated", description: "Your farmer profile has been updated successfully" })
@@ -602,11 +642,11 @@ function FarmerProfileView() {
       } else {
         throw new Error('Failed to update profile')
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating farmer profile:', error)
       toast({
         title: "Error saving profile",
-        description: error.message || "Failed to save profile. Please try again.",
+        description: getErrorMessage(error, "Failed to save profile. Please try again."),
         variant: "destructive"
       })
     } finally {
@@ -712,12 +752,12 @@ function FarmerProfileView() {
       {profile.recentHarvests && profile.recentHarvests.length > 0 && (
         <ProfileSectionCard icon={Activity} title="Recent Harvests" description="Your latest harvest activity">
           <div className="space-y-2.5">
-            {profile.recentHarvests.slice(0, 3).map((harvest: any, index: number) => (
+            {profile.recentHarvests.slice(0, 3).map((harvest, index: number) => (
               <div key={index} className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 p-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{harvest.cropType}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {harvest.quantity}kg • {harvest.qualityGrade} • {new Date(harvest.createdAt).toLocaleDateString()}
+                    {harvest.quantity}kg • {harvest.qualityGrade} • {harvest.createdAt ? new Date(harvest.createdAt).toLocaleDateString() : "N/A"}
                   </p>
                 </div>
                 <Badge variant={harvest.status === 'approved' ? 'default' : 'secondary'} className="shrink-0 ml-2">

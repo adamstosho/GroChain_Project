@@ -134,7 +134,7 @@ export function OnboardingOverview() {
                   <div>
                     <h4 className="font-medium">{onboarding.farmer.name}</h4>
                     <p className="text-sm text-muted-foreground">
-                      {typeof onboarding.farmer.location === 'string' ? onboarding.farmer.location : `${(onboarding.farmer.location as any)?.city || 'Unknown'}, ${(onboarding.farmer.location as any)?.state || 'Unknown State'}`}
+                      {typeof onboarding.farmer.location === 'string' ? onboarding.farmer.location : `${onboarding.farmer.location?.city || 'Unknown'}, ${onboarding.farmer.location?.state || 'Unknown State'}`}
                     </p>
                     <div className="flex items-center space-x-2 mt-1">
                       <Badge variant="outline" className="text-xs">
@@ -199,7 +199,7 @@ export function OnboardingOverview() {
                     <div>
                       <span className="font-medium">{onboarding.farmer.name}</span>
                       <span className="text-sm text-muted-foreground ml-2">
-                        {typeof onboarding.farmer.location === 'string' ? onboarding.farmer.location : `${(onboarding.farmer.location as any)?.city || 'Unknown'}, ${(onboarding.farmer.location as any)?.state || 'Unknown State'}`}
+                        {typeof onboarding.farmer.location === 'string' ? onboarding.farmer.location : `${onboarding.farmer.location?.city || 'Unknown'}, ${onboarding.farmer.location?.state || 'Unknown State'}`}
                       </span>
                     </div>
                   </div>

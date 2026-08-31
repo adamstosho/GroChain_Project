@@ -104,6 +104,15 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip
 
+type ChartTooltipItem = {
+  dataKey?: string | number
+  name?: unknown
+  value?: unknown
+  color?: string
+  fill?: string
+  payload?: Record<string, unknown>
+}
+
 function ChartTooltipContent({
   active,
   payload,
@@ -120,11 +129,17 @@ function ChartTooltipContent({
   labelKey,
 }: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
   React.ComponentProps<"div"> & {
-    payload?: any[]
-    label?: any
-    labelFormatter?: (value: any) => string
+    payload?: ChartTooltipItem[]
+    label?: unknown
+    labelFormatter?: (value: unknown, payload: ChartTooltipItem[]) => React.ReactNode
     labelClassName?: string
-    formatter?: (value: any, name: any) => [string, string]
+    formatter?: (
+      value: unknown,
+      name: unknown,
+      item: ChartTooltipItem,
+      index: number,
+      itemPayload: unknown
+    ) => React.ReactNode
     color?: string
     hideLabel?: boolean
     hideIndicator?: boolean
@@ -140,7 +155,7 @@ function ChartTooltipContent({
     }
 
     const [item] = payload
-    const key = `${labelKey || item?.dataKey || item?.name || "value"}`
+    const key = `${labelKey || item?.dataKey || (typeof item?.name === "string" ? item.name : "") || "value"}`
     const itemConfig = getPayloadConfigFromPayload(config, item, key)
     const value =
       !labelKey && typeof label === "string"
@@ -186,20 +201,23 @@ function ChartTooltipContent({
       {!nestLabel ? tooltipLabel : null}
       <div className="grid gap-1.5">
         {payload.map((item, index) => {
-          const key = `${nameKey || item.name || item.dataKey || "value"}`
+          const itemName = typeof item.name === "string" ? item.name : undefined
+          const key = `${nameKey || itemName || item.dataKey || "value"}`
           const itemConfig = getPayloadConfigFromPayload(config, item, key)
-          const indicatorColor = color || item.payload.fill || item.color
+          const payloadFill =
+            item.payload && typeof item.payload.fill === "string" ? item.payload.fill : undefined
+          const indicatorColor = color || payloadFill || item.color
 
           return (
             <div
-              key={item.dataKey}
+              key={String(item.dataKey ?? index)}
               className={cn(
                 "[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5",
                 indicator === "dot" && "items-center"
               )}
             >
-              {formatter && item?.value !== undefined && item.name ? (
-                formatter(item.value, item.name, item, index, item.payload)
+              {formatter && item?.value !== undefined && itemName ? (
+                formatter(item.value, itemName, item, index, item.payload)
               ) : (
                 <>
                   {itemConfig?.icon ? (
@@ -235,14 +253,18 @@ function ChartTooltipContent({
                     <div className="grid gap-1.5">
                       {nestLabel ? tooltipLabel : null}
                       <span className="text-muted-foreground">
-                        {itemConfig?.label || item.name}
+                        {itemConfig?.label || itemName}
                       </span>
                     </div>
-                    {item.value && (
+                    {item.value ? (
                       <span className="text-foreground font-mono font-medium tabular-nums">
-                        {item.value.toLocaleString()}
+                        {typeof item.value === "number"
+                          ? item.value.toLocaleString()
+                          : typeof item.value === "string"
+                            ? item.value
+                            : String(item.value)}
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 </>
               )}
@@ -263,7 +285,11 @@ function ChartLegendContent({
   verticalAlign = "bottom",
   nameKey,
 }: React.ComponentProps<"div"> & {
-    payload?: any[]
+    payload?: Array<{
+      value?: unknown
+      dataKey?: string | number
+      color?: string
+    }>
     verticalAlign?: "top" | "bottom"
     hideIcon?: boolean
     nameKey?: string
@@ -288,7 +314,7 @@ function ChartLegendContent({
 
         return (
           <div
-            key={item.value}
+            key={String(item.value)}
             className={cn(
               "[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3"
             )}

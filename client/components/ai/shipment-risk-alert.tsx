@@ -17,7 +17,15 @@ interface ShipmentRiskAlertProps {
 
 export function ShipmentRiskAlert({ shipmentId, className = "" }: ShipmentRiskAlertProps) {
   const { getShipmentRisk } = useAi()
-  const [riskData, setRiskData] = useState<any>(null)
+  const [riskData, setRiskData] = useState<{
+    riskLevel?: string
+    distance?: number
+    recommendation?: string
+    isDelayed?: boolean
+    riskScore?: number
+    factors?: Array<{ code?: string; detail?: string }>
+    disclaimer?: string
+  } | null>(null)
 
   useEffect(() => {
     if (!shipmentId) return
@@ -57,7 +65,7 @@ export function ShipmentRiskAlert({ shipmentId, className = "" }: ShipmentRiskAl
     }
   }
 
-  const ui = getRiskUI(riskData.riskLevel)
+  const ui = getRiskUI(riskData.riskLevel ?? "")
   const Icon = ui.icon
   const distanceLabel =
     typeof riskData.distance === "number" ? `${riskData.distance}km` : "—"
@@ -95,7 +103,7 @@ export function ShipmentRiskAlert({ shipmentId, className = "" }: ShipmentRiskAl
             </div>
             {Array.isArray(riskData.factors) && riskData.factors.length > 0 && (
               <ul className="list-disc pl-4 opacity-80">
-                {riskData.factors.slice(0, 4).map((f: any) => (
+                {riskData.factors.slice(0, 4).map((f) => (
                   <li key={f.code}>{f.detail}</li>
                 ))}
               </ul>

@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { useAuthStore } from "@/lib/auth"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import {
   Shield,
   Bell,
@@ -74,6 +75,11 @@ interface BuyerSettings {
   }
 }
 
+function takeOr<T>(incoming: unknown, fallback: T): T {
+  if (!incoming || typeof incoming !== "object" || Array.isArray(incoming)) return fallback
+  return incoming as T
+}
+
 export function BuyerSettingsForm() {
   const { user, updateUser } = useAuthStore()
   const { toast } = useToast()
@@ -130,29 +136,29 @@ export function BuyerSettingsForm() {
       const response = await apiService.getMySettings()
 
       if (response.status === 'success') {
-        const data = response.data as any
+        const data = asRecord(response.data)
 
         setSettings((prev) => ({
-          general: data.general || prev.general,
-          notifications: data.notifications || prev.notifications,
-          preferences: data.preferences || prev.preferences,
-          security: data.security || prev.security,
+          general: takeOr(data.general, prev.general),
+          notifications: takeOr(data.notifications, prev.notifications),
+          preferences: takeOr(data.preferences, prev.preferences),
+          security: takeOr(data.security, prev.security),
           passwordData: prev.passwordData,
-          profile: data.profile || {
+          profile: takeOr(data.profile, {
             bio: user?.profile?.bio || "",
             address: user?.profile?.address || "",
             city: user?.profile?.city || "",
             state: user?.profile?.state || "",
             country: user?.profile?.country || "Nigeria",
             postalCode: user?.profile?.postalCode || ""
-          }
+          })
         }))
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading settings:', error)
       toast({
         title: "Error loading settings",
-        description: error.message || "Failed to load settings",
+        description: getErrorMessage(error, "Failed to load settings"),
         variant: "destructive"
       })
     } finally {
@@ -255,17 +261,15 @@ export function BuyerSettingsForm() {
       } else {
         throw new Error('Failed to save settings')
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving settings:', error)
       
       // Handle different types of errors
-      let errorMessage = "Failed to save settings. Please try again."
+      let errorMessage = getErrorMessage(error, "Failed to save settings. Please try again.")
       
-      if (error.message?.includes('network') || error.message?.includes('fetch')) {
+      if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
         errorMessage = "Network error. Please check your connection and try again."
-      } else if (error.message?.includes('validation')) {
-        errorMessage = error.message
-      } else if (error.message?.includes('unauthorized')) {
+      } else if (errorMessage.includes('unauthorized')) {
         errorMessage = "Session expired. Please log in again."
       }
       
@@ -322,11 +326,11 @@ export function BuyerSettingsForm() {
           }
         })
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error changing password:', error)
       toast({
         title: "Error changing password",
-        description: error.message || "Failed to change password",
+        description: getErrorMessage(error, "Failed to change password"),
         variant: "destructive"
       })
     } finally {
@@ -347,18 +351,23 @@ export function BuyerSettingsForm() {
       const response = await apiService.updateMyProfile(profileData)
 
       if (response.status === 'success') {
-        updateUser(response.data as any)
+        updateUser({
+          profile: {
+            ...user?.profile,
+            ...asRecord(asRecord(response.data).profile),
+          },
+        })
         toast({
           title: "Profile updated",
           description: "Your profile has been updated successfully",
           variant: "default"
         })
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating profile:', error)
       toast({
         title: "Error updating profile",
-        description: error.message || "Failed to update profile",
+        description: getErrorMessage(error, "Failed to update profile"),
         variant: "destructive"
       })
     } finally {

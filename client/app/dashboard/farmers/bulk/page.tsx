@@ -11,6 +11,7 @@ import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { useToast } from "@/hooks/use-toast"
 import { api } from "@/lib/api"
+import { getErrorMessage } from "@/lib/error-utils"
 import { 
   Upload, 
   Download, 
@@ -209,11 +210,11 @@ export default function BulkUploadPage() {
       } else {
         throw new Error(response.message || 'Upload failed')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Upload error:', error)
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload farmers data",
+        description: getErrorMessage(error, "Failed to upload farmers data"),
         variant: "destructive",
       })
     } finally {

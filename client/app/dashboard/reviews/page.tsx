@@ -16,6 +16,7 @@ import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { Text } from "@/components/ui/typography"
 import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import {
   Star,
@@ -88,8 +89,10 @@ export default function ReviewsPage() {
         status: statusFilter === 'all' ? undefined : statusFilter
       })
       const data = response.data || response
-      setReviews((data as any).reviews || [])
-      setStats(prev => (data as any).stats || prev)
+      const rec = asRecord(data)
+      const reviews = Array.isArray(rec.reviews) ? rec.reviews : []
+      setReviews(reviews as Review[])
+      setStats(prev => (rec.stats && typeof rec.stats === "object" ? rec.stats as ReviewStats : prev))
     } catch (error) {
       console.error("Error fetching reviews:", error)
       toast({
@@ -121,10 +124,10 @@ export default function ReviewsPage() {
       setResponseText("")
       setSelectedReview(null)
       fetchReviews() // Refresh reviews
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message || "Failed to add response.",
+        description: getErrorMessage(error, "Failed to add response."),
         variant: "destructive"
       })
     } finally {

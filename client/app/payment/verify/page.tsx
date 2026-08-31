@@ -9,10 +9,29 @@ import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import Link from "next/link"
 
+interface PaymentTransaction {
+  amount?: number
+  orderId?: string
+  metadata?: {
+    order_id?: string
+  }
+}
+
+interface PaymentOrder {
+  paymentStatus?: string
+  status?: string
+}
+
+interface PaymentVerifyData {
+  transaction?: PaymentTransaction
+  order?: PaymentOrder
+  verification?: Record<string, unknown>
+}
+
 interface VerificationResult {
   status: 'success' | 'failed' | 'pending'
-  transaction?: any
-  verification?: any
+  transaction?: PaymentTransaction
+  verification?: Record<string, unknown>
   orderId?: string
   reference?: string
 }
@@ -49,11 +68,13 @@ function PaymentVerificationContent() {
         if (cancelled) return
 
         if (response && response.status === 'success') {
+          const verifyData = response.data as PaymentVerifyData | undefined
 
           // Check if we have order information
-          const transaction = (response.data as any)?.transaction
-          const orderData = (response.data as any)?.order
+          const transaction = verifyData?.transaction
+          const orderData = verifyData?.order
           const orderId = transaction?.orderId || transaction?.metadata?.order_id
+          const verification = verifyData?.verification
 
           const paymentConfirmed =
             !orderData ||
@@ -65,7 +86,7 @@ function PaymentVerificationContent() {
             setVerificationResult({
               status: 'success',
               transaction: transaction,
-              verification: (response.data as any)?.verification,
+              verification,
               orderId: orderId,
               reference: trxref
             })
@@ -95,7 +116,7 @@ function PaymentVerificationContent() {
                   setVerificationResult({
                     status: 'success',
                     transaction: transaction,
-                    verification: (response.data as any)?.verification,
+                    verification,
                     orderId: orderId,
                     reference: trxref
                   })
@@ -114,7 +135,7 @@ function PaymentVerificationContent() {
                   setVerificationResult({
                     status: 'success',
                     transaction: transaction,
-                    verification: (response.data as any)?.verification,
+                    verification,
                     orderId: orderId,
                     reference: trxref
                   })
@@ -139,7 +160,7 @@ function PaymentVerificationContent() {
                 setVerificationResult({
                   status: 'success',
                   transaction: transaction,
-                  verification: (response.data as any)?.verification,
+                  verification,
                   orderId: orderId,
                   reference: trxref
                 })
@@ -159,7 +180,7 @@ function PaymentVerificationContent() {
               setVerificationResult({
                 status: 'success',
                 transaction: transaction,
-                verification: (response.data as any)?.verification,
+                verification,
                 orderId: undefined,
                 reference: trxref
               })
@@ -198,14 +219,15 @@ function PaymentVerificationContent() {
             try {
               const retryResponse = await apiService.verifyPayment(trxref, { testMode })
               if (retryResponse && retryResponse.status === 'success') {
-                const transaction = (retryResponse.data as any)?.transaction
+                const retryData = retryResponse.data as PaymentVerifyData | undefined
+                const transaction = retryData?.transaction
                 const orderId = transaction?.orderId || transaction?.metadata?.order_id
 
 
                 setVerificationResult({
                   status: 'success',
                   transaction: transaction,
-                  verification: (retryResponse.data as any)?.verification,
+                  verification: retryData?.verification,
                   orderId: orderId,
                   reference: trxref
                 })
@@ -256,20 +278,22 @@ function PaymentVerificationContent() {
           setTimeout(retryVerification, 3000)
         }
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (cancelled) return
         console.error('❌ Payment verification error:', error)
+
+        const message = error instanceof Error ? error.message : 'Payment verification failed'
 
         setVerificationResult({
           status: 'failed',
           reference: trxref
         })
 
-        setError(error.message || 'Payment verification failed')
+        setError(message)
 
         toast({
           title: "Payment Verification Failed",
-          description: error.message || "Unable to verify your payment. Please contact support.",
+          description: message || "Unable to verify your payment. Please contact support.",
           variant: "destructive",
         })
       } finally {

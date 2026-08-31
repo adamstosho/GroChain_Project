@@ -14,6 +14,7 @@ import { Text } from "@/components/ui/typography"
 import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
+import { asRecord } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import {
   Shield,
@@ -146,56 +147,76 @@ export default function InsurancePoliciesPage() {
       ])
 
       if (policiesResponse.status === 'success' && policiesResponse.data) {
-        const policiesData = (policiesResponse.data as any).policies || policiesResponse.data || []
+        const policiesPayload = asRecord(policiesResponse.data)
+        const policiesData = Array.isArray(policiesPayload.policies)
+          ? policiesPayload.policies
+          : Array.isArray(policiesResponse.data)
+            ? policiesResponse.data
+            : []
 
         // Transform backend data (real InsurancePolicy/InsuranceClaim documents) to match frontend interface
-        const transformedPolicies: InsurancePolicy[] = policiesData.map((policy: any) => {
-          const coverageDetails = policy.coverageDetails || {}
+        const transformedPolicies: InsurancePolicy[] = policiesData.map((item) => {
+          const policy = asRecord(item)
+          const coverageDetails = asRecord(policy.coverageDetails)
+          const coverage = asRecord(policy.coverage)
           const detailParts = [
-            ...(coverageDetails.crops || []),
-            ...(coverageDetails.equipment || []),
-            ...(coverageDetails.livestock || [])
+            ...(Array.isArray(coverageDetails.crops) ? coverageDetails.crops as string[] : []),
+            ...(Array.isArray(coverageDetails.equipment) ? coverageDetails.equipment as string[] : []),
+            ...(Array.isArray(coverageDetails.livestock) ? coverageDetails.livestock as string[] : [])
           ]
 
+          const riskFactors = Array.isArray(policy.riskFactors) ? policy.riskFactors : []
+          const claims = Array.isArray(policy.claims) ? policy.claims : []
+          const documents = Array.isArray(policy.documents) ? policy.documents : []
+
           return {
-            id: policy._id || policy.id,
-            policyNumber: policy.policyNumber,
-            type: policy.type,
-            provider: policy.provider,
+            id: (policy._id as string) || (policy.id as string),
+            policyNumber: policy.policyNumber as string,
+            type: policy.type as InsurancePolicy['type'],
+            provider: policy.provider as string,
             coverage: {
-              amount: policy.coverageAmount || policy.coverage?.amount || 0,
-              currency: policy.currency || 'NGN',
+              amount: (policy.coverageAmount as number) || (coverage.amount as number) || 0,
+              currency: (policy.currency as string) || 'NGN',
               details: detailParts.length > 0 ? detailParts.join(', ') : 'Insurance coverage'
             },
             premium: {
-              amount: policy.premium || policy.premiumAmount || 0,
-              frequency: policy.premiumFrequency || 'annually',
-              nextDue: policy.nextPremiumDue || policy.nextPaymentDate
+              amount: (policy.premium as number) || (policy.premiumAmount as number) || 0,
+              frequency: (policy.premiumFrequency as InsurancePolicy['premium']['frequency']) || 'annually',
+              nextDue: (policy.nextPremiumDue as string) || (policy.nextPaymentDate as string)
             },
-            status: policy.status,
-            startDate: policy.startDate,
-            endDate: policy.endDate,
-            crops: coverageDetails.crops || [],
-            livestock: coverageDetails.livestock || [],
-            equipment: coverageDetails.equipment || [],
-            riskFactors: (policy.riskFactors || []).map((factor: any) => ({
-              factor: factor.name || factor.factor,
-              level: factor.level || 'medium',
-              description: factor.description || ''
-            })),
-            claims: (policy.claims || []).map((claim: any) => ({
-              id: claim._id || claim.id,
-              date: claim.incidentDate || claim.reportedDate || claim.createdAt,
-              amount: claim.claimAmount || claim.estimatedLoss || 0,
-              status: claim.status,
-              description: claim.description || ''
-            })),
-            documents: (policy.documents || []).map((doc: any) => ({
-              name: doc.name,
-              type: doc.type,
-              url: doc.url,
-              uploadedAt: doc.uploadedAt
-            }))
+            status: policy.status as InsurancePolicy['status'],
+            startDate: policy.startDate as string,
+            endDate: policy.endDate as string,
+            crops: Array.isArray(coverageDetails.crops) ? coverageDetails.crops as string[] : [],
+            livestock: Array.isArray(coverageDetails.livestock) ? coverageDetails.livestock as string[] : [],
+            equipment: Array.isArray(coverageDetails.equipment) ? coverageDetails.equipment as string[] : [],
+            riskFactors: riskFactors.map((factorItem) => {
+              const factor = asRecord(factorItem)
+              return {
+                factor: (factor.name as string) || (factor.factor as string),
+                level: (factor.level as 'low' | 'medium' | 'high') || 'medium',
+                description: (factor.description as string) || ''
+              }
+            }),
+            claims: claims.map((claimItem) => {
+              const claim = asRecord(claimItem)
+              return {
+                id: (claim._id as string) || (claim.id as string),
+                date: (claim.incidentDate as string) || (claim.reportedDate as string) || (claim.createdAt as string),
+                amount: (claim.claimAmount as number) || (claim.estimatedLoss as number) || 0,
+                status: claim.status as 'pending' | 'approved' | 'rejected',
+                description: (claim.description as string) || ''
+              }
+            }),
+            documents: documents.map((docItem) => {
+              const doc = asRecord(docItem)
+              return {
+                name: doc.name as string,
+                type: doc.type as string,
+                url: doc.url as string,
+                uploadedAt: doc.uploadedAt as string
+              }
+            })
           }
         })
 
@@ -210,7 +231,8 @@ export default function InsurancePoliciesPage() {
         const claimsValue = allClaims.filter(c => c.status === 'approved').reduce((sum, c) => sum + c.amount, 0)
 
         // Group by month for trend analysis
-        const monthlyData = transformedPolicies.reduce((acc: any, policy) => {
+        type MonthBucket = { policies: number; coverage: number; premium: number }
+        const monthlyData = transformedPolicies.reduce<Record<string, MonthBucket>>((acc, policy) => {
           const date = new Date(policy.startDate)
           const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
 
@@ -227,7 +249,7 @@ export default function InsurancePoliciesPage() {
 
         const monthlyTrend = Object.entries(monthlyData)
           .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
-          .map(([month, data]: [string, any]) => ({
+          .map(([month, data]) => ({
             month,
             policies: data.policies,
             coverage: data.coverage,
@@ -248,42 +270,47 @@ export default function InsurancePoliciesPage() {
       } else {
         // Fallback to dashboard data if insurance policies API fails
         if (dashboardResponse.status === 'success' && dashboardResponse.data) {
-          const dashboardData = dashboardResponse.data as any
-          const insurancePolicies = dashboardData.insurancePolicies || []
+          const dashboardData = asRecord(dashboardResponse.data)
+          const insurancePolicies = Array.isArray(dashboardData.insurancePolicies)
+            ? dashboardData.insurancePolicies
+            : []
 
-          const transformedPolicies: InsurancePolicy[] = insurancePolicies.map((policy: any) => ({
-            id: policy._id,
-            policyNumber: policy.policyNumber,
-            type: policy.type,
-            provider: policy.provider,
-            coverage: {
-              amount: policy.coverageAmount,
-              currency: 'NGN',
-              details: 'Insurance coverage from dashboard data'
-            },
-            premium: {
-              amount: policy.premium,
-              frequency: 'annually',
-              nextDue: policy.nextPaymentDate
-            },
-            status: policy.status,
-            startDate: policy.startDate,
-            endDate: policy.endDate,
-            crops: [],
-            livestock: [],
-            equipment: [],
-            riskFactors: [],
-            claims: [],
-            documents: []
-          }))
+          const transformedPolicies: InsurancePolicy[] = insurancePolicies.map((item) => {
+            const policy = asRecord(item)
+            return {
+              id: policy._id as string,
+              policyNumber: policy.policyNumber as string,
+              type: policy.type as InsurancePolicy['type'],
+              provider: policy.provider as string,
+              coverage: {
+                amount: policy.coverageAmount as number,
+                currency: 'NGN',
+                details: 'Insurance coverage from dashboard data'
+              },
+              premium: {
+                amount: policy.premium as number,
+                frequency: 'annually',
+                nextDue: policy.nextPaymentDate as string
+              },
+              status: policy.status as InsurancePolicy['status'],
+              startDate: policy.startDate as string,
+              endDate: policy.endDate as string,
+              crops: [],
+              livestock: [],
+              equipment: [],
+              riskFactors: [],
+              claims: [],
+              documents: []
+            }
+          })
 
           setPolicies(transformedPolicies)
 
           const stats: InsuranceStats = {
             totalPolicies: insurancePolicies.length,
-            activePolicies: insurancePolicies.filter((p: any) => p.status === 'active').length,
-            totalCoverage: insurancePolicies.reduce((sum: number, p: any) => sum + (p.coverageAmount || 0), 0),
-            totalPremium: insurancePolicies.reduce((sum: number, p: any) => sum + (p.premium || 0), 0),
+            activePolicies: insurancePolicies.filter((p) => asRecord(p).status === 'active').length,
+            totalCoverage: insurancePolicies.reduce((sum, p) => sum + ((asRecord(p).coverageAmount as number) || 0), 0),
+            totalPremium: insurancePolicies.reduce((sum, p) => sum + ((asRecord(p).premium as number) || 0), 0),
             pendingClaims: 0,
             claimsValue: 0,
             monthlyTrend: []
@@ -427,8 +454,8 @@ export default function InsurancePoliciesPage() {
   })
 
   const sortedPolicies = [...filteredPolicies].sort((a, b) => {
-    let aValue: any
-    let bValue: any
+    let aValue: string | number
+    let bValue: string | number
 
     if (sortBy === 'premium') {
       aValue = a.premium.amount
@@ -437,13 +464,13 @@ export default function InsurancePoliciesPage() {
       aValue = a.coverage.amount
       bValue = b.coverage.amount
     } else {
-      aValue = a[sortBy as keyof InsurancePolicy]
-      bValue = b[sortBy as keyof InsurancePolicy]
+      aValue = a[sortBy as keyof InsurancePolicy] as string | number
+      bValue = b[sortBy as keyof InsurancePolicy] as string | number
     }
 
     if (sortBy === 'startDate' || sortBy === 'endDate') {
-      aValue = new Date(aValue).getTime()
-      bValue = new Date(bValue).getTime()
+      aValue = new Date(String(aValue)).getTime()
+      bValue = new Date(String(bValue)).getTime()
     }
 
     if (sortOrder === 'asc') {

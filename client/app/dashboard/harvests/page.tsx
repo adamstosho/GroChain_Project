@@ -23,6 +23,7 @@ import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { Text } from "@/components/ui/typography"
 import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
+import { asRecord } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import { HarvestAnalytics } from "@/components/agricultural/harvest-analytics"
 import {
@@ -392,29 +393,41 @@ export default function FarmerHarvestsPage() {
         if (filters[key] === undefined) delete filters[key]
       })
 
-      const response: any = await apiService.getHarvests(filters)
-      const rawHarvests = response.harvests || response.data?.harvests || []
+      const response = await apiService.getHarvests(filters)
+      const rec = asRecord(response)
+      const nested = asRecord(rec.data)
+      const rawHarvests = Array.isArray(rec.harvests)
+        ? rec.harvests
+        : Array.isArray(nested.harvests)
+          ? nested.harvests
+          : []
 
-      const harvestData: HarvestData[] = rawHarvests.map((harvest: any) => ({
-        id: harvest._id,
-        _id: harvest._id,
-        cropType: harvest.cropType,
-        variety: harvest.variety || "Standard",
-        harvestDate: new Date(harvest.date),
-        quantity: harvest.quantity,
-        unit: harvest.unit,
-        location: harvest.location,
-        quality: harvest.quality,
-        qualityGrade: harvest.qualityGrade || "B",
-        status: harvest.status,
-        images: harvest.images || [],
-        organic: harvest.organic || false,
-        moistureContent: harvest.moistureContent || 15,
-        price: harvest.price || 0,
-        batchId: harvest.batchId,
-        createdAt: harvest.createdAt,
-        updatedAt: harvest.updatedAt,
-      }))
+      const harvestData: HarvestData[] = rawHarvests.map((harvest) => {
+        const h = asRecord(harvest)
+        const locationValue = h.location
+        return {
+          id: String(h._id ?? ""),
+          _id: String(h._id ?? ""),
+          cropType: String(h.cropType ?? ""),
+          variety: typeof h.variety === "string" ? h.variety : "Standard",
+          harvestDate: new Date(String(h.date)),
+          quantity: Number(h.quantity) || 0,
+          unit: String(h.unit ?? ""),
+          location: typeof locationValue === "string" || (locationValue && typeof locationValue === "object")
+            ? (locationValue as HarvestData["location"])
+            : "",
+          quality: String(h.quality ?? ""),
+          qualityGrade: typeof h.qualityGrade === "string" ? h.qualityGrade : "B",
+          status: String(h.status ?? ""),
+          images: Array.isArray(h.images) ? h.images.filter((img): img is string => typeof img === "string") : [],
+          organic: Boolean(h.organic),
+          moistureContent: Number(h.moistureContent) || 15,
+          price: Number(h.price) || 0,
+          batchId: typeof h.batchId === "string" ? h.batchId : undefined,
+          createdAt: String(h.createdAt ?? ""),
+          updatedAt: String(h.updatedAt ?? ""),
+        }
+      })
 
       if (finish(generation)) {
         setHarvests(harvestData)
@@ -450,16 +463,19 @@ export default function FarmerHarvestsPage() {
 
     try {
       setStatsLoading(true)
-      const response: any = await apiService.getHarvestStats()
-      const data = response.data || response || {}
+      const response = await apiService.getHarvestStats()
+      const rec = asRecord(response)
+      const data = rec.data && typeof rec.data === "object" && !Array.isArray(rec.data)
+        ? asRecord(rec.data)
+        : rec
 
       setStats({
-        total: data.totalHarvests || 0,
-        pending: data.pendingHarvests || 0,
-        approved: data.approvedHarvests || 0,
-        rejected: data.rejectedHarvests || 0,
-        totalQuantity: data.totalQuantity || 0,
-        totalValue: data.totalValue || 0,
+        total: Number(data.totalHarvests) || 0,
+        pending: Number(data.pendingHarvests) || 0,
+        approved: Number(data.approvedHarvests) || 0,
+        rejected: Number(data.rejectedHarvests) || 0,
+        totalQuantity: Number(data.totalQuantity) || 0,
+        totalValue: Number(data.totalValue) || 0,
       })
       statsLoadedRef.current = true
     } catch (error) {

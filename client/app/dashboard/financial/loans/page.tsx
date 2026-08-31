@@ -13,6 +13,7 @@ import { Text } from "@/components/ui/typography"
 import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import {
   Plus,
@@ -131,30 +132,38 @@ export default function LoansPage() {
       ])
 
       if (applicationsResponse.status === 'success' && applicationsResponse.data) {
-        const applicationsData = (applicationsResponse.data as any).applications || applicationsResponse.data || []
+        const applicationsPayload = asRecord(applicationsResponse.data)
+        const applicationsData = Array.isArray(applicationsPayload.applications)
+          ? applicationsPayload.applications
+          : Array.isArray(applicationsResponse.data)
+            ? applicationsResponse.data
+            : []
 
         // Transform applications data
-        const transformedApplications: LoanApplication[] = applicationsData.map((app: any) => {
-          const amount = app.amount || app.loanAmount
-          const term = app.duration || app.term
-          const rate = app.approvedInterestRate || app.interestRate || 15
+        const transformedApplications: LoanApplication[] = applicationsData.map((item) => {
+          const app = asRecord(item)
+          const amount = (app.amount as number) || (app.loanAmount as number)
+          const term = (app.duration as number) || (app.term as number)
+          const rate = (app.approvedInterestRate as number) || (app.interestRate as number) || 15
           return {
-            id: app._id || app.id,
+            id: (app._id as string) || (app.id as string),
             amount,
-            purpose: app.purpose,
+            purpose: app.purpose as string,
             term,
-            status: app.status,
-            submittedDate: app.createdAt || app.submittedAt,
-            decisionDate: app.approvedAt,
-            monthlyPayment: app.monthlyPayment || calculateMonthlyPayment(amount, rate, term),
+            status: app.status as LoanApplication['status'],
+            submittedDate: (app.createdAt as string) || (app.submittedAt as string),
+            decisionDate: app.approvedAt as string | undefined,
+            monthlyPayment: (app.monthlyPayment as number) || calculateMonthlyPayment(amount, rate, term),
             interestRate: rate,
-            description: app.notes || app.description || '',
-            collateral: app.collateral || '',
-            documents: app.documents || [],
-            repaymentSchedule: app.repaymentSchedule || [],
-            remainingBalance: app.remainingBalance,
-            totalInterest: app.totalInterest,
-            totalRepayment: app.totalRepayment,
+            description: (app.notes as string) || (app.description as string) || '',
+            collateral: (app.collateral as string) || '',
+            documents: Array.isArray(app.documents) ? app.documents as string[] : [],
+            repaymentSchedule: Array.isArray(app.repaymentSchedule)
+              ? app.repaymentSchedule as LoanApplication['repaymentSchedule']
+              : [],
+            remainingBalance: app.remainingBalance as number | undefined,
+            totalInterest: app.totalInterest as number | undefined,
+            totalRepayment: app.totalRepayment as number | undefined,
           }
         })
 
@@ -162,28 +171,37 @@ export default function LoansPage() {
       }
 
       if (financialDashboardResponse.status === 'success' && financialDashboardResponse.data) {
-        const dashboardData = financialDashboardResponse.data
+        const dashboardData = asRecord(financialDashboardResponse.data)
+        const activeLoanItems = Array.isArray(dashboardData.activeLoans) ? dashboardData.activeLoans : []
 
         // Transform active loans data
-        const transformedActiveLoans: ActiveLoan[] = ((dashboardData as any).activeLoans || []).map((loan: any) => ({
-          id: loan._id,
-          applicationId: loan.applicationId || loan._id,
-          amount: loan.amount,
-          remainingBalance: loan.remainingBalance ?? loan.amount,
-          monthlyPayment: loan.monthlyPayment,
-          nextPaymentDate: loan.nextPaymentDate,
-          totalPayments: loan.totalPayments || loan.paidInstallments || 0,
-          remainingPayments: loan.remainingPayments || loan.remainingInstallments || 0,
-          interestRate: loan.interestRate,
-          startDate: loan.startDate || loan.createdAt,
-          endDate: loan.endDate,
-          status: loan.status === 'disbursed' ? 'active' : loan.status
-        }))
+        const transformedActiveLoans: ActiveLoan[] = activeLoanItems.map((item) => {
+          const loan = asRecord(item)
+          return {
+            id: loan._id as string,
+            applicationId: (loan.applicationId as string) || (loan._id as string),
+            amount: loan.amount as number,
+            remainingBalance: (loan.remainingBalance as number) ?? (loan.amount as number),
+            monthlyPayment: loan.monthlyPayment as number,
+            nextPaymentDate: loan.nextPaymentDate as string,
+            totalPayments: (loan.totalPayments as number) || (loan.paidInstallments as number) || 0,
+            remainingPayments: (loan.remainingPayments as number) || (loan.remainingInstallments as number) || 0,
+            interestRate: loan.interestRate as number,
+            startDate: (loan.startDate as string) || (loan.createdAt as string),
+            endDate: loan.endDate as string,
+            status: loan.status === 'disbursed' ? 'active' : loan.status as ActiveLoan['status']
+          }
+        })
+
+        const applicationsPayload = asRecord(applicationsResponse.data)
+        const applicationsList = Array.isArray(applicationsPayload.applications)
+          ? applicationsPayload.applications
+          : []
 
         // Calculate stats from real data
         const stats: LoanStats = {
-          totalApplications: (applicationsResponse.data as any)?.applications?.length || 0,
-          approvedLoans: (applicationsResponse.data as any)?.applications?.filter((app: any) => app.status === 'approved').length || 0,
+          totalApplications: applicationsList.length || 0,
+          approvedLoans: applicationsList.filter((item) => asRecord(item).status === 'approved').length || 0,
           totalBorrowed: transformedActiveLoans.reduce((sum, loan) => sum + loan.amount, 0),
           totalRepaid: transformedActiveLoans.reduce((sum, loan) => sum + (loan.amount - loan.remainingBalance), 0),
           activeLoans: transformedActiveLoans.length,
@@ -225,24 +243,26 @@ export default function LoansPage() {
     try {
       const response = await apiService.getLoanApplication(loanId)
       if (response.status === 'success' && response.data) {
-        const app = response.data as any
+        const app = asRecord(response.data)
         setSelectedLoan({
-          id: app._id,
-          amount: app.approvedAmount || app.amount,
-          purpose: app.purpose,
-          term: app.approvedDuration || app.duration,
-          status: app.status,
-          submittedDate: app.createdAt,
-          decisionDate: app.approvedAt,
-          monthlyPayment: app.monthlyPayment,
-          interestRate: app.approvedInterestRate || app.interestRate,
-          description: app.notes || '',
-          collateral: app.collateral,
-          documents: app.documents || [],
-          repaymentSchedule: app.repaymentSchedule || [],
-          remainingBalance: app.remainingBalance,
-          totalInterest: app.totalInterest,
-          totalRepayment: app.totalRepayment,
+          id: app._id as string,
+          amount: (app.approvedAmount as number) || (app.amount as number),
+          purpose: app.purpose as string,
+          term: (app.approvedDuration as number) || (app.duration as number),
+          status: app.status as LoanApplication['status'],
+          submittedDate: app.createdAt as string,
+          decisionDate: app.approvedAt as string | undefined,
+          monthlyPayment: app.monthlyPayment as number,
+          interestRate: (app.approvedInterestRate as number) || (app.interestRate as number),
+          description: (app.notes as string) || '',
+          collateral: app.collateral as string | undefined,
+          documents: Array.isArray(app.documents) ? app.documents as string[] : [],
+          repaymentSchedule: Array.isArray(app.repaymentSchedule)
+            ? app.repaymentSchedule as LoanApplication['repaymentSchedule']
+            : [],
+          remainingBalance: app.remainingBalance as number | undefined,
+          totalInterest: app.totalInterest as number | undefined,
+          totalRepayment: app.totalRepayment as number | undefined,
         })
         setDetailOpen(true)
       }
@@ -259,8 +279,8 @@ export default function LoansPage() {
         toast({ title: "Loan Accepted", description: "Your loan has been activated." })
         await fetchLoansData()
       }
-    } catch (error: any) {
-      toast({ title: "Error", description: error?.message || "Failed to accept loan.", variant: "destructive" })
+    } catch (error: unknown) {
+      toast({ title: "Error", description: getErrorMessage(error, "Failed to accept loan."), variant: "destructive" })
     } finally {
       setActionLoading(null)
     }
@@ -270,7 +290,7 @@ export default function LoansPage() {
     try {
       setActionLoading(loanId)
       const profileRes = await apiService.getMyProfile()
-      const email = (profileRes.data as any)?.email
+      const email = asRecord(profileRes.data).email as string | undefined
       if (!email) throw new Error('Email required for payment')
 
       const { processLoanPayment } = await import('@/lib/paystack')
@@ -290,8 +310,8 @@ export default function LoansPage() {
       if (result.status === 'success') {
         await fetchLoansData()
       }
-    } catch (error: any) {
-      toast({ title: 'Payment Failed', description: error?.message || 'Failed to process payment.', variant: 'destructive' })
+    } catch (error: unknown) {
+      toast({ title: 'Payment Failed', description: getErrorMessage(error, 'Failed to process payment.'), variant: 'destructive' })
     } finally {
       setActionLoading(null)
     }

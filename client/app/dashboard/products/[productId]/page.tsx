@@ -10,6 +10,7 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { Display, Text } from "@/components/ui/typography"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import { useBuyerStore } from "@/hooks/use-buyer-store"
 import {
@@ -97,7 +98,8 @@ export default function ProductDetailPage() {
 
       // The API response structure might be different
       // Let's check both response.data and response.data.data
-      const productData = (response.data as any)?.data || response.data
+      const dataRec = asRecord(response.data)
+      const productData = (dataRec.data && typeof dataRec.data === "object" ? dataRec.data : response.data) as ProductDetail
 
       if (productData && productData._id) {
         console.log('✅ Product found:', productData.cropName || productData.name)
@@ -111,33 +113,38 @@ export default function ProductDetailPage() {
           console.log('📦 Product detail: Favorites response:', userFavorites)
 
           // Handle the new API response structure: { status: 'success', data: { favorites: [...] } }
-          let favoritesData = []
-          if ((userFavorites.data as any)?.favorites) {
-            favoritesData = (userFavorites.data as any).favorites
+          let favoritesData: unknown[] = []
+          const favPayload = asRecord(userFavorites.data)
+          const favRoot = asRecord(userFavorites)
+          if (Array.isArray(favPayload.favorites)) {
+            favoritesData = favPayload.favorites
           } else if (Array.isArray(userFavorites.data)) {
             favoritesData = userFavorites.data
-          } else if ((userFavorites as any).favorites) {
-            favoritesData = (userFavorites as any).favorites
+          } else if (Array.isArray(favRoot.favorites)) {
+            favoritesData = favRoot.favorites
           }
 
           console.log('📋 Product detail: Favorites data structure:', favoritesData)
           console.log('📋 Product detail: Is array?', Array.isArray(favoritesData))
 
           if (Array.isArray(favoritesData)) {
-            const isFav = favoritesData.some((fav: any) =>
-              fav.listingId === productId ||
-              fav.listing?._id === productId ||
-              fav._id === productId
-            )
+            const isFav = favoritesData.some((fav) => {
+              const rec = asRecord(fav)
+              const listing = asRecord(rec.listing)
+              return rec.listingId === productId ||
+                listing._id === productId ||
+                rec._id === productId
+            })
             setIsFavorite(isFav || false)
             console.log('💝 Product detail: Favorites status:', isFav, 'Favorites count:', favoritesData.length)
           } else {
             console.warn('⚠️ Product detail: Favorites data is not an array:', typeof favoritesData)
             setIsFavorite(false)
           }
-        } catch (favError: any) {
+        } catch (favError: unknown) {
           console.error('❌ Product detail: Could not fetch favorites:', favError)
-          console.error('Error details:', favError.response?.data || favError.message)
+          const favRec = asRecord(favError)
+          console.error('Error details:', asRecord(favRec.response).data || getErrorMessage(favError))
           // Don't show error for favorites - it's not critical functionality
           setIsFavorite(false)
         }
@@ -145,23 +152,27 @@ export default function ProductDetailPage() {
         console.error('❌ Product data not found in response:', response)
         setError("Product not found")
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Failed to fetch product detail:', err)
 
       // More detailed error logging
-      if (err.response) {
+      const errRec = asRecord(err)
+      const response = asRecord(errRec.response)
+      const responseData = asRecord(response.data)
+      if (errRec.response) {
         console.error('Error response:', {
-          status: err.response.status,
-          data: err.response.data,
-          headers: err.response.headers
+          status: response.status,
+          data: response.data,
+          headers: response.headers
         })
-        setError(`Server Error (${err.response.status}): ${err.response.data?.message || err.message}`)
-      } else if (err.request) {
-        console.error('Network error - no response received:', err.request)
+        const status = typeof response.status === "number" ? response.status : "unknown"
+        setError(`Server Error (${status}): ${typeof responseData.message === "string" ? responseData.message : getErrorMessage(err)}`)
+      } else if (errRec.request) {
+        console.error('Network error - no response received:', errRec.request)
         setError("Network error: Unable to connect to server. Please ensure the backend server is running.")
       } else {
-        console.error('Request setup error:', err.message)
-        setError(err.message || "Failed to load product details")
+        console.error('Request setup error:', getErrorMessage(err))
+        setError(getErrorMessage(err, "Failed to load product details"))
       }
     } finally {
       setLoading(false)
@@ -206,11 +217,11 @@ export default function ProductDetailPage() {
       if (existingCartItem) {
         setQuantity(existingCartItem.quantity + quantity)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to add to cart:', error)
       toast({
         title: "Error",
-        description: error.message || "Failed to add item to cart",
+        description: getErrorMessage(error, "Failed to add item to cart"),
         variant: "destructive",
       })
     } finally {
@@ -239,11 +250,11 @@ export default function ProductDetailPage() {
           description: `${product.cropName || product.name || 'Product'} added to your favorites`,
         })
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to toggle favorite:', error)
       toast({
         title: "Error",
-        description: error.message || "Failed to update favorites",
+        description: getErrorMessage(error, "Failed to update favorites"),
         variant: "destructive",
       })
     }

@@ -12,6 +12,7 @@ import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { useToast } from "@/hooks/use-toast"
 import { APP_CONFIG } from "@/lib/constants"
+import { getErrorMessage } from "@/lib/error-utils"
 import {
   ArrowLeft,
   UserPlus,
@@ -156,10 +157,10 @@ export default function AddFarmerPage() {
       })
       setErrors({})
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Failed to add farmer",
-        description: error.message || "Please try again",
+        description: getErrorMessage(error, "Please try again"),
         variant: "destructive",
       })
     } finally {

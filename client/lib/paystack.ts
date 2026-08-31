@@ -276,21 +276,17 @@ export const processOrderPayment = async (
 
     const paymentResult = await initializePaystackPayment(
       paymentData,
-      (response) => {
-        console.log('✅ Payment successful:', response)
-        if (onSuccess) onSuccess(response)
-      },
-      () => {
-        console.log('❌ Payment cancelled by user')
-        if (onClose) onClose()
-      }
+      undefined,
+      onClose
     )
 
     // Confirm payment with backend so the order is marked paid (inline popup
     // does not redirect to /payment/verify like the hosted checkout flow).
+    // Only notify success after the server confirms — avoids clearing the cart
+    // before the order is actually marked paid.
     if (paymentResult.status === 'success' && paymentResult.reference) {
       const verifyRes = await fetch(
-        `${APP_CONFIG.api.baseUrl}/api/payments/verify/${paymentResult.reference}`,
+        `${APP_CONFIG.api.baseUrl}/api/payments/verify/${encodeURIComponent(paymentResult.reference)}`,
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         }
@@ -299,6 +295,7 @@ export const processOrderPayment = async (
       if (verifyData.status !== 'success') {
         throw new Error(verifyData.message || 'Payment verification failed')
       }
+      onSuccess?.(paymentResult)
     }
 
     return paymentResult
@@ -373,13 +370,13 @@ export const processLoanPayment = async (
 
   const paymentResult = await initializePaystackPayment(
     { orderId: loanApplicationId, amount: payAmount, email, reference },
-    onSuccess,
+    undefined,
     onClose
   )
 
   if (paymentResult.status === 'success' && paymentResult.reference) {
     const verifyRes = await fetch(
-      `${APP_CONFIG.api.baseUrl}/api/payments/verify/${paymentResult.reference}`,
+      `${APP_CONFIG.api.baseUrl}/api/payments/verify/${encodeURIComponent(paymentResult.reference)}`,
       {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       }
@@ -388,6 +385,7 @@ export const processLoanPayment = async (
     if (verifyData.status !== 'success') {
       throw new Error(verifyData.message || 'Payment verification failed')
     }
+    onSuccess?.(paymentResult)
   }
 
   return paymentResult

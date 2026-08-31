@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
+import { getErrorMessage } from "@/lib/error-utils"
 import { processOrderPayment } from "@/lib/paystack"
 import Link from "next/link"
 import Image from "next/image"
@@ -98,12 +99,12 @@ export default function OrderDetailsPage() {
         } else {
           throw new Error(response?.message || 'Failed to fetch order details')
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('❌ Failed to fetch order details:', error)
-        setError(error.message || 'Failed to load order details')
+        setError(getErrorMessage(error, 'Failed to load order details'))
         toast({
           title: "Failed to load order",
-          description: error.message || "Please try again later.",
+          description: getErrorMessage(error, "Please try again later."),
           variant: "destructive",
         })
       } finally {
@@ -141,8 +142,9 @@ export default function OrderDetailsPage() {
         // Always try to refetch order details to get latest status
         const refreshed = await apiService.getOrder(orderId)
         if (refreshed && refreshed.status === 'success' && refreshed.data) {
-          setOrder(refreshed.data as any)
-          if ((refreshed.data as any).paymentStatus === 'paid' || (refreshed.data as any).status === 'paid') {
+          const refreshedOrder = refreshed.data as unknown as Order
+          setOrder(refreshedOrder)
+          if (refreshedOrder.paymentStatus === 'paid' || refreshedOrder.status === 'paid') {
             toast({
               title: 'Payment Confirmed',
               description: 'Your order has been marked as paid.',
@@ -230,7 +232,7 @@ export default function OrderDetailsPage() {
 
           const refreshed = await apiService.getOrder(order._id)
           if (refreshed?.status === "success" && refreshed?.data) {
-            setOrder(refreshed.data as any)
+            setOrder(refreshed.data as unknown as Order)
           }
         },
         () => {
@@ -241,10 +243,10 @@ export default function OrderDetailsPage() {
           })
         }
       )
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Payment retry failed",
-        description: error?.message || "Unable to retry payment right now.",
+        description: getErrorMessage(error, "Unable to retry payment right now."),
         variant: "destructive",
       })
     } finally {

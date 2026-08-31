@@ -11,6 +11,7 @@ import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-heade
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { Display, Text } from "@/components/ui/typography"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { useAuthStore } from "@/lib/auth"
 import { dashboard } from "@/lib/design-system"
 import { useToast } from "@/hooks/use-toast"
@@ -132,13 +133,14 @@ const mapWeatherCondition = (mainCondition: string): string => {
   return 'clear' // default fallback
 }
 
-const generateFarmingRecommendations = (agri: any, currentTemp: number): FarmingRecommendation[] => {
-  if (!agri) return []
+const generateFarmingRecommendations = (agri: unknown, currentTemp: number): FarmingRecommendation[] => {
+  if (!agri || typeof agri !== "object") return []
+  const rec = asRecord(agri)
   
   const recs: FarmingRecommendation[] = []
   
   // Soil Moisture Recommendation
-  const moisture = agri.soilMoisture !== undefined ? agri.soilMoisture : 50
+  const moisture = typeof rec.soilMoisture === "number" ? rec.soilMoisture : 50
   if (moisture < 40) {
     recs.push({
       id: 'soil-moisture',
@@ -146,7 +148,7 @@ const generateFarmingRecommendations = (agri: any, currentTemp: number): Farming
       recommendation: 'Low soil moisture level detected',
       priority: 'high',
       weatherFactor: `Soil moisture is at ${Math.round(moisture)}%`,
-      action: agri.irrigationAdvice || 'Increase irrigation frequency and check soil moisture depth.',
+      action: typeof rec.irrigationAdvice === "string" ? rec.irrigationAdvice : 'Increase irrigation frequency and check soil moisture depth.',
       timeframe: 'Next 24 hours'
     })
   } else if (moisture > 80) {
@@ -165,7 +167,7 @@ const generateFarmingRecommendations = (agri: any, currentTemp: number): Farming
   recs.push({
     id: 'planting',
     crop: 'All Season Crops',
-    recommendation: agri.plantingRecommendation || 'Monitor environmental conditions before planting.',
+    recommendation: typeof rec.plantingRecommendation === "string" ? rec.plantingRecommendation : 'Monitor environmental conditions before planting.',
     priority: currentTemp > 35 || currentTemp < 10 ? 'high' : 'low',
     weatherFactor: `Air temperature is ${currentTemp}°C`,
     action: currentTemp > 35 
@@ -177,7 +179,7 @@ const generateFarmingRecommendations = (agri: any, currentTemp: number): Farming
   })
 
   // Pest Risk Recommendation
-  if (agri.pestRisk === 'high') {
+  if (rec.pestRisk === 'high') {
     recs.push({
       id: 'pest-risk',
       crop: 'Cereals & Vegetables',
@@ -187,7 +189,7 @@ const generateFarmingRecommendations = (agri: any, currentTemp: number): Farming
       action: 'Perform field inspections and prepare organic or chemical pest control measures.',
       timeframe: 'Next 48 hours'
     })
-  } else if (agri.pestRisk === 'medium') {
+  } else if (rec.pestRisk === 'medium') {
     recs.push({
       id: 'pest-risk',
       crop: 'Cereals & Vegetables',
@@ -200,7 +202,7 @@ const generateFarmingRecommendations = (agri: any, currentTemp: number): Farming
   }
 
   // Frost Risk
-  if (agri.frostRisk === 'high') {
+  if (rec.frostRisk === 'high') {
     recs.push({
       id: 'frost-risk',
       crop: 'Sensitive Crops',
@@ -213,7 +215,7 @@ const generateFarmingRecommendations = (agri: any, currentTemp: number): Farming
   }
 
   // Drought Index
-  const drought = agri.droughtIndex !== undefined ? agri.droughtIndex : 0
+  const drought = typeof rec.droughtIndex === "number" ? rec.droughtIndex : 0
   if (drought > 60) {
     recs.push({
       id: 'drought',
@@ -331,8 +333,9 @@ export default function WeatherPage() {
   // Real GPS coordinates the farmer saved to their profile — a genuine,
   // exact fallback (not a guess) when live browser geolocation isn't granted.
   const getStoredProfileCoords = (): { lat: number; lng: number } | null => {
-    const stored = (user as any)?.profile?.coordinates
-    if (stored && typeof stored.lat === 'number' && typeof stored.lng === 'number') {
+    const stored = user?.profile?.coordinates
+    if (!stored) return null
+    if (typeof stored.lat === "number" && typeof stored.lng === "number") {
       return { lat: stored.lat, lng: stored.lng }
     }
     return null
@@ -422,36 +425,42 @@ export default function WeatherPage() {
       })
 
       if (weatherRes.status === 'success' && weatherRes.data) {
-        const data = weatherRes.data as any
+        const data = asRecord(weatherRes.data)
         
         // Map current weather
-        const cur = data.current
+        const cur = asRecord(data.current)
+        const metadata = asRecord(data.metadata)
         const mappedCurrent: CurrentWeather = {
-          temperature: Math.round(cur.temperature),
-          feelsLike: Math.round(cur.feelsLike),
-          humidity: cur.humidity,
-          windSpeed: Math.round(cur.windSpeed * 3.6), // Convert m/s to km/h
-          windDirection: cur.windDirection || 'N',
-          pressure: cur.pressure,
-          visibility: Math.round(cur.visibility / 1000), // m to km
-          uvIndex: cur.uvIndex || 0,
-          condition: mapWeatherCondition(cur.weatherCondition),
-          icon: cur.weatherIcon || '01d',
-          lastUpdated: data.metadata?.lastUpdated || new Date().toISOString()
+          temperature: Math.round(typeof cur.temperature === "number" ? cur.temperature : 0),
+          feelsLike: Math.round(typeof cur.feelsLike === "number" ? cur.feelsLike : 0),
+          humidity: typeof cur.humidity === "number" ? cur.humidity : 0,
+          windSpeed: Math.round((typeof cur.windSpeed === "number" ? cur.windSpeed : 0) * 3.6), // Convert m/s to km/h
+          windDirection: typeof cur.windDirection === "string" ? cur.windDirection : 'N',
+          pressure: typeof cur.pressure === "number" ? cur.pressure : 0,
+          visibility: Math.round((typeof cur.visibility === "number" ? cur.visibility : 0) / 1000), // m to km
+          uvIndex: typeof cur.uvIndex === "number" ? cur.uvIndex : 0,
+          condition: mapWeatherCondition(typeof cur.weatherCondition === "string" ? cur.weatherCondition : ""),
+          icon: typeof cur.weatherIcon === "string" ? cur.weatherIcon : '01d',
+          lastUpdated: typeof metadata.lastUpdated === "string" ? metadata.lastUpdated : new Date().toISOString()
         }
         
         // Map forecast
-        const rawForecast = data.forecast || []
-        const mappedForecast: WeatherForecast[] = rawForecast.map((f: any) => ({
-          date: f.date,
-          high: Math.round(f.highTemp !== undefined ? f.highTemp : f.high),
-          low: Math.round(f.lowTemp !== undefined ? f.lowTemp : f.low),
-          condition: mapWeatherCondition(f.weatherCondition || f.condition),
-          icon: f.weatherIcon || f.icon || '01d',
-          precipitation: Math.round((f.precipitation || 0) * 10) / 10,
-          humidity: f.humidity,
-          windSpeed: Math.round((f.windSpeed || 0) * 3.6) // m/s to km/h
-        }))
+        const rawForecast = Array.isArray(data.forecast) ? data.forecast : []
+        const mappedForecast: WeatherForecast[] = rawForecast.map((forecast) => {
+          const f = asRecord(forecast)
+          const high = typeof f.highTemp === "number" ? f.highTemp : typeof f.high === "number" ? f.high : 0
+          const low = typeof f.lowTemp === "number" ? f.lowTemp : typeof f.low === "number" ? f.low : 0
+          return {
+          date: typeof f.date === "string" ? f.date : "",
+          high: Math.round(high),
+          low: Math.round(low),
+          condition: mapWeatherCondition(typeof f.weatherCondition === "string" ? f.weatherCondition : typeof f.condition === "string" ? f.condition : ""),
+          icon: typeof f.weatherIcon === "string" ? f.weatherIcon : typeof f.icon === "string" ? f.icon : '01d',
+          precipitation: Math.round((typeof f.precipitation === "number" ? f.precipitation : 0) * 10) / 10,
+          humidity: typeof f.humidity === "number" ? f.humidity : 0,
+          windSpeed: Math.round((typeof f.windSpeed === "number" ? f.windSpeed : 0) * 3.6) // m/s to km/h
+        }
+        })
 
         // Map recommendations dynamically
         const mappedRecommendations = generateFarmingRecommendations(
@@ -467,15 +476,31 @@ export default function WeatherPage() {
         setForecast(mappedForecast)
         setRecommendations(mappedRecommendations)
         setStats(computedStats)
-        setAlerts(data.alerts || [])
+        setAlerts(Array.isArray(data.alerts) ? data.alerts.filter((alert): alert is WeatherAlert => {
+          if (!alert || typeof alert !== "object") return false
+          const rec = asRecord(alert)
+          return typeof rec.id === "string" && typeof rec.title === "string"
+        }).map((alert) => {
+          const rec = asRecord(alert)
+          return {
+            id: typeof rec.id === "string" ? rec.id : "",
+            type: rec.type === "severe" || rec.type === "warning" || rec.type === "watch" || rec.type === "advisory" ? rec.type : "advisory",
+            title: typeof rec.title === "string" ? rec.title : "",
+            description: typeof rec.description === "string" ? rec.description : "",
+            severity: rec.severity === "low" || rec.severity === "medium" || rec.severity === "high" ? rec.severity : "low",
+            startTime: typeof rec.startTime === "string" ? rec.startTime : "",
+            endTime: typeof rec.endTime === "string" ? rec.endTime : "",
+            affectedAreas: Array.isArray(rec.affectedAreas) ? rec.affectedAreas.filter((area): area is string => typeof area === "string") : [],
+          }
+        }) : [])
       } else {
         throw new Error("Failed to load weather data from backend API")
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error loading weather data:", err)
       toast({
         title: "Weather Load Error",
-        description: err.message || "Failed to load real weather data. Please check your connection.",
+        description: getErrorMessage(err, "Failed to load real weather data. Please check your connection."),
         variant: "destructive"
       })
     } finally {

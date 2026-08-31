@@ -10,6 +10,7 @@ import { StatsCard } from "@/components/dashboard/stats-card"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import { useDashboardRefresh } from "@/hooks/use-dashboard-refresh"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
@@ -49,14 +50,25 @@ interface SystemHealth {
   activeUsers: number
   errorRate?: string
   status?: string
-  memory?: any
+  memory?: Record<string, unknown>
   timestamp?: string
+}
+
+interface RecentAdminUser {
+  _id: string
+  name?: string
+  firstName?: string
+  lastName?: string
+  email?: string
+  createdAt?: string
+  role?: string
+  status?: string
 }
 
 export function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null)
-  const [recentUsers, setRecentUsers] = useState<any[]>([])
+  const [recentUsers, setRecentUsers] = useState<RecentAdminUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
@@ -76,19 +88,32 @@ export function AdminDashboard() {
 
       // Process dashboard data
       if (dashboardResponse.status === 'fulfilled') {
-        const dashboardData = dashboardResponse.value.data as any
+        const dashboardData = asRecord(dashboardResponse.value.data)
+        const commission = asRecord(dashboardData.commissionStats)
+        const distribution = asRecord(dashboardData.userDistribution)
+        const userDistribution: Record<string, number> = {}
+        for (const [key, value] of Object.entries(distribution)) {
+          if (typeof value === "number") userDistribution[key] = value
+        }
         setStats({
-          totalUsers: dashboardData?.totalUsers || 0,
-          totalRevenue: dashboardData?.totalRevenue || 0,
-          activeTransactions: dashboardData?.activeTransactions || 0,
-          totalHarvests: dashboardData?.totalHarvests || 0,
-          pendingApprovals: dashboardData?.pendingApprovals || 0,
-          activeListings: dashboardData?.totalListings || 0,
-          monthlyRevenue: dashboardData?.monthlyRevenue || 0,
-          userDistribution: dashboardData?.userDistribution || {},
-          approvalRate: dashboardData?.approvalRate || 0,
-          // Commission statistics
-          commissionStats: dashboardData?.commissionStats || {
+          totalUsers: typeof dashboardData.totalUsers === "number" ? dashboardData.totalUsers : 0,
+          totalRevenue: typeof dashboardData.totalRevenue === "number" ? dashboardData.totalRevenue : 0,
+          activeTransactions: typeof dashboardData.activeTransactions === "number" ? dashboardData.activeTransactions : 0,
+          totalHarvests: typeof dashboardData.totalHarvests === "number" ? dashboardData.totalHarvests : 0,
+          pendingApprovals: typeof dashboardData.pendingApprovals === "number" ? dashboardData.pendingApprovals : 0,
+          activeListings: typeof dashboardData.totalListings === "number" ? dashboardData.totalListings : 0,
+          monthlyRevenue: typeof dashboardData.monthlyRevenue === "number" ? dashboardData.monthlyRevenue : 0,
+          userDistribution,
+          approvalRate: typeof dashboardData.approvalRate === "number" ? dashboardData.approvalRate : 0,
+          commissionStats: dashboardData.commissionStats ? {
+            totalCommissions: typeof commission.totalCommissions === "number" ? commission.totalCommissions : 0,
+            pendingCommissions: typeof commission.pendingCommissions === "number" ? commission.pendingCommissions : 0,
+            paidCommissions: typeof commission.paidCommissions === "number" ? commission.paidCommissions : 0,
+            totalCommissionAmount: typeof commission.totalCommissionAmount === "number" ? commission.totalCommissionAmount : 0,
+            pendingCommissionAmount: typeof commission.pendingCommissionAmount === "number" ? commission.pendingCommissionAmount : 0,
+            paidCommissionAmount: typeof commission.paidCommissionAmount === "number" ? commission.paidCommissionAmount : 0,
+            commissionRate: typeof commission.commissionRate === "number" ? commission.commissionRate : 0,
+          } : {
             totalCommissions: 0,
             pendingCommissions: 0,
             paidCommissions: 0,
@@ -97,7 +122,6 @@ export function AdminDashboard() {
             paidCommissionAmount: 0,
             commissionRate: 0
           },
-          ...dashboardData
         })
       } else {
         console.error('❌ Dashboard data failed:', dashboardResponse.reason)
@@ -128,13 +152,14 @@ export function AdminDashboard() {
       // response are used; responseTime/errorRate aren't computed anywhere
       // on the backend, so they're left unset rather than faked.
       if (systemHealthResponse.status === 'fulfilled') {
-        const healthData = systemHealthResponse.value.data as any
+        const healthData = asRecord(systemHealthResponse.value.data)
+        const uptime = typeof healthData.uptime === "number" ? healthData.uptime : Number(healthData.uptime)
         setSystemHealth({
-          uptime: `${(healthData.uptime / 3600).toFixed(1)}h`,
+          uptime: `${(uptime / 3600).toFixed(1)}h`,
           activeUsers: stats?.totalUsers || 0,
-          status: healthData.status,
-          memory: healthData.memory,
-          timestamp: healthData.timestamp
+          status: typeof healthData.status === "string" ? healthData.status : undefined,
+          memory: healthData.memory && typeof healthData.memory === "object" ? asRecord(healthData.memory) : undefined,
+          timestamp: typeof healthData.timestamp === "string" ? healthData.timestamp : undefined
         })
       } else {
         console.error('❌ System health failed:', systemHealthResponse.reason)
@@ -143,8 +168,21 @@ export function AdminDashboard() {
 
       // Process recent users data
       if (recentUsersResponse.status === 'fulfilled') {
-        const usersData = recentUsersResponse.value.data as any
-        setRecentUsers(usersData?.users || [])
+        const usersData = asRecord(recentUsersResponse.value.data)
+        const usersRaw = Array.isArray(usersData.users) ? usersData.users : []
+        setRecentUsers(usersRaw.map((user) => {
+          const rec = asRecord(user)
+          return {
+            _id: typeof rec._id === "string" ? rec._id : String(rec.id ?? ""),
+            name: typeof rec.name === "string" ? rec.name : undefined,
+            firstName: typeof rec.firstName === "string" ? rec.firstName : undefined,
+            lastName: typeof rec.lastName === "string" ? rec.lastName : undefined,
+            email: typeof rec.email === "string" ? rec.email : undefined,
+            createdAt: typeof rec.createdAt === "string" ? rec.createdAt : undefined,
+            role: typeof rec.role === "string" ? rec.role : undefined,
+            status: typeof rec.status === "string" ? rec.status : undefined,
+          }
+        }))
       } else {
         console.error('❌ Recent users failed:', recentUsersResponse.reason)
         setRecentUsers([])
@@ -152,11 +190,11 @@ export function AdminDashboard() {
 
       setLastUpdated(new Date())
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Dashboard error:', error)
       toast({
         title: "Error loading dashboard",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       })
       // Set fallback data
@@ -575,7 +613,7 @@ export function AdminDashboard() {
                             {user.email}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Joined {new Date(user.createdAt).toLocaleDateString()}
+                            Joined {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
                           </p>
                         </div>
                       </div>

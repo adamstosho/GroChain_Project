@@ -12,6 +12,7 @@ import { AvatarUpload } from "@/components/ui/avatar-upload"
 import { useToast } from "@/hooks/use-toast"
 import { useAuthStore } from "@/lib/auth"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import {
   Shield,
   Bell,
@@ -77,6 +78,11 @@ interface FarmerSettings {
   }
 }
 
+function takeOr<T>(incoming: unknown, fallback: T): T {
+  if (!incoming || typeof incoming !== "object" || Array.isArray(incoming)) return fallback
+  return incoming as T
+}
+
 export function SettingsForm() {
   const { user, updateUser } = useAuthStore()
   const { toast } = useToast()
@@ -138,39 +144,38 @@ export function SettingsForm() {
       console.log('Settings response:', response)
 
       if (response.status === 'success') {
-        const data = response.data
+        const data = asRecord(response.data)
         console.log('Settings data:', data)
 
         setSettings((prev) => ({
-          general: (data as any).general || prev.general,
-          notifications: (data as any).notifications || prev.notifications,
-          preferences: (data as any).preferences || prev.preferences,
-          security: (data as any).security || prev.security,
+          general: takeOr(data.general, prev.general),
+          notifications: takeOr(data.notifications, prev.notifications),
+          preferences: takeOr(data.preferences, prev.preferences),
+          security: takeOr(data.security, prev.security),
           passwordData: prev.passwordData,
-          profile: (data as any).profile || {
+          profile: takeOr(data.profile, {
             bio: user?.profile?.bio || "",
             address: user?.profile?.address || "",
             city: user?.profile?.city || "",
             state: user?.profile?.state || "",
             country: user?.profile?.country || "Nigeria",
             postalCode: user?.profile?.postalCode || "",
-            avatar: user?.profile?.avatar || null
-          }
+          })
         }))
 
-        console.log('Settings state updated with profile:', (data as any).profile)
+        console.log('Settings state updated with profile:', data.profile)
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading settings:', error)
       toast({
         title: "Error loading settings",
-        description: error.message || "Failed to load settings",
+        description: getErrorMessage(error, "Failed to load settings"),
         variant: "destructive"
       })
     } finally {
       setIsLoading(false)
     }
-  }, [toast, user?.profile?.address, user?.profile?.avatar, user?.profile?.bio, user?.profile?.city, user?.profile?.country, user?.profile?.postalCode, user?.profile?.state])
+  }, [toast, user?.profile?.address, user?.profile?.bio, user?.profile?.city, user?.profile?.country, user?.profile?.postalCode, user?.profile?.state])
 
   useEffect(() => {
     loadSettings()
@@ -281,17 +286,15 @@ export function SettingsForm() {
       } else {
         throw new Error('Failed to save settings')
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving settings:', error)
       
       // Handle different types of errors
-      let errorMessage = "Failed to save settings. Please try again."
+      let errorMessage = getErrorMessage(error, "Failed to save settings. Please try again.")
       
-      if (error.message?.includes('network') || error.message?.includes('fetch')) {
+      if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
         errorMessage = "Network error. Please check your connection and try again."
-      } else if (error.message?.includes('validation')) {
-        errorMessage = error.message
-      } else if (error.message?.includes('unauthorized')) {
+      } else if (errorMessage.includes('unauthorized')) {
         errorMessage = "Session expired. Please log in again."
       }
       
@@ -349,11 +352,11 @@ export function SettingsForm() {
           }
         })
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error changing password:', error)
       toast({
         title: "Error changing password",
-        description: error.message || "Failed to change password",
+        description: getErrorMessage(error, "Failed to change password"),
         variant: "destructive"
       })
     } finally {
@@ -375,7 +378,12 @@ export function SettingsForm() {
 
       if (response.status === 'success') {
         // Update user in auth store
-        updateUser(response.data as any)
+        updateUser({
+          profile: {
+            ...user?.profile,
+            ...asRecord(asRecord(response.data).profile),
+          },
+        })
 
         toast({
           title: "Profile updated",
@@ -383,11 +391,11 @@ export function SettingsForm() {
           variant: "default"
         })
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating profile:', error)
       toast({
         title: "Error updating profile",
-        description: error.message || "Failed to update profile",
+        description: getErrorMessage(error, "Failed to update profile"),
         variant: "destructive"
       })
     } finally {

@@ -32,6 +32,7 @@ import { Display, Text } from "@/components/ui/typography"
 import Link from "next/link"
 import { useRouter, useParams } from "next/navigation"
 import { apiService } from "@/lib/api"
+import { asRecord } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 
@@ -50,7 +51,7 @@ interface HarvestDetail {
   price?: number
   images?: string[]
   qrCode?: string
-  qrCodeData?: any
+  qrCodeData?: Record<string, unknown>
   organic?: boolean
   description?: string
   moistureContent?: number
@@ -87,8 +88,10 @@ export default function HarvestDetailPage() {
     try {
       setLoading(true)
       const response = await apiService.getHarvestById(harvestId)
-      const harvestData = (response as any)?.harvest || (response as any)?.data?.harvest || response
-      setHarvest(harvestData)
+      const rec = asRecord(response)
+      const nested = asRecord(rec.data)
+      const harvestData = rec.harvest ?? nested.harvest ?? rec.data ?? response
+      setHarvest(harvestData as HarvestDetail)
     } catch (error) {
       console.error("Failed to fetch harvest:", error)
       toast({

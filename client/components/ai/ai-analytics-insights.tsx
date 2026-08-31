@@ -12,7 +12,14 @@ import { textStyles } from "@/lib/design-system"
 
 export function AiAnalyticsInsights() {
   const { getGrowthForecast, loading } = useAi()
-  const [forecast, setForecast] = useState<any>(null)
+  const [forecast, setForecast] = useState<{
+    forecastedRevenue?: number
+    confidence?: number
+    growthIndicator?: "rising" | "falling"
+    insights?: string[]
+    disclaimer?: string
+    sampleSize?: number
+  } | null>(null)
 
   useEffect(() => {
     let cancelled = false

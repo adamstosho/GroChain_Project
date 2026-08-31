@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
+import { asRecord } from "@/lib/error-utils"
 import { getExportService } from "@/lib/export-utils"
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
@@ -167,26 +168,27 @@ export function AdminSettings() {
       const settingsData = response?.data || defaultSettings
 
       // Ensure the settings object has the expected structure
+      const incoming = asRecord(settingsData)
       const safeSettings: AdminSettings = {
         privacy: {
           ...defaultSettings.privacy,
-          ...(settingsData as any).privacy
+          ...asRecord(incoming.privacy)
         },
         system: {
           ...defaultSettings.system,
-          ...(settingsData as any).system
+          ...asRecord(incoming.system)
         },
         preferences: {
           ...defaultSettings.preferences,
-          ...(settingsData as any).preferences
+          ...asRecord(incoming.preferences)
         },
         security: {
           ...defaultSettings.security,
-          ...(settingsData as any).security
+          ...asRecord(incoming.security)
         },
         data: {
           ...defaultSettings.data,
-          ...(settingsData as any).data
+          ...asRecord(incoming.data)
         }
       }
 

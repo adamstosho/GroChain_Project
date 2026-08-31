@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
+import { getErrorMessage } from "@/lib/error-utils"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
@@ -21,8 +22,8 @@ export default function ForgotPasswordPage() {
     try {
       await api.forgotPassword(email)
       setSuccess("If an account with this email exists, a password reset link has been sent to your inbox.")
-    } catch (err: any) {
-      setError(err?.message || "Request failed. Please try again later.")
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Request failed. Please try again later."))
     } finally {
       setLoading(false)
     }

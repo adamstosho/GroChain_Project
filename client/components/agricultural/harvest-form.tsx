@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
-import { useForm } from "react-hook-form"
+import { useForm, type Path } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
@@ -298,33 +298,33 @@ export function HarvestForm({
       name: "Crop & Origin", 
       icon: Leaf,
       description: "Crop variety, quantity, and source farm details",
-      fields: ["cropType", "variety", "harvestDate", "quantity", "unit", "location"] 
+      fields: ["cropType", "variety", "harvestDate", "quantity", "unit", "location"] as Path<HarvestFormData>[] 
     },
     { 
       id: 2, 
       name: "Commercial & Quality", 
       icon: Scale,
       description: "Moisture levels, market grade, and selling price",
-      fields: ["quality", "grade", "price", "moistureContent", "organic"] 
+      fields: ["quality", "grade", "price", "moistureContent", "organic"] as Path<HarvestFormData>[] 
     },
     { 
       id: 3, 
       name: "Agronomic Conditions", 
       icon: Thermometer,
       description: "Soil conditions and farm management methods",
-      fields: ["soilType", "irrigationType", "pestManagement"] 
+      fields: ["soilType", "irrigationType", "pestManagement"] as Path<HarvestFormData>[] 
     },
     { 
       id: 4, 
       name: "Media & Submission", 
       icon: Camera,
       description: "Log harvest notes and upload visual evidence",
-      fields: ["images", "notes"] 
+      fields: ["images", "notes"] as Path<HarvestFormData>[] 
     }
   ]
 
   const nextStep = async () => {
-    const fieldsToValidate = steps[currentStep - 1].fields as any[]
+    const fieldsToValidate = steps[currentStep - 1].fields
     const isValid = await form.trigger(fieldsToValidate)
     if (isValid) {
       setCurrentStep(prev => Math.min(prev + 1, 4))
@@ -348,7 +348,7 @@ export function HarvestForm({
       // Validate all intermediate steps
       let canProceed = true
       for (let i = currentStep; i < stepId; i++) {
-        const fields = steps[i - 1].fields as any[]
+        const fields = steps[i - 1].fields
         const isValid = await form.trigger(fields)
         if (!isValid) {
           canProceed = false
@@ -379,7 +379,7 @@ export function HarvestForm({
         if (geoLocation) {
           finalData.coordinates = { latitude: geoLocation.lat, longitude: geoLocation.lng }
         } else {
-          const profileCoords = (user as any)?.profile?.coordinates
+          const profileCoords = user?.profile?.coordinates
           if (typeof profileCoords?.lat === 'number' && typeof profileCoords?.lng === 'number') {
             finalData.coordinates = { latitude: profileCoords.lat, longitude: profileCoords.lng }
           }

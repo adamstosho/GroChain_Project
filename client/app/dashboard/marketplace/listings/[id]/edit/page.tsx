@@ -11,6 +11,8 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
+import type { Listing as ApiListing } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 import {
   ArrowLeft,
@@ -95,9 +97,11 @@ export default function EditListingPage() {
       console.log('Loading listing data for ID:', id)
 
       const response = await apiService.getListingForEdit(id)
-      const listingData = (response as any).listing || response.data || response
+      const rec = asRecord(response)
+      const listingData = asRecord(rec.listing ?? rec.data ?? response)
+      const loc = listingData.location
 
-      if (!listingData) {
+      if (!listingData || Object.keys(listingData).length === 0) {
         toast({
           title: "Listing Not Found",
           description: "The listing you're trying to edit could not be found.",
@@ -111,19 +115,19 @@ export default function EditListingPage() {
 
       // Pre-populate form with listing data
       setFormData({
-        cropName: listingData.cropName || '',
-        category: listingData.category || '',
-        description: listingData.description || '',
-        basePrice: listingData.basePrice || 0,
-        quantity: listingData.quantity || 0,
-        unit: listingData.unit || 'kg',
-        availableQuantity: listingData.availableQuantity || listingData.quantity || 0,
-        location: typeof listingData.location === 'string'
-          ? listingData.location
-          : `${listingData.location?.city || ''}, ${listingData.location?.state || ''}`.trim(),
-        images: listingData.images || [],
-        tags: listingData.tags || [],
-        status: listingData.status || 'draft'
+        cropName: typeof listingData.cropName === "string" ? listingData.cropName : "",
+        category: typeof listingData.category === "string" ? listingData.category : "",
+        description: typeof listingData.description === "string" ? listingData.description : "",
+        basePrice: Number(listingData.basePrice) || 0,
+        quantity: Number(listingData.quantity) || 0,
+        unit: typeof listingData.unit === "string" ? listingData.unit : "kg",
+        availableQuantity: Number(listingData.availableQuantity ?? listingData.quantity) || 0,
+        location: typeof loc === "string"
+          ? loc
+          : `${asRecord(loc).city || ""}, ${asRecord(loc).state || ""}`.trim(),
+        images: Array.isArray(listingData.images) ? listingData.images.filter((img): img is string => typeof img === "string") : [],
+        tags: Array.isArray(listingData.tags) ? listingData.tags.filter((t): t is string => typeof t === "string") : [],
+        status: (typeof listingData.status === "string" ? listingData.status : "draft") as ListingFormData["status"],
       })
 
     } catch (error) {
@@ -207,7 +211,7 @@ export default function EditListingPage() {
         status: formData.status
       }
 
-      await apiService.updateListing(listingId, updateData as any)
+      await apiService.updateListing(listingId, updateData as Partial<ApiListing>)
 
       toast({
         title: "Listing Updated Successfully! 🎉",
@@ -221,7 +225,7 @@ export default function EditListingPage() {
       console.error("Failed to update listing:", error)
       toast({
         title: "Update Failed",
-        description: (error as any)?.message || "Please try again.",
+        description: getErrorMessage(error, "Please try again."),
         variant: "destructive"
       })
     } finally {

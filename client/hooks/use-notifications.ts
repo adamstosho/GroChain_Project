@@ -21,6 +21,7 @@ import { useAuth } from './use-auth'
 import { useToast } from './use-toast'
 import { APP_CONFIG } from '@/lib/constants'
 import { getTokenFromStorage } from '@/lib/auth-storage'
+import { asRecord, getErrorMessage } from '@/lib/error-utils'
 
 export interface NotificationChannel {
   type: 'email' | 'sms' | 'push' | 'in_app'
@@ -47,7 +48,7 @@ export interface Notification {
   read?: boolean // Backend uses 'read'
   createdAt: string
   actionUrl?: string
-  data?: Record<string, any>
+  data?: Record<string, unknown>
   priority?: 'low' | 'normal' | 'high' | 'urgent'
   channels?: NotificationChannel[]
   deliveryStatus?: NotificationDeliveryStatus
@@ -92,28 +93,38 @@ export const useNotifications = () => {
   const maxReconnectAttempts = 5
 
   // Normalize backend notification to frontend format
-  const normalizeNotification = (backendNotification: any): Notification => {
+  const normalizeNotification = (backendNotification: unknown): Notification => {
+    const raw = asRecord(backendNotification)
     const allowedTypes = ['info', 'success', 'warning', 'error'] as const
-    const rawType = backendNotification.type
-    const type = allowedTypes.includes(rawType) ? rawType : 'info'
-    const id = String(backendNotification._id || backendNotification.id || '')
-    const isRead = Boolean(backendNotification.read ?? backendNotification.isRead)
+    const rawType = raw.type
+    const type = typeof rawType === 'string' && (allowedTypes as readonly string[]).includes(rawType)
+      ? (rawType as Notification['type'])
+      : 'info'
+    const id = String(raw._id || raw.id || '')
+    const isRead = Boolean(raw.read ?? raw.isRead)
 
     return {
       id,
-      _id: backendNotification._id,
-      title: backendNotification.title,
-      message: backendNotification.message,
+      _id: typeof raw._id === 'string' ? raw._id : undefined,
+      title: typeof raw.title === 'string' ? raw.title : '',
+      message: typeof raw.message === 'string' ? raw.message : '',
       type,
-      category: backendNotification.category || 'system',
+      category: typeof raw.category === 'string' ? raw.category : 'system',
       isRead,
       read: isRead,
-      createdAt: backendNotification.createdAt || new Date().toISOString(),
-      actionUrl: backendNotification.actionUrl,
-      data: backendNotification.data,
-      priority: backendNotification.priority,
-      channels: backendNotification.channels,
-      deliveryStatus: backendNotification.deliveryStatus
+      createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString(),
+      actionUrl: typeof raw.actionUrl === 'string' ? raw.actionUrl : undefined,
+      data: raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data)
+        ? asRecord(raw.data)
+        : undefined,
+      priority: (() => {
+        const p = raw.priority
+        return p === 'low' || p === 'normal' || p === 'high' || p === 'urgent' ? p : undefined
+      })(),
+      channels: Array.isArray(raw.channels) ? (raw.channels as NotificationChannel[]) : undefined,
+      deliveryStatus: raw.deliveryStatus && typeof raw.deliveryStatus === 'object'
+        ? (raw.deliveryStatus as NotificationDeliveryStatus)
+        : undefined
     }
   }
 
@@ -162,8 +173,8 @@ export const useNotifications = () => {
       }))
 
       return { notifications, pagination, unreadCount: resolvedUnread }
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to fetch notifications'
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error, 'Failed to fetch notifications')
       setState(prev => ({
         ...prev,
         error: errorMessage,
@@ -210,8 +221,8 @@ export const useNotifications = () => {
       })
 
       return true
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to mark notifications as read'
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error, 'Failed to mark notifications as read')
 
       // Only show toast if component is still mounted and not in background
       if (typeof window !== 'undefined' && !document.hidden) {
@@ -239,8 +250,8 @@ export const useNotifications = () => {
       }))
 
       return true
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to mark all notifications as read'
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error, 'Failed to mark all notifications as read')
 
       // Only show toast if component is still mounted and not in background
       if (typeof window !== 'undefined' && !document.hidden) {
@@ -272,8 +283,8 @@ export const useNotifications = () => {
       })
 
       return true
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to delete notification'
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error, 'Failed to delete notification')
       if (typeof window !== 'undefined' && !document.hidden) {
         toast({
           title: "Error",
@@ -286,20 +297,36 @@ export const useNotifications = () => {
   }, [user])
 
   // Get notification preferences
-  const getNotificationPreferences = useCallback(async () => {
+  const getNotificationPreferences = useCallback(async (): Promise<{
+    websocket?: boolean
+    email?: boolean
+    sms?: boolean
+    push?: boolean
+    categories?: string[] | Record<string, boolean>
+    priorityThreshold?: string
+  } | null> => {
     if (!user) return null
 
     try {
       const response = await api.get('/api/notifications/preferences')
-      return response.data?.data || response.data
-    } catch (error: any) {
+      const payload = response.data?.data ?? response.data
+      if (!payload || typeof payload !== 'object') return null
+      return payload as {
+        websocket?: boolean
+        email?: boolean
+        sms?: boolean
+        push?: boolean
+        categories?: string[] | Record<string, boolean>
+        priorityThreshold?: string
+      }
+    } catch (error: unknown) {
       console.error('Failed to fetch notification preferences:', error)
       return null
     }
   }, [user])
 
   // Update notification preferences
-  const updateNotificationPreferences = useCallback(async (preferences: any) => {
+  const updateNotificationPreferences = useCallback(async (preferences: Record<string, unknown>) => {
     if (!user) return false
 
     try {
@@ -315,8 +342,8 @@ export const useNotifications = () => {
       }
 
       return true
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to update preferences'
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update preferences'
 
       // Only show toast if component is still mounted and not in background
       if (typeof window !== 'undefined' && !document.hidden) {
@@ -337,7 +364,7 @@ export const useNotifications = () => {
     try {
       await api.put('/api/notifications/push-token', { token })
       return true
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update push token:', error)
       return false
     }

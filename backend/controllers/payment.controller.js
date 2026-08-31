@@ -44,8 +44,13 @@ exports.getPaymentConfig = async (req, res) => {
         enabled: !!(process.env.PAYSTACK_PUBLIC_KEY && process.env.PAYSTACK_SECRET_KEY)
       },
       flutterwave: {
-        publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY === 'your_flutterwave_public_key' ? 'FLWPUBK_TEST-fd980f9c2c56a376ea35cea0218289ca-X' : process.env.FLUTTERWAVE_PUBLIC_KEY,
-        enabled: !!(process.env.FLUTTERWAVE_PUBLIC_KEY && process.env.FLUTTERWAVE_SECRET_KEY)
+        publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY,
+        enabled: !!(
+          process.env.FLUTTERWAVE_PUBLIC_KEY &&
+          process.env.FLUTTERWAVE_SECRET_KEY &&
+          process.env.FLUTTERWAVE_PUBLIC_KEY !== 'your_flutterwave_public_key' &&
+          process.env.FLUTTERWAVE_SECRET_KEY !== 'your_flutterwave_secret_key'
+        )
       },
       currency: 'NGN',
       supportedChannels: ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],
@@ -191,18 +196,14 @@ exports.initializePayment = async (req, res) => {
       provider: paymentProvider,
       hasPaystackKey: !!process.env.PAYSTACK_SECRET_KEY,
       hasFlutterwaveKey: !!process.env.FLUTTERWAVE_SECRET_KEY,
-      isTestMode: paymentProvider === 'paystack' ? 
-        (!process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET_KEY === 'sk_test_your_secret_key_here') :
-        (!process.env.FLUTTERWAVE_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY === 'FLWSECK_TEST_your_secret_key_here')
+      providerConfigured: hasValidProviderSecret(paymentProvider),
+      insecureTestPaymentsAllowed: allowInsecureTestPayments()
     })
-    
-    const isTestMode = allowInsecureTestPayments()
 
-    // Test-mode side effects (inventory, commissions, order paid) run only in
-    // verifyPayment / webhooks — never at init — so retries cannot double-apply.
-    if (isTestMode) {
-      console.log('🧪 Test mode init: transaction stays pending until verify/webhook runs side effects')
-    }
+    // testMode is only true when we actually used the insecure no-keys fallback —
+    // NOT merely because ALLOW_INSECURE_TEST_PAYMENTS is set. Otherwise the client
+    // skips the real Paystack/Flutterwave popup and auto-verifies unpaid charges.
+    let usedInsecureTestFallback = false
 
     // Initialize payment with the selected provider
     const webhookUrl = process.env.NODE_ENV === 'production'
@@ -214,7 +215,7 @@ exports.initializePayment = async (req, res) => {
     if (paymentProvider === 'paystack') {
       const paystackData = {
         email: email,
-        amount: Math.round(amount * 100), // Convert to kobo
+        amount: Math.round(requestedAmount * 100), // Convert to kobo
         reference: reference,
         callback_url: callbackUrl || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/verify`,
         webhook_url: webhookUrl,
@@ -235,6 +236,7 @@ exports.initializePayment = async (req, res) => {
           })
         }
         console.log('⚠️ Paystack keys not configured, using fallback mode')
+        usedInsecureTestFallback = true
         
         // Fallback: Create a simulated response that will work for testing
         paymentResponse = {
@@ -262,16 +264,15 @@ exports.initializePayment = async (req, res) => {
     } else if (paymentProvider === 'flutterwave') {
       const flutterwaveData = {
         email: email,
-        amount: amount,
+        amount: requestedAmount,
         reference: reference,
         callbackUrl: callbackUrl || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/verify`,
         orderId: orderId,
         customerName: order.buyer.name
       }
-      
+
       console.log('🔗 Initializing payment with Flutterwave API...')
-      
-    // Check if Flutterwave keys are configured
+
       if (!hasValidProviderSecret('flutterwave')) {
         if (!allowInsecureTestPayments()) {
           return res.status(503).json({
@@ -280,37 +281,51 @@ exports.initializePayment = async (req, res) => {
           })
         }
         console.log('⚠️ Flutterwave keys not configured, using fallback mode')
-        
-        // Fallback: Create a simulated response that will work for testing
+        usedInsecureTestFallback = true
         paymentResponse = {
           success: true,
           link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/verify?reference=${reference}&test_mode=true`,
-          reference: reference
+          reference
         }
-        
         console.log('✅ Payment initialized in fallback mode (test)')
       } else {
-        try {
-          const flutterwaveUtil = new FlutterwaveUtil()
-          paymentResponse = await flutterwaveUtil.initializeTransaction(flutterwaveData)
-          
-          if (!paymentResponse.success) {
+        const flutterwaveUtil = new FlutterwaveUtil()
+        paymentResponse = await flutterwaveUtil.initializeTransaction(flutterwaveData)
+
+        if (!paymentResponse.success) {
+          // Inline checkout only needs our tx_ref; Flutterwave may reject re-init of the
+          // same reference on retry. In that case still return the DB reference so the
+          // client popup can proceed — never silently fall into fake "test paid" mode.
+          const msg = String(paymentResponse.message || '').toLowerCase()
+          const isDuplicateRef =
+            msg.includes('duplicate') ||
+            msg.includes('already exists') ||
+            msg.includes('tx_ref')
+
+          if (isDuplicateRef) {
+            console.log('♻️ Flutterwave reference already registered — reusing for inline checkout:', reference)
+            paymentResponse = {
+              success: true,
+              reference,
+              message: 'Reusing existing Flutterwave reference',
+              data: { ...(paymentResponse.data || {}), reference }
+            }
+          } else {
             console.log('❌ Flutterwave initialization failed:', paymentResponse.message)
-            throw new Error(paymentResponse.message || 'Flutterwave initialization failed')
+            return res.status(400).json({
+              status: 'error',
+              message: 'Payment initialization failed: ' + paymentResponse.message
+            })
           }
-          
-          console.log('✅ Flutterwave payment initialized successfully')
-        } catch (flutterwaveError) {
-          console.log('⚠️ Flutterwave API error, falling back to test mode:', flutterwaveError.message)
-          
-          // Fallback: Create a simulated response that will work for testing
+        } else {
+          // Always expose our authoritative reference for the client (Flutterwave's
+          // /payments payload may not echo tx_ref as `reference`).
           paymentResponse = {
-            success: true,
-            link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/verify?reference=${reference}&test_mode=true`,
-            reference: reference
+            ...paymentResponse,
+            reference,
+            data: { ...(paymentResponse.data || {}), reference }
           }
-          
-          console.log('✅ Payment initialized in fallback mode (test)')
+          console.log('✅ Flutterwave payment initialized successfully')
         }
       }
     }
@@ -321,7 +336,7 @@ exports.initializePayment = async (req, res) => {
         transaction: transaction,
         paymentProvider: paymentProvider,
         [paymentProvider]: paymentResponse,
-        testMode: isTestMode
+        testMode: usedInsecureTestFallback
       }
     })
   } catch (error) {

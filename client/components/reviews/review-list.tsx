@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Star, MessageCircle, ThumbsUp, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { cn } from "@/lib/utils"
 import { Text } from "@/components/ui/typography"
 import {
@@ -46,6 +47,37 @@ interface ReviewListProps {
   className?: string
 }
 
+function parseReviews(value: unknown): Review[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const rec = asRecord(item)
+    const buyer = asRecord(rec.buyer)
+    const profile = asRecord(buyer.profile)
+    const response = asRecord(rec.response)
+    return {
+      _id: typeof rec._id === "string" ? rec._id : "",
+      buyer: {
+        _id: typeof buyer._id === "string" ? buyer._id : "",
+        name: typeof buyer.name === "string" ? buyer.name : "",
+        profile: typeof profile.avatar === "string" ? { avatar: profile.avatar } : undefined,
+      },
+      rating: typeof rec.rating === "number" ? rec.rating : 0,
+      comment: typeof rec.comment === "string" ? rec.comment : "",
+      images: Array.isArray(rec.images) ? rec.images.filter((img): img is string => typeof img === "string") : undefined,
+      verified: Boolean(rec.verified),
+      helpful: typeof rec.helpful === "number" ? rec.helpful : 0,
+      status: rec.status === "approved" || rec.status === "rejected" ? rec.status : "pending",
+      response: typeof response.comment === "string"
+        ? {
+            comment: response.comment,
+            respondedAt: typeof response.respondedAt === "string" ? response.respondedAt : "",
+          }
+        : undefined,
+      createdAt: typeof rec.createdAt === "string" ? rec.createdAt : "",
+    }
+  })
+}
+
 export function ReviewList({ listingId, className }: ReviewListProps) {
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
@@ -69,7 +101,9 @@ export function ReviewList({ listingId, className }: ReviewListProps) {
       })
 
       const data = response.data || response
-      const newReviews = (data as any).reviews || []
+      const rec = asRecord(data)
+      const newReviews = parseReviews(rec.reviews)
+      const distribution = asRecord(rec.ratingDistribution)
       
       if (append) {
         setReviews(prev => [...prev, ...newReviews])
@@ -78,9 +112,15 @@ export function ReviewList({ listingId, className }: ReviewListProps) {
       }
 
       setStats({
-        averageRating: (data as any).averageRating || 0,
-        totalReviews: (data as any).totalReviews || 0,
-        ratingDistribution: (data as any).ratingDistribution || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+        averageRating: typeof rec.averageRating === "number" ? rec.averageRating : 0,
+        totalReviews: typeof rec.totalReviews === "number" ? rec.totalReviews : 0,
+        ratingDistribution: {
+          5: typeof distribution[5] === "number" ? distribution[5] : 0,
+          4: typeof distribution[4] === "number" ? distribution[4] : 0,
+          3: typeof distribution[3] === "number" ? distribution[3] : 0,
+          2: typeof distribution[2] === "number" ? distribution[2] : 0,
+          1: typeof distribution[1] === "number" ? distribution[1] : 0,
+        }
       })
 
       setHasMore(newReviews.length === 10)
@@ -116,10 +156,10 @@ export function ReviewList({ listingId, className }: ReviewListProps) {
       })
       // Refresh stats
       fetchReviews(1, false)
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete review.",
+        description: getErrorMessage(error, "Failed to delete review."),
         variant: "destructive"
       })
     }

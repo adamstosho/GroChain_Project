@@ -11,6 +11,7 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft, CreditCard, Calculator, FileText, CheckCircle, Info, Upload, X, Loader2, User } from "lucide-react"
 import Link from "next/link"
@@ -97,33 +98,34 @@ export default function LoanApplicationPage() {
       // Load user profile
       const profileResponse = await apiService.getMyProfile()
       if (profileResponse.status === 'success') {
-        const profile = profileResponse.data as any
+        const profile = asRecord(profileResponse.data)
         setUserProfile({
-          id: profile._id || profile.id,
-          name: profile.name,
-          email: profile.email,
-          phone: profile.phone,
-          monthlyIncome: profile.monthlyIncome || 0,
-          creditScore: profile.creditScore || 0
+          id: (profile._id as string) || (profile.id as string),
+          name: profile.name as string,
+          email: profile.email as string,
+          phone: profile.phone as string,
+          monthlyIncome: (profile.monthlyIncome as number) || 0,
+          creditScore: (profile.creditScore as number) || 0
         })
 
         // Pre-fill form with user's monthly income if available
         setFormData(prev => ({
           ...prev,
-          monthlyIncome: profile.monthlyIncome || 0
+          monthlyIncome: (profile.monthlyIncome as number) || 0
         }))
       }
 
       // Load credit score
       const creditScoreResponse = await apiService.getMyCreditScore()
       if (creditScoreResponse.status === 'success') {
+        const creditData = asRecord(creditScoreResponse.data)
+        const creditScore = creditData.score as number
         setUserProfile(prev => prev ? {
           ...prev,
-          creditScore: (creditScoreResponse.data as any).score
+          creditScore
         } : null)
 
         // Adjust interest rate based on credit score
-        const creditScore = (creditScoreResponse.data as any).score
         const rate = interestRateFromCreditScore(creditScore)
         if (rate) {
           setFormData(prev => ({ ...prev, interestRate: rate }))
@@ -236,7 +238,7 @@ export default function LoanApplicationPage() {
         if (response.status === 'success') {
         toast({
           title: "Loan Application Submitted! 🎉",
-          description: (response as any).message || "Your application has been received and is under review.",
+          description: response.message || "Your application has been received and is under review.",
           variant: "default"
         })
 
@@ -244,11 +246,11 @@ export default function LoanApplicationPage() {
       } else {
         throw new Error(response.message || 'Failed to submit application')
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to submit loan application:", error)
       toast({
         title: "Application Failed",
-        description: (error as any)?.message || "Please try again.",
+        description: getErrorMessage(error, "Please try again."),
         variant: "destructive"
       })
     } finally {
@@ -314,16 +316,17 @@ export default function LoanApplicationPage() {
       } else {
         throw new Error('Invalid upload response')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('File upload failed:', error)
 
+      const rawMessage = getErrorMessage(error, "")
       let errorMessage = "Failed to upload document. Please try again."
 
-      if (error.message?.includes('ENOTFOUND')) {
+      if (rawMessage.includes('ENOTFOUND')) {
         errorMessage = "Network error: Unable to connect to upload service. Please check your internet connection."
-      } else if (error.message?.includes('Only')) {
-        errorMessage = error.message
-      } else if (error.message?.includes('File too large')) {
+      } else if (rawMessage.includes('Only')) {
+        errorMessage = rawMessage
+      } else if (rawMessage.includes('File too large')) {
         errorMessage = "File is too large. Please upload a file smaller than 5MB."
       }
 

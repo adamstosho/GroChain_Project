@@ -93,7 +93,7 @@ export default function ShipmentsPage() {
     })
   }
 
-  const handleFilterChange = (key: keyof ShipmentFilters, value: any) => {
+  const handleFilterChange = (key: keyof ShipmentFilters, value: ShipmentFilters[keyof ShipmentFilters]) => {
     setFilters(prev => ({
       ...prev,
       [key]: value,

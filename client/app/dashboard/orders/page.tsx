@@ -16,8 +16,9 @@ import { dashboard } from "@/lib/design-system"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
-import { ReceiptGenerator } from "@/lib/receipt-generator"
+import { ReceiptGenerator, type ReceiptData } from "@/lib/receipt-generator"
 import { ShipmentTrackingWidget } from "@/components/shipment/shipment-tracking-widget"
 import {
   Package,
@@ -205,8 +206,11 @@ export default function OrdersPage() {
 
       if (response?.status === 'success' && response?.data) {
         // Handle the structured response from backend
-        const ordersData = (response.data as any).orders || []
-        let statsData = (response.data as any).stats || {
+        const payload = asRecord(response.data)
+        const ordersData = (Array.isArray(payload.orders) ? payload.orders : []) as Order[]
+        let statsData = payload.stats && typeof payload.stats === "object"
+          ? payload.stats as OrderStats
+          : {
           total: 0,
           pending: 0,
           confirmed: 0,
@@ -217,7 +221,7 @@ export default function OrdersPage() {
         }
 
         // If backend stats are not available or all zeros, calculate from orders data
-        if (!(response.data as any).stats || (statsData.confirmed === 0 && statsData.totalSpent === 0 && ordersData.length > 0)) {
+        if (!payload.stats || (statsData.confirmed === 0 && statsData.totalSpent === 0 && ordersData.length > 0)) {
           console.log('📊 Calculating stats from orders data...')
           statsData = calculateStatsFromOrders(ordersData)
         }
@@ -225,10 +229,10 @@ export default function OrdersPage() {
         setOrders(ordersData)
         setStats(statsData)
 
-        const paginationData = (response.data as any).pagination
-        if (paginationData) {
-          setCurrentPage(paginationData.page || page)
-          setTotalPages(paginationData.pages || 1)
+        const paginationData = asRecord(payload.pagination)
+        if (payload.pagination && typeof payload.pagination === "object") {
+          setCurrentPage(typeof paginationData.page === "number" ? paginationData.page : page)
+          setTotalPages(typeof paginationData.pages === "number" ? paginationData.pages : 1)
         }
 
         console.log('✅ Orders loaded successfully:', ordersData?.length || 0, 'orders')
@@ -253,8 +257,9 @@ export default function OrdersPage() {
       try {
         console.log('🔄 Attempting to fetch orders from alternative endpoint...')
         const fallbackResponse = await apiService.getUserOrders({ page: '1', limit: '100' })
-        if ((fallbackResponse?.data as any)?.orders) {
-          const ordersData = (fallbackResponse.data as any).orders
+        const fallbackPayload = asRecord(fallbackResponse?.data)
+        if (Array.isArray(fallbackPayload.orders)) {
+          const ordersData = fallbackPayload.orders as Order[]
           const statsData = calculateStatsFromOrders(ordersData)
           setOrders(ordersData)
           setStats(statsData)
@@ -1194,11 +1199,11 @@ function OrderCard({
       } else {
         throw new Error(response?.message || 'Failed to cancel order')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Failed to cancel order:', error)
       toast({
         title: "Failed to Cancel Order",
-        description: error.message || "Please try again later.",
+        description: getErrorMessage(error, "Please try again later."),
         variant: "destructive",
       })
     } finally {
@@ -1230,7 +1235,7 @@ function OrderCard({
 
       if (response?.status === 'success' && response?.data) {
         console.log('📄 Generating PDF with data:', response.data)
-        await ReceiptGenerator.generatePDF(response.data as any)
+        await ReceiptGenerator.generatePDF(response.data as ReceiptData)
 
         toast({
           title: "Receipt generated!",
@@ -1240,18 +1245,19 @@ function OrderCard({
         console.error('❌ Receipt generation failed - invalid response:', response)
         throw new Error(response?.message || 'Failed to generate receipt')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Receipt generation failed:', error)
+      const errRec = asRecord(error)
       console.error('Error details:', {
-        message: error.message,
-        status: error.status,
-        endpoint: error.endpoint,
+        message: getErrorMessage(error),
+        status: errRec.status,
+        endpoint: errRec.endpoint,
         orderId: order._id
       })
 
       toast({
         title: "Failed to generate receipt",
-        description: error.message || "Please try again later.",
+        description: getErrorMessage(error, "Please try again later."),
         variant: "destructive",
       })
     }
@@ -1344,23 +1350,37 @@ function OrderCard({
                 const seller = sellerFromOrder || sellerFromListing
 
                 if (seller) {
+                  const sellerRecord = asRecord(seller)
+                  const sellerProfile = asRecord(sellerRecord.profile)
+                  const sellerName = typeof sellerRecord.name === "string" ? sellerRecord.name : "Unknown Seller"
+                  const farmName =
+                    (typeof sellerProfile.farmName === "string" ? sellerProfile.farmName : undefined)
+                    || (typeof sellerRecord.location === "string" ? sellerRecord.location : undefined)
+                    || "Farm"
+                  const sellerPhone =
+                    (typeof sellerRecord.phone === "string" ? sellerRecord.phone : undefined)
+                    || (typeof sellerProfile.phone === "string" ? sellerProfile.phone : undefined)
+                    || "Phone not provided"
+                  const sellerEmail =
+                    (typeof sellerRecord.email === "string" ? sellerRecord.email : undefined)
+                    || "Email not provided"
                   return (
                     <>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                        <span className="font-semibold text-sm truncate">{seller.name || 'Unknown Seller'}</span>
+                        <span className="font-semibold text-sm truncate">{sellerName}</span>
                         <Badge variant="secondary" className="text-xs w-fit">Verified</Badge>
                       </div>
                       <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground">
                         <Building className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">{seller.profile?.farmName || (seller as any).location || 'Farm'}</span>
+                        <span className="truncate">{farmName}</span>
                       </div>
                       <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground">
                         <Phone className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">{(seller as any).phone || seller.profile?.phone || 'Phone not provided'}</span>
+                        <span className="truncate">{sellerPhone}</span>
                       </div>
                       <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground">
                         <Mail className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">{seller.email || 'Email not provided'}</span>
+                        <span className="truncate">{sellerEmail}</span>
                       </div>
                     </>
                   )

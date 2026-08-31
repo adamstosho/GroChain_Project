@@ -275,7 +275,7 @@ class AdminApiService {
     return this.request(`/api/admin/financial/commissions?${queryString}`)
   }
 
-  async processCommissionPayout(commissionId: string, payoutData: any): Promise<AdminApiResponse<unknown>> {
+  async processCommissionPayout(commissionId: string, payoutData: object): Promise<AdminApiResponse<unknown>> {
     return this.request(`/api/admin/financial/commissions/${commissionId}/payout`, {
       method: 'POST',
       body: JSON.stringify(payoutData),
@@ -292,7 +292,7 @@ class AdminApiService {
     return this.request(`/api/admin/financial/analytics?${queryString}`)
   }
 
-  async generateFinancialReport(reportData: any): Promise<AdminApiResponse<unknown>> {
+  async generateFinancialReport(reportData: object): Promise<AdminApiResponse<unknown>> {
     return this.request('/api/admin/financial/reports', {
       method: 'POST',
       body: JSON.stringify(reportData),
@@ -310,15 +310,19 @@ class AdminApiService {
   }
 
 
-  async generateCustomReport(reportData: any): Promise<AdminApiResponse<unknown>> {
+  async generateCustomReport(reportData: object): Promise<AdminApiResponse<unknown>> {
     return this.request('/api/admin/analytics/reports', {
       method: 'POST',
       body: JSON.stringify(reportData),
     })
   }
 
-  async exportAnalyticsData(filters: any, format: string = 'csv'): Promise<Blob> {
-    const queryString = new URLSearchParams({ ...filters, format }).toString()
+  async exportAnalyticsData(filters: Record<string, unknown>, format: string = 'csv'): Promise<Blob> {
+    const params: Record<string, string> = { format }
+    for (const [key, value] of Object.entries(filters)) {
+      if (value !== undefined && value !== null) params[key] = String(value)
+    }
+    const queryString = new URLSearchParams(params).toString()
     const response = await fetch(`${this.baseURL}/api/admin/analytics/export?${queryString}`, {
       headers: {
         "Authorization": `Bearer ${this.token}`
@@ -342,7 +346,7 @@ class AdminApiService {
     return this.request('/api/admin/system/metrics')
   }
 
-  async updateSystemConfig(configData: any): Promise<AdminApiResponse<unknown>> {
+  async updateSystemConfig(configData: object): Promise<AdminApiResponse<unknown>> {
     return this.request('/api/admin/system/config', {
       method: 'PUT',
       body: JSON.stringify(configData),
@@ -354,7 +358,7 @@ class AdminApiService {
     return this.request(`/api/admin/system/logs?${queryString}`)
   }
 
-  async triggerSystemMaintenance(maintenanceData: any): Promise<AdminApiResponse<unknown>> {
+  async triggerSystemMaintenance(maintenanceData: object): Promise<AdminApiResponse<unknown>> {
     return this.request('/api/admin/system/maintenance', {
       method: 'POST',
       body: JSON.stringify(maintenanceData),
@@ -365,7 +369,7 @@ class AdminApiService {
     return this.request('/api/admin/system/backups')
   }
 
-  async triggerManualBackup(backupData: any): Promise<AdminApiResponse<unknown>> {
+  async triggerManualBackup(backupData: object): Promise<AdminApiResponse<unknown>> {
     return this.request('/api/admin/system/backup', {
       method: 'POST',
       body: JSON.stringify(backupData),
@@ -410,7 +414,7 @@ class AdminApiService {
     return this.request(`/api/admin/security/fraud?${queryString}`)
   }
 
-  async updateSecuritySettings(securityData: any): Promise<AdminApiResponse<unknown>> {
+  async updateSecuritySettings(securityData: object): Promise<AdminApiResponse<unknown>> {
     return this.request('/api/admin/security/settings', {
       method: 'PUT',
       body: JSON.stringify(securityData),
@@ -427,7 +431,7 @@ class AdminApiService {
     return this.request('/api/admin/profile')
   }
 
-  async updateAdminProfile(profileData: any): Promise<AdminApiResponse<unknown>> {
+  async updateAdminProfile(profileData: object): Promise<AdminApiResponse<unknown>> {
     return this.request('/api/admin/profile', {
       method: 'PUT',
       body: JSON.stringify(profileData),

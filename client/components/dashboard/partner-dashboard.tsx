@@ -19,6 +19,7 @@ import { dashboard, textStyles } from "@/lib/design-system"
 import { cn } from "@/lib/utils"
 import { Users, Shield, TrendingUp, Banknote, FileCheck, BarChart3, RefreshCw, AlertCircle, Eye } from "lucide-react"
 import Link from "next/link"
+import { getErrorMessage } from "@/lib/error-utils"
 
 interface PartnerDashboardData {
   totalFarmers: number
@@ -27,7 +28,7 @@ interface PartnerDashboardData {
   monthlyCommission?: number
   commissionRate?: number
   approvalRate?: number
-  recentActivity?: any[]
+  recentActivity?: PartnerActivityItem[]
   commissionBreakdown?: {
     pending: number
     paid: number
@@ -36,7 +37,7 @@ interface PartnerDashboardData {
 }
 
 interface PartnerFarmersData {
-  farmers: any[]
+  farmers: PartnerFarmerItem[]
   total: number
 }
 
@@ -50,7 +51,7 @@ interface PartnerCommissionData {
     lastMonth: number
     totalEarned: number
   }
-  monthlyBreakdown: any[]
+  monthlyBreakdown: CommissionMonthlyBreakdown[]
 }
 
 interface PartnerMetricsData {
@@ -60,6 +61,40 @@ interface PartnerMetricsData {
   approvalRate: number
   commissionRate: number
   totalFarmers: number
+}
+
+
+interface PartnerActivityItem {
+  description?: string
+  farmer?: string
+  timestamp: string | Date
+}
+
+interface PartnerFarmerItem {
+  id?: string
+  _id?: string
+  name?: string
+  location?: string
+  joinedAt?: string | Date
+  status?: string
+}
+
+interface CommissionMonthlyBreakdown {
+  month?: string
+  amount?: number
+  [key: string]: string | number | undefined
+}
+
+interface CommissionRealtimeUpdate {
+  amount: number
+  farmerName: string
+  productName: string
+  totals: {
+    total: number
+    pending: number
+    paid: number
+    thisMonth: number
+  }
 }
 
 export function PartnerDashboard() {
@@ -78,11 +113,11 @@ export function PartnerDashboard() {
   const fetchDashboardDataRef = useRef<((reason?: string) => Promise<void>) | null>(null);
 
   // Stable callback for commission updates
-  const handleCommissionUpdate = useCallback((update: any) => {
+  const handleCommissionUpdate = useCallback((update: CommissionRealtimeUpdate) => {
     console.log('💰 Real-time commission update received:', update);
 
     // Update local state with new commission data
-    setDashboardData((prev: any) => {
+    setDashboardData((prev: PartnerDashboardData | null) => {
       if (!prev) return prev;
       return {
         ...prev,
@@ -254,13 +289,13 @@ export function PartnerDashboard() {
 
       setLastUpdated(new Date())
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Dashboard fetch error:', error)
-      setError(error.message || 'Failed to load dashboard data')
+      setError(getErrorMessage(error, 'Failed to load dashboard data'))
 
       toast({
         title: "Error loading dashboard",
-        description: error.message || "Failed to load dashboard data. Please try again.",
+        description: getErrorMessage(error, "Failed to load dashboard data. Please try again."),
         variant: "destructive",
       })
     } finally {
@@ -535,7 +570,7 @@ export function PartnerDashboard() {
             <CardContent>
               <div className="space-y-3 sm:space-y-4">
                 {dashboardData?.recentActivity && dashboardData.recentActivity.length > 0 ? (
-                  dashboardData.recentActivity.slice(0, 3).map((activity: any, index: number) => (
+                  dashboardData.recentActivity.slice(0, 3).map((activity: PartnerActivityItem, index: number) => (
                     <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg gap-2 sm:gap-0">
                       <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
                         <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-warning/10 flex items-center justify-center flex-shrink-0">
@@ -580,7 +615,7 @@ export function PartnerDashboard() {
             <CardContent>
               <div className="space-y-3 sm:space-y-4">
                 {farmersData?.farmers && farmersData.farmers.length > 0 ? (
-                  farmersData.farmers.slice(0, 3).map((farmer: any) => (
+                  farmersData.farmers.slice(0, 3).map((farmer: PartnerFarmerItem) => (
                     <div key={farmer.id || farmer._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg gap-2 sm:gap-0">
                       <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
                         <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">

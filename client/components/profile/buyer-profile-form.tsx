@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import { useAuthStore } from "@/lib/auth"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { ProfileHero } from "@/components/profile/profile-hero"
 import { ProfileSectionCard } from "@/components/profile/profile-section-card"
 import { ProfileField } from "@/components/profile/profile-field"
@@ -60,6 +61,84 @@ interface BuyerProfile {
   }
   createdAt: string
   updatedAt: string
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" && !Number.isNaN(value) ? value : fallback
+}
+
+function asStringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
+}
+
+const EMPTY_PREFS: BuyerProfile["preferences"] = {
+  cropTypes: [],
+  priceRange: { min: 0, max: 100000 },
+  qualityPreferences: [],
+  organicPreference: false,
+}
+
+function withBuyerPrefs(
+  profile: BuyerProfile,
+  patch: Partial<BuyerProfile["preferences"]>
+): BuyerProfile {
+  return {
+    ...profile,
+    preferences: {
+      ...EMPTY_PREFS,
+      ...profile.preferences,
+      ...patch,
+    },
+  }
+}
+
+function mapBuyerProfile(profileData: unknown): BuyerProfile {
+  const data = asRecord(profileData)
+  const profile = asRecord(data.profile)
+  const stats = asRecord(data.stats)
+  const preferences = asRecord(data.preferences)
+  const priceRange = asRecord(preferences.priceRange)
+  return {
+    _id: asString(data._id),
+    name: asString(data.name),
+    email: asString(data.email),
+    phone: asString(data.phone),
+    role: "buyer",
+    status: data.status === "inactive" || data.status === "suspended" ? data.status : "active",
+    company: asString(data.company),
+    businessType: asString(data.businessType),
+    address: {
+      street: asString(profile.address),
+      city: asString(profile.city),
+      state: asString(profile.state),
+      postalCode: asString(profile.postalCode),
+      country: asString(profile.country, "Nigeria"),
+    },
+    website: asString(data.website),
+    bio: asString(profile.bio),
+    avatar: asString(profile.avatar),
+    stats: {
+      totalOrders: asNumber(stats.totalOrders),
+      totalSpent: asNumber(stats.totalSpent),
+      favoriteProducts: asNumber(stats.favoriteProducts),
+      lastActive: asString(stats.lastActive, new Date().toISOString()),
+    },
+    preferences: {
+      cropTypes: asStringList(preferences.cropTypes),
+      priceRange: {
+        min: asNumber(priceRange.min, 0),
+        max: asNumber(priceRange.max, 100000),
+      },
+      qualityPreferences: asStringList(preferences.qualityPreferences),
+      organicPreference: Boolean(preferences.organicPreference),
+    },
+    createdAt: asString(data.createdAt),
+    updatedAt: asString(data.updatedAt),
+  }
 }
 
 const CROP_OPTIONS = ['Maize', 'Rice', 'Cassava', 'Yam', 'Tomato', 'Pepper', 'Onion', 'Potato', 'Sorghum', 'Millet']
@@ -118,54 +197,15 @@ export function BuyerProfileForm() {
       const response = await apiService.getMyProfile()
 
       if (response.status === 'success' && response.data) {
-        const profileData = response.data as any
-
-        const buyerProfile: BuyerProfile = {
-          _id: profileData._id,
-          name: profileData.name,
-          email: profileData.email,
-          phone: profileData.phone,
-          role: profileData.role,
-          status: profileData.status,
-          company: profileData.company || '',
-          businessType: profileData.businessType || '',
-          address: {
-            street: profileData.profile?.address || '',
-            city: profileData.profile?.city || '',
-            state: profileData.profile?.state || '',
-            postalCode: profileData.profile?.postalCode || '',
-            country: profileData.profile?.country || 'Nigeria'
-          },
-          website: profileData.website || '',
-          bio: profileData.profile?.bio || '',
-          avatar: profileData.profile?.avatar || '',
-          stats: {
-            totalOrders: profileData.stats?.totalOrders || 0,
-            totalSpent: profileData.stats?.totalSpent || 0,
-            favoriteProducts: profileData.stats?.favoriteProducts || 0,
-            lastActive: profileData.stats?.lastActive || new Date().toISOString()
-          },
-          preferences: {
-            cropTypes: profileData.preferences?.cropTypes || [],
-            priceRange: {
-              min: profileData.preferences?.priceRange?.min || 0,
-              max: profileData.preferences?.priceRange?.max || 100000
-            },
-            qualityPreferences: profileData.preferences?.qualityPreferences || [],
-            organicPreference: profileData.preferences?.organicPreference || false
-          },
-          createdAt: profileData.createdAt,
-          updatedAt: profileData.updatedAt
-        }
-        setProfile(buyerProfile)
+        setProfile(mapBuyerProfile(response.data))
       } else {
         throw new Error('Failed to fetch profile data')
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching profile:', error)
       toast({
         title: "Error loading profile",
-        description: error.message || "Failed to load profile data",
+        description: getErrorMessage(error, "Failed to load profile data"),
         variant: "destructive"
       })
     } finally {
@@ -223,12 +263,21 @@ export function BuyerProfileForm() {
       const response = await apiService.updateMyProfile(updateData)
 
       if (response.status === 'success' && response.data) {
-        setProfile(response.data as any)
+        const mapped = mapBuyerProfile(response.data)
+        setProfile(mapped)
         updateUser({
-          name: (response.data as any).name,
-          email: (response.data as any).email,
-          phone: (response.data as any).phone,
-          profile: (response.data as any).profile
+          name: mapped.name,
+          email: mapped.email,
+          phone: mapped.phone,
+          profile: {
+            bio: mapped.bio,
+            avatar: mapped.avatar,
+            address: mapped.address.street,
+            city: mapped.address.city,
+            state: mapped.address.state,
+            country: mapped.address.country,
+            postalCode: mapped.address.postalCode,
+          }
         })
 
         toast({
@@ -240,17 +289,17 @@ export function BuyerProfileForm() {
       } else {
         throw new Error('Failed to update profile')
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating profile:', error)
 
       // Handle different types of errors
-      let errorMessage = "Failed to save profile. Please try again."
+      let errorMessage = getErrorMessage(error, "Failed to save profile. Please try again.")
 
-      if (error.message?.includes('network') || error.message?.includes('fetch')) {
+      if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
         errorMessage = "Network error. Please check your connection and try again."
-      } else if (error.message?.includes('validation')) {
-        errorMessage = error.message
-      } else if (error.message?.includes('unauthorized')) {
+      } else if (errorMessage.includes('validation')) {
+        // keep API validation message
+      } else if (errorMessage.includes('unauthorized')) {
         errorMessage = "Session expired. Please log in again."
       }
 
@@ -373,7 +422,7 @@ export function BuyerProfileForm() {
                     onClick={() => {
                       const current = profile.preferences?.cropTypes || []
                       const newCrops = active ? current.filter(c => c !== crop) : [...current, crop]
-                      setProfile({ ...profile, preferences: { ...(profile.preferences || {}) as any, cropTypes: newCrops } })
+                      setProfile(withBuyerPrefs(profile, { cropTypes: newCrops }))
                     }}
                   >
                     {crop}
@@ -394,9 +443,9 @@ export function BuyerProfileForm() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
           <ProfileField label="Minimum Price Range (₦)" value={String(profile.preferences?.priceRange?.min ?? 0)} isEditing={isEditing} type="number"
-            onChange={(v) => setProfile({ ...profile, preferences: { ...(profile.preferences || {}) as any, priceRange: { ...(profile.preferences?.priceRange || {}), min: parseInt(v) || 0 } } })} />
+            onChange={(v) => setProfile(withBuyerPrefs(profile, { priceRange: { ...(profile.preferences?.priceRange || { min: 0, max: 100000 }), min: parseInt(v) || 0 } }))} />
           <ProfileField label="Maximum Price Range (₦)" value={String(profile.preferences?.priceRange?.max ?? 100000)} isEditing={isEditing} type="number"
-            onChange={(v) => setProfile({ ...profile, preferences: { ...(profile.preferences || {}) as any, priceRange: { ...(profile.preferences?.priceRange || {}), max: parseInt(v) || 100000 } } })} />
+            onChange={(v) => setProfile(withBuyerPrefs(profile, { priceRange: { ...(profile.preferences?.priceRange || { min: 0, max: 100000 }), max: parseInt(v) || 100000 } }))} />
         </div>
 
         <div className="space-y-2">
@@ -415,7 +464,7 @@ export function BuyerProfileForm() {
                     onClick={() => {
                       const current = profile.preferences?.qualityPreferences || []
                       const newQualities = active ? current.filter(q => q !== quality) : [...current, quality]
-                      setProfile({ ...profile, preferences: { ...(profile.preferences || {}) as any, qualityPreferences: newQualities } })
+                      setProfile(withBuyerPrefs(profile, { qualityPreferences: newQualities }))
                     }}
                   >
                     {quality}

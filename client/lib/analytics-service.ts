@@ -99,7 +99,7 @@ export interface ReportConfig {
 
 export class AnalyticsService {
   private static instance: AnalyticsService
-  private cache: Map<string, { data: any; timestamp: number }> = new Map()
+  private cache: Map<string, { data: unknown; timestamp: number }> = new Map()
   private readonly CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
   static getInstance(): AnalyticsService {
@@ -117,11 +117,11 @@ export class AnalyticsService {
     return Date.now() - timestamp < this.CACHE_DURATION
   }
 
-  private setCache(key: string, data: any): void {
+  private setCache(key: string, data: unknown): void {
     this.cache.set(key, { data, timestamp: Date.now() })
   }
 
-  private getCache(key: string): any | null {
+  private getCache(key: string): unknown | null {
     const cached = this.cache.get(key)
     if (cached && this.isCacheValid(cached.timestamp)) {
       return cached.data
@@ -134,7 +134,7 @@ export class AnalyticsService {
     const cached = this.getCache(cacheKey)
     
     if (cached) {
-      return cached
+      return cached as AnalyticsData
     }
 
     const response = await apiService.getFarmerAnalytics()

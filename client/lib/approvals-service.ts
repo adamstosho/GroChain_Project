@@ -1,4 +1,5 @@
 import { apiService } from "./api"
+import { asRecord, getErrorMessage, getErrorStatus } from "./error-utils"
 import { 
   HarvestApproval, 
   ApprovalStats, 
@@ -10,7 +11,7 @@ import {
 
 export class ApprovalsService {
   private static instance: ApprovalsService
-  private cache: Map<string, { data: any; timestamp: number }> = new Map()
+  private cache: Map<string, { data: unknown; timestamp: number }> = new Map()
   private readonly CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
   static getInstance(): ApprovalsService {
@@ -28,11 +29,11 @@ export class ApprovalsService {
     return Date.now() - timestamp < this.CACHE_DURATION
   }
 
-  private setCache(key: string, data: any): void {
+  private setCache(key: string, data: unknown): void {
     this.cache.set(key, { data, timestamp: Date.now() })
   }
 
-  private getCache(key: string): any | null {
+  private getCache(key: string): unknown | null {
     const cached = this.cache.get(key)
     if (cached && this.isCacheValid(cached.timestamp)) {
       return cached.data
@@ -47,7 +48,7 @@ export class ApprovalsService {
 
     if (cached) {
       console.log('Returning cached approvals data')
-      return cached
+      return cached as HarvestApproval[]
     }
 
     // If no cache, try to fetch fresh data with retry logic
@@ -60,11 +61,13 @@ export class ApprovalsService {
         console.log('API response received:', response)
 
       // Handle different response structures
-      let harvests: any[] = []
-      if (response?.data?.harvests) {
-        harvests = response.data.harvests as any[]
-      } else if (response?.data && Array.isArray(response.data)) {
-        harvests = response.data
+      let harvests: unknown[] = []
+      const responseData = response?.data
+      const dataRec = asRecord(responseData)
+      if (Array.isArray(dataRec.harvests)) {
+        harvests = dataRec.harvests
+      } else if (Array.isArray(responseData)) {
+        harvests = responseData
       } else if (Array.isArray(response)) {
         harvests = response
       }
@@ -72,45 +75,54 @@ export class ApprovalsService {
       console.log(`Found ${harvests.length} harvests from API`)
 
       // Transform backend data to match frontend interface
-      const approvals: HarvestApproval[] = harvests.map((harvest: any) => ({
-        _id: harvest._id,
+      const approvals: HarvestApproval[] = harvests.map((harvestUnknown) => {
+        const harvest = asRecord(harvestUnknown)
+        const farmer = asRecord(harvest.farmer)
+        const qualityMetrics = asRecord(harvest.qualityMetrics)
+        const photos = Array.isArray(harvest.images) ? harvest.images.filter((p): p is string => typeof p === 'string') : []
+        const quantity = typeof harvest.quantity === 'number' ? harvest.quantity : 0
+        const price = typeof harvest.price === 'number' ? harvest.price : quantity * 100
+        const farmerId = (typeof farmer._id === 'string' && farmer._id) || (typeof farmer.id === 'string' && farmer.id) || ''
+        return {
+        _id: typeof harvest._id === 'string' ? harvest._id : '',
         farmer: {
-          _id: harvest.farmer?._id || harvest.farmer?.id,
-          name: harvest.farmer?.name || 'Unknown Farmer',
-          email: harvest.farmer?.email || '',
-          phone: harvest.farmer?.phone || '',
-          location: harvest.farmer?.location || harvest.location || '',
-          avatar: harvest.farmer?.avatar
+          _id: farmerId,
+          name: typeof farmer.name === 'string' ? farmer.name : 'Unknown Farmer',
+          email: typeof farmer.email === 'string' ? farmer.email : '',
+          phone: typeof farmer.phone === 'string' ? farmer.phone : '',
+          location: (typeof farmer.location === 'string' && farmer.location) || (typeof harvest.location === 'string' && harvest.location) || '',
+          avatar: typeof farmer.avatar === 'string' ? farmer.avatar : undefined
         },
         harvest: {
-          _id: harvest._id,
-          cropType: harvest.cropType || 'Unknown Crop',
-          quantity: harvest.quantity || 0,
-          unit: harvest.unit || 'kg',
-          harvestDate: harvest.date || harvest.createdAt || new Date(),
-          qualityScore: harvest.qualityMetrics?.moistureContent || 8.0,
-          photos: harvest.images || [],
-          description: harvest.description || ''
+          _id: typeof harvest._id === 'string' ? harvest._id : '',
+          cropType: typeof harvest.cropType === 'string' ? harvest.cropType : 'Unknown Crop',
+          quantity,
+          unit: typeof harvest.unit === 'string' ? harvest.unit : 'kg',
+          harvestDate: (harvest.date || harvest.createdAt || new Date()) as Date,
+          qualityScore: typeof qualityMetrics.moistureContent === 'number' ? qualityMetrics.moistureContent : 8.0,
+          photos,
+          description: typeof harvest.description === 'string' ? harvest.description : ''
         },
-        status: harvest.status || 'pending',
-        submittedAt: harvest.createdAt || harvest.date || new Date(),
-        reviewedAt: harvest.verifiedAt,
-        reviewedBy: harvest.verifiedBy,
+        status: (typeof harvest.status === 'string' ? harvest.status : 'pending') as HarvestApproval['status'],
+        submittedAt: (harvest.createdAt || harvest.date || new Date()) as Date,
+        reviewedAt: harvest.verifiedAt as Date | undefined,
+        reviewedBy: typeof harvest.verifiedBy === 'string' ? harvest.verifiedBy : undefined,
         priority: 'medium',
-        estimatedValue: harvest.price || (harvest.quantity * 100),
-        location: harvest.location || harvest.farmer?.location || 'Unknown',
-        rejectionReason: harvest.rejectionReason,
-        approvalNotes: harvest.approvalNotes
-      }))
+        estimatedValue: price,
+        location: (typeof harvest.location === 'string' && harvest.location) || (typeof farmer.location === 'string' && farmer.location) || 'Unknown',
+        rejectionReason: typeof harvest.rejectionReason === 'string' ? harvest.rejectionReason : undefined,
+        approvalNotes: typeof harvest.approvalNotes === 'string' ? harvest.approvalNotes : undefined
+      }
+      })
 
         console.log(`Transformed ${approvals.length} approvals`)
       this.setCache(cacheKey, approvals)
       return approvals
 
-      } catch (apiError: any) {
+      } catch (apiError: unknown) {
         console.error(`API call failed (attempt ${attempt}), error details:`, {
-          message: apiError.message,
-          status: apiError.status,
+          message: getErrorMessage(apiError),
+          status: getErrorStatus(apiError),
           endpoint: '/api/harvest-approval/pending'
         })
 
@@ -128,7 +140,7 @@ export class ApprovalsService {
         const fallbackCached = this.getCache(cacheKey)
         if (fallbackCached) {
           console.log('Returning cached data due to API failure')
-          return fallbackCached
+          return fallbackCached as HarvestApproval[]
         }
 
         // If no cached data and API failed, return empty array but don't throw
@@ -149,7 +161,7 @@ export class ApprovalsService {
 
     if (cached) {
       console.log('Returning cached approval stats')
-      return cached
+      return cached as ApprovalStats
     }
 
     try {
@@ -180,10 +192,10 @@ export class ApprovalsService {
       this.setCache(cacheKey, statsData)
       return statsData
 
-    } catch (apiError: any) {
+    } catch (apiError: unknown) {
       console.error('Stats API call failed, error details:', {
-        message: apiError.message,
-        status: apiError.status,
+        message: getErrorMessage(apiError),
+        status: getErrorStatus(apiError),
         endpoint: '/api/harvest-approval/stats'
       })
 
@@ -191,10 +203,10 @@ export class ApprovalsService {
       console.log('Stats API failed, returning cached data if available')
 
       // Return cached data if available, otherwise default stats
-      const cached = this.getCache(cacheKey)
-      if (cached) {
+      const cachedStats = this.getCache(cacheKey)
+      if (cachedStats) {
         console.log('Returning cached stats due to API failure')
-        return cached
+        return cachedStats as ApprovalStats
       }
 
       return {
@@ -274,7 +286,7 @@ export class ApprovalsService {
     const cached = this.getCache(cacheKey)
     
     if (cached) {
-      return cached
+      return cached as ApprovalMetrics
     }
 
     try {
@@ -288,10 +300,11 @@ export class ApprovalsService {
   }
 
   // Get approval history
-  async getApprovalHistory(approvalId: string): Promise<any[]> {
+  async getApprovalHistory(approvalId: string): Promise<unknown[]> {
     try {
       const response = await apiService.getApprovalHistory(approvalId)
-      return (response.data as unknown as any[]) || [] as unknown as HarvestApproval
+      const data = response.data
+      return Array.isArray(data) ? data : []
     } catch (error) {
       console.error('Error fetching approval history:', error)
       throw error
@@ -363,8 +376,8 @@ export class ApprovalsService {
     const sorted = [...approvals]
 
     sorted.sort((a, b) => {
-      let aValue: any
-      let bValue: any
+      let aValue: unknown
+      let bValue: unknown
 
       switch (sortBy) {
         case 'submittedAt':
@@ -393,8 +406,12 @@ export class ApprovalsService {
           bValue = b[sortBy as keyof HarvestApproval]
       }
 
-      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1
-      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1
+      const comparableA = aValue instanceof Date ? aValue.getTime() : aValue
+      const comparableB = bValue instanceof Date ? bValue.getTime() : bValue
+      const left = typeof comparableA === 'number' || typeof comparableA === 'string' ? comparableA : String(comparableA)
+      const right = typeof comparableB === 'number' || typeof comparableB === 'string' ? comparableB : String(comparableB)
+      if (left < right) return sortOrder === 'asc' ? -1 : 1
+      if (left > right) return sortOrder === 'asc' ? 1 : -1
       return 0
     })
 

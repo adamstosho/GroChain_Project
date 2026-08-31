@@ -10,11 +10,13 @@ import { useToast } from "@/hooks/use-toast"
 import { useReferrals } from "@/hooks/use-referrals"
 import { Loader2, Search, User, X } from "lucide-react"
 import { apiService } from "@/lib/api"
+import { getErrorMessage } from "@/lib/error-utils"
+import type { Referral } from "@/lib/types/referrals"
 
 interface ReferralDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  referral?: any // For editing existing referrals
+  referral?: Referral | null // For editing existing referrals
   onCreateSuccess?: () => void
 }
 
@@ -68,12 +70,12 @@ export function ReferralDialog({ open, onOpenChange, referral: _referral, onCrea
         page: 1
       })
       setFarmers(response.data?.farmers || [])
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to search farmers:', error)
       setFarmers([])
       toast({
         title: "Search failed",
-        description: error?.message || "Failed to search for farmers.",
+        description: getErrorMessage(error, "Failed to search for farmers."),
         variant: "destructive"
       })
     } finally {
@@ -146,10 +148,10 @@ export function ReferralDialog({ open, onOpenChange, referral: _referral, onCrea
       })
 
       onCreateSuccess?.()
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Creation failed",
-        description: error.message || "Failed to create referral",
+        description: getErrorMessage(error, "Failed to create referral"),
         variant: "destructive"
       })
     } finally {

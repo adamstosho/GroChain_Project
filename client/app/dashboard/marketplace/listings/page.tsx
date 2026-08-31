@@ -13,6 +13,7 @@ import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { Text } from "@/components/ui/typography"
 import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
+import { asRecord } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import {
   Package,
@@ -153,42 +154,63 @@ export default function MarketplaceListingsPage() {
       const response = await apiService.getFarmerListings()
       console.log("📦 Farmer Listings API Response:", response)
 
-      if (response?.status === 'success' && (response.data as any)?.listings) {
-        const listingsData = (response.data as any).listings
+      if (response?.status === 'success' && asRecord(response.data).listings) {
+        const listingsData = asRecord(response.data).listings
         console.log("✅ Farmer listings data:", listingsData)
 
         // Process farmer's listings
-        const processedListings = listingsData.map((listing: any) => ({
-          _id: listing._id,
-          farmer: listing.farmer || { _id: '', name: 'You', email: '' },
-          cropName: listing.cropName || 'Unknown Crop',
-          category: listing.category || 'General',
-          description: listing.description || '',
-          basePrice: listing.basePrice || 0,
-          unit: listing.unit || 'kg',
-          quantity: listing.quantity || 0,
-          availableQuantity: listing.availableQuantity || listing.quantity || 0,
-          images: listing.images || [],
-          location: listing.location || {
+        const processedListings = (Array.isArray(listingsData) ? listingsData : []).map((listing) => {
+          const l = asRecord(listing)
+          const farmer = asRecord(l.farmer)
+          const loc = l.location
+          return {
+          _id: String(l._id ?? ""),
+          farmer: {
+            _id: String(farmer._id ?? ""),
+            name: typeof farmer.name === "string" ? farmer.name : "You",
+            email: typeof farmer.email === "string" ? farmer.email : "",
+          },
+          cropName: typeof l.cropName === "string" ? l.cropName : "Unknown Crop",
+          category: typeof l.category === "string" ? l.category : "General",
+          description: typeof l.description === "string" ? l.description : "",
+          basePrice: Number(l.basePrice) || 0,
+          unit: typeof l.unit === "string" ? l.unit : "kg",
+          quantity: Number(l.quantity) || 0,
+          availableQuantity: Number(l.availableQuantity ?? l.quantity) || 0,
+          images: Array.isArray(l.images) ? l.images.filter((img): img is string => typeof img === "string") : [],
+          location: typeof loc === "string"
+            ? loc
+            : loc && typeof loc === "object" && !Array.isArray(loc)
+            ? (() => {
+                const place = asRecord(loc)
+                return {
+                  city: typeof place.city === "string" ? place.city : "",
+                  state: typeof place.state === "string" ? place.state : "",
+                  country: typeof place.country === "string" ? place.country : "Nigeria",
+                  coordinates: Array.isArray(place.coordinates) ? (place.coordinates as number[]) : [0, 0],
+                }
+              })()
+            : {
             city: '',
             state: '',
             country: 'Nigeria',
             coordinates: [0, 0]
           },
-          status: listing.status || 'active',
-          tags: listing.tags || [],
-          qualityGrade: listing.qualityGrade || 'Standard',
-          organic: listing.organic || false,
-          harvestDate: listing.harvestDate || '',
-          expiryDate: listing.expiryDate || '',
-          views: listing.views || 0,
-          favorites: listing.favorites || 0,
-          orders: listing.orders || 0,
-          rating: listing.rating || 0,
-          reviews: listing.reviews || 0,
-          createdAt: listing.createdAt || new Date().toISOString(),
-          updatedAt: listing.updatedAt || new Date().toISOString()
-        }))
+          status: (typeof l.status === "string" ? l.status : "active") as Listing["status"],
+          tags: Array.isArray(l.tags) ? l.tags.filter((t): t is string => typeof t === "string") : [],
+          qualityGrade: typeof l.qualityGrade === "string" ? l.qualityGrade : "Standard",
+          organic: Boolean(l.organic),
+          harvestDate: typeof l.harvestDate === "string" ? l.harvestDate : "",
+          expiryDate: typeof l.expiryDate === "string" ? l.expiryDate : "",
+          views: Number(l.views) || 0,
+          favorites: Number(l.favorites) || 0,
+          orders: Number(l.orders) || 0,
+          rating: Number(l.rating) || 0,
+          reviews: Number(l.reviews) || 0,
+          createdAt: typeof l.createdAt === "string" ? l.createdAt : new Date().toISOString(),
+          updatedAt: typeof l.updatedAt === "string" ? l.updatedAt : new Date().toISOString(),
+        }
+        })
 
         setListings(processedListings)
 

@@ -83,6 +83,56 @@ interface AnalyticsData {
   }>
 }
 
+interface MetricBlock {
+  total?: number
+  change?: number
+  trend?: 'up' | 'down'
+}
+
+interface MarketplaceAnalyticsResponse {
+  period?: string
+  revenue?: MetricBlock
+  orders?: MetricBlock
+  customers?: MetricBlock
+  views?: MetricBlock
+  topProducts?: Array<{
+    name?: string
+    cropName?: string
+    revenue?: number
+    orders?: number
+    views?: number
+    rating?: number
+  }>
+  revenueByCategory?: Array<{
+    category?: string
+    revenue?: number
+    percentage?: number
+  }>
+  monthlyTrends?: Array<{
+    month?: string
+    revenue?: number
+    orders?: number
+    customers?: number
+  }>
+  customerInsights?: {
+    newCustomers?: { count?: number; percentage?: number; revenue?: number }
+    returningCustomers?: { count?: number; percentage?: number; revenue?: number }
+    loyalCustomers?: { count?: number; percentage?: number; revenue?: number }
+  }
+  recommendedActions?: Array<{
+    title: string
+    description: string
+  }>
+}
+
+function defaultMetric(block?: MetricBlock): AnalyticsData['revenue'] {
+  return {
+    total: block?.total || 0,
+    change: block?.change || 0,
+    trend: block?.trend === 'down' ? 'down' : 'up',
+  }
+}
+
 const timePeriods = [
   { value: '7d', label: 'Last 7 Days' },
   { value: '30d', label: 'Last 30 Days' },
@@ -104,54 +154,54 @@ export default function MarketplaceAnalyticsPage() {
       // Fetch real data from backend with period parameter
       const response = await apiService.getMarketplaceAnalytics(`?period=${selectedPeriod}`)
       if (response.status === 'success' && response.data) {
-        const data = response.data
+        const data = response.data as MarketplaceAnalyticsResponse
 
         // Format the data to match frontend expectations
         const analyticsData: AnalyticsData = {
-          period: (data as any).period || selectedPeriod,
-          revenue: (data as any).revenue || { total: 0, change: 0, trend: 'up' },
-          orders: (data as any).orders || { total: 0, change: 0, trend: 'up' },
-          customers: (data as any).customers || { total: 0, change: 0, trend: 'up' },
-          views: (data as any).views || { total: 0, change: 0, trend: 'up' },
-          topProducts: (data as any).topProducts?.slice(0, 4).map((product: any) => ({
+          period: data.period || selectedPeriod,
+          revenue: defaultMetric(data.revenue),
+          orders: defaultMetric(data.orders),
+          customers: defaultMetric(data.customers),
+          views: defaultMetric(data.views),
+          topProducts: data.topProducts?.slice(0, 4).map((product) => ({
             name: product.name || product.cropName || 'Unknown Product',
             revenue: product.revenue || 0,
             orders: product.orders || 0,
             views: product.views || 0,
             rating: product.rating || 4.0
           })) || [],
-          topCategories: (data as any).revenueByCategory?.map((category: any) => ({
-            name: category.category,
-            revenue: category.revenue,
-            percentage: category.percentage
+          topCategories: data.revenueByCategory?.map((category) => ({
+            name: category.category || '',
+            revenue: category.revenue || 0,
+            percentage: category.percentage || 0
           })) || [],
-          monthlyData: (data as any).monthlyTrends?.map((trend: any) => ({
-            month: trend.month,
-            revenue: trend.revenue,
-            orders: trend.orders,
-            customers: trend.customers
+          monthlyData: data.monthlyTrends?.map((trend) => ({
+            month: trend.month || '',
+            revenue: trend.revenue || 0,
+            orders: trend.orders || 0,
+            customers: trend.customers || 0
           })) || [],
           customerSegments: [
             {
               segment: 'New Customers',
-              count: (data as any).customerInsights?.newCustomers?.count || 0,
-              percentage: (data as any).customerInsights?.newCustomers?.percentage || 0,
-              revenue: (data as any).customerInsights?.newCustomers?.revenue || 0
+              count: data.customerInsights?.newCustomers?.count || 0,
+              percentage: data.customerInsights?.newCustomers?.percentage || 0,
+              revenue: data.customerInsights?.newCustomers?.revenue || 0
             },
             {
               segment: 'Returning Customers',
-              count: (data as any).customerInsights?.returningCustomers?.count || 0,
-              percentage: (data as any).customerInsights?.returningCustomers?.percentage || 0,
-              revenue: (data as any).customerInsights?.returningCustomers?.revenue || 0
+              count: data.customerInsights?.returningCustomers?.count || 0,
+              percentage: data.customerInsights?.returningCustomers?.percentage || 0,
+              revenue: data.customerInsights?.returningCustomers?.revenue || 0
             },
             {
               segment: 'Loyal Customers',
-              count: (data as any).customerInsights?.loyalCustomers?.count || 0,
-              percentage: (data as any).customerInsights?.loyalCustomers?.percentage || 0,
-              revenue: (data as any).customerInsights?.loyalCustomers?.revenue || 0
+              count: data.customerInsights?.loyalCustomers?.count || 0,
+              percentage: data.customerInsights?.loyalCustomers?.percentage || 0,
+              revenue: data.customerInsights?.loyalCustomers?.revenue || 0
             }
           ],
-          recommendedActions: (data as any).recommendedActions || []
+          recommendedActions: data.recommendedActions || []
         }
 
         setAnalytics(analyticsData)
@@ -277,10 +327,10 @@ export default function MarketplaceAnalyticsPage() {
                       { metric: "Total Orders", value: analytics?.orders?.total ?? 0, change: analytics?.orders?.change ?? 0 },
                       { metric: "Customers", value: analytics?.customers?.total ?? 0, change: analytics?.customers?.change ?? 0 },
                       { metric: "Views", value: analytics?.views?.total ?? 0, change: analytics?.views?.change ?? 0 },
-                      ...(analytics?.topProducts || []).map((p: any, i: number) => ({
+                      ...(analytics?.topProducts || []).map((p, i: number) => ({
                         metric: `Top Product ${i + 1}`,
-                        value: p.name || p.cropName || "",
-                        change: p.revenue ?? p.sales ?? "",
+                        value: p.name || "",
+                        change: p.revenue ?? "",
                       })),
                     ]
                     const result = await exportService.exportCustomData(rows, {
@@ -289,8 +339,12 @@ export default function MarketplaceAnalyticsPage() {
                     })
                     if (!result.success) throw new Error(result.error)
                     toast({ title: "Export ready", description: "Analytics report downloaded." })
-                  } catch (e: any) {
-                    toast({ title: "Export failed", description: e?.message || "Try again", variant: "destructive" })
+                  } catch (e: unknown) {
+                    toast({
+                      title: "Export failed",
+                      description: e instanceof Error ? e.message : "Try again",
+                      variant: "destructive",
+                    })
                   }
                 }}
               >

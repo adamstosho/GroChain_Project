@@ -7,6 +7,7 @@ import { Camera, Upload, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import { getTokenFromStorage } from "@/lib/auth-storage"
+import { getErrorMessage } from "@/lib/error-utils"
 
 interface AvatarUploadProps {
   currentAvatar?: string
@@ -109,8 +110,8 @@ export function AvatarUpload({
       } else {
         throw new Error(result.message || 'Failed to upload avatar')
       }
-    } catch (error: any) {
-      if (error?.name === 'AbortError') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
         // User cancelled - no error toast, state already reset by handleRemove
         return
       }
@@ -118,7 +119,7 @@ export function AvatarUpload({
       setPreviewUrl(null)
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload avatar. Please try again.",
+        description: getErrorMessage(error, "Failed to upload avatar. Please try again."),
         variant: "destructive"
       })
     } finally {

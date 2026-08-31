@@ -1,25 +1,10 @@
 "use client"
 
 import { createContext, useContext, ReactNode } from 'react'
-import { useNotifications, Notification } from '@/hooks/use-notifications'
+import { useNotifications } from '@/hooks/use-notifications'
 import { WebSocketErrorBoundary } from './websocket-error-boundary'
 
-interface NotificationContextType {
-  notifications: Notification[]
-  unreadCount: number
-  loading: boolean
-  error: string | null
-  connected: boolean
-  markAsRead: (notificationIds: string[]) => Promise<boolean>
-  markAllAsRead: () => Promise<boolean>
-  deleteNotification: (notificationId: string) => Promise<boolean>
-  fetchNotifications: (filters?: any) => Promise<any>
-  getNotificationPreferences: () => Promise<any>
-  updateNotificationPreferences: (preferences: any) => Promise<boolean>
-  updatePushToken: (token: string) => Promise<boolean>
-  requestNotificationPermission: () => Promise<boolean>
-  refetch: () => Promise<any>
-}
+type NotificationContextType = ReturnType<typeof useNotifications>
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
 

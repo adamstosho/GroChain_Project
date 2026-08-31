@@ -16,7 +16,7 @@ interface Activity {
   description: string
   timestamp: Date
   user?: string | { name?: string }
-  metadata?: any
+  metadata?: Record<string, unknown>
 }
 
 export function RecentActivity() {
@@ -47,7 +47,7 @@ export function RecentActivity() {
         console.warn('⚠️ Activities response not successful:', response)
         setActivities([])
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Failed to fetch activities:', error)
 
       // Show the real empty state rather than fabricated entries that would

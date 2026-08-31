@@ -20,6 +20,7 @@ import {
   Target,
   Shield
 } from "lucide-react"
+import { getErrorMessage, asRecord } from "@/lib/error-utils"
 import {
   Line,
   Area,
@@ -46,6 +47,9 @@ import { getExportService } from "@/lib/export-utils"
 import { brandColors } from "@/lib/brand/colors"
 import { formatCompactCurrency, formatCompactNumber } from "@/lib/format"
 
+const toChartNumber = (value: number | string): number =>
+  typeof value === "number" ? value : Number(value) || 0
+
 interface AdminAnalyticsData {
   totalUsers: number
   activeUsers: number
@@ -65,29 +69,60 @@ interface AdminAnalyticsData {
   };
 }
 
+interface ChartBucket {
+  _id?: string
+  name?: string
+  count?: number
+  users?: number
+  harvests?: number
+  revenue?: number
+  orders?: number
+  [key: string]: string | number | undefined
+}
+
 interface OverviewData {
-  monthlyGrowth: any[]
-  userGrowth: any[]
-  harvestTrends: any[]
-  revenueTrends: any[]
+  monthlyGrowth: ChartBucket[]
+  userGrowth: ChartBucket[]
+  harvestTrends: ChartBucket[]
+  revenueTrends: ChartBucket[]
+}
+
+interface UserActivityStatus {
+  _id: string
+  count: number
 }
 
 interface UserAnalyticsData {
-  userDistribution: any[]
-  userGrowth: any[]
-  userActivity: any[]
-  topUsers: any[]
+  userDistribution: ChartBucket[]
+  userGrowth: ChartBucket[]
+  userActivity: UserActivityStatus[]
+  topUsers: Array<Record<string, string | number>>
+}
+
+interface RegionalEntry {
+  region: string
+  users: number
+  harvests: number
+  revenue: number
 }
 
 interface RegionalData {
-  regionalData: any[]
+  regionalData: RegionalEntry[]
+}
+
+interface QualityBucket {
+  _id?: string
+  count: number
 }
 
 interface QualityData {
-  qualityDistribution: any[]
-  statusMetrics: any[]
-  creditScoreStats: any
-  approvalMetrics: any
+  qualityDistribution: QualityBucket[]
+  statusMetrics: ChartBucket[]
+  creditScoreStats: Record<string, number | string>
+  approvalMetrics: {
+    approved: number
+    total: number
+  }
 }
 
 export function AdminAnalytics() {
@@ -114,19 +149,22 @@ export function AdminAnalytics() {
 
       // Handle dashboard data
       if (dashboardResponse.status === 'fulfilled' && dashboardResponse.value.status === 'success') {
-        const data = dashboardResponse.value.data as any
+        const data = asRecord(dashboardResponse.value.data)
+        const userDistribution = data.userDistribution && typeof data.userDistribution === 'object'
+          ? data.userDistribution as AdminAnalyticsData['userDistribution']
+          : undefined
         setAnalyticsData({
-          totalUsers: data.totalUsers || 0,
-          activeUsers: data.activeUsers || 0,
+          totalUsers: Number(data.totalUsers) || 0,
+          activeUsers: Number(data.activeUsers) || 0,
           newRegistrations: 0, // This would need to be calculated
-          totalHarvests: data.totalHarvests || 0,
-          approvedHarvests: data.totalHarvests - (data.pendingApprovals || 0),
-          totalListings: data.totalListings || 0,
-          totalOrders: data.totalOrders || 0,
-          totalRevenue: data.totalRevenue || 0,
+          totalHarvests: Number(data.totalHarvests) || 0,
+          approvedHarvests: Number(data.totalHarvests) - (Number(data.pendingApprovals) || 0),
+          totalListings: Number(data.totalListings) || 0,
+          totalOrders: Number(data.totalOrders) || 0,
+          totalRevenue: Number(data.totalRevenue) || 0,
           averageCreditScore: 650, // Default value
-          approvalRate: data.approvalRate || 0,
-          userDistribution: data.userDistribution
+          approvalRate: Number(data.approvalRate) || 0,
+          userDistribution
         })
       }
 
@@ -135,11 +173,11 @@ export function AdminAnalytics() {
         setOverviewData(overviewResponse.value.data as OverviewData)
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching analytics:', error)
       toast({
         title: "Error loading analytics",
-        description: error.message || "Failed to load analytics data",
+        description: getErrorMessage(error, "Failed to load analytics data"),
         variant: "destructive",
       })
     } finally {
@@ -208,19 +246,19 @@ export function AdminAnalytics() {
   const formatCurrency = formatCompactCurrency
   const formatNumber = formatCompactNumber
 
-  const processChartData = (data: any[], format: 'monthly' | 'combined' = 'monthly') => {
+  const processChartData = (data: ChartBucket[], format: 'monthly' | 'combined' = 'monthly') => {
     if (!Array.isArray(data) || data.length === 0) return []
 
     if (format === 'combined') {
       // Combine data from different sources
-      const combinedMap = new Map()
+      const combinedMap = new Map<string, ChartBucket>()
 
       data.forEach(item => {
-        const month = item._id
+        const month = String(item._id ?? '')
         if (!combinedMap.has(month)) {
           combinedMap.set(month, { name: month })
         }
-        const existing = combinedMap.get(month)
+        const existing = combinedMap.get(month)!
         Object.keys(item).forEach(key => {
           if (key !== '_id') {
             existing[key] = item[key]
@@ -228,14 +266,14 @@ export function AdminAnalytics() {
         })
       })
 
-      return Array.from(combinedMap.values()).sort((a, b) => a.name.localeCompare(b.name))
+      return Array.from(combinedMap.values()).sort((a, b) => String(a.name).localeCompare(String(b.name)))
     }
 
     return data.map(item => ({
       name: item._id,
       value: item.count || item.users || item.harvests || item.revenue || 0,
       ...item
-    })).sort((a, b) => a.name.localeCompare(b.name))
+    })).sort((a, b) => String(a.name).localeCompare(String(b.name)))
   }
 
   const getUserDistributionData = () => {
@@ -257,9 +295,9 @@ export function AdminAnalytics() {
   const getQualityDistributionData = () => {
     if (!qualityData?.qualityDistribution) return []
 
-    const total = qualityData.qualityDistribution.reduce((sum: number, item: any) => sum + item.count, 0)
+    const total = qualityData.qualityDistribution.reduce((sum: number, item: QualityBucket) => sum + item.count, 0)
 
-    return qualityData.qualityDistribution.map((item: any) => ({
+    return qualityData.qualityDistribution.map((item: QualityBucket) => ({
       quality: item._id || 'Unknown',
       percentage: total > 0 ? Math.round((item.count / total) * 100) : 0,
       count: item.count
@@ -290,7 +328,7 @@ export function AdminAnalytics() {
         {/* Controls - Mobile First Design */}
         <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="flex flex-col xs:flex-row gap-2">
-            <Select value={timeRange} onValueChange={(value: any) => setTimeRange(value)}>
+            <Select value={timeRange} onValueChange={(value: string) => setTimeRange(value as "7d" | "30d" | "90d" | "1y")}>
               <SelectTrigger className="w-full xs:w-auto min-w-[140px]">
                 <SelectValue />
               </SelectTrigger>
@@ -454,16 +492,16 @@ export function AdminAnalytics() {
                     <XAxis dataKey="name" />
                     <YAxis
                       yAxisId="left"
-                      tickFormatter={(value) => formatNumber(value)}
+                      tickFormatter={(value) => formatNumber(toChartNumber(value))}
                     />
                     <YAxis
                       yAxisId="right"
                       orientation="right"
-                      tickFormatter={(value) => formatCurrency(value)}
+                      tickFormatter={(value) => formatCurrency(toChartNumber(value))}
                     />
                     <Tooltip
-                      formatter={(value: any, name: string) => [
-                        name === 'revenue' ? formatCurrency(value) : formatNumber(value),
+                      formatter={(value: number | string, name: string) => [
+                        name === 'revenue' ? formatCurrency(toChartNumber(value)) : formatNumber(toChartNumber(value)),
                         name === 'users' ? 'Users' : name === 'harvests' ? 'Harvests' : name === 'orders' ? 'Orders' : 'Revenue'
                       ]}
                     />
@@ -583,7 +621,7 @@ export function AdminAnalytics() {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value: any) => [`${value}%`, 'Distribution']} />
+                      <Tooltip formatter={(value: number | string) => [`${value}%`, 'Distribution']} />
                     </RechartsPieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -610,7 +648,7 @@ export function AdminAnalytics() {
               <CardContent>
                 {userAnalyticsData?.userActivity ? (
                   <div className="space-y-4">
-                    {userAnalyticsData.userActivity.map((status: any, index: number) => (
+                    {userAnalyticsData.userActivity.map((status: UserActivityStatus, index: number) => (
                       <div key={index} className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium capitalize">{status._id}</span>
@@ -664,11 +702,11 @@ export function AdminAnalytics() {
                   <BarChart data={regionalData.regionalData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="region" />
-                    <YAxis yAxisId="left" tickFormatter={(value) => formatNumber(value)} />
-                    <YAxis yAxisId="right" orientation="right" tickFormatter={(value) => formatCurrency(value)} />
+                    <YAxis yAxisId="left" tickFormatter={(value) => formatNumber(toChartNumber(value))} />
+                    <YAxis yAxisId="right" orientation="right" tickFormatter={(value) => formatCurrency(toChartNumber(value))} />
                     <Tooltip
-                      formatter={(value: any, name: string) => [
-                        name === 'revenue' ? formatCurrency(value) : formatNumber(value),
+                      formatter={(value: number | string, name: string) => [
+                        name === 'revenue' ? formatCurrency(toChartNumber(value)) : formatNumber(toChartNumber(value)),
                         name === 'revenue' ? 'Revenue' : name === 'harvests' ? 'Harvests' : 'Users'
                       ]}
                     />

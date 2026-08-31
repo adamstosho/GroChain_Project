@@ -10,13 +10,15 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { useCommission } from "@/hooks/use-commission"
+import { Commission } from "@/lib/commission-service"
+import { getErrorMessage } from "@/lib/error-utils"
 import { Loader2, Wallet, Banknote, CreditCard } from "lucide-react"
 import { Text } from "@/components/ui/typography"
 
 interface CommissionPayoutDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  pendingCommissions: any[]
+  pendingCommissions: Commission[]
   totalAmount: number
 }
 
@@ -102,10 +104,10 @@ export function CommissionPayoutDialog({
       setWalletAddress('')
       setNotes('')
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Payout request failed",
-        description: error.message || "Please try again",
+        description: getErrorMessage(error, "Please try again"),
         variant: "destructive",
       })
     } finally {

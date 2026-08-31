@@ -13,6 +13,7 @@ import { Text } from "@/components/ui/typography"
 import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
+import { asRecord } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import { getExportService } from "@/lib/export-utils"
 import {
@@ -128,25 +129,29 @@ export default function TransactionsPage() {
       ])
 
       if (transactionHistoryResponse.status === 'success' && transactionHistoryResponse.data) {
-        const transactionsData = (transactionHistoryResponse.data as any).transactions || []
+        const historyPayload = asRecord(transactionHistoryResponse.data)
+        const transactionsData = Array.isArray(historyPayload.transactions) ? historyPayload.transactions : []
 
         // Transform transactions data
-        const transformedTransactions: Transaction[] = transactionsData.map((txn: any) => ({
-          id: txn._id || txn.id,
-          type: txn.type === 'payment' || txn.type === 'commission' ? 'income' :
-            txn.type === 'withdrawal' ? 'expense' : txn.type,
-          category: txn.category || txn.type,
-          amount: txn.amount,
-          currency: txn.currency || 'NGN',
-          description: txn.description,
-          date: txn.createdAt || txn.date,
-          status: txn.status,
-          reference: txn.reference,
-          source: txn.source || (txn.type === 'payment' ? 'marketplace' :
-            txn.type === 'commission' ? 'marketplace' :
-              txn.type === 'withdrawal' ? 'other' : 'other'),
-          metadata: txn.metadata || {}
-        }))
+        const transformedTransactions: Transaction[] = transactionsData.map((item) => {
+          const txn = asRecord(item)
+          return {
+            id: (txn._id as string) || (txn.id as string),
+            type: txn.type === 'payment' || txn.type === 'commission' ? 'income' :
+              txn.type === 'withdrawal' ? 'expense' : txn.type as Transaction['type'],
+            category: (txn.category as string) || (txn.type as string),
+            amount: txn.amount as number,
+            currency: (txn.currency as string) || 'NGN',
+            description: txn.description as string,
+            date: (txn.createdAt as string) || (txn.date as string),
+            status: txn.status as Transaction['status'],
+            reference: txn.reference as string,
+            source: (txn.source as Transaction['source']) || (txn.type === 'payment' ? 'marketplace' :
+              txn.type === 'commission' ? 'marketplace' :
+                txn.type === 'withdrawal' ? 'other' : 'other'),
+            metadata: (txn.metadata as Transaction['metadata']) || {}
+          }
+        })
 
         setTransactions(transformedTransactions)
 
@@ -160,7 +165,8 @@ export default function TransactionsPage() {
         const pendingAmount = pendingTransactions.reduce((sum, t) => sum + t.amount, 0)
 
         // Group by month for trend analysis
-        const monthlyData = transformedTransactions.reduce((acc: any, txn) => {
+        type MonthBucket = { income: number; expenses: number; net: number }
+        const monthlyData = transformedTransactions.reduce<Record<string, MonthBucket>>((acc, txn) => {
           const date = new Date(txn.date)
           const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
 
@@ -181,7 +187,7 @@ export default function TransactionsPage() {
 
         const monthlyTrend = Object.entries(monthlyData)
           .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
-          .map(([month, data]: [string, any]) => ({
+          .map(([month, data]) => ({
             month,
             income: data.income,
             expenses: data.expenses,
@@ -201,33 +207,39 @@ export default function TransactionsPage() {
       } else {
         // Fallback to dashboard data if transaction history fails
         if (financialDashboardResponse.status === 'success' && financialDashboardResponse.data) {
-          const dashboardData = financialDashboardResponse.data
-          const recentTransactions = (dashboardData as any).recentTransactions || []
+          const dashboardData = asRecord(financialDashboardResponse.data)
+          const overview = asRecord(dashboardData.overview)
+          const recentTransactions = Array.isArray(dashboardData.recentTransactions)
+            ? dashboardData.recentTransactions
+            : []
 
-          const transformedTransactions: Transaction[] = recentTransactions.map((txn: any) => ({
-            id: txn._id,
-            type: txn.type === 'payment' || txn.type === 'commission' ? 'income' :
-              txn.type === 'withdrawal' ? 'expense' : txn.type,
-            category: txn.type,
-            amount: txn.amount,
-            currency: 'NGN',
-            description: txn.description,
-            date: txn.date,
-            status: txn.status,
-            reference: `TXN-${txn._id}`,
-            source: txn.type === 'payment' ? 'marketplace' : 'other',
-            metadata: {}
-          }))
+          const transformedTransactions: Transaction[] = recentTransactions.map((item) => {
+            const txn = asRecord(item)
+            return {
+              id: txn._id as string,
+              type: txn.type === 'payment' || txn.type === 'commission' ? 'income' :
+                txn.type === 'withdrawal' ? 'expense' : txn.type as Transaction['type'],
+              category: txn.type as string,
+              amount: txn.amount as number,
+              currency: 'NGN',
+              description: txn.description as string,
+              date: txn.date as string,
+              status: txn.status as Transaction['status'],
+              reference: `TXN-${txn._id as string}`,
+              source: txn.type === 'payment' ? 'marketplace' : 'other',
+              metadata: {}
+            }
+          })
 
           setTransactions(transformedTransactions)
 
           // Basic stats from dashboard
           const stats: TransactionStats = {
-            totalIncome: (dashboardData as any).overview?.totalEarnings || 0,
+            totalIncome: (overview.totalEarnings as number) || 0,
             totalExpenses: 0, // Not available in dashboard
-            netAmount: (dashboardData as any).overview?.totalEarnings || 0,
+            netAmount: (overview.totalEarnings as number) || 0,
             transactionCount: recentTransactions.length,
-            pendingAmount: (dashboardData as any).overview?.pendingPayments || 0,
+            pendingAmount: (overview.pendingPayments as number) || 0,
             monthlyTrend: []
           }
 
@@ -253,7 +265,7 @@ export default function TransactionsPage() {
   const handleExport = async () => {
     const result = await exportService.exportTransactions({
       format: 'csv',
-      filters: filters as any,
+      filters: { ...filters },
       filename: `grochain-transactions-${new Date().toISOString().slice(0, 10)}.csv`,
     })
     if (!result.success) {
@@ -323,12 +335,12 @@ export default function TransactionsPage() {
   })
 
   const sortedTransactions = [...filteredTransactions].sort((a, b) => {
-    let aValue: any = a[sortBy as keyof Transaction]
-    let bValue: any = b[sortBy as keyof Transaction]
+    let aValue: string | number = a[sortBy as keyof Transaction] as string | number
+    let bValue: string | number = b[sortBy as keyof Transaction] as string | number
 
     if (sortBy === 'date') {
-      aValue = new Date(aValue).getTime()
-      bValue = new Date(bValue).getTime()
+      aValue = new Date(String(aValue)).getTime()
+      bValue = new Date(String(bValue)).getTime()
     }
 
     if (sortOrder === 'asc') {

@@ -36,13 +36,61 @@ import { useToast } from "@/hooks/use-toast"
 import { useOfflineApi } from "@/hooks/use-offline-api"
 import { useAuthStore } from "@/lib/auth"
 import { getTokenFromStorage } from "@/lib/auth-storage"
-import type { Product } from "@/lib/types"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { StaggerGrid } from "@/components/motion/stagger-grid"
 import { PageContainer } from "@/components/layout/page-container"
 import { Display, Text } from "@/components/ui/typography"
 import { layout } from "@/lib/design-system"
+
+interface BuyerTestimonial {
+  id?: string
+  testimonial?: string
+  location?: string
+  buyerType?: string
+}
+
+interface BuyerActivityState {
+  activeBuyers: number
+  todaysTransactions: number
+  recentActivity: number
+  averageRating: number
+  testimonials: BuyerTestimonial[]
+}
+
+/** Normalized listing card shape used on the public marketplace page */
+interface MarketplaceListingItem {
+  id: string
+  _id?: string
+  name?: string
+  category?: string
+  description?: string
+  price?: number
+  unit?: string
+  location?: string
+  images?: string[]
+  rating?: number
+  isVerified?: boolean
+  farmerName?: string
+  farmerId?: string
+  farmerAvatar?: string
+  quantity?: number
+  availableQuantity?: number
+  quality?: string
+  grade?: string
+  organic?: boolean
+  harvestDate?: string | number | Date
+  certifications?: string[]
+  shippingAvailable?: boolean
+  shippingCost?: number
+  shippingDays?: number
+  reviewCount?: number
+  qrCode?: string
+  tags?: string[]
+  variety?: string
+  cartQuantity?: number
+  createdAt?: unknown
+}
 
 function formatLocation(location: unknown): string {
   if (!location) return ""
@@ -54,8 +102,22 @@ function formatLocation(location: unknown): string {
   return ""
 }
 
+function listingItemId(product: MarketplaceListingItem): string {
+  return String(product.id ?? product._id ?? "")
+}
+
+function asQuality(value: unknown): MarketplaceProduct["quality"] {
+  if (value === "excellent" || value === "good" || value === "fair" || value === "poor") return value
+  return "good"
+}
+
+function asGrade(value: unknown): MarketplaceProduct["grade"] {
+  if (value === "A" || value === "B" || value === "C") return value
+  return "A"
+}
+
 export default function MarketplacePage() {
-  const [products, setProducts] = useState<any[]>([])
+  const [products, setProducts] = useState<MarketplaceListingItem[]>([])
   const { isInitialLoading, isRefreshing, begin, finish } = useStableDataFetch()
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [searchQuery, setSearchQuery] = useState("")
@@ -76,13 +138,7 @@ export default function MarketplacePage() {
   // Greetings state
   const [greeting, setGreeting] = useState("Hello")
   
-  const [buyerActivity, setBuyerActivity] = useState<{
-    activeBuyers: number;
-    todaysTransactions: number;
-    recentActivity: number;
-    averageRating: number;
-    testimonials: any[];
-  }>({
+  const [buyerActivity, setBuyerActivity] = useState<BuyerActivityState>({
     activeBuyers: 0,
     todaysTransactions: 0,
     recentActivity: 0,
@@ -219,26 +275,29 @@ export default function MarketplacePage() {
       const response = await apiService.getMarketplaceListings(params)
       const listings = extractListingsFromResponse(response.data ?? response)
 
-      const convertedProducts = listings.map((listing: Record<string, unknown>) => ({
-        id: String(listing._id ?? listing.id ?? ""),
-        name: listing.cropName,
-        category: listing.category,
-        description: listing.description,
-        price: listing.basePrice,
-        unit: listing.unit,
-        location: formatLocation(listing.location),
-        images: listing.images || [],
-        rating: listing.rating || 4.5,
-        isVerified: true,
-        farmerName: (listing.farmer as { name?: string })?.name || "Local Farmer",
-        farmerId: (listing.farmer as { _id?: string })?._id || "unknown",
-        quantity: listing.quantity,
-        availableQuantity: listing.availableQuantity,
-        quality: listing.qualityGrade,
-        organic: listing.organic,
-        tags: listing.tags || [],
-        createdAt: listing.createdAt,
-      })) as any[]
+      const convertedProducts: MarketplaceListingItem[] = listings.map((listing: Record<string, unknown>) => {
+        const farmer = listing.farmer as { name?: string; _id?: string } | undefined
+        return {
+          id: String(listing._id ?? listing.id ?? ""),
+          name: listing.cropName as string | undefined,
+          category: listing.category as string | undefined,
+          description: listing.description as string | undefined,
+          price: listing.basePrice as number | undefined,
+          unit: listing.unit as string | undefined,
+          location: formatLocation(listing.location),
+          images: Array.isArray(listing.images) ? (listing.images as string[]) : [],
+          rating: (listing.rating as number | undefined) || 4.5,
+          isVerified: true,
+          farmerName: farmer?.name || "Local Farmer",
+          farmerId: farmer?._id || "unknown",
+          quantity: listing.quantity as number | undefined,
+          availableQuantity: listing.availableQuantity as number | undefined,
+          quality: listing.qualityGrade as string | undefined,
+          organic: Boolean(listing.organic),
+          tags: Array.isArray(listing.tags) ? (listing.tags as string[]) : [],
+          createdAt: listing.createdAt,
+        }
+      })
 
       setProducts(convertedProducts)
       finish(generation)
@@ -266,7 +325,7 @@ export default function MarketplacePage() {
     try {
       const response = await apiService.getBuyerActivity()
       if (response && response.status === 'success' && response.data) {
-        setBuyerActivity(response.data as any)
+        setBuyerActivity(response.data as BuyerActivityState)
       }
       // Leave the zeroed default state in place if the response is empty/unsuccessful
       // rather than substituting fabricated numbers.
@@ -288,10 +347,7 @@ export default function MarketplacePage() {
     }
 
     try {
-      const product = products.find((p) => {
-        const id = String((p as any).id ?? (p as any)._id ?? "")
-        return id === String(productId)
-      })
+      const product = products.find((p) => listingItemId(p) === String(productId))
       if (!product) {
         toast({
           title: "Could not add to cart",
@@ -301,7 +357,7 @@ export default function MarketplacePage() {
         return
       }
 
-      const stock = Number((product as any).availableQuantity ?? (product as any).quantity ?? 0)
+      const stock = Number(product.availableQuantity ?? product.quantity ?? 0)
       if (Number.isFinite(stock) && stock <= 0) {
         toast({
           title: "Out of Stock",
@@ -312,16 +368,16 @@ export default function MarketplacePage() {
       }
 
       const cartItem = {
-        id: String((product as any).id ?? productId),
-        listingId: String((product as any).id ?? productId),
-        cropName: (product as any).name,
+        id: String(product.id ?? productId),
+        listingId: String(product.id ?? productId),
+        cropName: product.name,
         quantity: 1,
-        unit: (product as any).unit,
-        price: (product as any).price,
-        image: (product as any).images?.[0] || "/placeholder.svg",
-        farmer: (product as any).farmerName || "Local Farmer",
-        category: (product as any).category,
-        location: (product as any).location,
+        unit: product.unit,
+        price: product.price,
+        image: product.images?.[0] || "/placeholder.svg",
+        farmer: product.farmerName || "Local Farmer",
+        category: product.category,
+        location: product.location,
         availableQuantity: stock,
       }
 
@@ -330,8 +386,8 @@ export default function MarketplacePage() {
       toast({
         title: isOffline ? "Added to cart (offline)" : "Added to cart!",
         description: isOffline
-          ? `${(product as any).name} added to cart. Will sync when online.`
-          : `${(product as any).name} has been added to your cart.`,
+          ? `${product.name} added to cart. Will sync when online.`
+          : `${product.name} has been added to your cart.`,
       })
     } catch (error) {
       console.error("❌ Failed to add to cart:", error)
@@ -345,8 +401,9 @@ export default function MarketplacePage() {
 
   const adjustedProducts = useMemo(() => {
     return products.map(product => {
-      const availableQuantity = (product as any).availableQuantity || (product as any).quantity || 0
-      const cartItem = cart.find(item => item.listingId === (product as any).id || item.id === (product as any).id)
+      const availableQuantity = product.availableQuantity || product.quantity || 0
+      const id = listingItemId(product)
+      const cartItem = cart.find(item => item.listingId === id || item.id === id)
       const cartQuantity = cartItem ? cartItem.quantity : 0
 
       return {
@@ -357,43 +414,43 @@ export default function MarketplacePage() {
     })
   }, [products, cart])
 
-  const convertToMarketplaceProduct = (product: Product): MarketplaceProduct => {
+  const convertToMarketplaceProduct = (product: MarketplaceListingItem): MarketplaceProduct => {
     return {
-      id: String((product as any).id),
-      name: (product as any).name,
-      cropType: (product as any).category || "Agricultural Product",
-      variety: (product as any).variety || "Standard",
+      id: String(product.id),
+      name: product.name || "",
+      cropType: product.category || "Agricultural Product",
+      variety: product.variety || "Standard",
       description: product.description || "Fresh agricultural product from verified farmers",
-      price: (product as any).price,
-      unit: (product as any).unit,
-      quantity: Number((product as any).quantity ?? 0) || 0,
-      availableQuantity: Number((product as any).availableQuantity ?? (product as any).quantity ?? 0) || 0,
-      quality: (product as any).quality || "good",
-      grade: (product as any).grade || "A",
-      organic: (product as any).organic || false,
-      harvestDate: new Date((product as any).harvestDate || Date.now()),
-      location: (product as any).location,
+      price: product.price || 0,
+      unit: product.unit || "",
+      quantity: Number(product.quantity ?? 0) || 0,
+      availableQuantity: Number(product.availableQuantity ?? product.quantity ?? 0) || 0,
+      quality: asQuality(product.quality),
+      grade: asGrade(product.grade),
+      organic: product.organic || false,
+      harvestDate: new Date(product.harvestDate || Date.now()),
+      location: product.location || "",
       farmer: {
-        id: (product as any).farmerId || "1",
-        name: (product as any).farmerName || "Unknown Farmer",
-        avatar: (product as any).farmerAvatar || "",
-        rating: (product as any).rating || 4.5,
-        verified: (product as any).isVerified || true,
-        location: (product as any).location
+        id: product.farmerId || "1",
+        name: product.farmerName || "Unknown Farmer",
+        avatar: product.farmerAvatar || "",
+        rating: product.rating || 4.5,
+        verified: product.isVerified || true,
+        location: product.location || ""
       },
-      images: (product as any).images && (product as any).images.length > 0 
+      images: product.images && product.images.length > 0 
         ? product.images 
         : ["https://images.unsplash.com/photo-1551754655-cd27e38d20f6?auto=format&fit=crop&q=80&w=400"],
-      certifications: (product as any).certifications || ["ISO 22000"],
+      certifications: product.certifications || ["ISO 22000"],
       shipping: {
-        available: (product as any).shippingAvailable || true,
-        cost: (product as any).shippingCost || 500,
-        estimatedDays: (product as any).shippingDays || 3
+        available: product.shippingAvailable || true,
+        cost: product.shippingCost || 500,
+        estimatedDays: product.shippingDays || 3
       },
-      rating: (product as any).rating || 4.5,
-      reviewCount: (product as any).reviewCount || 0,
-      qrCode: (product as any).qrCode || `PRODUCT_${Date.now()}`,
-      tags: (product as any).tags || [product.category, "fresh", "agricultural", "verified"]
+      rating: product.rating || 4.5,
+      reviewCount: product.reviewCount || 0,
+      qrCode: product.qrCode || `PRODUCT_${Date.now()}`,
+      tags: product.tags || [product.category || "", "fresh", "agricultural", "verified"]
     }
   }
 
@@ -834,11 +891,11 @@ export default function MarketplacePage() {
                       ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4"
                       : "space-y-4"
                   }
-                  resetKey={`${viewMode}-${adjustedProducts.map((p) => (p as any).id || (p as any)._id).join(",")}`}
+                  resetKey={`${viewMode}-${adjustedProducts.map((p) => listingItemId(p)).join(",")}`}
                 >
                   {adjustedProducts.map((product) => (
                     <MarketplaceCard
-                      key={(product as any).id || (product as any)._id}
+                      key={listingItemId(product)}
                       product={convertToMarketplaceProduct(product)}
                       variant={viewMode === "list" ? "compact" : "default"}
                       onAddToCart={(id) => handleMarketplaceAction("addToCart", id)}

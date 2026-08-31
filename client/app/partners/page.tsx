@@ -12,6 +12,7 @@ import { useAuthStore } from "@/lib/auth"
 import { NotificationBell } from "@/components/notifications/notification-bell"
 import { Users, Search, Download, TrendingUp, Banknote, CheckCircle, Clock, Settings, LogOut, Home, BarChart3, FileText, User, ChevronDown, RefreshCw, XCircle } from "lucide-react"
 import { api } from "@/lib/api"
+import { asRecord } from "@/lib/error-utils"
 import Link from "next/link"
 import { GroChainLogo } from "@/components/ui/grochain-logo"
 import { Display, Text } from "@/components/ui/typography"
@@ -50,7 +51,7 @@ interface Farmer {
   name: string
   email: string
   phone?: string
-  location?: string
+  location?: string | { city?: string; state?: string }
   status: "active" | "inactive" | "pending"
   joinedDate?: string
   joinedAt?: string
@@ -79,7 +80,9 @@ export default function PartnersPage() {
         api.getPartnerMetrics(),
         api.getPartnerFarmers({ limit: 1000, page: 1 }),
       ])
-      setStats(statsResponse.data as any)
+      if (statsResponse.data) {
+        setStats(statsResponse.data)
+      }
 
       // Handle the correct response structure from backend
       const farmersData = farmersResponse.data
@@ -108,10 +111,15 @@ export default function PartnersPage() {
   const filteredFarmers = (farmers || []).filter((farmer) => {
     if (!farmer || typeof farmer !== 'object') return false
 
+    const locationText = typeof farmer.location === 'string'
+      ? farmer.location
+      : farmer.location
+        ? `${farmer.location.city || ''}, ${farmer.location.state || ''}`.replace(/^, |, $/, '').trim()
+        : ''
     const matchesSearch =
       (farmer.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (farmer.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (farmer.location?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+      locationText.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || farmer.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -173,9 +181,11 @@ export default function PartnersPage() {
   const handleSyncFarmers = async () => {
     try {
       const response = await api.syncPartnerFarmers()
+      const rec = asRecord(response)
+      const nested = asRecord(rec.data)
       const message =
-        (response as any)?.message ||
-        (response as any)?.data?.message ||
+        (typeof rec.message === "string" && rec.message) ||
+        (typeof nested.message === "string" && nested.message) ||
         "Farmers synchronized successfully"
       alert(`Sync completed! ${message}`)
       await fetchPartnerData()
@@ -247,7 +257,7 @@ export default function PartnersPage() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center space-x-2">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={(user as any)?.avatar} alt={user?.name} />
+                      <AvatarImage src={user?.profile?.avatar} alt={user?.name} />
                       <AvatarFallback>
                         {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
                       </AvatarFallback>
@@ -455,7 +465,7 @@ export default function PartnersPage() {
                             <p className="text-sm text-muted-foreground">{farmer.phone || 'N/A'}</p>
                           </div>
                         </td>
-                        <td className="py-3 px-4">{typeof farmer.location === 'string' ? farmer.location : `${(farmer.location as any)?.city || 'Unknown'}, ${(farmer.location as any)?.state || 'Unknown State'}`}</td>
+                        <td className="py-3 px-4">{typeof farmer.location === 'string' ? farmer.location : `${farmer.location?.city || 'Unknown'}, ${farmer.location?.state || 'Unknown State'}`}</td>
                         <td className="py-3 px-4">
                           <Badge
                             variant={
@@ -679,7 +689,7 @@ export default function PartnersPage() {
                       </Avatar>
                       <div>
                         <p className="font-medium text-sm">{farmer.name}</p>
-                        <p className="text-xs text-muted-foreground">{farmer.location || 'Location N/A'}</p>
+                        <p className="text-xs text-muted-foreground">{typeof farmer.location === 'string' ? farmer.location : farmer.location ? `${farmer.location.city || 'Unknown'}, ${farmer.location.state || 'Unknown State'}` : 'Location N/A'}</p>
                       </div>
                     </div>
                     <div className="text-right">

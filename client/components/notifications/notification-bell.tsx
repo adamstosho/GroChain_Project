@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useNotificationContext } from "@/components/notifications/notification-provider"
 import { NotificationDeliveryBadges } from "@/components/notifications/notification-delivery-badges"
+import type { Notification } from "@/hooks/use-notifications"
 
 export function NotificationBell() {
   const {
@@ -58,7 +59,7 @@ export function NotificationBell() {
     return date.toLocaleDateString()
   }
 
-  const handleNotificationClick = (notification: any) => {
+  const handleNotificationClick = (notification: Notification) => {
     if (!notification.isRead) {
       markAsRead([notification.id])
     }

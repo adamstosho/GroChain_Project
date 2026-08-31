@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
+import { getErrorMessage } from "@/lib/error-utils"
+import { Shipment } from "@/types/shipment"
 import { io, Socket } from "socket.io-client"
 import { APP_CONFIG } from "@/lib/constants"
 import { ShipmentStatusBadge } from "./shipment-status-badge"
@@ -27,7 +29,7 @@ interface ShipmentTrackingWidgetProps {
 }
 
 export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingWidgetProps) {
-  const [shipment, setShipment] = useState<any>(null)
+  const [shipment, setShipment] = useState<Shipment | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -61,8 +63,8 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
       const response = await apiService.get(`/shipments?order=${orderId}`)
       
       if (response.status === 'success' && response.data) {
-        const data = response.data as { shipments: Array<Record<string, unknown>> }
-        if (data.shipments.length > 0) {
+        const data = response.data as { shipments?: Shipment[] }
+        if (data.shipments && data.shipments.length > 0) {
           setShipment(data.shipments[0])
         } else {
           setShipment(null)
@@ -76,9 +78,9 @@ export function ShipmentTrackingWidget({ orderId, className }: ShipmentTrackingW
       } else {
         setShipment(null)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching shipment:', err)
-      setError(err.message || 'Failed to fetch shipment')
+      setError(getErrorMessage(err, 'Failed to fetch shipment'))
     } finally {
       if (isRefresh) {
         setRefreshing(false)

@@ -32,7 +32,7 @@ export interface Commission {
   paidAt?: Date
   withdrawalId?: string
   notes?: string
-  metadata?: any
+  metadata?: Record<string, unknown>
   createdAt: Date
   updatedAt: Date
 }
@@ -68,6 +68,27 @@ export interface CommissionSummary {
   recentCommissions: Commission[]
 }
 
+export interface CommissionPagination {
+  currentPage: number
+  totalPages: number
+  totalItems: number
+  itemsPerPage: number
+  hasNextPage?: boolean
+  hasPrevPage?: boolean
+}
+
+export interface CommissionPayoutResult {
+  requestedCommissions?: number
+  [key: string]: unknown
+}
+
+export interface CommissionStatsFilters {
+  partnerId?: string
+  farmerId?: string
+  startDate?: string
+  endDate?: string
+}
+
 export interface CommissionFilters {
   page?: number
   limit?: number
@@ -82,7 +103,7 @@ export interface CommissionFilters {
 
 export class CommissionService {
   private static instance: CommissionService
-  private cache: Map<string, any> = new Map()
+  private cache: Map<string, unknown> = new Map()
   private cacheExpiry: Map<string, number> = new Map()
   private readonly CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
@@ -97,7 +118,7 @@ export class CommissionService {
     return `commission_${key}`
   }
 
-  private getCache(key: string): any {
+  private getCache(key: string): unknown {
     const cacheKey = this.getCacheKey(key)
     const expiry = this.cacheExpiry.get(cacheKey)
     
@@ -111,7 +132,7 @@ export class CommissionService {
     return null
   }
 
-  private setCache(key: string, data: any): void {
+  private setCache(key: string, data: unknown): void {
     const cacheKey = this.getCacheKey(key)
     this.cache.set(cacheKey, data)
     this.cacheExpiry.set(cacheKey, Date.now() + this.CACHE_DURATION)
@@ -122,12 +143,12 @@ export class CommissionService {
     this.cacheExpiry.clear()
   }
 
-  async getCommissions(filters: CommissionFilters = {}): Promise<{ commissions: Commission[]; pagination: any }> {
+  async getCommissions(filters: CommissionFilters = {}): Promise<{ commissions: Commission[]; pagination: CommissionPagination }> {
     const cacheKey = `commissions_${JSON.stringify(filters)}`
     const cached = this.getCache(cacheKey)
 
     if (cached) {
-      return cached
+      return cached as { commissions: Commission[]; pagination: CommissionPagination }
     }
 
     try {
@@ -138,7 +159,14 @@ export class CommissionService {
       }
       const result = {
         commissions: (data.commissions || []) as Commission[],
-        pagination: data.pagination || {}
+        pagination: data.pagination || {
+          currentPage: 1,
+          totalPages: 0,
+          totalItems: 0,
+          itemsPerPage: 20,
+          hasNextPage: false,
+          hasPrevPage: false,
+        }
       }
       this.setCache(cacheKey, result)
       return result
@@ -154,14 +182,14 @@ export class CommissionService {
     const cached = this.getCache(cacheKey)
 
     if (cached) {
-      return cached
+      return cached as Commission
     }
 
     try {
       // Use getCommissions with filter to find specific commission
       const response = await apiService.getCommissions({})
       const commissions = response.data?.commissions || []
-      const commission = commissions.find((c: any) => c._id === id)
+      const commission = commissions.find((c) => c._id === id)
       
       if (!commission) {
         throw new Error('Commission not found')
@@ -175,12 +203,12 @@ export class CommissionService {
     }
   }
 
-  async getCommissionStats(filters: any = {}): Promise<CommissionStats> {
+  async getCommissionStats(filters: CommissionStatsFilters = {}): Promise<CommissionStats> {
     const cacheKey = `stats_${JSON.stringify(filters)}`
     const cached = this.getCache(cacheKey)
 
     if (cached) {
-      return cached
+      return cached as CommissionStats
     }
 
     try {
@@ -199,7 +227,7 @@ export class CommissionService {
     const cached = this.getCache(cacheKey)
 
     if (cached) {
-      return cached
+      return cached as CommissionSummary
     }
 
     try {
@@ -227,11 +255,11 @@ export class CommissionService {
 
   // Partner-facing: requests a payout — records details for admin review,
   // does not mark anything paid.
-  async requestCommissionPayout(data: { commissionIds: string[]; payoutMethod: string; payoutDetails: any; notes?: string }): Promise<any> {
+  async requestCommissionPayout(data: { commissionIds: string[]; payoutMethod: string; payoutDetails: Record<string, unknown>; notes?: string }): Promise<CommissionPayoutResult> {
     try {
       const response = await apiService.requestCommissionPayout(data)
       this.clearCache()
-      return response.data
+      return (response.data ?? {}) as CommissionPayoutResult
     } catch (error) {
       console.error('Failed to request commission payout:', error)
       throw error
@@ -239,12 +267,12 @@ export class CommissionService {
   }
 
   // Admin-only: actually executes the payout (marks paid + writes the ledger entry)
-  async processCommissionPayout(data: { commissionIds: string[]; payoutMethod: string; payoutDetails: any }): Promise<any> {
+  async processCommissionPayout(data: { commissionIds: string[]; payoutMethod: string; payoutDetails: Record<string, unknown> }): Promise<Record<string, unknown>> {
     try {
       const response = await apiService.processCommissionPayout(data)
       // Clear related cache
       this.clearCache()
-      return response.data
+      return (response.data ?? {}) as Record<string, unknown>
     } catch (error) {
       console.error('Failed to process commission payout:', error)
       throw error

@@ -3,9 +3,19 @@ import { getTokenFromStorage } from "@/lib/auth-storage"
 
 // Flutterwave payment integration utilities
 
+interface FlutterwaveCheckoutResponse {
+  status?: string
+  tx_ref?: string
+  transaction_id?: string | number
+  flw_ref?: string
+  amount?: number
+  currency?: string
+  [key: string]: unknown
+}
+
 declare global {
   interface Window {
-    FlutterwaveCheckout: any
+    FlutterwaveCheckout?: (config: Record<string, unknown>) => void
   }
 }
 
@@ -14,44 +24,32 @@ declare global {
  */
 export const loadFlutterwaveScript = (): Promise<void> => {
   return new Promise((resolve, reject) => {
-    // Check if already loaded
     if (typeof window !== 'undefined' && window.FlutterwaveCheckout) {
-      console.log('✅ Flutterwave script already loaded')
       resolve()
       return
     }
 
-    // Check if script is already in DOM
-    const existingScript = document.querySelector('script[src="https://checkout.flutterwave.com/v3.js"]')
+    const existingScript = document.querySelector(
+      'script[src="https://checkout.flutterwave.com/v3.js"]'
+    )
     if (existingScript) {
-      console.log('✅ Flutterwave script tag exists, waiting for load...')
-      existingScript.addEventListener('load', () => {
-        console.log('✅ Flutterwave script loaded via existing tag')
+      // Script tag exists but FlutterwaveCheckout may already be ready
+      if (typeof window !== 'undefined' && window.FlutterwaveCheckout) {
         resolve()
-      })
-      existingScript.addEventListener('error', () => {
-        console.error('❌ Flutterwave script failed to load via existing tag')
+        return
+      }
+      existingScript.addEventListener('load', () => resolve())
+      existingScript.addEventListener('error', () =>
         reject(new Error('Flutterwave script failed to load'))
-      })
+      )
       return
     }
 
-    // Create and load script dynamically
-    console.log('🔄 Loading Flutterwave script dynamically...')
     const script = document.createElement('script')
     script.src = 'https://checkout.flutterwave.com/v3.js'
     script.async = true
-
-    script.onload = () => {
-      console.log('✅ Flutterwave script loaded dynamically')
-      resolve()
-    }
-
-    script.onerror = () => {
-      console.error('❌ Failed to load Flutterwave script dynamically')
-      reject(new Error('Failed to load Flutterwave script'))
-    }
-
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('Failed to load Flutterwave script'))
     document.head.appendChild(script)
   })
 }
@@ -72,11 +70,11 @@ export interface FlutterwavePaymentData {
 export interface FlutterwaveResponse {
   status: 'success' | 'failed' | 'cancelled'
   reference?: string
-  transaction?: any
+  transaction?: FlutterwaveCheckoutResponse
 }
 
 /**
- * Initialize Flutterwave payment
+ * Initialize Flutterwave inline checkout
  */
 export const initializeFlutterwavePayment = async (
   paymentData: FlutterwavePaymentData,
@@ -84,20 +82,39 @@ export const initializeFlutterwavePayment = async (
   onClose?: () => void
 ): Promise<FlutterwaveResponse> => {
   return new Promise(async (resolve, reject) => {
+    let settled = false
+    const settle = (result: FlutterwaveResponse) => {
+      if (settled) return
+      settled = true
+      if (result.status === 'success') onSuccess?.(result)
+      else if (result.status === 'cancelled') onClose?.()
+      resolve(result)
+    }
+
     try {
-      // Get Flutterwave configuration
       const configResponse = await fetch(`${APP_CONFIG.api.baseUrl}/api/payments/config`)
       const config = await configResponse.json()
 
-      // Require backend-provided key; avoid insecure hardcoded fallback
       const publicKey = config.data?.flutterwave?.publicKey
 
-      if (!publicKey || publicKey === 'your_flutterwave_public_key' || publicKey === 'FLWPUBK_TEST_your_public_key_here') {
-        throw new Error('Flutterwave is not properly configured. Please contact support or use Paystack instead.')
+      if (
+        !publicKey ||
+        publicKey === 'your_flutterwave_public_key' ||
+        publicKey === 'FLWPUBK_TEST_your_public_key_here'
+      ) {
+        throw new Error(
+          'Flutterwave is not properly configured. Please contact support or use Paystack instead.'
+        )
       }
 
       if (!paymentData.reference) {
-        throw new Error('Missing payment reference — payment was not properly initialized with the server')
+        throw new Error(
+          'Missing payment reference — payment was not properly initialized with the server'
+        )
+      }
+
+      if (!Number.isFinite(paymentData.amount) || paymentData.amount <= 0) {
+        throw new Error('Invalid payment amount')
       }
 
       const flutterwaveConfig = {
@@ -105,8 +122,9 @@ export const initializeFlutterwavePayment = async (
         tx_ref: paymentData.reference,
         amount: paymentData.amount,
         currency: 'NGN',
-        payment_options: 'card,mobilemoney,ussd',
-        redirect_url: paymentData.callbackUrl || `${window.location.origin}/payment/verify`,
+        payment_options: 'card,mobilemoney,ussd,banktransfer',
+        redirect_url:
+          paymentData.callbackUrl || `${window.location.origin}/payment/verify`,
         customer: {
           email: paymentData.email,
           phone_number: paymentData.phone || '',
@@ -121,41 +139,47 @@ export const initializeFlutterwavePayment = async (
           order_id: paymentData.orderId,
           customer_name: paymentData.customerName
         },
-        callback: (response: any) => {
-          console.log('✅ Flutterwave payment callback:', response)
-          const result: FlutterwaveResponse = {
-            status: 'success',
-            reference: response.tx_ref,
-            transaction: response
+        callback: (response: FlutterwaveCheckoutResponse) => {
+          // Flutterwave can fire callback for non-successful attempts — only treat
+          // an explicitly successful charge as paid.
+          const ok =
+            response?.status === 'successful' || response?.status === 'completed'
+
+          if (!ok) {
+            settle({
+              status: 'failed',
+              reference: response?.tx_ref || paymentData.reference,
+              transaction: response
+            })
+            return
           }
-          if (onSuccess) onSuccess(result)
-          resolve(result)
+
+          settle({
+            status: 'success',
+            reference: response.tx_ref || paymentData.reference,
+            transaction: response
+          })
         },
         onclose: () => {
-          console.log('❌ Flutterwave payment closed by user')
-          const result: FlutterwaveResponse = { status: 'cancelled' }
-          if (onClose) onClose()
-          resolve(result)
+          // Flutterwave often fires onclose after a successful callback — ignore if settled.
+          settle({ status: 'cancelled' })
         }
       }
 
-      console.log('🔄 Initializing Flutterwave payment:', flutterwaveConfig)
-
-      // Ensure Flutterwave script is loaded
       await loadFlutterwaveScript()
 
       if (typeof window !== 'undefined' && window.FlutterwaveCheckout) {
-        console.log('✅ Initializing Flutterwave payment modal...')
         window.FlutterwaveCheckout(flutterwaveConfig)
       } else {
         throw new Error('Flutterwave script not available after loading')
       }
-
     } catch (error) {
       console.error('❌ Flutterwave initialization error:', error)
-      // Reject with the real error (not a bare {status:'failed'} object) so callers
-      // reading error.message get the actual reason instead of a generic fallback.
-      reject(error instanceof Error ? error : new Error('Flutterwave payment initialization failed'))
+      reject(
+        error instanceof Error
+          ? error
+          : new Error('Flutterwave payment initialization failed')
+      )
     }
   })
 }
@@ -171,18 +195,12 @@ export const processFlutterwaveOrderPayment = async (
   onClose?: () => void
 ): Promise<FlutterwaveResponse> => {
   try {
-    console.log('💳 Processing Flutterwave payment for order:', orderId)
-
-    // Initialize payment with backend
-    console.log('💳 Initializing Flutterwave payment with backend...')
-    console.log('📤 Payment init data:', { orderId, amount, email: email ? '[redacted]' : undefined, paymentProvider: 'flutterwave' })
-
     const token = getTokenFromStorage()
     const initResponse = await fetch(`${APP_CONFIG.api.baseUrl}/api/payments/initialize`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
       },
       body: JSON.stringify({
         orderId,
@@ -193,16 +211,10 @@ export const processFlutterwaveOrderPayment = async (
       })
     })
 
-    console.log('📥 Flutterwave payment init response status:', initResponse.status)
-
     if (!initResponse.ok) {
-      console.log('❌ Flutterwave payment init failed with status:', initResponse.status)
       const responseText = await initResponse.text()
-      console.log('❌ Flutterwave payment init error response:', responseText)
 
-      // Check if response is HTML
       if (responseText.includes('<!DOCTYPE') || responseText.includes('<html>')) {
-        console.log('🚨 CRITICAL: Flutterwave payment init returned HTML instead of JSON!')
         throw new Error('Server returned HTML instead of JSON. Check API endpoint.')
       }
 
@@ -210,7 +222,7 @@ export const processFlutterwaveOrderPayment = async (
       try {
         errorData = JSON.parse(responseText)
       } catch {
-        // responseText wasn't valid JSON — fall through to the generic message below
+        // fall through
       }
       if (errorData?.message) {
         throw new Error(errorData.message)
@@ -219,40 +231,64 @@ export const processFlutterwaveOrderPayment = async (
     }
 
     const initData = await initResponse.json()
-    console.log('✅ Flutterwave payment initialized:', initData)
 
-    // The backend generates the authoritative reference and already registered it
-    // with Flutterwave (or a test-mode Transaction) under this exact value — the charge
-    // below MUST use it as-is, or server-side verification/webhooks can never match it.
+    // Prefer nested/provider reference, then top-level flutterwave.reference, then Transaction.
     const reference: string | undefined =
-      initData?.data?.flutterwave?.reference || initData?.data?.transaction?.reference
+      initData?.data?.flutterwave?.data?.reference ||
+      initData?.data?.flutterwave?.reference ||
+      initData?.data?.transaction?.reference
 
     if (!reference) {
       throw new Error('Server did not return a payment reference')
     }
 
-    // Process Flutterwave payment
-    const paymentData: FlutterwavePaymentData = {
-      orderId,
-      amount,
-      email,
-      callbackUrl: `${window.location.origin}/payment/verify`,
-      reference
+    // Test mode: skip inline popup and verify directly on the server
+    if (initData?.data?.testMode) {
+      const verifyRes = await fetch(
+        `${APP_CONFIG.api.baseUrl}/api/payments/verify/${encodeURIComponent(reference)}?test_mode=true&paymentProvider=flutterwave`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        }
+      )
+      const verifyData = await verifyRes.json()
+      if (verifyData.status === 'success') {
+        const result: FlutterwaveResponse = { status: 'success', reference }
+        onSuccess?.(result)
+        return result
+      }
+      throw new Error(verifyData.message || 'Test payment verification failed')
     }
 
-    return await initializeFlutterwavePayment(
-      paymentData,
-      (response) => {
-        console.log('✅ Flutterwave payment successful:', response)
-        if (onSuccess) onSuccess(response)
+    const paymentResult = await initializeFlutterwavePayment(
+      {
+        orderId,
+        amount,
+        email,
+        callbackUrl: `${window.location.origin}/payment/verify`,
+        reference
       },
-      () => {
-        console.log('❌ Flutterwave payment cancelled by user')
-        if (onClose) onClose()
-      }
+      undefined,
+      onClose
     )
 
-  } catch (error: any) {
+    // Confirm payment with backend so the order is marked paid (inline popup
+    // does not always redirect to /payment/verify). Only then notify success.
+    if (paymentResult.status === 'success' && paymentResult.reference) {
+      const verifyRes = await fetch(
+        `${APP_CONFIG.api.baseUrl}/api/payments/verify/${encodeURIComponent(paymentResult.reference)}?paymentProvider=flutterwave`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        }
+      )
+      const verifyData = await verifyRes.json()
+      if (verifyData.status !== 'success') {
+        throw new Error(verifyData.message || 'Payment verification failed')
+      }
+      onSuccess?.(paymentResult)
+    }
+
+    return paymentResult
+  } catch (error: unknown) {
     console.error('❌ Flutterwave payment processing error:', error)
     throw error
   }
@@ -276,17 +312,8 @@ export const getFlutterwaveConfig = async () => {
  */
 export const checkFlutterwaveStatus = () => {
   if (typeof window === 'undefined') {
-    console.log('🔍 Running on server-side, window not available')
     return false
   }
 
-  const isLoaded = typeof window.FlutterwaveCheckout !== 'undefined'
-  console.log('🔍 Flutterwave script status:', {
-    loaded: isLoaded,
-    scriptTag: !!document.querySelector('script[src="https://checkout.flutterwave.com/v3.js"]'),
-    flutterwaveCheckout: isLoaded ? 'Available' : 'Not Available'
-  })
-
-  return isLoaded
+  return typeof window.FlutterwaveCheckout !== 'undefined'
 }
-

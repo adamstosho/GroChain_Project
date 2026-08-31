@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { usePaymentVerification } from "@/hooks/use-payment-verification"
 import { ConfettiBurst } from "@/components/motion/confetti-burst"
 import { GroChainLoader } from "@/components/ui/grochain-loader"
@@ -122,7 +123,7 @@ export default function OrderSuccessPage() {
         const response = await apiService.getOrder(orderId)
 
         if (response && response.status === 'success' && response.data) {
-          setOrder(response.data as any)
+          setOrder(response.data as unknown as Order)
           setCelebrate(true)
           console.log('✅ Order details loaded for success page:', response.data)
 
@@ -141,12 +142,13 @@ export default function OrderSuccessPage() {
         } else {
           throw new Error(response?.message || 'Failed to fetch order details')
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('❌ Failed to fetch order details:', error)
-        setError(error.message || 'Failed to load order details')
+        const message = getErrorMessage(error, "Failed to load order details")
+        setError(message)
         toast({
           title: "Failed to load order",
-          description: error.message || "Please try again later.",
+          description: getErrorMessage(error, "Please try again later."),
           variant: "destructive",
         })
       } finally {
@@ -462,14 +464,15 @@ export default function OrderSuccessPage() {
               className="flex items-center gap-2"
               onClick={async () => {
                 try {
-                  const response: any = await apiService.downloadOrderReceipt(orderId)
-                  const receiptData = response?.data || response
+                  const response = await apiService.downloadOrderReceipt(orderId)
+                  const rec = asRecord(response)
+                  const receiptData = rec.data ?? response
                   const { ReceiptGenerator } = await import("@/lib/receipt-generator")
-                  await ReceiptGenerator.generatePDF(receiptData)
-                } catch (e: any) {
+                  await ReceiptGenerator.generatePDF(receiptData as unknown as import("@/lib/receipt-generator").ReceiptData)
+                } catch (e: unknown) {
                   toast({
                     title: "Receipt unavailable",
-                    description: e?.message || "Could not generate receipt yet.",
+                    description: getErrorMessage(e, "Could not generate receipt yet."),
                     variant: "destructive",
                   })
                 }

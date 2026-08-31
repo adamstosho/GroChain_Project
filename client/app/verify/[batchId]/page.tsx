@@ -86,7 +86,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
       const response = await apiService.verifyQRCode(resolvedParams.batchId)
       
       if (response?.status === 'success' && response?.data) {
-        setVerificationData(response.data as any)
+        setVerificationData(response.data as unknown as VerificationData)
         setVerified(true)
       } else {
         throw new Error('Verification failed')

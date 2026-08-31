@@ -20,6 +20,7 @@ import Link from "next/link"
 import { useAuthStore } from "@/lib/auth"
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { dashboard, textStyles } from "@/lib/design-system"
+import { getErrorMessage, asRecord } from "@/lib/error-utils"
 
 interface DashboardStats {
   totalOrders: number
@@ -82,6 +83,23 @@ interface BuyerProduct {
   reviewCount?: number
 }
 
+
+interface OptimisticUpdateData {
+  total?: number
+  productId?: string
+}
+
+interface BuyerDashboardApiData {
+  totalOrders?: number
+  totalSpent?: number
+  pendingDeliveries?: number
+  activeOrders?: number
+  favoriteProducts?: number
+  monthlySpent?: number
+  lastOrderDate?: string
+  recentOrders?: BuyerOrder[]
+}
+
 export function BuyerDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentOrders, setRecentOrders] = useState<BuyerOrder[]>([])
@@ -93,7 +111,7 @@ export function BuyerDashboard() {
   const { addToCart } = useBuyerStore()
 
   // Optimistic updates for immediate UI feedback
-  const handleOptimisticUpdate = useCallback((action: string, data: any) => {
+  const handleOptimisticUpdate = useCallback((action: string, data: OptimisticUpdateData) => {
     console.log(`⚡ Optimistic update: ${action}`, data)
 
     switch (action) {
@@ -164,24 +182,24 @@ export function BuyerDashboard() {
       })
 
       // Process dashboard stats
-      let dashboardData = {}
+      let dashboardData: BuyerDashboardApiData = {}
       if (dashboardResponse.status === 'fulfilled') {
-        dashboardData = dashboardResponse.value?.data || dashboardResponse.value || {}
+        dashboardData = asRecord(dashboardResponse.value?.data ?? dashboardResponse.value) as BuyerDashboardApiData
         console.log('✅ Dashboard data received:', dashboardData)
-        console.log('📊 Dashboard recent orders:', (dashboardData as any)?.recentOrders)
+        console.log('📊 Dashboard recent orders:', dashboardData.recentOrders)
       } else {
         console.error('❌ Dashboard data failed:', dashboardResponse.reason)
       }
 
       const processedStats = {
-        totalOrders: Number((dashboardData as any)?.totalOrders) || 0,
-        totalSpent: Number((dashboardData as any)?.totalSpent) || 0,
-        pendingDeliveries: Number((dashboardData as any)?.pendingDeliveries) || 0,
-        activeOrders: Number((dashboardData as any)?.activeOrders) || 0,
-        favoriteProducts: Number((dashboardData as any)?.favoriteProducts) || 0,
-        monthlySpent: Number((dashboardData as any)?.monthlySpent) || 0,
-        lastOrderDate: (dashboardData as any)?.lastOrderDate,
-        favorites: Number((dashboardData as any)?.favoriteProducts) || 0 // For backward compatibility
+        totalOrders: Number(dashboardData.totalOrders) || 0,
+        totalSpent: Number(dashboardData.totalSpent) || 0,
+        pendingDeliveries: Number(dashboardData.pendingDeliveries) || 0,
+        activeOrders: Number(dashboardData.activeOrders) || 0,
+        favoriteProducts: Number(dashboardData.favoriteProducts) || 0,
+        monthlySpent: Number(dashboardData.monthlySpent) || 0,
+        lastOrderDate: dashboardData.lastOrderDate,
+        favorites: Number(dashboardData.favoriteProducts) || 0 // For backward compatibility
       }
 
       console.log('📈 Processed stats:', processedStats)
@@ -199,8 +217,8 @@ export function BuyerDashboard() {
       } else {
         console.error('❌ Orders data failed:', ordersResponse.reason)
         // If orders API fails, try to get orders from dashboard data
-        if (dashboardData && (dashboardData as any)?.recentOrders) {
-          ordersData = (dashboardData as any).recentOrders
+        if (dashboardData?.recentOrders) {
+          ordersData = dashboardData.recentOrders
           console.log('📋 Using orders from dashboard data:', ordersData.length, 'orders')
         }
       }
@@ -301,7 +319,7 @@ export function BuyerDashboard() {
   ]
 
   // Convert product data to our component format
-  const convertToMarketplaceProduct = (product: any): MarketplaceProduct => {
+  const convertToMarketplaceProduct = (product: BuyerProduct): MarketplaceProduct => {
     return {
       id: String(product._id || product.id),
       name: product.cropName || product.name || "Fresh Produce",
@@ -312,8 +330,8 @@ export function BuyerDashboard() {
       unit: product.unit || "kg",
       quantity: product.quantity || 100,
       availableQuantity: product.availableQuantity || product.quantity || 100,
-      quality: product.qualityGrade || product.quality || "good",
-      grade: product.qualityGrade || "B",
+      quality: (product.qualityGrade || product.quality || "good") as MarketplaceProduct["quality"],
+      grade: (product.qualityGrade || "B") as MarketplaceProduct["grade"],
       organic: product.organic || false,
       harvestDate: product.createdAt ? new Date(product.createdAt) : new Date(),
       location: product.location || "Unknown Location",
@@ -335,7 +353,7 @@ export function BuyerDashboard() {
       rating: product.rating || 4.5,
       reviewCount: product.reviewCount || 0,
       qrCode: product.qrCode || `PRODUCT_${product._id || Date.now()}`,
-      tags: product.tags || [product.cropType || product.category, "fresh", "local"]
+      tags: (product.tags || [product.cropType || product.category, "fresh", "local"]).filter((t): t is string => Boolean(t))
     }
   }
 
@@ -363,11 +381,11 @@ export function BuyerDashboard() {
             description: `${product.cropName || product.name} has been added to your cart`,
             variant: "default",
           })
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error("Failed to add to cart:", error)
           toast({
             title: "Failed to add to cart",
-            description: error.message || "Please try again",
+            description: getErrorMessage(error, "Please try again"),
             variant: "destructive",
           })
         }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { approvalsService, HarvestApproval, ApprovalStats, ApprovalFilters } from '@/lib/approvals-service'
+import { getErrorMessage } from '@/lib/error-utils'
 import { useToast } from './use-toast'
 
 interface UseApprovalsReturn {
@@ -52,8 +53,8 @@ export function useApprovals(initialFilters: ApprovalFilters = {}): UseApprovals
 
       setApprovals(approvalsData)
       setStats(statsData)
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to fetch approvals data'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to fetch approvals data'
       setError(errorMessage)
       toast({
         title: "Error loading approvals",
@@ -106,12 +107,12 @@ export function useApprovals(initialFilters: ApprovalFilters = {}): UseApprovals
         description: "The harvest has been approved successfully",
       })
       console.log('useApprovals: Approval process completed successfully')
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to approve harvest'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to approve harvest'
       console.error('=== useApprovals: Approval failed ===', {
         message: errorMessage,
         error: err,
-        stack: err.stack
+        stack: err instanceof Error ? err.stack : undefined
       })
 
       // If approval failed due to authorization (partner trying to approve non-network farmer)
@@ -148,8 +149,8 @@ export function useApprovals(initialFilters: ApprovalFilters = {}): UseApprovals
         title: "Harvest rejected",
         description: "The harvest has been rejected with reason provided",
       })
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to reject harvest'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to reject harvest'
       console.error('Rejection failed:', errorMessage)
 
       // If rejection failed due to authorization (partner trying to reject non-network farmer)
@@ -189,8 +190,8 @@ export function useApprovals(initialFilters: ApprovalFilters = {}): UseApprovals
         title: "Harvest marked for review",
         description: "The harvest has been marked for further review",
       })
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to mark harvest for review'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to mark harvest for review'
       toast({
         title: "Error marking for review",
         description: errorMessage,
@@ -232,8 +233,8 @@ export function useApprovals(initialFilters: ApprovalFilters = {}): UseApprovals
         title: `Batch ${action} successful`,
         description: `${approvalIds.length} harvests have been ${action}d`,
       })
-    } catch (err: any) {
-      const errorMessage = err.message || `Failed to process batch ${action}`
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || `Failed to process batch ${action}`
       toast({
         title: `Error in batch ${action}`,
         description: errorMessage,
@@ -265,8 +266,8 @@ export function useApprovals(initialFilters: ApprovalFilters = {}): UseApprovals
         title: "Export successful",
         description: `Approvals data exported as ${format.toUpperCase()}`,
       })
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to export data'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to export data'
       toast({
         title: "Export failed",
         description: errorMessage,
@@ -319,8 +320,8 @@ export function usePendingApprovals(filters: ApprovalFilters = {}) {
       
       const approvalsData = await approvalsService.getApprovals({ ...filters, status: 'pending' })
       setApprovals(approvalsData)
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to fetch pending approvals'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to fetch pending approvals'
       setError(errorMessage)
       toast({
         title: "Error loading pending approvals",
@@ -352,8 +353,8 @@ export function useApprovalStats() {
       
       const statsData = await approvalsService.getApprovalStats()
       setStats(statsData)
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to fetch approval stats'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to fetch approval stats'
       setError(errorMessage)
       toast({
         title: "Error loading approval stats",

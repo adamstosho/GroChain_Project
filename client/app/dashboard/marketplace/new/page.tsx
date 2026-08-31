@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
+import type { Listing as ApiListing } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 import {
   ArrowLeft,
@@ -113,9 +115,10 @@ function CreateListingPage() {
       console.log('Loading harvest data for ID:', id)
 
       const response = await apiService.getHarvestById(id)
-      const harvest = (response as any).harvest || response.data
+      const rec = asRecord(response)
+      const harvest = asRecord(rec.harvest ?? rec.data)
 
-      if (!harvest) {
+      if (!harvest._id && !harvest.cropType) {
         toast({
           title: "Harvest Not Found",
           description: "The harvest you're trying to list could not be found.",
@@ -128,31 +131,34 @@ function CreateListingPage() {
       console.log('Loaded harvest data:', harvest)
 
       setHarvestData({
-        id: harvest._id,
-        cropType: harvest.cropType,
-        variety: harvest.variety,
-        quantity: harvest.quantity,
-        unit: harvest.unit,
-        location: harvest.location,
-        description: harvest.description,
-        quality: harvest.quality,
-        images: harvest.images,
-        price: harvest.price
+        id: String(harvest._id ?? ""),
+        cropType: String(harvest.cropType ?? ""),
+        variety: typeof harvest.variety === "string" ? harvest.variety : undefined,
+        quantity: Number(harvest.quantity) || 0,
+        unit: String(harvest.unit ?? ""),
+        location: String(harvest.location ?? ""),
+        description: typeof harvest.description === "string" ? harvest.description : undefined,
+        quality: typeof harvest.quality === "string" ? harvest.quality : "",
+        images: Array.isArray(harvest.images) ? harvest.images.filter((img): img is string => typeof img === "string") : undefined,
+        price: Number(harvest.price) || 0
       })
 
       // Pre-populate form with harvest data
+      const cropType = String(harvest.cropType ?? "")
+      const description = typeof harvest.description === "string" ? harvest.description : undefined
+      const quantity = Number(harvest.quantity) || 0
       setFormData(prev => ({
         ...prev,
-        cropName: harvest.cropType,
-        category: getCategoryFromCropType(harvest.cropType),
-        description: harvest.description || `Fresh ${harvest.cropType} harvest`,
-        quantity: harvest.quantity,
-        unit: harvest.unit,
-        availableQuantity: harvest.quantity,
-        location: harvest.location,
-        images: harvest.images || [],
-        basePrice: harvest.price || 0,
-        tags: harvest.quality ? [harvest.quality] : []
+        cropName: cropType,
+        category: getCategoryFromCropType(cropType),
+        description: description || `Fresh ${cropType} harvest`,
+        quantity,
+        unit: typeof harvest.unit === "string" ? harvest.unit : prev.unit,
+        availableQuantity: quantity,
+        location: typeof harvest.location === "string" ? harvest.location : prev.location,
+        images: Array.isArray(harvest.images) ? harvest.images.filter((img): img is string => typeof img === "string") : [],
+        basePrice: Number(harvest.price) || 0,
+        tags: typeof harvest.quality === "string" ? [harvest.quality] : []
       }))
 
     } catch (error) {
@@ -270,7 +276,7 @@ function CreateListingPage() {
           images: formData.images,
           tags: formData.tags,
           status: formData.status
-        } as any)
+        } as Partial<ApiListing>)
 
         console.log('New listing created:', listingResponse)
 
@@ -286,7 +292,7 @@ function CreateListingPage() {
       console.error("Failed to create listing:", error)
       toast({
         title: "Creation Failed",
-        description: (error as any)?.message || "Please try again.",
+        description: getErrorMessage(error, "Please try again."),
         variant: "destructive"
       })
     } finally {

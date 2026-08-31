@@ -10,11 +10,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast"
 import { useReferrals } from "@/hooks/use-referrals"
 import { Loader2, User, AlertCircle, Clock, CheckCircle2, Banknote, XCircle } from "lucide-react"
+import { getErrorMessage } from "@/lib/error-utils"
+import type { Referral } from "@/lib/types/referrals"
 
 interface ReferralStatusDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  referral?: any
+  referral?: Referral | null
   onUpdateSuccess?: () => void
 }
 
@@ -75,7 +77,7 @@ export function ReferralStatusDialog({
 
     setIsLoading(true)
     try {
-      await updateReferral(referral._id, {
+      await updateReferral(referral._id!, {
         status,
         commissionRate: commissionRate / 100, // Convert to decimal
         notes: notes.trim() || undefined
@@ -87,10 +89,10 @@ export function ReferralStatusDialog({
       })
 
       onUpdateSuccess?.()
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Update failed",
-        description: error.message || "Failed to update referral",
+        description: getErrorMessage(error, "Failed to update referral"),
         variant: "destructive"
       })
     } finally {
@@ -125,7 +127,7 @@ export function ReferralStatusDialog({
                   {referral.farmer?.email || 'No email'}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Referred on {new Date(referral.createdAt).toLocaleDateString()}
+                  Referred on {referral.createdAt ? new Date(referral.createdAt).toLocaleDateString() : "N/A"}
                 </p>
               </div>
             </div>

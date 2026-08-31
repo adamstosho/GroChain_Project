@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useToast } from './use-toast'
+import { getErrorMessage, asRecord } from '@/lib/error-utils'
 import { api } from '@/lib/api'
 
 interface Farmer {
@@ -130,13 +131,14 @@ export function useFarmers() {
           suspendedFarmers: 0
         })
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Failed to fetch farmers:', error)
+      const err = asRecord(error)
       console.error('❌ Error details:', {
-        message: error?.message,
-        status: error?.status,
-        endpoint: error?.endpoint,
-        payload: error?.payload
+        message: getErrorMessage(error),
+        status: err.status,
+        endpoint: err.endpoint,
+        payload: err.payload
       })
       
       setFarmers([])
@@ -156,7 +158,7 @@ export function useFarmers() {
 
       toast({
         title: "Error loading farmers",
-        description: error?.message || "Failed to load farmers data",
+        description: getErrorMessage(error, "Failed to load farmers data"),
         variant: "destructive"
       })
     } finally {
@@ -212,10 +214,10 @@ export function useFarmers() {
       })
       
       return newFarmer
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error adding farmer",
-        description: error.message || "Failed to add farmer",
+        description: getErrorMessage(error) || "Failed to add farmer",
         variant: "destructive"
       })
       throw error
@@ -235,10 +237,10 @@ export function useFarmers() {
         title: "Farmer updated",
         description: "Farmer information has been updated successfully",
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error updating farmer",
-        description: error.message || "Failed to update farmer",
+        description: getErrorMessage(error) || "Failed to update farmer",
         variant: "destructive"
       })
       throw error
@@ -254,10 +256,10 @@ export function useFarmers() {
         title: "Farmer removed",
         description: "Farmer has been removed successfully",
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error removing farmer",
-        description: error.message || "Failed to remove farmer",
+        description: getErrorMessage(error) || "Failed to remove farmer",
         variant: "destructive"
       })
       throw error
@@ -350,11 +352,11 @@ export function useFarmers() {
           description: `Exported ${farmersData.length} farmers to Excel`,
         })
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Export failed:', error)
       toast({
         title: "Export failed",
-        description: error?.message || "Failed to export farmers data",
+        description: getErrorMessage(error, "Failed to export farmers data"),
         variant: "destructive"
       })
     }

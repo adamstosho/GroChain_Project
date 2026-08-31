@@ -11,6 +11,7 @@ import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { Text } from "@/components/ui/typography"
 import { apiService } from "@/lib/api"
+import { asRecord } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import {
   ArrowLeft,
@@ -131,36 +132,49 @@ export default function InsuranceComparisonPage() {
       })
 
       if (response.status === 'success' && response.data) {
-        const policiesData = (response.data as any).policies || (response.data as any).quotes || response.data || []
+        const data = asRecord(response.data)
+        const policiesData = Array.isArray(data.policies)
+          ? data.policies
+          : Array.isArray(data.quotes)
+            ? data.quotes
+            : Array.isArray(response.data)
+              ? response.data
+              : []
 
         // Transform backend data to match frontend interface
-        const transformedPolicies: InsurancePolicy[] = policiesData.map((policy: any) => ({
-          _id: policy._id || policy.id,
-          name: policy.name,
-          provider: policy.provider,
-          type: policy.type,
-          coverage: policy.coverage,
-          premium: policy.premium,
-          deductible: policy.deductible,
-          maxCoverage: policy.maxCoverage || policy.sumInsured,
-          sumInsured: policy.sumInsured,
-          pricingBreakdown: policy.pricingBreakdown,
-          features: policy.features || [],
-          exclusions: policy.exclusions || [],
-          rating: policy.rating || 4.0,
-          reviews: policy.reviews || 0,
-          claimProcess: policy.claimProcess || 'Standard claims process',
-          waitingPeriod: policy.waitingPeriod || 14,
-          renewalTerms: policy.renewalTerms || 'Annual renewal',
-          contactInfo: policy.contactInfo || {
-            phone: '',
-            email: '',
-            website: ''
-          },
-          logo: policy.logo || '/insurance-logo.png',
-          isRecommended: policy.isRecommended || false,
-          specialOffers: policy.specialOffers || []
-        }))
+        const transformedPolicies: InsurancePolicy[] = policiesData.map((item) => {
+          const policy = asRecord(item)
+          const contactInfo = asRecord(policy.contactInfo)
+          return {
+            _id: (policy._id as string) || (policy.id as string),
+            name: policy.name as string,
+            provider: policy.provider as string,
+            type: policy.type as string,
+            coverage: policy.coverage as string,
+            premium: policy.premium as number,
+            deductible: policy.deductible as number,
+            maxCoverage: (policy.maxCoverage as number) || (policy.sumInsured as number),
+            features: Array.isArray(policy.features) ? policy.features as string[] : [],
+            exclusions: Array.isArray(policy.exclusions) ? policy.exclusions as string[] : [],
+            rating: (policy.rating as number) || 4.0,
+            reviews: (policy.reviews as number) || 0,
+            claimProcess: (policy.claimProcess as string) || 'Standard claims process',
+            waitingPeriod: (policy.waitingPeriod as number) || 14,
+            renewalTerms: (policy.renewalTerms as string) || 'Annual renewal',
+            contactInfo: policy.contactInfo ? {
+              phone: (contactInfo.phone as string) || '',
+              email: (contactInfo.email as string) || '',
+              website: (contactInfo.website as string) || ''
+            } : {
+              phone: '',
+              email: '',
+              website: ''
+            },
+            logo: (policy.logo as string) || '/insurance-logo.png',
+            isRecommended: (policy.isRecommended as boolean) || false,
+            specialOffers: Array.isArray(policy.specialOffers) ? policy.specialOffers as string[] : []
+          }
+        })
 
         setFilteredPolicies(transformedPolicies)
       } else {

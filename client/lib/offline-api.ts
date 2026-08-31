@@ -2,10 +2,12 @@
 
 import { apiService } from './api';
 import { useOffline } from '@/hooks/use-offline';
+import { getErrorMessage, getErrorStatus } from './error-utils';
+import type { Order } from './types';
 
 interface OfflineApiOptions {
   endpoint: string;
-  data: any;
+  data: Record<string, unknown>;
   method: 'POST' | 'PUT' | 'DELETE';
   type: 'harvest' | 'shipment' | 'listing' | 'order';
   action: 'create' | 'update' | 'delete';
@@ -16,8 +18,8 @@ class OfflineApiService {
     return `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private shouldQueueForRetry(error: any): boolean {
-    const status = error?.status;
+  private shouldQueueForRetry(error: unknown): boolean {
+    const status = getErrorStatus(error);
     if (typeof status === 'number') {
       // Client/validation errors should surface to the user, not be queued.
       if (status >= 400 && status < 500 && status !== 408 && status !== 429) {
@@ -28,7 +30,7 @@ class OfflineApiService {
       }
     }
 
-    const message = String(error?.message || '');
+    const message = getErrorMessage(error, '');
     return (
       error instanceof TypeError ||
       message.includes('Network error') ||
@@ -40,7 +42,7 @@ class OfflineApiService {
   private queueAction(
     offlineHook: ReturnType<typeof useOffline>,
     type: OfflineApiOptions['type'],
-    data: any,
+    data: Record<string, unknown>,
     action: OfflineApiOptions['action']
   ) {
     const offlineAction = {
@@ -92,13 +94,14 @@ class OfflineApiService {
         data: response,
         message: `${type} ${action} completed successfully`
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, `${type} ${action} failed`);
       if (!this.shouldQueueForRetry(error)) {
         return {
           success: false,
           queued: false,
-          error: error.message,
-          message: error.message,
+          error: message,
+          message,
         };
       }
 
@@ -107,7 +110,7 @@ class OfflineApiService {
       return {
         success: false,
         queued: true,
-        error: error.message,
+        error: message,
         message: `Connection issue detected, ${type} ${action} queued for retry`,
         offlineAction
       };
@@ -115,7 +118,7 @@ class OfflineApiService {
   }
 
   // Convenience methods for common operations
-  async createHarvest(data: any, offlineHook: ReturnType<typeof useOffline>) {
+  async createHarvest(data: Record<string, unknown>, offlineHook: ReturnType<typeof useOffline>) {
     return this.makeRequest({
       endpoint: '/harvests',
       data,
@@ -125,7 +128,7 @@ class OfflineApiService {
     }, offlineHook);
   }
 
-  async updateHarvest(harvestId: string, data: any, offlineHook: ReturnType<typeof useOffline>) {
+  async updateHarvest(harvestId: string, data: Record<string, unknown>, offlineHook: ReturnType<typeof useOffline>) {
     return this.makeRequest({
       endpoint: `/harvests/${harvestId}`,
       data,
@@ -135,7 +138,7 @@ class OfflineApiService {
     }, offlineHook);
   }
 
-  async createShipment(data: any, offlineHook: ReturnType<typeof useOffline>) {
+  async createShipment(data: Record<string, unknown>, offlineHook: ReturnType<typeof useOffline>) {
     return this.makeRequest({
       endpoint: '/shipments',
       data,
@@ -145,7 +148,7 @@ class OfflineApiService {
     }, offlineHook);
   }
 
-  async updateShipment(shipmentId: string, data: any, offlineHook: ReturnType<typeof useOffline>) {
+  async updateShipment(shipmentId: string, data: Record<string, unknown>, offlineHook: ReturnType<typeof useOffline>) {
     return this.makeRequest({
       endpoint: `/shipments/${shipmentId}`,
       data,
@@ -155,7 +158,7 @@ class OfflineApiService {
     }, offlineHook);
   }
 
-  async createListing(data: any, offlineHook: ReturnType<typeof useOffline>) {
+  async createListing(data: Record<string, unknown>, offlineHook: ReturnType<typeof useOffline>) {
     return this.makeRequest({
       endpoint: '/marketplace/listings',
       data,
@@ -165,7 +168,7 @@ class OfflineApiService {
     }, offlineHook);
   }
 
-  async updateListing(listingId: string, data: any, offlineHook: ReturnType<typeof useOffline>) {
+  async updateListing(listingId: string, data: Record<string, unknown>, offlineHook: ReturnType<typeof useOffline>) {
     return this.makeRequest({
       endpoint: `/marketplace/listings/${listingId}`,
       data,
@@ -175,19 +178,21 @@ class OfflineApiService {
     }, offlineHook);
   }
 
-  async createOrder(data: any, offlineHook: ReturnType<typeof useOffline>) {
-    const { idempotencyKey: incomingKey, ...payload } = data || {}
+  async createOrder(data: object & { idempotencyKey?: string }, offlineHook: ReturnType<typeof useOffline>) {
+    const { idempotencyKey: incomingKey, ...payload } = (data || {}) as Record<string, unknown> & { idempotencyKey?: unknown }
     let idempotencyKey = incomingKey
 
     if (!idempotencyKey && typeof crypto !== 'undefined' && crypto.randomUUID) {
       idempotencyKey = crypto.randomUUID()
     }
 
+    const queuedPayload: Record<string, unknown> = { ...payload, idempotencyKey }
+
     if (offlineHook.isOffline) {
       const offlineAction = {
         id: this.generateId(),
         type: 'order' as const,
-        data: { ...payload, idempotencyKey },
+        data: queuedPayload,
         timestamp: Date.now(),
         action: 'create' as const
       }
@@ -202,7 +207,7 @@ class OfflineApiService {
 
     try {
       const response = await apiService.createOrder(
-        payload,
+        payload as unknown as Partial<Order>,
         idempotencyKey ? { idempotencyKey: String(idempotencyKey) } : undefined
       )
       return {
@@ -211,22 +216,23 @@ class OfflineApiService {
         data: response.data,
         message: 'order create completed successfully'
       }
-    } catch (error: any) {
-      const status = error?.status ?? error?.response?.status
+    } catch (error: unknown) {
+      const status = getErrorStatus(error)
+      const message = getErrorMessage(error, 'order create rejected')
       // Do not queue client validation errors — they will never succeed on retry
       if (typeof status === 'number' && status >= 400 && status < 500) {
         return {
           success: false,
           queued: false,
-          error: error.message,
-          message: error.message || 'order create rejected',
+          error: message,
+          message: message || 'order create rejected',
         }
       }
 
       const offlineAction = {
         id: this.generateId(),
         type: 'order' as const,
-        data: { ...payload, idempotencyKey },
+        data: queuedPayload,
         timestamp: Date.now(),
         action: 'create' as const
       }
@@ -234,13 +240,13 @@ class OfflineApiService {
       return {
         success: false,
         queued: true,
-        error: error.message,
+        error: message,
         message: 'order create failed, queued for retry'
       }
     }
   }
 
-  async updateOrder(orderId: string, data: any, offlineHook: ReturnType<typeof useOffline>) {
+  async updateOrder(orderId: string, data: Record<string, unknown>, offlineHook: ReturnType<typeof useOffline>) {
     return this.makeRequest({
       endpoint: `/marketplace/orders/${orderId}`,
       data,

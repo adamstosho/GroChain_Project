@@ -17,6 +17,7 @@ import { Text } from "@/components/ui/typography"
 import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
+import { asRecord } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import {
   ArrowLeft,
@@ -153,27 +154,34 @@ export default function FinancialGoalsPage() {
       const goalsResponse = await apiService.getFinancialGoals()
 
       if (goalsResponse.status === 'success' && goalsResponse.data) {
-        const goalsData = (goalsResponse.data as any).goals || []
+        const goalsPayload = asRecord(goalsResponse.data)
+        const goalsData = Array.isArray(goalsPayload.goals) ? goalsPayload.goals : []
 
         // Transform backend data to match frontend interface
-        const transformedGoals: FinancialGoal[] = goalsData.map((goal: any) => ({
-          _id: goal._id || goal.id,
-          title: goal.title,
-          description: goal.description || '',
-          type: goal.type || 'savings',
-          targetAmount: goal.targetAmount || 0,
-          currentAmount: goal.currentAmount || 0,
-          currency: goal.currency || 'NGN',
-          startDate: goal.startDate || new Date().toISOString().split('T')[0],
-          targetDate: goal.targetDate || new Date().toISOString().split('T')[0],
-          priority: goal.priority || 'medium',
-          status: goal.status || 'active',
-          progress: goal.targetAmount > 0 ? Math.round((goal.currentAmount / goal.targetAmount) * 100) : 0,
-          category: goal.category || (goal.targetDate ?
-            (new Date(goal.targetDate).getTime() - new Date().getTime() > 365 * 24 * 60 * 60 * 1000 ? 'long_term' :
-              new Date(goal.targetDate).getTime() - new Date().getTime() > 90 * 24 * 60 * 60 * 1000 ? 'medium_term' : 'short_term')
-            : 'medium_term')
-        }))
+        const transformedGoals: FinancialGoal[] = goalsData.map((item) => {
+          const goal = asRecord(item)
+          const targetAmount = (goal.targetAmount as number) || 0
+          const currentAmount = (goal.currentAmount as number) || 0
+          const targetDate = (goal.targetDate as string) || new Date().toISOString().split('T')[0]
+          return {
+            _id: (goal._id as string) || (goal.id as string),
+            title: goal.title as string,
+            description: (goal.description as string) || '',
+            type: (goal.type as string) || 'savings',
+            targetAmount,
+            currentAmount,
+            currency: (goal.currency as string) || 'NGN',
+            startDate: (goal.startDate as string) || new Date().toISOString().split('T')[0],
+            targetDate,
+            priority: (goal.priority as string) || 'medium',
+            status: (goal.status as string) || 'active',
+            progress: targetAmount > 0 ? Math.round((currentAmount / targetAmount) * 100) : 0,
+            category: (goal.category as string) || (goal.targetDate ?
+              (new Date(targetDate).getTime() - new Date().getTime() > 365 * 24 * 60 * 60 * 1000 ? 'long_term' :
+                new Date(targetDate).getTime() - new Date().getTime() > 90 * 24 * 60 * 60 * 1000 ? 'medium_term' : 'short_term')
+              : 'medium_term')
+          }
+        })
 
         setGoals(transformedGoals)
       } else {

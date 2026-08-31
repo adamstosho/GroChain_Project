@@ -19,6 +19,7 @@ import { useMemo } from "react"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { useStableDataFetch } from "@/hooks/use-stable-data-fetch"
 import { extractListingsFromResponse } from "@/lib/marketplace-listings"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import {
   Package,
   Search,
@@ -39,6 +40,7 @@ import Image from "next/image"
 
 interface ProductListing {
   _id: string
+  id?: string
   cropName: string
   category: string
   description: string
@@ -46,7 +48,8 @@ interface ProductListing {
   quantity: number
   unit: string
   availableQuantity: number
-  location: {
+  stockQuantity?: number
+  location: string | {
     city: string
     state: string
   }
@@ -118,8 +121,12 @@ export default function ProductsPage() {
       setFavoriteProcessing(prev => new Set(prev).add(productId))
 
       // Check if product is currently favorited
-      const isCurrentlyFavorited = Array.isArray(favorites) && favorites.some((fav: any) => {
-        const listingId = fav.listingId || fav.listing?._id || fav.listing
+      const isCurrentlyFavorited = Array.isArray(favorites) && favorites.some((fav) => {
+        const rec = asRecord(fav)
+        const listing = rec.listing
+        const listingId = rec.listingId
+          || (typeof listing === "object" ? asRecord(listing)._id : undefined)
+          || listing
         return listingId === productId
       })
 
@@ -143,11 +150,11 @@ export default function ProductsPage() {
 
       // Refresh favorites once after the operation
       await fetchFavorites()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to toggle favorite:', error)
       toast({
         title: "Error",
-        description: error.message || "Failed to update favorites. Please try again.",
+        description: getErrorMessage(error, "Failed to update favorites. Please try again."),
         variant: "destructive",
       })
     } finally {
@@ -175,7 +182,7 @@ export default function ProductsPage() {
       }
 
       // Map frontend filters to backend parameters
-      const params: any = {
+      const params: Record<string, string | number | boolean> = {
         page: 1,
         limit: 50,
         sortBy: 'createdAt',
@@ -253,42 +260,51 @@ export default function ProductsPage() {
       console.log('📦 First listing sample:', listings[0])
 
       // Convert backend listing format to frontend product format
-      const convertedProducts: ProductListing[] = listings.map((listing: any) => ({
-        _id: listing._id,
-        cropName: listing.cropName,
-        category: listing.category || 'Agricultural Product',
-        description: listing.description || `${listing.cropName} - Fresh agricultural product`,
-        basePrice: listing.basePrice,
-        quantity: listing.quantity,
-        unit: listing.unit || 'kg',
-        availableQuantity: listing.availableQuantity,
-        location: typeof listing.location === 'string' ? listing.location : listing.location,
-        images: listing.images || ["/placeholder.svg"],
-        tags: listing.tags || [],
-        status: listing.status || 'active',
-        createdAt: listing.createdAt,
-        views: listing.views || 0,
-        orders: listing.orders || 0,
-        rating: listing.rating || 4.5,
-        reviews: listing.reviewCount || 0,
-        farmer: {
-          name: listing.farmer?.name || 'Local Farmer',
-          rating: listing.farmer?.rating || 4.5,
-          verified: listing.farmer?.emailVerified || false,
-        },
-        organic: listing.organic || false,
-        qualityGrade: listing.qualityGrade || 'standard'
-      }))
+      const convertedProducts: ProductListing[] = listings.map((listing) => {
+        const farmer = asRecord(listing.farmer)
+        return {
+          _id: typeof listing._id === "string" ? listing._id : "",
+          id: typeof listing.id === "string" ? listing.id : undefined,
+          cropName: typeof listing.cropName === "string" ? listing.cropName : "",
+          category: typeof listing.category === "string" ? listing.category : "Agricultural Product",
+          description: typeof listing.description === "string"
+            ? listing.description
+            : `${typeof listing.cropName === "string" ? listing.cropName : ""} - Fresh agricultural product`,
+          basePrice: typeof listing.basePrice === "number" ? listing.basePrice : 0,
+          quantity: typeof listing.quantity === "number" ? listing.quantity : 0,
+          unit: typeof listing.unit === "string" ? listing.unit : "kg",
+          availableQuantity: typeof listing.availableQuantity === "number" ? listing.availableQuantity : 0,
+          stockQuantity: typeof listing.stockQuantity === "number" ? listing.stockQuantity : undefined,
+          location: typeof listing.location === "string" || (listing.location && typeof listing.location === "object")
+            ? listing.location as ProductListing["location"]
+            : { city: "Unknown", state: "Unknown State" },
+          images: Array.isArray(listing.images) ? listing.images.filter((img): img is string => typeof img === "string") : ["/placeholder.svg"],
+          tags: Array.isArray(listing.tags) ? listing.tags.filter((tag): tag is string => typeof tag === "string") : [],
+          status: (typeof listing.status === "string" ? listing.status : "active") as ProductListing["status"],
+          createdAt: typeof listing.createdAt === "string" ? listing.createdAt : "",
+          views: typeof listing.views === "number" ? listing.views : 0,
+          orders: typeof listing.orders === "number" ? listing.orders : 0,
+          rating: typeof listing.rating === "number" ? listing.rating : 4.5,
+          reviews: typeof listing.reviewCount === "number" ? listing.reviewCount : 0,
+          farmer: {
+            name: typeof farmer.name === "string" ? farmer.name : "Local Farmer",
+            rating: typeof farmer.rating === "number" ? farmer.rating : 4.5,
+            verified: Boolean(farmer.emailVerified),
+          },
+          organic: Boolean(listing.organic),
+          qualityGrade: (typeof listing.qualityGrade === "string" ? listing.qualityGrade : "standard") as ProductListing["qualityGrade"]
+        }
+      })
 
       setFilteredProducts(convertedProducts)
       finish(generation)
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("❌ Failed to fetch products:", error)
       finish(generation)
       toast({
         title: "Error loading products",
-        description: error.message || "Failed to load products. Please try again.",
+        description: getErrorMessage(error, "Failed to load products. Please try again."),
         variant: "destructive",
       })
       setFilteredProducts((prev) => (prev.length > 0 ? prev : []))
@@ -376,14 +392,14 @@ export default function ProductsPage() {
   const adjustedProducts = useMemo(() => {
     return filteredProducts.map(product => {
       // Use the actual available quantity from the database
-      const availableQuantity = product.availableQuantity || (product as any).stockQuantity || product.quantity || 0
+      const availableQuantity = product.availableQuantity || product.stockQuantity || product.quantity || 0
 
       // Find cart item for display purposes only (not for quantity calculation)
       const cartItem = cart.find(item =>
         item.listingId === product._id ||
         item.id === product._id ||
-        item.listingId === (product as any).id ||
-        item.id === (product as any).id
+        item.listingId === product.id ||
+        item.id === product.id
       )
       const cartQuantity = cartItem ? cartItem.quantity : 0
 
@@ -485,7 +501,7 @@ export default function ProductsPage() {
 
             {/* Filter Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-              <Select value={filters.category} onValueChange={(value) => setFilters({ ...filters, category: value as any })}>
+              <Select value={filters.category} onValueChange={(value) => setFilters({ ...filters, category: value as ProductFilters["category"] })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
@@ -499,7 +515,7 @@ export default function ProductsPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={filters.location} onValueChange={(value) => setFilters({ ...filters, location: value as any })}>
+              <Select value={filters.location} onValueChange={(value) => setFilters({ ...filters, location: value as ProductFilters["location"] })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Location" />
                 </SelectTrigger>
@@ -515,7 +531,7 @@ export default function ProductsPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={filters.priceRange} onValueChange={(value) => setFilters({ ...filters, priceRange: value as any })}>
+              <Select value={filters.priceRange} onValueChange={(value) => setFilters({ ...filters, priceRange: value as ProductFilters["priceRange"] })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Price Range" />
                 </SelectTrigger>
@@ -529,7 +545,7 @@ export default function ProductsPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={filters.quality} onValueChange={(value) => setFilters({ ...filters, quality: value as any })}>
+              <Select value={filters.quality} onValueChange={(value) => setFilters({ ...filters, quality: value as ProductFilters["quality"] })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Quality" />
                 </SelectTrigger>
@@ -541,7 +557,7 @@ export default function ProductsPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={filters.sortBy} onValueChange={(value) => setFilters({ ...filters, sortBy: value as any })}>
+              <Select value={filters.sortBy} onValueChange={(value) => setFilters({ ...filters, sortBy: value as ProductFilters["sortBy"] })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sort By" />
                 </SelectTrigger>
@@ -679,7 +695,7 @@ interface ProductCardProps {
   onToggleFavorite: (productId: string, productName: string) => Promise<void>
   formatPrice: (price: number) => string
   getQualityColor: (quality: string) => string
-  favorites: any[]
+  favorites: unknown[]
   isProcessing: boolean
 }
 
@@ -694,9 +710,13 @@ function ProductCard({
   isProcessing
 }: ProductCardProps) {
   // Check if product is in favorites - improved detection
-  const isWishlisted = Array.isArray(favorites) && favorites.some((fav: any) => {
+  const isWishlisted = Array.isArray(favorites) && favorites.some((fav) => {
     // Check both possible ID fields and handle different data structures
-    const listingId = fav.listingId || fav.listing?._id || fav.listing
+    const rec = asRecord(fav)
+    const listing = rec.listing
+    const listingId = rec.listingId
+      || (typeof listing === "object" ? asRecord(listing)._id : undefined)
+      || listing
     const productId = product._id
     const isMatch = listingId === productId
 
@@ -897,7 +917,7 @@ function ProductCard({
             <div className="flex items-center space-x-1">
               <MapPin className="h-3 w-3 text-muted-foreground" />
               <span className="text-muted-foreground truncate">
-                {typeof product.location === 'string' ? (product.location as string).split(',')[0] : (product.location as any)?.city || 'Unknown'}
+                {typeof product.location === 'string' ? product.location.split(',')[0] : product.location?.city || 'Unknown'}
               </span>
             </div>
             <div className="flex items-center space-x-1">

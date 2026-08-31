@@ -14,6 +14,7 @@ import { Text } from "@/components/ui/typography"
 import { dashboard } from "@/lib/design-system"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import {
   QrCode,
   Camera,
@@ -80,7 +81,7 @@ interface ScanHistoryItem {
   variety?: string
   verified: boolean
   scannedAt: Date
-  location?: string
+  location?: string | { city?: string; state?: string } | { city?: string; state?: string }
   farmer?: string
   quantity?: number
   unit?: string
@@ -90,6 +91,45 @@ interface ScanHistoryItem {
   images?: string[]
   organic?: boolean
   price?: number
+}
+
+function formatPlace(location: unknown): string {
+  if (typeof location === "string") return location
+  const loc = asRecord(location)
+  const city = typeof loc.city === "string" ? loc.city : "Unknown"
+  const state = typeof loc.state === "string" ? loc.state : "Unknown State"
+  return `${city}, ${state}`
+}
+
+function parseFarmer(farmerRaw: unknown): ScannedProduct["farmer"] {
+  if (typeof farmerRaw === "string") {
+    return { id: "", name: farmerRaw }
+  }
+  const farmer = asRecord(farmerRaw)
+  return {
+    id: typeof farmer.id === "string" ? farmer.id : "",
+    name: typeof farmer.name === "string" ? farmer.name : "Unknown Farmer",
+    farmName: typeof farmer.farmName === "string" ? farmer.farmName : undefined,
+    phone: typeof farmer.phone === "string" ? farmer.phone : undefined,
+    email: typeof farmer.email === "string" ? farmer.email : undefined,
+  }
+}
+
+function parseLocation(locationRaw: unknown): ScannedProduct["location"] {
+  if (typeof locationRaw === "string") {
+    const [city = "Unknown", state = "Unknown State"] = locationRaw.split(",").map((part) => part.trim())
+    return { city, state, country: "Nigeria" }
+  }
+  const loc = asRecord(locationRaw)
+  const coords = asRecord(loc.coordinates)
+  return {
+    city: typeof loc.city === "string" ? loc.city : "Unknown",
+    state: typeof loc.state === "string" ? loc.state : "Unknown State",
+    country: typeof loc.country === "string" ? loc.country : "Nigeria",
+    coordinates: typeof coords.lat === "number" && typeof coords.lng === "number"
+      ? { lat: coords.lat, lng: coords.lng }
+      : undefined,
+  }
 }
 
 interface ScanStats {
@@ -121,6 +161,7 @@ export default function QRScannerPage() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const scanIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const qrScannerRef = useRef<QrScanner | null>(null)
   const { toast } = useToast()
 
   const loadScanHistory = useCallback(() => {
@@ -228,10 +269,10 @@ export default function QRScannerPage() {
     }
     if (videoRef.current) {
       // Stop QR scanner if it exists
-      if ((videoRef.current as any).qrScanner) {
-        (videoRef.current as any).qrScanner.stop()
-        (videoRef.current as any).qrScanner.destroy()
-        ;(videoRef.current as any).qrScanner = null
+      if (qrScannerRef.current) {
+        qrScannerRef.current.stop()
+        qrScannerRef.current.destroy()
+        qrScannerRef.current = null
       }
       videoRef.current.srcObject = null
     }
@@ -272,7 +313,7 @@ export default function QRScannerPage() {
       )
       
       // Store the scanner instance for cleanup
-      ;(videoRef.current as any).qrScanner = qrScanner
+      qrScannerRef.current = qrScanner
       
       await qrScanner.start()
       console.log('QR Scanner started successfully')
@@ -338,17 +379,22 @@ export default function QRScannerPage() {
         
         if (response?.status === 'success' && response?.data) {
           const verificationData = response.data
+          const extra = asRecord(verificationData)
+          const variety = typeof extra.variety === "string" ? extra.variety : undefined
+          const farmer = parseFarmer(verificationData.farmer)
+          const farmerFields = asRecord(verificationData.farmer)
+          const farmerName = typeof farmerFields.name === "string" ? farmerFields.name : "Unknown Farmer"
           const scannedProduct: ScannedProduct = {
             _id: Date.now().toString(),
             batchId: verificationData.batchId,
             cropType: verificationData.cropType,
-            variety: (verificationData as any).variety,
+            variety,
             harvestDate: verificationData.harvestDate,
             quantity: verificationData.quantity,
             unit: verificationData.unit,
             quality: verificationData.quality,
-            location: verificationData.location as ScannedProduct['location'],
-            farmer: verificationData.farmer as any,
+            location: parseLocation(verificationData.location),
+            farmer,
             status: verificationData.status,
             verified: true,
             scannedAt: new Date(),
@@ -362,13 +408,13 @@ export default function QRScannerPage() {
             _id: Date.now().toString(),
             batchId: verificationData.batchId,
             cropType: verificationData.cropType,
-            variety: (verificationData as any).variety,
+            variety,
             verified: true,
             scannedAt: new Date(),
             location: typeof verificationData.location === 'string' 
               ? verificationData.location 
-              : `${verificationData.location?.city || 'Unknown'}, ${verificationData.location?.state || 'Unknown State'}`,
-            farmer: (verificationData.farmer as any)?.name || 'Unknown Farmer',
+              : formatPlace(verificationData.location),
+            farmer: farmerName,
             quantity: verificationData.quantity,
             unit: verificationData.unit,
             quality: verificationData.quality,
@@ -385,20 +431,21 @@ export default function QRScannerPage() {
         } else {
           throw new Error('Verification failed')
         }
-      } catch (verifyError: any) {
+      } catch (verifyError: unknown) {
         console.log('❌ QR verification failed:', verifyError)
         
         // Extract meaningful error message
         let errorMessage = 'This QR code or tracking number was not found in our system'
-        if (verifyError?.message) {
-          if (verifyError.message.includes('404') || verifyError.message.includes('not found')) {
+        const verifyMessage = getErrorMessage(verifyError, "")
+        if (verifyMessage) {
+          if (verifyMessage.includes('404') || verifyMessage.includes('not found')) {
             errorMessage = 'This QR code or tracking number was not found in our system'
-          } else if (verifyError.message.includes('Network error')) {
+          } else if (verifyMessage.includes('Network error')) {
             errorMessage = 'Unable to connect to the server. Please check your internet connection.'
-          } else if (verifyError.message.includes('Server error')) {
+          } else if (verifyMessage.includes('Server error')) {
             errorMessage = 'Server error occurred. Please try again later.'
           } else {
-            errorMessage = verifyError.message
+            errorMessage = verifyMessage
           }
         }
         
@@ -893,7 +940,7 @@ export default function QRScannerPage() {
                             {item.location && (
                               <div className="min-w-0 sm:col-span-2">
                                 <span className="text-muted-foreground">Location: </span>
-                                <span className="break-words">{typeof item.location === 'object' && item.location ? `${(item.location as any)?.city || 'Unknown'}, ${(item.location as any)?.state || 'Unknown State'}` : item.location}</span>
+                                <span className="break-words">{typeof item.location === 'object' && item.location ? formatPlace(item.location) : item.location}</span>
                               </div>
                             )}
                             <div className="min-w-0 sm:col-span-2">

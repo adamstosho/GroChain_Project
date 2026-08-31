@@ -38,6 +38,7 @@ import {
   Clock,
   Ban
 } from "lucide-react"
+import { getErrorMessage, asRecord } from "@/lib/error-utils"
 
 interface User {
   _id: string
@@ -65,9 +66,9 @@ interface User {
   accountName?: string
   isActive?: boolean
   verificationStatus?: string
-  documents?: any[]
-  preferences?: any
-  settings?: any
+  documents?: Array<Record<string, unknown>>
+  preferences?: Record<string, unknown>
+  settings?: Record<string, unknown>
 }
 
 interface UserFilters {
@@ -136,22 +137,23 @@ export function UserManagement() {
       })
       
       if (response.status === 'success') {
-        const usersData = (response.data as any)?.users || []
+        const payload = asRecord(response.data)
+        const usersData = Array.isArray(payload.users) ? (payload.users as User[]) : []
         setUsers(usersData)
         calculateStats(usersData)
 
-        const paginationData = (response.data as any)?.pagination
-        if (paginationData) {
-          setTotalPages(paginationData.pages || 1)
+        const paginationData = asRecord(payload.pagination)
+        if (Object.keys(paginationData).length > 0) {
+          setTotalPages(Number(paginationData.pages) || 1)
         }
       } else {
         throw new Error(response.message || 'Failed to fetch users')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching users:', error)
       toast({
         title: "Error",
-        description: error.message || "Failed to fetch users. Please try again.",
+        description: getErrorMessage(error, "Failed to fetch users. Please try again."),
         variant: "destructive"
       })
       // Set empty data on error
@@ -294,10 +296,10 @@ export function UserManagement() {
 
       setSelectedUsers([])
       fetchUsers() // Refresh the list
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message || "Failed to perform bulk action. Please try again.",
+        description: getErrorMessage(error, "Failed to perform bulk action. Please try again."),
         variant: "destructive"
       })
     }
@@ -335,10 +337,10 @@ export function UserManagement() {
       })
 
       fetchUsers() // Refresh the list
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message || "Failed to perform action. Please try again.",
+        description: getErrorMessage(error, "Failed to perform action. Please try again."),
         variant: "destructive"
       })
     }
@@ -379,10 +381,10 @@ export function UserManagement() {
       setIsEditModalOpen(false)
       setEditingUser(null)
       fetchUsers() // Refresh the list
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message || "Failed to update user",
+        description: getErrorMessage(error, "Failed to update user"),
         variant: "destructive"
       })
     }
@@ -476,8 +478,8 @@ export function UserManagement() {
                     )
                   }
                   toast({ title: "Export ready", description: "Users file downloaded." })
-                } catch (e: any) {
-                  toast({ title: "Export failed", description: e?.message || "Try again", variant: "destructive" })
+                } catch (e: unknown) {
+                  toast({ title: "Export failed", description: getErrorMessage(e, "Try again"), variant: "destructive" })
                 }
               }}
             >

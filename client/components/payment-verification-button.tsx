@@ -86,9 +86,16 @@ export function PaymentVerificationButton({
 }
 
 // Batch verification component for multiple orders
+interface BatchVerificationResult {
+  reference: string
+  success: boolean
+  data?: unknown
+  message?: string
+}
+
 interface BatchVerificationButtonProps {
   orders: Array<{ paymentReference?: string; _id: string }>
-  onComplete?: (results: any[]) => void
+  onComplete?: (results: BatchVerificationResult[]) => void
   className?: string
 }
 
@@ -98,7 +105,7 @@ export function BatchVerificationButton({
   className = ''
 }: BatchVerificationButtonProps) {
   const [isVerifying, setIsVerifying] = useState(false)
-  const [results, setResults] = useState<any[]>([])
+  const [results, setResults] = useState<BatchVerificationResult[]>([])
   const { toast } = useToast()
 
   const handleBatchVerify = async () => {

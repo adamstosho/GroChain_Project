@@ -21,6 +21,7 @@ import {
   Package
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { asRecord } from "@/lib/error-utils"
 import Image from "next/image"
 
 export interface HarvestData {
@@ -172,7 +173,9 @@ export function HarvestCard({
         {/* Location */}
         <div className="flex items-center text-sm text-muted-foreground">
           <MapPin className="h-4 w-4 mr-2" />
-          {typeof harvest.location === 'string' ? harvest.location : `${(harvest.location as any)?.city || 'Unknown'}, ${(harvest.location as any)?.state || 'Unknown State'}`}
+          {typeof harvest.location === 'string'
+            ? harvest.location
+            : `${typeof asRecord(harvest.location).city === "string" ? asRecord(harvest.location).city : "Unknown"}, ${typeof asRecord(harvest.location).state === "string" ? asRecord(harvest.location).state : "Unknown State"}`}
         </div>
 
         {/* Quality Metrics */}

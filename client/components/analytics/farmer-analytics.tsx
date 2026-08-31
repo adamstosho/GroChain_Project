@@ -29,6 +29,7 @@ import {
   FileText,
   FileSpreadsheet
 } from "lucide-react"
+import { getErrorMessage, asRecord } from "@/lib/error-utils"
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart as RechartsPieChart, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Pie, Legend } from "recharts"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
@@ -36,6 +37,9 @@ import { getExportService } from "@/lib/export-utils"
 import { AiAnalyticsInsights } from "@/components/ai/ai-analytics-insights"
 import { brandColors, chartSeries } from "@/lib/brand/colors"
 import { formatCompactCurrency, formatCompactNumber } from "@/lib/format"
+
+const toChartNumber = (value: number | string): number =>
+  typeof value === "number" ? value : Number(value) || 0
 
 interface FarmerAnalyticsData {
   totalHarvests: number
@@ -83,10 +87,10 @@ interface FarmerAnalyticsData {
       monthly: Array<{
         month: string
         monthKey: string
-        [key: string]: any
+        [key: string]: string | number
       }>
     }
-    byCrop: { [cropType: string]: { [quality: string]: any } }
+    byCrop: Record<string, Record<string, number | string>>
     insights: Array<{
       quality: string
       percentage: number
@@ -98,7 +102,7 @@ interface FarmerAnalyticsData {
       isHighQuality: boolean
       recommendation: string
     }>
-  }
+  } | null
   marketplaceStats?: {
     activeListings: number
     totalViews: number
@@ -134,31 +138,41 @@ export function FarmerAnalytics() {
         apiService.getFarmerCropAnalytics(undefined, period || timeRange).catch(() => ({ data: null }))
       ])
 
+      const farmerPayload = asRecord(farmerAnalytics.data) as Partial<FarmerAnalyticsData> & Record<string, unknown>
+      const creditPayload = asRecord(creditScore.data)
+      const cropPayload = asRecord(cropAnalytics.data) as {
+        cropDistribution?: FarmerAnalyticsData["cropDistribution"]
+        qualityDistribution?: FarmerAnalyticsData["qualityDistribution"]
+      }
+
       // Debug: Log the raw API response
       console.log('🔍 Analytics API Response:', {
         status: farmerAnalytics.status,
         data: farmerAnalytics.data,
-        creditScore: (creditScore.data as any)?.score
+        creditScore: creditPayload.score
       })
+
+      const totalOrders = Number(farmerPayload.totalOrders) || 0
+      const totalListings = Number(farmerPayload.totalListings) || 0
 
       // Process and combine the data
       const combinedData: FarmerAnalyticsData = {
-        ...(farmerAnalytics.data as any),
-        creditScore: (creditScore.data as any)?.score || 0,
-        qualityMetrics: (farmerAnalytics.data as any)?.qualityMetrics || {
+        ...farmerPayload as FarmerAnalyticsData,
+        creditScore: Number(creditPayload.score) || 0,
+        qualityMetrics: farmerPayload.qualityMetrics || {
           excellent: 0,
           good: 0,
           fair: 0,
           poor: 0
         },
-        monthlyTrends: (farmerAnalytics.data as any)?.monthlyTrends || [],
-        cropDistribution: (cropAnalytics.data as any)?.cropDistribution || [],
-        qualityDistribution: (cropAnalytics.data as any)?.qualityDistribution || null,
+        monthlyTrends: farmerPayload.monthlyTrends || [],
+        cropDistribution: cropPayload.cropDistribution || [],
+        qualityDistribution: cropPayload.qualityDistribution || null,
         marketplaceStats: {
-          activeListings: (farmerAnalytics.data as any)?.totalListings || 0,
+          activeListings: totalListings || 0,
           totalViews: 0,
-          conversionRate: (farmerAnalytics.data as any)?.totalOrders && (farmerAnalytics.data as any)?.totalListings
-            ? Math.round(((farmerAnalytics.data as any)?.totalOrders / (farmerAnalytics.data as any)?.totalListings) * 100)
+          conversionRate: totalOrders && totalListings
+            ? Math.round((totalOrders / totalListings) * 100)
             : 0,
           topProducts: []
         }
@@ -173,12 +187,12 @@ export function FarmerAnalytics() {
       })
 
       setAnalyticsData(combinedData)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching analytics:', error)
-      setError(error.message || 'Failed to load analytics data')
+      setError(getErrorMessage(error, 'Failed to load analytics data'))
       toast({
         title: "Error loading analytics",
-        description: error.message || "Failed to load analytics data. Please try again.",
+        description: getErrorMessage(error, "Failed to load analytics data. Please try again."),
         variant: "destructive",
       })
     } finally {
@@ -310,7 +324,7 @@ export function FarmerAnalytics() {
         <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           {/* Time Range and Export Format */}
           <div className="flex flex-col xs:flex-row gap-2">
-            <Select value={timeRange} onValueChange={(value: any) => setTimeRange(value)}>
+            <Select value={timeRange} onValueChange={(value: string) => setTimeRange(value as "7d" | "30d" | "90d" | "1y")}>
               <SelectTrigger className="w-full xs:w-auto min-w-[140px]">
                 <SelectValue />
               </SelectTrigger>
@@ -321,7 +335,7 @@ export function FarmerAnalytics() {
                 <SelectItem value="1y">Last year</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={exportFormat} onValueChange={(value: any) => setExportFormat(value)}>
+            <Select value={exportFormat} onValueChange={(value: string) => setExportFormat(value as "csv" | "xlsx")}>
               <SelectTrigger className="w-full xs:w-auto min-w-[100px]">
                 <div className="flex items-center gap-2">
                   {exportFormat === 'csv' ? (
@@ -525,7 +539,7 @@ export function FarmerAnalytics() {
                       fontSize={10}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(value) => formatNumber(value)}
+                      tickFormatter={(value) => formatNumber(toChartNumber(value))}
                       width={40}
                     />
                     <YAxis
@@ -534,7 +548,7 @@ export function FarmerAnalytics() {
                       fontSize={10}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(value) => formatCurrency(value)}
+                      tickFormatter={(value) => formatCurrency(toChartNumber(value))}
                       width={60}
                     />
                     <Tooltip
@@ -545,8 +559,8 @@ export function FarmerAnalytics() {
                         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                         fontSize: '12px'
                       }}
-                      formatter={(value: any, name: string) => [
-                        name === 'revenue' ? formatCurrency(value) : value,
+                      formatter={(value: number | string, name: string) => [
+                        name === 'revenue' ? formatCurrency(toChartNumber(value)) : value,
                         name.charAt(0).toUpperCase() + name.slice(1)
                       ]}
                     />
@@ -689,7 +703,7 @@ export function FarmerAnalytics() {
                         fontSize={10}
                         tickLine={false}
                         axisLine={false}
-                        tickFormatter={(value) => formatNumber(value)}
+                        tickFormatter={(value) => formatNumber(toChartNumber(value))}
                         width={40}
                       />
                       <Tooltip
@@ -700,7 +714,7 @@ export function FarmerAnalytics() {
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           fontSize: '12px'
                         }}
-                        formatter={(value: any) => [formatNumber(value), 'Harvests']}
+                        formatter={(value: number | string) => [formatNumber(toChartNumber(value)), 'Harvests']}
                       />
                       <Bar
                         dataKey="harvests"
@@ -739,7 +753,7 @@ export function FarmerAnalytics() {
                         fontSize={10}
                         tickLine={false}
                         axisLine={false}
-                        tickFormatter={(value) => formatCurrency(value)}
+                        tickFormatter={(value) => formatCurrency(toChartNumber(value))}
                         width={60}
                       />
                       <Tooltip
@@ -750,7 +764,7 @@ export function FarmerAnalytics() {
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           fontSize: '12px'
                         }}
-                        formatter={(value: any) => [formatCurrency(value), 'Revenue']}
+                        formatter={(value: number | string) => [formatCurrency(toChartNumber(value)), 'Revenue']}
                       />
                       <Line
                         type="monotone"
@@ -803,7 +817,7 @@ export function FarmerAnalytics() {
                         borderRadius: '8px',
                         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                       }}
-                      formatter={(value: any) => [`${value}%`, 'Quality Score']}
+                      formatter={(value: number | string) => [`${value}%`, 'Quality Score']}
                     />
                     <Area
                       type="monotone"
@@ -879,7 +893,10 @@ export function FarmerAnalytics() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={(props) => `${(props as any).name} ${((((props as any).percent || 0) * 100).toFixed(0))}%`}
+                        label={(props) => {
+                          const p = props as { name?: string; percent?: number }
+                          return `${p.name ?? ""} ${(((p.percent || 0) * 100).toFixed(0))}%`
+                        }}
                         outerRadius={80}
                         fill={brandColors.primary}
                         dataKey="quantity"
@@ -896,9 +913,9 @@ export function FarmerAnalytics() {
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           fontSize: '12px'
                         }}
-                        formatter={(value: any, name: string) => {
-                          if (name === 'quantity') return [`${formatNumber(value)} kg`, 'Quantity']
-                          if (name === 'totalValue') return [`₦${formatNumber(value)}`, 'Revenue']
+                        formatter={(value: number | string, name: string) => {
+                          if (name === 'quantity') return [`${formatNumber(toChartNumber(value))} kg`, 'Quantity']
+                          if (name === 'totalValue') return [`₦${formatNumber(toChartNumber(value))}`, 'Revenue']
                           return [value, name]
                         }}
                         labelFormatter={(label) => `Crop: ${label}`}
@@ -946,7 +963,7 @@ export function FarmerAnalytics() {
                         fontSize={12}
                         tickLine={false}
                         axisLine={false}
-                        tickFormatter={(value) => `₦${formatNumber(value)}`}
+                        tickFormatter={(value) => `₦${formatNumber(toChartNumber(value))}`}
                         width={60}
                       />
                       <Tooltip
@@ -957,9 +974,9 @@ export function FarmerAnalytics() {
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           fontSize: '12px'
                         }}
-                        formatter={(value: any, name: string) => {
-                          if (name === 'totalValue') return [`₦${formatNumber(value)}`, 'Revenue']
-                          if (name === 'quantity') return [`${formatNumber(value)} kg`, 'Quantity']
+                        formatter={(value: number | string, name: string) => {
+                          if (name === 'totalValue') return [`₦${formatNumber(toChartNumber(value))}`, 'Revenue']
+                          if (name === 'quantity') return [`${formatNumber(toChartNumber(value))} kg`, 'Quantity']
                           if (name === 'avgQuality') return [`${value}/5`, 'Quality']
                           return [value, name]
                         }}
@@ -1187,7 +1204,7 @@ export function FarmerAnalytics() {
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           fontSize: '12px'
                         }}
-                        formatter={(value: any, name: string) => {
+                        formatter={(value: number | string, name: string) => {
                           if (name.includes('_count')) {
                             const quality = name.replace('_count', '')
                             const qualityLabel = quality === 'excellent' ? 'Excellent' :

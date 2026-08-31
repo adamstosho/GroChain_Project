@@ -19,6 +19,7 @@ import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { Text } from "@/components/ui/typography"
 import { dashboard, textStyles } from "@/lib/design-system"
 import { cn } from "@/lib/utils"
+import { asRecord } from "@/lib/error-utils"
 
 export function OnboardingAnalytics() {
   const { stats, onboardings } = useOnboarding()
@@ -71,15 +72,17 @@ export function OnboardingAnalytics() {
             onClick={async () => {
               const { getExportService } = await import("@/lib/export-utils")
               const exportService = getExportService()
-              const rows = (onboardings || []).map((o: any) => ({
+              const rows: Record<string, unknown>[] = (onboardings || []).map((o) => {
+                const farmer = asRecord(asRecord(o).farmer)
+                return {
                 id: o._id,
-                farmer: o.farmer?.name || o.farmerName,
-                email: o.farmer?.email,
+                farmer: farmer.name || asRecord(o).farmerName,
+                email: farmer.email,
                 status: o.status,
                 stage: o.stage,
                 priority: o.priority,
                 createdAt: o.createdAt,
-              }))
+              }})
               if (!rows.length) {
                 rows.push({
                   id: "summary",
@@ -89,7 +92,7 @@ export function OnboardingAnalytics() {
                   stage: `successRate:${stats.successRate}`,
                   priority: `thisMonth:${stats.thisMonth}`,
                   createdAt: new Date().toISOString(),
-                } as any)
+                })
               }
               await exportService.exportCustomData(rows, {
                 format: "excel",

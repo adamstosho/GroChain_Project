@@ -11,6 +11,8 @@ import { Display } from "@/components/ui/typography"
 import { useToast } from "@/hooks/use-toast"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
+import type { Harvest } from "@/lib/types"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -62,14 +64,17 @@ export default function NewHarvestPage() {
         certification: data.certification
       }
 
-      const response = await apiService.createHarvest(payload, {
+      const response = await apiService.createHarvest(payload as Partial<Harvest>, {
         idempotencyKey: idempotencyKeyRef.current,
-      }) as any
-      const created = response?.harvest || response?.data?.harvest || response?.data || response
+      })
+      const rec = asRecord(response)
+      const nested = asRecord(rec.data)
+      const created = asRecord(rec.harvest ?? nested.harvest ?? rec.data ?? response)
 
       sessionStorage.removeItem("harvest-form-draft")
 
-      const id = created?._id || created?.id
+      const id = (typeof created._id === "string" ? created._id : undefined)
+        || (typeof created.id === "string" ? created.id : undefined)
       toast({
         title: "Harvest logged successfully",
         description: "Your harvest batch has been recorded.",
@@ -84,7 +89,7 @@ export default function NewHarvestPage() {
       console.error("Failed to create harvest:", error)
       toast({
         title: "Failed to log harvest",
-        description: (error as Error)?.message || "Please check your connection and try again.",
+        description: getErrorMessage(error, "Please check your connection and try again."),
         variant: "destructive"
       })
     } finally {

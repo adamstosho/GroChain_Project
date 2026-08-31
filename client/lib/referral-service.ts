@@ -43,12 +43,18 @@ export class ReferralService {
     this.cacheExpiry.clear()
   }
 
-  async getReferrals(filters: ReferralFilters = {}): Promise<{ referrals: Referral[]; pagination: any }> {
+  async getReferrals(filters: ReferralFilters = {}): Promise<{
+    referrals: Referral[]
+    pagination: { currentPage: number; totalPages: number; totalItems: number; itemsPerPage: number }
+  }> {
     const cacheKey = `referrals_${JSON.stringify(filters)}`
     const cached = this.getCache(cacheKey)
 
     if (cached) {
-      return cached as { referrals: Referral[]; pagination: any }
+      return cached as {
+        referrals: Referral[]
+        pagination: { currentPage: number; totalPages: number; totalItems: number; itemsPerPage: number }
+      }
     }
 
     try {

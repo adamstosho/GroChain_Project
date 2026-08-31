@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
+import { getErrorMessage } from "@/lib/error-utils"
 
 function ResetPasswordForm() {
   const router = useRouter()
@@ -36,8 +37,8 @@ function ResetPasswordForm() {
       setTimeout(() => {
         router.push("/login")
       }, 2000)
-    } catch (err: any) {
-      setError(err?.message || "Reset failed. Please try again later.")
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Reset failed. Please try again later."))
     } finally {
       setLoading(false)
     }

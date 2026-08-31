@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useToast } from './use-toast'
+import { getErrorMessage } from '@/lib/error-utils'
 import { commissionService, Commission, CommissionStats, CommissionSummary, CommissionFilters } from '@/lib/commission-service'
 import { useAuthStore } from '@/lib/auth'
 
@@ -32,10 +33,10 @@ export function useCommission() {
       const result = await commissionService.getCommissions(filters)
       setCommissions(result.commissions)
       setPagination(result.pagination)
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error loading commissions",
-        description: error.message || "Failed to load commissions",
+        description: getErrorMessage(error) || "Failed to load commissions",
         variant: "destructive"
       })
     } finally {
@@ -48,7 +49,7 @@ export function useCommission() {
     try {
       const statsData = await commissionService.getCommissionStats()
       setStats(statsData)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch commission stats:', error)
     }
   }, [])
@@ -60,7 +61,7 @@ export function useCommission() {
     try {
       const summaryData = await commissionService.getPartnerCommissionSummary(user._id)
       setSummary(summaryData)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch commission summary:', error)
     }
   }, [user?._id])
@@ -78,10 +79,10 @@ export function useCommission() {
         title: "Data refreshed",
         description: "Commission data has been updated",
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Refresh failed",
-        description: error.message || "Failed to refresh data",
+        description: getErrorMessage(error) || "Failed to refresh data",
         variant: "destructive"
       })
     } finally {
@@ -116,10 +117,10 @@ export function useCommission() {
       })
       
       return updatedCommission
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Update failed",
-        description: error.message || "Failed to update commission status",
+        description: getErrorMessage(error) || "Failed to update commission status",
         variant: "destructive"
       })
       throw error
@@ -147,10 +148,10 @@ export function useCommission() {
       await refreshData()
 
       return result
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Payout request failed",
-        description: error.message || "Failed to request payout",
+        description: getErrorMessage(error) || "Failed to request payout",
         variant: "destructive"
       })
       throw error

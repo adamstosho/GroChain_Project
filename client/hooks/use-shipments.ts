@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiService } from '@/lib/api'
+import { getErrorMessage, asRecord } from '@/lib/error-utils'
 import { useToast } from '@/hooks/use-toast'
 import { 
   Shipment, 
@@ -46,12 +47,12 @@ export function useShipments(filters?: ShipmentFilters) {
       } else {
         throw new Error(response.message || 'Failed to fetch shipments')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching shipments:', err)
-      setError(err.message || 'Failed to fetch shipments')
+      setError(getErrorMessage(err) || 'Failed to fetch shipments')
       toast({
         title: "Error",
-        description: err.message || "Failed to fetch shipments",
+        description: getErrorMessage(err) || "Failed to fetch shipments",
         variant: "destructive",
       })
     } finally {
@@ -96,12 +97,12 @@ export function useShipment(shipmentId: string) {
       } else {
         throw new Error(response.message || 'Failed to fetch shipment')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching shipment:', err)
-      setError(err.message || 'Failed to fetch shipment')
+      setError(getErrorMessage(err) || 'Failed to fetch shipment')
       toast({
         title: "Error",
-        description: err.message || "Failed to fetch shipment",
+        description: getErrorMessage(err) || "Failed to fetch shipment",
         variant: "destructive",
       })
     } finally {
@@ -144,17 +145,17 @@ export function useCreateShipment() {
       } else {
         throw new Error(response.message || 'Failed to create shipment')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating shipment:', err)
       console.error('Error details:', {
-        message: err.message,
-        status: err.status,
-        payload: err.payload,
-        endpoint: err.endpoint
+        message: getErrorMessage(err),
+        status: asRecord(err).status,
+        payload: asRecord(err).payload,
+        endpoint: asRecord(err).endpoint
       })
       toast({
         title: "Error",
-        description: err.message || "Failed to create shipment",
+        description: getErrorMessage(err) || "Failed to create shipment",
         variant: "destructive",
       })
       throw err
@@ -188,11 +189,11 @@ export function useUpdateShipmentStatus() {
       } else {
         throw new Error(response.message || 'Failed to update shipment status')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating shipment status:', err)
       toast({
         title: "Error",
-        description: err.message || "Failed to update shipment status",
+        description: getErrorMessage(err) || "Failed to update shipment status",
         variant: "destructive",
       })
       throw err
@@ -226,11 +227,11 @@ export function useConfirmDelivery() {
       } else {
         throw new Error(response.message || 'Failed to confirm delivery')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error confirming delivery:', err)
       toast({
         title: "Error",
-        description: err.message || "Failed to confirm delivery",
+        description: getErrorMessage(err) || "Failed to confirm delivery",
         variant: "destructive",
       })
       throw err
@@ -264,11 +265,11 @@ export function useReportIssue() {
       } else {
         throw new Error(response.message || 'Failed to report issue')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error reporting issue:', err)
       toast({
         title: "Error",
-        description: err.message || "Failed to report issue",
+        description: getErrorMessage(err) || "Failed to report issue",
         variant: "destructive",
       })
       throw err
@@ -305,12 +306,12 @@ export function useShipmentStats() {
       } else {
         throw new Error(response.message || 'Failed to fetch shipment stats')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching shipment stats:', err)
-      setError(err.message || 'Failed to fetch shipment stats')
+      setError(getErrorMessage(err) || 'Failed to fetch shipment stats')
       toast({
         title: "Error",
-        description: err.message || "Failed to fetch shipment stats",
+        description: getErrorMessage(err) || "Failed to fetch shipment stats",
         variant: "destructive",
       })
     } finally {
@@ -361,12 +362,12 @@ export function useSearchShipments() {
       } else {
         throw new Error(response.message || 'Failed to search shipments')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error searching shipments:', err)
-      setError(err.message || 'Failed to search shipments')
+      setError(getErrorMessage(err) || 'Failed to search shipments')
       toast({
         title: "Error",
-        description: err.message || "Failed to search shipments",
+        description: getErrorMessage(err) || "Failed to search shipments",
         variant: "destructive",
       })
     } finally {
@@ -418,11 +419,11 @@ export function useExportShipments() {
       } else {
         throw new Error(response?.message || 'Failed to export shipments')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error exporting shipments:', err)
       toast({
         title: "Export Failed",
-        description: err.message || "Failed to export shipments",
+        description: getErrorMessage(err) || "Failed to export shipments",
         variant: "destructive",
       })
       throw err

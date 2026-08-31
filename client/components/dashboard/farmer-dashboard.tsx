@@ -10,6 +10,7 @@ import { WeatherWidget } from "@/components/dashboard/weather-widget"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 import { HarvestCard, type HarvestData } from "@/components/agricultural"
 import { apiService } from "@/lib/api"
+import { asRecord } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import { useDashboardRefresh } from "@/hooks/use-dashboard-refresh"
 import { useStableDataFetch } from "@/hooks/use-stable-data-fetch"
@@ -56,7 +57,7 @@ interface CreditScoreData {
 
 export function FarmerDashboard() {
   const [stats, setStats] = useState<FarmerStats | null>(null)
-  const [recentHarvests, setRecentHarvests] = useState<any[]>([])
+  const [recentHarvests, setRecentHarvests] = useState<Record<string, unknown>[]>([])
   const { isInitialLoading, isRefreshing, begin, finish } = useStableDataFetch()
   const [isManualRefreshing, setIsManualRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
@@ -107,11 +108,15 @@ export function FarmerDashboard() {
       })
 
       if (harvestsResponse.status === "fulfilled") {
-        const harvestData =
+        const harvestsUnknown =
           (harvestsResponse.value as { harvests?: unknown[] }).harvests ||
           (harvestsResponse.value as { data?: unknown[] }).data ||
           []
-        setRecentHarvests(Array.isArray(harvestData) ? harvestData : [])
+        setRecentHarvests(
+          Array.isArray(harvestsUnknown)
+            ? harvestsUnknown.map((h) => asRecord(h))
+            : []
+        )
       }
 
       if (creditResp.status === "fulfilled") {
@@ -203,16 +208,17 @@ export function FarmerDashboard() {
   ]
 
   // Convert harvest data to our component format
-  const convertToHarvestData = (harvest: any): HarvestData => {
+  const convertToHarvestData = (harvest: Record<string, unknown>): HarvestData => {
+    const farmer = asRecord(harvest.farmer)
     // Handle different date formats from backend
     let harvestDate: Date
     try {
       if (harvest.harvestDate) {
-        harvestDate = new Date(harvest.harvestDate)
+        harvestDate = new Date(String(harvest.harvestDate))
       } else if (harvest.date) {
-        harvestDate = new Date(harvest.date)
+        harvestDate = new Date(String(harvest.date))
       } else if (harvest.createdAt) {
-        harvestDate = new Date(harvest.createdAt)
+        harvestDate = new Date(String(harvest.createdAt))
       } else {
         harvestDate = new Date()
       }
@@ -222,20 +228,20 @@ export function FarmerDashboard() {
 
     return {
       id: String(harvest._id || harvest.id),
-      farmerName: harvest.farmerName || harvest.farmer?.name || "You",
-      cropType: harvest.cropType || "Unknown Crop",
-      variety: harvest.variety || "Standard",
+      farmerName: String(harvest.farmerName || farmer.name || "You"),
+      cropType: String(harvest.cropType || "Unknown Crop"),
+      variety: String(harvest.variety || "Standard"),
       harvestDate,
-      quantity: harvest.quantity || 0,
-      unit: harvest.unit || "kg",
-      location: harvest.location || "Unknown Location",
-      quality: harvest.quality || "good",
-      status: harvest.status || "pending",
-      qrCode: harvest.batchId || harvest.qrCode || `HARVEST_${harvest._id || harvest.id}`,
-      price: harvest.price || 0,
-      organic: harvest.organic || false,
-      moistureContent: harvest.moistureContent || 15,
-      grade: harvest.grade || harvest.qualityGrade || "B"
+      quantity: Number(harvest.quantity) || 0,
+      unit: String(harvest.unit || "kg"),
+      location: typeof harvest.location === "string" ? harvest.location : "Unknown Location",
+      quality: (harvest.quality as HarvestData["quality"]) || "good",
+      status: (harvest.status as HarvestData["status"]) || "pending",
+      qrCode: String(harvest.batchId || harvest.qrCode || `HARVEST_${harvest._id || harvest.id}`),
+      price: Number(harvest.price) || 0,
+      organic: Boolean(harvest.organic),
+      moistureContent: Number(harvest.moistureContent) || 15,
+      grade: (harvest.grade as HarvestData["grade"]) || (harvest.qualityGrade as HarvestData["grade"]) || "B"
     }
   }
 
@@ -373,7 +379,7 @@ export function FarmerDashboard() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {recentHarvests.slice(0, 4).map((harvest) => (
                       <HarvestCard
-                        key={harvest._id}
+                        key={String(harvest._id ?? harvest.id)}
                         harvest={convertToHarvestData(harvest)}
                         variant="compact"
                         onView={(id) => handleHarvestAction("view", id)}

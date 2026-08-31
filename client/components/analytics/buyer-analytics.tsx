@@ -22,6 +22,7 @@ import {
   CheckCircle,
   Clock
 } from "lucide-react"
+import { getErrorMessage } from "@/lib/error-utils"
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart as RechartsPieChart, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Pie, Legend } from "recharts"
 import { apiService } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
@@ -29,6 +30,9 @@ import { Display, Text } from "@/components/ui/typography"
 import { dashboard, textStyles } from "@/lib/design-system"
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { cn } from "@/lib/utils"
+
+const toChartNumber = (value: number | string): number =>
+  typeof value === "number" ? value : Number(value) || 0
 
 interface BuyerAnalyticsData {
   totalOrders: number
@@ -80,12 +84,12 @@ export function BuyerAnalytics() {
       setIsLoading(true)
       // Fetch buyer analytics data with period
       const response = await apiService.getBuyerAnalyticsWithPeriod(undefined, timeRange)
-      setAnalyticsData(response.data as any)
-    } catch (error: any) {
+      setAnalyticsData(response.data as BuyerAnalyticsData)
+    } catch (error: unknown) {
       console.error('Error fetching buyer analytics:', error)
       toast({
         title: "Error loading analytics",
-        description: error.message || "Failed to load analytics data",
+        description: getErrorMessage(error, "Failed to load analytics data"),
         variant: "destructive",
       })
     } finally {
@@ -110,8 +114,8 @@ export function BuyerAnalytics() {
   const formatNumber = formatCompactNumber
 
   // Helper functions for data validation and formatting
-  const isValidData = (data: any) => {
-    return data && (Array.isArray(data) ? data.length > 0 : true)
+  const isValidData = (data: unknown) => {
+    return Boolean(data) && (Array.isArray(data) ? data.length > 0 : true)
   }
 
   const getChartColors = () => [...chartSeries]
@@ -204,7 +208,7 @@ export function BuyerAnalytics() {
         {/* Controls - Mobile First Design */}
         <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="flex flex-col xs:flex-row gap-2 sm:gap-3">
-            <Select value={timeRange} onValueChange={(value: any) => setTimeRange(value)}>
+            <Select value={timeRange} onValueChange={(value: string) => setTimeRange(value as "7d" | "30d" | "90d" | "1y")}>
               <SelectTrigger className="w-full xs:w-auto min-w-[140px] h-8 sm:h-9 text-xs sm:text-sm">
                 <SelectValue />
               </SelectTrigger>
@@ -369,7 +373,7 @@ export function BuyerAnalytics() {
                         fontSize={10}
                         tickLine={false}
                         axisLine={false}
-                        tickFormatter={(value) => formatNumber(value)}
+                        tickFormatter={(value) => formatNumber(toChartNumber(value))}
                         width={40}
                       />
                       <YAxis
@@ -378,7 +382,7 @@ export function BuyerAnalytics() {
                         fontSize={10}
                         tickLine={false}
                         axisLine={false}
-                        tickFormatter={(value) => formatCurrency(value)}
+                        tickFormatter={(value) => formatCurrency(toChartNumber(value))}
                         width={60}
                       />
                       <Tooltip
@@ -389,8 +393,8 @@ export function BuyerAnalytics() {
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           fontSize: '12px'
                         }}
-                        formatter={(value: any, name: string) => [
-                          name === 'spending' || name === 'avgOrder' ? formatCurrency(value) : value,
+                        formatter={(value: number | string, name: string) => [
+                          name === 'spending' || name === 'avgOrder' ? formatCurrency(toChartNumber(value)) : value,
                           name === 'spending' ? 'Total Spending' : name === 'avgOrder' ? 'Avg Order' : 'Orders'
                         ]}
                       />
@@ -513,8 +517,8 @@ export function BuyerAnalytics() {
                     <BarChart data={prepareMonthlySpendingData()}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" fontSize={10} />
-                      <YAxis tickFormatter={(value) => formatNumber(value)} fontSize={10} />
-                      <Tooltip formatter={(value: any) => [formatNumber(value), 'Orders']} />
+                      <YAxis tickFormatter={(value) => formatNumber(toChartNumber(value))} fontSize={10} />
+                      <Tooltip formatter={(value: number | string) => [formatNumber(toChartNumber(value)), 'Orders']} />
                       <Bar dataKey="orders" fill={brandColors.chartEarth} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -545,8 +549,8 @@ export function BuyerAnalytics() {
                     <LineChart data={prepareMonthlySpendingData()}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" fontSize={10} />
-                      <YAxis tickFormatter={(value) => formatCurrency(value)} fontSize={10} />
-                      <Tooltip formatter={(value: any) => [formatCurrency(value), 'Spending']} />
+                      <YAxis tickFormatter={(value) => formatCurrency(toChartNumber(value))} fontSize={10} />
+                      <Tooltip formatter={(value: number | string) => [formatCurrency(toChartNumber(value)), 'Spending']} />
                       <Line
                         type="monotone"
                         dataKey="spending"
@@ -590,7 +594,10 @@ export function BuyerAnalytics() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={(props) => `${(props as any).category} ${(props as any).percentage}%`}
+                        label={(props) => {
+                          const p = props as { category?: string; percentage?: number }
+                          return `${p.category ?? ""} ${p.percentage ?? 0}%`
+                        }}
                         outerRadius={60}
                         fill={chartSeries[0]}
                         dataKey="percentage"
@@ -599,7 +606,7 @@ export function BuyerAnalytics() {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value: any) => [`${value}%`, 'Spending Share']} />
+                      <Tooltip formatter={(value: number | string) => [`${value}%`, 'Spending Share']} />
                       <Legend />
                     </RechartsPieChart>
                   </ResponsiveContainer>
@@ -630,8 +637,8 @@ export function BuyerAnalytics() {
                     <BarChart data={prepareCategorySpendingData()}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="category" fontSize={10} />
-                      <YAxis tickFormatter={(value) => formatCurrency(value)} fontSize={10} />
-                      <Tooltip formatter={(value: any) => [formatCurrency(value), 'Total Spent']} />
+                      <YAxis tickFormatter={(value) => formatCurrency(toChartNumber(value))} fontSize={10} />
+                      <Tooltip formatter={(value: number | string) => [formatCurrency(toChartNumber(value)), 'Total Spent']} />
                       <Bar dataKey="amount" fill="#166534" />
                     </BarChart>
                   </ResponsiveContainer>

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { apiService } from "@/lib/api"
+import { asRecord } from "@/lib/error-utils"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -19,7 +20,7 @@ export default function CartPage() {
     setHasHydrated,
   } = useBuyerStore()
 
-  const [currentProductData, setCurrentProductData] = useState<any>({})
+  const [currentProductData, setCurrentProductData] = useState<Record<string, Record<string, unknown>>>({})
 
   useEffect(() => {
     if (useBuyerStore.persist.hasHydrated()) {
@@ -37,7 +38,8 @@ export default function CartPage() {
           listingIds.map(async (listingId) => {
             try {
               const response = await apiService.getListing(String(listingId))
-              return { listingId, data: (response as any).data || response }
+              const rec = asRecord(response)
+              return { listingId, data: asRecord(rec.data ?? response) }
             } catch (error) {
               console.error(`Failed to fetch product ${listingId}:`, error)
               return null
@@ -45,7 +47,7 @@ export default function CartPage() {
           })
         )
 
-        const productData: any = {}
+        const productData: Record<string, Record<string, unknown>> = {}
         results.forEach((result) => {
           if (result) productData[result.listingId] = result.data
         })
@@ -156,12 +158,12 @@ export default function CartPage() {
                               <p className="text-sm text-muted-foreground truncate">{locationLabel}</p>
                               {stock ? (
                                 <div className="mt-1 text-xs text-muted-foreground">
-                                  {stock.quantity <= 0 ? (
+                                  {Number(stock.quantity) <= 0 ? (
                                     <span className="font-medium text-destructive">Out of Stock</span>
                                   ) : (
                                     <span>
-                                      {stock.quantity} {item.unit} available
-                                      {stock.quantity < item.quantity && (
+                                      {Number(stock.quantity)} {item.unit} available
+                                      {Number(stock.quantity) < item.quantity && (
                                         <span className="ml-1 text-warning">(Low stock!)</span>
                                       )}
                                     </span>

@@ -13,6 +13,7 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft, QrCode, Package, Download, Copy, Smartphone, Printer, FileText, CheckCircle, Plus, ExternalLink } from "lucide-react"
 import Link from "next/link"
@@ -51,12 +52,19 @@ interface QRCodeFormData {
   customBatchId?: string
 }
 
+interface GeneratedQR {
+  _id?: string
+  code?: string
+  batchId?: string
+  qrData?: string
+}
+
 export default function GenerateQRCodePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [harvests, setHarvests] = useState<HarvestData[]>([])
   const [selectedHarvest, setSelectedHarvest] = useState<HarvestData | null>(null)
-  const [generatedQR, setGeneratedQR] = useState<any>(null)
+  const [generatedQR, setGeneratedQR] = useState<GeneratedQR | null>(null)
   const [formData, setFormData] = useState<QRCodeFormData>({
     harvestId: '',
     cropType: '',
@@ -82,8 +90,31 @@ export default function GenerateQRCodePage() {
 
   const fetchHarvests = useCallback(async () => {
     try {
-      const response: any = await apiService.getHarvests({ limit: 100 })
-      const harvestData = response.harvests || response.data?.harvests || []
+      const response = await apiService.getHarvests({ limit: 100 })
+      const rec = asRecord(response)
+      const nested = asRecord(rec.data)
+      const harvestDataUnknown = Array.isArray(rec.harvests)
+        ? rec.harvests
+        : Array.isArray(nested.harvests)
+          ? nested.harvests
+          : []
+      const harvestData = harvestDataUnknown.map((item) => {
+        const h = asRecord(item)
+        const loc = h.location
+        return {
+          _id: String(h._id ?? ""),
+          cropType: String(h.cropType ?? ""),
+          variety: typeof h.variety === "string" ? h.variety : undefined,
+          quantity: Number(h.quantity) || 0,
+          unit: String(h.unit ?? ""),
+          harvestDate: String(h.harvestDate ?? h.date ?? ""),
+          location: typeof loc === "string"
+            ? loc
+            : `${typeof asRecord(loc).city === "string" ? asRecord(loc).city : "Unknown"}, ${typeof asRecord(loc).state === "string" ? asRecord(loc).state : "Unknown State"}`,
+          status: String(h.status ?? ""),
+          batchId: typeof h.batchId === "string" ? h.batchId : undefined,
+        } satisfies HarvestData
+      })
       const approvedHarvests = harvestData.filter((h: HarvestData) => h.status === 'approved' || h.status === 'listed')
       setHarvests(approvedHarvests)
     } catch (error) {
@@ -130,7 +161,7 @@ export default function GenerateQRCodePage() {
       setLoading(true)
 
       const response = await apiService.generateQRCodeForHarvest(selectedHarvest._id, formData.includeMetadata ? formData.metadata : undefined)
-      setGeneratedQR(response)
+      setGeneratedQR(asRecord(response) as GeneratedQR)
       
       toast({ 
         title: "QR Code Generated Successfully! 🎉", 
@@ -141,7 +172,7 @@ export default function GenerateQRCodePage() {
       console.error("Failed to generate QR code:", error)
       toast({ 
         title: "Failed to generate QR code", 
-        description: (error as any)?.message || "Please try again.", 
+        description: getErrorMessage(error, "Please try again."), 
         variant: "destructive" 
       })
     } finally {
@@ -153,9 +184,11 @@ export default function GenerateQRCodePage() {
     if (!generatedQR) return
 
     try {
-      const response = await apiService.downloadQRCode(generatedQR._id)
+      const qrId = generatedQR._id
+      if (!qrId) return
+      const response = await apiService.downloadQRCode(qrId)
       const { saveQrDownload } = await import("@/lib/qr-download")
-      await saveQrDownload(response, generatedQR.code || generatedQR.batchId || generatedQR._id, format)
+      await saveQrDownload(response, generatedQR.code || generatedQR.batchId || qrId, format)
       toast({
         title: "Download Started",
         description: `QR code saved as ${format.toUpperCase()}`,
@@ -254,7 +287,7 @@ export default function GenerateQRCodePage() {
                           {new Date(harvest.harvestDate).toLocaleDateString()}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {typeof harvest.location === 'string' ? harvest.location : `${(harvest.location as any)?.city || 'Unknown'}, ${(harvest.location as any)?.state || 'Unknown State'}`}
+                          {harvest.location}
                         </div>
                       </div>
                     </CardContent>

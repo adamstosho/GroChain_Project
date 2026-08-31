@@ -7,7 +7,7 @@ interface CacheItem<T> {
 }
 
 class OfflineCache {
-  private cache = new Map<string, CacheItem<any>>();
+  private cache = new Map<string, CacheItem<unknown>>();
   private readonly DEFAULT_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
   constructor() {
@@ -65,7 +65,7 @@ class OfflineCache {
       return null;
     }
 
-    return item.data;
+    return item.data as T;
   }
 
   has(key: string): boolean {
@@ -92,44 +92,44 @@ class OfflineCache {
   }
 
   // Specific methods for GroChain data
-  setHarvests(harvests: any[]): void {
+  setHarvests(harvests: unknown[]): void {
     this.set('harvests', harvests, 2 * 60 * 60 * 1000); // 2 hours
   }
 
-  getHarvests(): any[] | null {
-    return this.get('harvests');
+  getHarvests(): unknown[] | null {
+    return this.get<unknown[]>('harvests');
   }
 
-  setShipments(shipments: any[]): void {
+  setShipments(shipments: unknown[]): void {
     this.set('shipments', shipments, 2 * 60 * 60 * 1000); // 2 hours
   }
 
-  getShipments(): any[] | null {
-    return this.get('shipments');
+  getShipments(): unknown[] | null {
+    return this.get<unknown[]>('shipments');
   }
 
-  setMarketplaceListings(listings: any[]): void {
+  setMarketplaceListings(listings: unknown[]): void {
     this.set('marketplace-listings', listings, 30 * 60 * 1000); // 30 minutes
   }
 
-  getMarketplaceListings(): any[] | null {
-    return this.get('marketplace-listings');
+  getMarketplaceListings(): unknown[] | null {
+    return this.get<unknown[]>('marketplace-listings');
   }
 
-  setUserProfile(profile: any): void {
+  setUserProfile(profile: unknown): void {
     this.set('user-profile', profile, 60 * 60 * 1000); // 1 hour
   }
 
-  getUserProfile(): any | null {
+  getUserProfile(): unknown | null {
     return this.get('user-profile');
   }
 
-  setOrders(orders: any[]): void {
+  setOrders(orders: unknown[]): void {
     this.set('orders', orders, 60 * 60 * 1000); // 1 hour
   }
 
-  getOrders(): any[] | null {
-    return this.get('orders');
+  getOrders(): unknown[] | null {
+    return this.get<unknown[]>('orders');
   }
 
   // Cache key generators

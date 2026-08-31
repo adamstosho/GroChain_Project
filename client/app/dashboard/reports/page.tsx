@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header"
 import { apiService } from "@/lib/api"
+import { asRecord } from "@/lib/error-utils"
 import { useAuthStore } from "@/lib/auth"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -67,8 +68,18 @@ export default function ReportsPage() {
   // Harvest/financial/marketplace reports are all farmer-specific data - not relevant to buyers
   const visibleReportTemplates = user?.role === 'farmer' ? reportTemplates : []
 
-  const formatDate = (value: any) =>
-    value ? new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'
+  const formatDate = (value: unknown) => {
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+      return value.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    }
+    if (typeof value === 'string' || typeof value === 'number') {
+      const parsed = new Date(value)
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+      }
+    }
+    return 'N/A'
+  }
 
   const formatCurrency = (amount: number) => `₦${(amount || 0).toLocaleString()}`
 
@@ -133,19 +144,32 @@ export default function ReportsPage() {
   }
 
   const generateHarvestReport = async () => {
-    const response: any = await apiService.getHarvests()
-    const harvests = response.harvests || response.data?.harvests || []
+    const response = await apiService.getHarvests()
+    const rec = asRecord(response)
+    const data = rec.data
+    let harvests: unknown[] = []
+    if (Array.isArray(rec.harvests)) {
+      harvests = rec.harvests
+    } else if (data && typeof data === "object" && !Array.isArray(data)) {
+      const nestedHarvests = asRecord(data).harvests
+      if (Array.isArray(nestedHarvests)) harvests = nestedHarvests
+    } else if (Array.isArray(data)) {
+      harvests = data
+    }
 
-    const rows = harvests.map((h: any) => `
+    const rows = harvests.map((harvest) => {
+      const h = asRecord(harvest)
+      return `
       <tr>
-        <td>${h.cropType || 'N/A'}</td>
-        <td>${h.quantity ?? '-'} ${h.unit || ''}</td>
-        <td style="text-transform: capitalize;">${h.quality || '-'}</td>
-        <td style="text-transform: capitalize;">${h.status || '-'}</td>
+        <td>${typeof h.cropType === 'string' ? h.cropType : 'N/A'}</td>
+        <td>${h.quantity ?? '-'} ${typeof h.unit === 'string' ? h.unit : ''}</td>
+        <td style="text-transform: capitalize;">${typeof h.quality === 'string' ? h.quality : '-'}</td>
+        <td style="text-transform: capitalize;">${typeof h.status === 'string' ? h.status : '-'}</td>
         <td>${formatDate(h.date || h.createdAt)}</td>
-        <td>${h.batchId || '-'}</td>
+        <td>${typeof h.batchId === 'string' ? h.batchId : '-'}</td>
       </tr>
-    `).join('')
+    `
+    }).join('')
 
     const body = harvests.length > 0 ? `
       <h2>Harvest Records (${harvests.length})</h2>
@@ -159,35 +183,39 @@ export default function ReportsPage() {
   }
 
   const generateFinancialReport = async () => {
-    const response: any = await apiService.getFinancialDashboard()
-    const data = response.data || {}
-    const overview = data.overview || {}
-    const transactions = data.recentTransactions || []
+    const response = await apiService.getFinancialDashboard()
+    const rec = asRecord(response)
+    const data = asRecord(rec.data)
+    const overview = asRecord(data.overview)
+    const transactionsRaw = Array.isArray(data.recentTransactions) ? data.recentTransactions : []
 
     const overviewRows = `
       <tr><td>Credit Score</td><td>${overview.creditScore ?? 'N/A'}</td></tr>
-      <tr><td>Total Earnings</td><td>${formatCurrency(overview.totalEarnings)}</td></tr>
-      <tr><td>Total Savings</td><td>${formatCurrency(overview.totalSavings)}</td></tr>
+      <tr><td>Total Earnings</td><td>${formatCurrency(typeof overview.totalEarnings === 'number' ? overview.totalEarnings : 0)}</td></tr>
+      <tr><td>Total Savings</td><td>${formatCurrency(typeof overview.totalSavings === 'number' ? overview.totalSavings : 0)}</td></tr>
       <tr><td>Active Loans</td><td>${overview.activeLoans ?? 0}</td></tr>
       <tr><td>Insurance Policies</td><td>${overview.insurancePolicies ?? 0}</td></tr>
       <tr><td>Risk Level</td><td style="text-transform: capitalize;">${overview.riskLevel || 'N/A'}</td></tr>
     `
 
-    const transactionRows = transactions.map((t: any) => `
+    const transactionRows = transactionsRaw.map((transaction) => {
+      const t = asRecord(transaction)
+      return `
       <tr>
-        <td style="text-transform: capitalize;">${t.type || '-'}</td>
-        <td>${formatCurrency(t.amount)}</td>
-        <td>${t.description || '-'}</td>
+        <td style="text-transform: capitalize;">${typeof t.type === 'string' ? t.type : '-'}</td>
+        <td>${formatCurrency(typeof t.amount === 'number' ? t.amount : 0)}</td>
+        <td>${typeof t.description === 'string' ? t.description : '-'}</td>
         <td>${formatDate(t.date)}</td>
-        <td style="text-transform: capitalize;">${t.status || '-'}</td>
+        <td style="text-transform: capitalize;">${typeof t.status === 'string' ? t.status : '-'}</td>
       </tr>
-    `).join('')
+    `
+    }).join('')
 
     const body = `
       <h2>Overview</h2>
       <table>${overviewRows}</table>
       <h2>Recent Transactions</h2>
-      ${transactions.length > 0 ? `
+      ${transactionsRaw.length > 0 ? `
         <table>
           <tr><th>Type</th><th>Amount</th><th>Description</th><th>Date</th><th>Status</th></tr>
           ${transactionRows}
@@ -203,31 +231,35 @@ export default function ReportsPage() {
       throw new Error('Unable to identify the current user.')
     }
 
-    const response: any = await apiService.getMarketplaceAnalytics(undefined, user._id)
-    const data = response.data || {}
-    const trends = data.monthlyTrends || []
+    const response = await apiService.getMarketplaceAnalytics(undefined, user._id)
+    const rec = asRecord(response)
+    const data = asRecord(rec.data)
+    const trendsRaw = Array.isArray(data.monthlyTrends) ? data.monthlyTrends : []
 
     const summaryRows = `
       <tr><td>Total Listings</td><td>${data.totalListings ?? 0}</td></tr>
       <tr><td>Total Orders</td><td>${data.totalOrders ?? 0}</td></tr>
-      <tr><td>Total Revenue</td><td>${formatCurrency(data.totalRevenue)}</td></tr>
+      <tr><td>Total Revenue</td><td>${formatCurrency(typeof data.totalRevenue === 'number' ? data.totalRevenue : 0)}</td></tr>
       <tr><td>Total Harvests</td><td>${data.totalHarvests ?? 0}</td></tr>
       <tr><td>Harvest Approval Rate</td><td>${data.approvalRate ?? 0}%</td></tr>
     `
 
-    const trendRows = trends.map((t: any) => `
+    const trendRows = trendsRaw.map((trend) => {
+      const t = asRecord(trend)
+      return `
       <tr>
-        <td>${t.month || '-'}</td>
-        <td>${formatCurrency(t.revenue)}</td>
-        <td>${t.harvests ?? 0}</td>
+        <td>${typeof t.month === 'string' ? t.month : '-'}</td>
+        <td>${formatCurrency(typeof t.revenue === 'number' ? t.revenue : 0)}</td>
+        <td>${typeof t.harvests === 'number' ? t.harvests : 0}</td>
       </tr>
-    `).join('')
+    `
+    }).join('')
 
     const body = `
       <h2>Summary</h2>
       <table>${summaryRows}</table>
       <h2>Monthly Trend</h2>
-      ${trends.length > 0 ? `
+      ${trendsRaw.length > 0 ? `
         <table>
           <tr><th>Month</th><th>Revenue</th><th>Harvests</th></tr>
           ${trendRows}

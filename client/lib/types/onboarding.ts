@@ -5,7 +5,8 @@ export interface FarmerOnboarding {
     name: string
     email: string
     phone: string
-    location?: string
+    location?: string | { city?: string; state?: string }
+    avatar?: string
     state?: string
     lga?: string
     village?: string
@@ -140,7 +141,7 @@ export interface BulkOnboardingResult {
     row: number
     field: string
     message: string
-    value?: any
+    value?: unknown
   }[]
   warnings: {
     row: number

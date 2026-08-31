@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage, getErrorStatus } from "@/lib/error-utils"
 import { useAuthStore } from "@/lib/auth"
 import { ProfileHero } from "@/components/profile/profile-hero"
 import { ProfileSectionCard } from "@/components/profile/profile-section-card"
@@ -149,7 +150,7 @@ export function AdminProfile() {
       }
 
       if (activityResponse.status === 'fulfilled') {
-        setActivityLogs((activityResponse.value.data as any)?.logs || [])
+        setActivityLogs((asRecord(activityResponse.value.data).logs as ActivityLog[] | undefined) || [])
       } else {
         setActivityLogs([])
       }
@@ -159,10 +160,12 @@ export function AdminProfile() {
       } else {
         setSecuritySettings(null)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching admin profile data:', error)
+      const status = getErrorStatus(error)
+      const message = getErrorMessage(error)
 
-      if (error.status === 401 || error.message?.includes('Unauthorized') || error.message?.includes('No token')) {
+      if (status === 401 || message.includes('Unauthorized') || message.includes('No token')) {
         toast({
           title: "Authentication Required",
           description: "Please log in to access your profile.",
@@ -171,7 +174,7 @@ export function AdminProfile() {
         return
       }
 
-      if (error.status === 403 || error.message?.includes('Forbidden')) {
+      if (status === 403 || message.includes('Forbidden')) {
         toast({
           title: "Access Denied",
           description: "You don't have permission to access this admin profile.",
@@ -180,7 +183,7 @@ export function AdminProfile() {
         return
       }
 
-      if (error.status === 404) {
+      if (status === 404) {
         toast({
           title: "Profile Not Found",
           description: "Admin profile not found. Please contact support.",
@@ -189,7 +192,7 @@ export function AdminProfile() {
         return
       }
 
-      if (error.message?.includes('Network error') || error.message?.includes('fetch') || error.message?.includes('Failed to fetch')) {
+      if (message.includes('Network error') || message.includes('fetch') || message.includes('Failed to fetch')) {
         toast({
           title: "Connection Error",
           description: "Unable to connect to the server. Please check your connection.",
@@ -200,7 +203,7 @@ export function AdminProfile() {
 
       toast({
         title: "Error Loading Profile",
-        description: error.message || "Failed to load profile data. Please try again.",
+        description: getErrorMessage(error, "Failed to load profile data. Please try again."),
         variant: "destructive",
       })
     } finally {
@@ -310,10 +313,10 @@ export function AdminProfile() {
         title: "Success",
         description: "Password changed successfully",
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message || "Failed to change password",
+        description: getErrorMessage(error, "Failed to change password"),
         variant: "destructive",
       })
     } finally {
@@ -331,14 +334,14 @@ export function AdminProfile() {
     setIsEditing(false)
   }
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string | boolean | number) => {
     setEditData(prev => ({
       ...prev,
       [field]: value
     }))
   }
 
-  const handleNestedChange = (parent: string, field: string, value: any) => {
+  const handleNestedChange = (parent: string, field: string, value: string | boolean | number) => {
     setEditData(prev => {
       const current = prev || {}
       const parentObj = (current[parent as keyof typeof current] as object) || {}

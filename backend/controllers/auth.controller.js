@@ -42,6 +42,18 @@ const buildVerificationOtpEmailHtml = (name, code) => `
   </div>
 `
 
+function describeEmailDeliveryFailure(err) {
+  const msg = String(err?.message || err || '')
+  if (
+    msg.includes('own email address') ||
+    msg.includes('verify a domain') ||
+    msg.includes('onboarding@resend.dev')
+  ) {
+    return 'Your account was created, but Resend is still in test mode. Codes can only be emailed to grochain.ng@gmail.com until grochain.ng is verified. Look for [DEV-EMAIL-OTP] in the backend terminal to get this user\'s code now.'
+  }
+  return 'Your account was created, but the verification email could not be sent. Try Resend code, or check the backend terminal for [DEV-EMAIL-OTP].'
+}
+
 async function issueEmailVerificationOtp(user) {
   const code = generateEmailOtp()
   const expiresAt = new Date(Date.now() + EMAIL_OTP_EXPIRY_MS)
@@ -221,15 +233,20 @@ exports.register = async (req, res) => {
     if (exists) {
       // If email exists but not verified, resend OTP instead of blocking
       if (!exists.emailVerified) {
+        let emailSent = true
+        let message = 'Account exists but is not verified yet. We\'ve sent a new 6-digit code to your email.'
         try {
           await issueEmailVerificationOtp(exists)
         } catch (genErr) {
+          emailSent = false
+          message = describeEmailDeliveryFailure(genErr)
           console.error('OTP generation failed during re-register:', genErr)
         }
         return res.status(200).json({
           status: 'success',
-          message: 'Account exists but is not verified yet. We\'ve sent a new 6-digit code to your email.',
+          message,
           requiresVerification: true,
+          emailSent,
           user: { _id: exists._id, email: exists.email, role: exists.role, emailVerified: false }
         })
       }
@@ -238,16 +255,21 @@ exports.register = async (req, res) => {
 
     const user = await User.create({ ...value, email: value.email.toLowerCase().trim() })
 
+    let emailSent = true
+    let message = 'Registration successful! Check your email for a 6-digit verification code.'
     try {
       await issueEmailVerificationOtp(user)
     } catch (emailError) {
+      emailSent = false
+      message = describeEmailDeliveryFailure(emailError)
       console.error('Registration: verification OTP email failed:', emailError?.message || emailError)
     }
 
     return res.status(201).json({
       status: 'success',
-      message: 'Registration successful! Check your email for a 6-digit verification code.',
+      message,
       requiresVerification: true,
+      emailSent,
       user: { _id: user._id, email: user.email, role: user.role, emailVerified: false }
     })
   } catch (e) {
@@ -503,9 +525,14 @@ exports.resendVerification = async (req, res) => {
       await issueEmailVerificationOtp(user)
     } catch (emailError) {
       console.error('Resend verification OTP failed:', emailError?.message || emailError)
+      return res.json({
+        status: 'success',
+        emailSent: false,
+        message: describeEmailDeliveryFailure(emailError)
+      })
     }
 
-    return res.json({ status: 'success', message: 'Verification code sent' })
+    return res.json({ status: 'success', emailSent: true, message: 'Verification code sent' })
   } catch (e) {
     console.error('Resend verification error:', e)
     return res.status(500).json({ status: 'error', message: 'Server error' })

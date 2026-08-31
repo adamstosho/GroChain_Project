@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useApprovals } from "@/hooks/use-approvals"
 import { HarvestApproval, ApprovalFilters } from "@/lib/types/approvals"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { Display, Text } from "@/components/ui/typography"
@@ -38,6 +39,14 @@ import {
   Download,
   FileText
 } from "lucide-react"
+
+function formatApprovalLocation(location: unknown): string {
+  if (typeof location === "string") return location
+  const rec = asRecord(location)
+  const city = typeof rec.city === "string" ? rec.city : "Unknown"
+  const state = typeof rec.state === "string" ? rec.state : "Unknown State"
+  return `${city}, ${state}`
+}
 
 interface ApprovalsDashboardProps {
   className?: string
@@ -148,9 +157,9 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
       })
 
       console.log('Approval completed successfully - UI updated')
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error approving harvest:', error)
-      const errorMessage = error?.message || "Failed to approve harvest. Please try again."
+      const errorMessage = getErrorMessage(error, "Failed to approve harvest. Please try again.")
       toast({
         title: "Approval Failed",
         description: errorMessage,
@@ -206,9 +215,9 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
       })
 
       console.log('Rejection completed successfully - UI updated')
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error rejecting harvest:', error)
-      const errorMessage = error?.message || "Failed to reject harvest. Please try again."
+      const errorMessage = getErrorMessage(error, "Failed to reject harvest. Please try again.")
       toast({
         title: "Rejection Failed",
         description: errorMessage,
@@ -279,11 +288,11 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
         title: `Batch ${action.charAt(0).toUpperCase() + action.slice(1)} Complete`,
         description: `${count} harvests have been ${action}d successfully`,
       })
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error in batch ${action}:`, error)
       toast({
         title: `Batch ${action} Failed`,
-        description: error.message || `Failed to process batch ${action}`,
+        description: getErrorMessage(error, `Failed to process batch ${action}`),
         variant: "destructive",
       })
     } finally {
@@ -618,7 +627,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                               </div>
                               <div className="flex items-start space-x-2 min-w-0">
                                 <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                                <span className="text-xs sm:text-sm truncate">{typeof approval.location === 'string' ? approval.location : `${(approval.location as any)?.city || 'Unknown'}, ${(approval.location as any)?.state || 'Unknown State'}`}</span>
+                                <span className="text-xs sm:text-sm truncate">{formatApprovalLocation(approval.location)}</span>
                               </div>
                               <div className="flex items-start space-x-2 min-w-0">
                                 <Scale className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
@@ -772,7 +781,7 @@ export function ApprovalsDashboard({ className }: ApprovalsDashboardProps) {
                     <p><strong>Name:</strong> {selectedApproval.farmer.name}</p>
                     <p><strong>Email:</strong> {selectedApproval.farmer.email}</p>
                     <p><strong>Phone:</strong> {selectedApproval.farmer.phone}</p>
-                    <p><strong>Location:</strong> {typeof selectedApproval.location === 'string' ? selectedApproval.location : `${(selectedApproval.location as any)?.city || 'Unknown'}, ${(selectedApproval.location as any)?.state || 'Unknown State'}`}</p>
+                    <p><strong>Location:</strong> {formatApprovalLocation(selectedApproval.location)}</p>
                   </div>
                 </div>
                 <div>

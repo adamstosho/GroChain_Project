@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { api } from '@/lib/api'
+import { getErrorMessage } from '@/lib/error-utils'
 import type {
   PartnerDashboardData,
   PartnerMetrics,
@@ -119,8 +120,8 @@ export const usePartnerStore = create<PartnerState>((set, get) => ({
     try {
       const response = await api.getPartnerDashboard()
       set({ dashboard: response.data as PartnerDashboardData, loading: false })
-    } catch (error: any) {
-      set({ error: error.message, loading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), loading: false })
     }
   },
 
@@ -129,8 +130,8 @@ export const usePartnerStore = create<PartnerState>((set, get) => ({
     try {
       const response = await api.getPartnerMetrics()
       set({ metrics: response.data, loading: false })
-    } catch (error: any) {
-      set({ error: error.message, loading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), loading: false })
     }
   },
 
@@ -139,8 +140,8 @@ export const usePartnerStore = create<PartnerState>((set, get) => ({
     try {
       const response = await api.getPartnerCommission()
       set({ commission: response.data as unknown as PartnerCommission, loading: false })
-    } catch (error: any) {
-      set({ error: error.message, loading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), loading: false })
     }
   },
 
@@ -162,8 +163,8 @@ export const usePartnerStore = create<PartnerState>((set, get) => ({
           farmersLoading: false
         })
       }
-    } catch (error: any) {
-      set({ error: error.message, farmersLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), farmersLoading: false })
     }
   },
 
@@ -181,8 +182,8 @@ export const usePartnerStore = create<PartnerState>((set, get) => ({
           commissionsLoading: false
         })
       }
-    } catch (error: any) {
-      set({ error: error.message, commissionsLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), commissionsLoading: false })
     }
   },
 
@@ -207,8 +208,8 @@ export const usePartnerStore = create<PartnerState>((set, get) => ({
           referralsLoading: false
         })
       }
-    } catch (error: any) {
-      set({ error: error.message, referralsLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), referralsLoading: false })
     }
   },
 
@@ -220,8 +221,8 @@ export const usePartnerStore = create<PartnerState>((set, get) => ({
 
       // Refresh farmers list after successful upload
       await get().fetchFarmers()
-    } catch (error: any) {
-      set({ error: error.message, bulkUploading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), bulkUploading: false })
       throw error
     }
   },
@@ -236,8 +237,8 @@ export const usePartnerStore = create<PartnerState>((set, get) => ({
       // Refresh referrals after creation
       await get().fetchReferrals()
       set({ loading: false })
-    } catch (error: any) {
-      set({ error: error.message, loading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), loading: false })
       throw error
     }
   },
@@ -250,8 +251,8 @@ export const usePartnerStore = create<PartnerState>((set, get) => ({
       await get().fetchCommission()
       await get().fetchCommissions()
       set({ loading: false })
-    } catch (error: any) {
-      set({ error: error.message, loading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), loading: false })
       throw error
     }
   },

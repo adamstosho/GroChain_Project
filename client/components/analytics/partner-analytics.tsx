@@ -21,6 +21,7 @@ import {
   Building,
   AlertCircle
 } from "lucide-react"
+import { getErrorMessage } from "@/lib/error-utils"
 import { LineChart, Line, Area, BarChart, Bar, PieChart as RechartsPieChart, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Pie, Legend, ComposedChart } from "recharts"
 import { LineChart as LineChartIcon } from "lucide-react"
 import { apiService } from "@/lib/api"
@@ -32,6 +33,9 @@ import { Display, Text } from "@/components/ui/typography"
 import { dashboard, textStyles } from "@/lib/design-system"
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { cn } from "@/lib/utils"
+
+const toChartNumber = (value: number | string): number =>
+  typeof value === "number" ? value : Number(value) || 0
 
 interface PartnerAnalyticsData {
   // Basic farmer stats
@@ -125,13 +129,13 @@ export function PartnerAnalytics() {
       } else {
         throw new Error('Invalid data format received from API')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Analytics fetch error:', error)
-      setError(error.message || 'Failed to load analytics data')
+      setError(getErrorMessage(error, 'Failed to load analytics data'))
 
       toast({
         title: "Error loading analytics",
-        description: error.message || 'Failed to load analytics data. Please try again.',
+        description: getErrorMessage(error, 'Failed to load analytics data. Please try again.'),
         variant: "destructive",
       })
 
@@ -157,10 +161,10 @@ export function PartnerAnalytics() {
         title: "Export successful",
         description: "Analytics data has been exported successfully",
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Export failed",
-        description: error.message || 'Failed to export analytics data',
+        description: getErrorMessage(error, 'Failed to export analytics data'),
         variant: "destructive",
       })
     }
@@ -170,7 +174,7 @@ export function PartnerAnalytics() {
   const formatNumber = formatCompactNumber
 
   // Ensure data is valid before rendering charts
-  const isValidData = (data: any[]) => {
+  const isValidData = (data: unknown[]) => {
     return Array.isArray(data) && data.length > 0 && data.every(item => item !== null && item !== undefined)
   }
 
@@ -202,20 +206,20 @@ export function PartnerAnalytics() {
             />
             <YAxis
               yAxisId="left"
-              tickFormatter={(value) => formatNumber(value)}
+              tickFormatter={(value) => formatNumber(toChartNumber(value))}
               fontSize={12}
               width={60}
             />
             <YAxis
               yAxisId="right"
               orientation="right"
-              tickFormatter={(value) => formatCurrency(value)}
+              tickFormatter={(value) => formatCurrency(toChartNumber(value))}
               fontSize={12}
               width={80}
             />
             <Tooltip
-              formatter={(value: any, name: string) => [
-                name === 'revenue' ? formatCurrency(value) : value,
+              formatter={(value: number | string, name: string) => [
+                name === 'revenue' ? formatCurrency(toChartNumber(value)) : value,
                 name === 'revenue' ? 'Revenue' : name === 'harvests' ? 'Harvests' : 'Farmers'
               ]}
               contentStyle={{
@@ -297,7 +301,7 @@ export function PartnerAnalytics() {
               ))}
             </Pie>
             <Tooltip
-              formatter={(value: any) => [`${value}%`, 'Distribution']}
+              formatter={(value: number | string) => [`${value}%`, 'Distribution']}
               contentStyle={{
                 backgroundColor: 'var(--background)',
                 border: '1px solid var(--border)',
@@ -349,12 +353,12 @@ export function PartnerAnalytics() {
               height={60}
             />
             <YAxis
-              tickFormatter={(value) => formatNumber(value)}
+              tickFormatter={(value) => formatNumber(toChartNumber(value))}
               fontSize={12}
               width={60}
             />
             <Tooltip
-              formatter={(value: any) => [formatNumber(value), 'Farmers']}
+              formatter={(value: number | string) => [formatNumber(toChartNumber(value)), 'Farmers']}
               contentStyle={{
                 backgroundColor: 'var(--background)',
                 border: '1px solid var(--border)',
@@ -403,12 +407,12 @@ export function PartnerAnalytics() {
               height={60}
             />
             <YAxis
-              tickFormatter={(value) => formatNumber(value)}
+              tickFormatter={(value) => formatNumber(toChartNumber(value))}
               fontSize={12}
               width={60}
             />
             <Tooltip
-              formatter={(value: any) => [formatNumber(value), 'Harvests']}
+              formatter={(value: number | string) => [formatNumber(toChartNumber(value)), 'Harvests']}
               contentStyle={{
                 backgroundColor: 'var(--background)',
                 border: '1px solid var(--border)',
@@ -469,7 +473,7 @@ export function PartnerAnalytics() {
               width={50}
             />
             <Tooltip
-              formatter={(value: any) => [`${value}%`, 'Market Share']}
+              formatter={(value: number | string) => [`${value}%`, 'Market Share']}
               contentStyle={{
                 backgroundColor: 'var(--background)',
                 border: '1px solid var(--border)',
@@ -587,7 +591,7 @@ export function PartnerAnalytics() {
         {/* Controls - Mobile First Design */}
         <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="flex flex-col xs:flex-row gap-2">
-            <Select value={timeRange} onValueChange={(value: any) => setTimeRange(value)}>
+            <Select value={timeRange} onValueChange={(value: string) => setTimeRange(value as "7d" | "30d" | "90d" | "1y")}>
               <SelectTrigger className="w-full xs:w-auto min-w-[140px]">
                 <SelectValue />
               </SelectTrigger>

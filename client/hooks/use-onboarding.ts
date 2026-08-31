@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { onboardingService } from '@/lib/onboarding-service'
+import { getErrorMessage } from '@/lib/error-utils'
 import { 
   FarmerOnboarding, 
   OnboardingStats, 
@@ -62,8 +63,8 @@ export function useOnboarding(initialFilters: OnboardingFilters = {}): UseOnboar
       setStats(statsData)
       setTemplates(templatesData)
       setWorkflow(workflowData)
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to fetch onboarding data'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to fetch onboarding data'
       setError(errorMessage)
       console.error('Error fetching onboarding data:', errorMessage)
     } finally {
@@ -96,8 +97,8 @@ export function useOnboarding(initialFilters: OnboardingFilters = {}): UseOnboar
       setStats(newStats)
       
       return newOnboarding
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to create onboarding'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to create onboarding'
       setError(errorMessage)
       throw err
     } finally {
@@ -114,8 +115,8 @@ export function useOnboarding(initialFilters: OnboardingFilters = {}): UseOnboar
       setOnboardings(prev => prev.map(o => o._id === id ? updatedOnboarding : o))
       
       return updatedOnboarding
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to update onboarding'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to update onboarding'
       setError(errorMessage)
       throw err
     } finally {
@@ -132,8 +133,8 @@ export function useOnboarding(initialFilters: OnboardingFilters = {}): UseOnboar
       setOnboardings(prev => prev.map(o => o._id === id ? updatedOnboarding : o))
       
       return updatedOnboarding
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to update onboarding stage'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to update onboarding stage'
       setError(errorMessage)
       throw err
     } finally {
@@ -150,8 +151,8 @@ export function useOnboarding(initialFilters: OnboardingFilters = {}): UseOnboar
       await fetchData()
       
       return result
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to process bulk onboarding'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to process bulk onboarding'
       setError(errorMessage)
       throw err
     } finally {
@@ -162,8 +163,8 @@ export function useOnboarding(initialFilters: OnboardingFilters = {}): UseOnboar
   const sendCommunication = useCallback(async (templateId: string, farmerId: string, variables: Record<string, string>): Promise<boolean> => {
     try {
       return await onboardingService.sendCommunication(templateId, farmerId, variables)
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to send communication'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to send communication'
       setError(errorMessage)
       throw err
     }
@@ -182,8 +183,8 @@ export function useOnboarding(initialFilters: OnboardingFilters = {}): UseOnboar
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to export data'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to export data'
       setError(errorMessage)
       throw err
     }
@@ -201,8 +202,8 @@ export function useOnboarding(initialFilters: OnboardingFilters = {}): UseOnboar
   const getOnboardingProgress = useCallback(async (farmerId: string) => {
     try {
       return await onboardingService.getOnboardingProgress(farmerId)
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to get onboarding progress'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to get onboarding progress'
       setError(errorMessage)
       throw err
     }

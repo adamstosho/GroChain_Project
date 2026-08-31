@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
-import { analyticsService, AnalyticsFilters, AnalyticsData } from '@/lib/analytics-service'
+import { analyticsService, AnalyticsFilters, AnalyticsData, ReportConfig } from '@/lib/analytics-service'
+import { getErrorMessage } from '@/lib/error-utils'
+
+type AnalyticsFilterValue = AnalyticsFilters[keyof AnalyticsFilters]
 
 interface AnalyticsState {
   // Data
@@ -17,13 +20,13 @@ interface AnalyticsState {
   filters: AnalyticsFilters
   
   // Cache
-  cache: Map<string, { data: any; timestamp: number }>
+  cache: Map<string, { data: unknown; timestamp: number }>
   lastUpdated: Date | null
   
   // Actions
   setActiveTab: (tab: string) => void
   setFilters: (filters: AnalyticsFilters) => void
-  updateFilter: (key: keyof AnalyticsFilters, value: any) => void
+  updateFilter: (key: keyof AnalyticsFilters, value: AnalyticsFilterValue) => void
   
   // Data Fetching
   fetchDashboardData: (filters?: AnalyticsFilters) => Promise<void>
@@ -38,7 +41,7 @@ interface AnalyticsState {
   
   // Export & Reports
   exportData: (format: 'csv' | 'excel') => Promise<void>
-  generateReport: (config: any) => Promise<{ downloadUrl: string; filename: string }>
+  generateReport: (config: Pick<ReportConfig, 'type' | 'format'> & Partial<ReportConfig>) => Promise<{ downloadUrl: string; filename: string }>
   
   // Real-time Updates
   subscribeToUpdates: () => void
@@ -78,7 +81,7 @@ export const useAnalyticsStore = create<AnalyticsState>()(
           get().fetchDashboardData()
         },
         
-        updateFilter: (key: keyof AnalyticsFilters, value: any) => {
+        updateFilter: (key: keyof AnalyticsFilters, value: AnalyticsFilterValue) => {
           const currentFilters = get().filters
           const newFilters = { ...currentFilters, [key]: value }
           set({ filters: newFilters })
@@ -99,9 +102,9 @@ export const useAnalyticsStore = create<AnalyticsState>()(
               lastUpdated: new Date(),
               error: null 
             })
-          } catch (error: any) {
+          } catch (error: unknown) {
             set({ 
-              error: error.message || 'Failed to fetch dashboard data', 
+              error: getErrorMessage(error, 'Failed to fetch dashboard data'), 
               isLoading: false 
             })
           }
@@ -119,9 +122,9 @@ export const useAnalyticsStore = create<AnalyticsState>()(
               isLoading: false, 
               error: null 
             })
-          } catch (error: any) {
+          } catch (error: unknown) {
             set({ 
-              error: error.message || 'Failed to fetch performance data', 
+              error: getErrorMessage(error, 'Failed to fetch performance data'), 
               isLoading: false 
             })
           }
@@ -139,9 +142,9 @@ export const useAnalyticsStore = create<AnalyticsState>()(
               isLoading: false, 
               error: null 
             })
-          } catch (error: any) {
+          } catch (error: unknown) {
             set({ 
-              error: error.message || 'Failed to fetch geographic data', 
+              error: getErrorMessage(error, 'Failed to fetch geographic data'), 
               isLoading: false 
             })
           }
@@ -159,9 +162,9 @@ export const useAnalyticsStore = create<AnalyticsState>()(
               isLoading: false, 
               error: null 
             })
-          } catch (error: any) {
+          } catch (error: unknown) {
             set({ 
-              error: error.message || 'Failed to fetch financial data', 
+              error: getErrorMessage(error, 'Failed to fetch financial data'), 
               isLoading: false 
             })
           }
@@ -179,9 +182,9 @@ export const useAnalyticsStore = create<AnalyticsState>()(
               isLoading: false, 
               error: null 
             })
-          } catch (error: any) {
+          } catch (error: unknown) {
             set({ 
-              error: error.message || 'Failed to fetch trend data', 
+              error: getErrorMessage(error, 'Failed to fetch trend data'), 
               isLoading: false 
             })
           }
@@ -203,13 +206,13 @@ export const useAnalyticsStore = create<AnalyticsState>()(
           
           try {
             await analyticsService.exportData(currentFilters, format)
-          } catch (error: any) {
-            set({ error: error.message || 'Export failed' })
+          } catch (error: unknown) {
+            set({ error: getErrorMessage(error, 'Export failed') })
             throw error
           }
         },
         
-        generateReport: async (config: any) => {
+        generateReport: async (config: Pick<ReportConfig, 'type' | 'format'> & Partial<ReportConfig>) => {
           const currentFilters = get().filters
           
           try {
@@ -221,8 +224,8 @@ export const useAnalyticsStore = create<AnalyticsState>()(
             })
             
             return report
-          } catch (error: any) {
-            set({ error: error.message || 'Report generation failed' })
+          } catch (error: unknown) {
+            set({ error: getErrorMessage(error, 'Report generation failed') })
             throw error
           }
         },

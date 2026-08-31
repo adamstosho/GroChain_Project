@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { adminApiService } from '@/lib/admin-api'
+import { getErrorMessage } from '@/lib/error-utils'
 
 interface AdminState {
   // State
@@ -159,8 +160,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         pagination: { ...get().pagination, users: response.data },
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -174,8 +175,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         ),
         isLoading: false
       }))
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -187,8 +188,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
           user._id === userId ? { ...user, status: 'suspended', suspensionReason: reason } : user
         )
       }))
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
     }
   },
 
@@ -200,8 +201,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
           user._id === userId ? { ...user, status: 'active' } : user
         )
       }))
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
     }
   },
 
@@ -211,8 +212,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       set(state => ({
         users: state.users.filter(user => user._id !== userId)
       }))
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
     }
   },
 
@@ -222,8 +223,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       await adminApiService.bulkUserOperation(action, userIds, reason)
       await get().fetchUsers() // Refresh users list
       set({ isLoading: false })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -235,8 +236,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         analytics: { ...get().analytics, users: response.data }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -251,8 +252,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         pagination: { ...get().pagination, harvests: response.data },
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -264,8 +265,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
           harvest._id === harvestId ? { ...harvest, status: 'approved' } : harvest
         )
       }))
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
     }
   },
 
@@ -277,8 +278,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
           harvest._id === harvestId ? { ...harvest, status: 'rejected' } : harvest
         )
       }))
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
     }
   },
 
@@ -288,8 +289,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       await adminApiService.bulkHarvestApproval(harvestIds, action as 'approve' | 'reject', reason)
       await get().fetchHarvests() // Refresh harvests list
       set({ isLoading: false })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -301,8 +302,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         analytics: { ...get().analytics, harvests: response.data }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -317,8 +318,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         pagination: { ...get().pagination, partners: response.data },
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -330,8 +331,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
           partner._id === partnerId ? { ...partner, status: 'active' } : partner
         )
       }))
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
     }
   },
 
@@ -343,8 +344,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
           partner._id === partnerId ? { ...partner, status: 'rejected' } : partner
         )
       }))
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
     }
   },
 
@@ -358,8 +359,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         ),
         isLoading: false
       }))
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -369,8 +370,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       set(state => ({
         partners: state.partners.filter(partner => partner._id !== partnerId)
       }))
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
     }
   },
 
@@ -382,8 +383,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         analytics: { ...get().analytics, partners: response.data }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -398,8 +399,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         pagination: { ...get().pagination, listings: response.data },
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -413,8 +414,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         ),
         isLoading: false
       }))
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -424,8 +425,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       set(state => ({
         listings: state.listings.filter(listing => listing._id !== listingId)
       }))
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
     }
   },
 
@@ -438,8 +439,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         pagination: { ...get().pagination, orders: response.data },
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -451,8 +452,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
           order._id === orderId ? { ...order, status } : order
         )
       }))
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
     }
   },
 
@@ -464,8 +465,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         analytics: { ...get().analytics, marketplace: response.data }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -476,8 +477,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     try {
       const response = await adminApiService.getFinancialOverview()
       set({ financial: response.data, isLoading: false })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -486,8 +487,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     try {
       const response = await adminApiService.getAllCommissions(params)
       set({ commissions: response.data.commissions, isLoading: false })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -495,8 +496,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     try {
       await adminApiService.processCommissionPayout(commissionId, payoutData)
       await get().fetchFinancialOverview() // Refresh financial data
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
     }
   },
 
@@ -505,8 +506,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     try {
       const response = await adminApiService.getAllPayments(params)
       set({ payments: response.data.payments, isLoading: false })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -518,8 +519,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         analytics: { ...get().analytics, financial: response.data }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -528,8 +529,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     try {
       await adminApiService.generateFinancialReport(reportData)
       set({ isLoading: false })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
       throw error
     }
   },
@@ -544,8 +545,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         analytics: { ...get().analytics, system: response.data }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -557,8 +558,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         analytics: { ...get().analytics, business: response.data }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -567,8 +568,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     try {
       await adminApiService.generateCustomReport(reportData)
       set({ isLoading: false })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
       throw error
     }
   },
@@ -576,8 +577,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   exportAnalyticsData: async (filters: any, format: string) => {
     try {
       return await adminApiService.exportAnalyticsData(filters, format)
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
       throw error
     }
   },
@@ -592,8 +593,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         system: { ...get().system, health: response.data }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -605,8 +606,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         system: { ...get().system, metrics: response.data }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -616,8 +617,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       await adminApiService.updateSystemConfig(configData)
       await get().fetchSystemHealth() // Refresh system data
       set({ isLoading: false })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -629,24 +630,24 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         system: { ...get().system, logs: response.data.logs }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
   triggerSystemMaintenance: async (maintenanceData: any) => {
     try {
       await adminApiService.triggerSystemMaintenance(maintenanceData)
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
     }
   },
 
   triggerBackup: async (backupData: any) => {
     try {
       await adminApiService.triggerManualBackup(backupData)
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
     }
   },
 
@@ -660,8 +661,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         moderation: { ...get().moderation, pending: response.data.content }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -669,8 +670,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     try {
       await adminApiService.approveContent(contentId, notes)
       await get().fetchPendingContent() // Refresh pending content
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
     }
   },
 
@@ -678,8 +679,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     try {
       await adminApiService.rejectContent(contentId, reason)
       await get().fetchPendingContent() // Refresh pending content
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error) })
     }
   },
 
@@ -691,8 +692,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         moderation: { ...get().moderation, analytics: response.data }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -706,8 +707,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         security: { ...get().security, alerts: response.data.alerts }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -719,8 +720,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         security: { ...get().security, fraudReports: response.data.reports }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -729,8 +730,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     try {
       await adminApiService.updateSecuritySettings(securityData)
       set({ isLoading: false })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -742,8 +743,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         security: { ...get().security, compliance: response.data }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -757,8 +758,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         system: { ...get().system, adminProfile: response.data }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -768,8 +769,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       await adminApiService.updateAdminProfile(profileData)
       await get().fetchAdminProfile() // Refresh admin profile
       set({ isLoading: false })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -781,8 +782,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         system: { ...get().system, permissions: response.data }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 
@@ -794,8 +795,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         system: { ...get().system, activityLog: response.data.activities }, 
         isLoading: false 
       })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false })
     }
   },
 

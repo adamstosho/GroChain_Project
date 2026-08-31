@@ -11,6 +11,7 @@ import { Star, Camera, CheckCircle, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { getErrorMessage } from "@/lib/error-utils"
 
 interface ReviewFormProps {
   listingId: string
@@ -80,11 +81,11 @@ export function ReviewForm({
       setImages([])
       
       onReviewSubmitted?.()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error submitting review:", error)
       toast({
         title: "Submission Failed",
-        description: error.message || "Failed to submit review. Please try again.",
+        description: getErrorMessage(error, "Failed to submit review. Please try again."),
         variant: "destructive"
       })
     } finally {

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { apiService } from '@/lib/api'
+import { getErrorMessage, getErrorStatus, asRecord } from '@/lib/error-utils'
 import { useToast } from './use-toast'
 
 export interface TrustScoreData {
@@ -45,12 +46,17 @@ export interface ScanResult {
   disclaimer?: string
 }
 
-function unwrap(response: any) {
-  // Supports both { success, data } and { status: 'success', data }
-  if (response?.data && (response.success === true || response.status === 'success')) {
-    return response.data
+function unwrap<T>(response: unknown): T | null {
+  const rec = asRecord(response)
+  if (rec.data && (rec.success === true || rec.status === 'success')) {
+    return rec.data as T
   }
   return null
+}
+
+function responseMessage(response: unknown, fallback: string): string {
+  const rec = asRecord(response)
+  return typeof rec.message === 'string' ? rec.message : fallback
 }
 
 export function useAi() {
@@ -64,14 +70,14 @@ export function useAi() {
     if (!options?.silent) setLoading(true)
     try {
       const response = await apiService.get(`/ai/trust-score/${userId}`)
-      const data = unwrap(response)
+      const data = unwrap<TrustScoreData>(response)
       if (data) return data
-      throw new Error(response?.message || 'Failed to fetch trust score')
-    } catch (error: any) {
+      throw new Error(responseMessage(response, 'Failed to fetch trust score'))
+    } catch (error: unknown) {
       if (!options?.silent) {
         toast({
           title: 'Trust score unavailable',
-          description: error.message,
+          description: getErrorMessage(error),
           variant: 'destructive',
         })
       }
@@ -87,8 +93,8 @@ export function useAi() {
       const q = encodeURIComponent(cropType)
       const loc = location ? `&location=${encodeURIComponent(location)}` : ''
       const response = await apiService.get(`/ai/price-pulse?cropType=${q}${loc}`)
-      return unwrap(response)
-    } catch (error: any) {
+      return unwrap<PricePulseData>(response)
+    } catch (error: unknown) {
       console.error('PricePulse Error:', error)
       return null
     } finally {
@@ -96,11 +102,11 @@ export function useAi() {
     }
   }
 
-  const getShipmentRisk = async (shipmentId: string): Promise<any | null> => {
+  const getShipmentRisk = async (shipmentId: string): Promise<Record<string, unknown> | null> => {
     try {
       const response = await apiService.get(`/ai/shipment-risk/${shipmentId}`)
-      return unwrap(response)
-    } catch (error: any) {
+      return unwrap<Record<string, unknown>>(response)
+    } catch (error: unknown) {
       console.error('ShipmentRisk Error:', error)
       return null
     }
@@ -110,7 +116,7 @@ export function useAi() {
     setLoading(true)
     try {
       const response = await apiService.post('/ai/scan-quality', { imageUrl })
-      const data = unwrap(response)
+      const data = unwrap<ScanResult>(response)
       if (data) {
         toast({
           title: 'Scan complete',
@@ -118,11 +124,11 @@ export function useAi() {
         })
         return data
       }
-      throw new Error(response?.message || 'Failed to analyze crop')
-    } catch (error: any) {
-      const message = error?.message || 'Failed to analyze crop'
+      throw new Error(responseMessage(response, 'Failed to analyze crop'))
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, 'Failed to analyze crop')
       const unavailable =
-        error?.status === 501 ||
+        getErrorStatus(error) === 501 ||
         /not (yet )?configured|not yet available|VISION_NOT_CONFIGURED|501/i.test(message)
 
       toast({
@@ -149,8 +155,15 @@ export function useAi() {
     setLoading(true)
     try {
       const response = await apiService.get('/ai/forecast')
-      return unwrap(response)
-    } catch (error: any) {
+      return unwrap<{
+        forecastedRevenue: number
+        confidence: number
+        growthIndicator: 'rising' | 'falling'
+        insights: string[]
+        disclaimer?: string
+        sampleSize?: number
+      }>(response)
+    } catch (error: unknown) {
       console.error('Forecast Error:', error)
       return null
     } finally {

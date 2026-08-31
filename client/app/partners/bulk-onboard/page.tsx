@@ -49,7 +49,7 @@ export default function BulkOnboardPage() {
 
       const response = await api.uploadPartnerCSV(file)
 
-      setResult(response.data as any)
+      setResult((response.data as UploadResult) ?? null)
     } catch (error) {
       console.error("Upload failed:", error)
       alert("Upload failed. Please try again.")

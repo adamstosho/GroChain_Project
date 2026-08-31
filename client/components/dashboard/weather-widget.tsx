@@ -12,10 +12,76 @@ import { useAuthStore } from "@/lib/auth"
 import { useToast } from "@/hooks/use-toast"
 import { useGeolocation } from "@/hooks/useGeolocation"
 import { Cloud, Sun, CloudRain, Wind, Droplets, Calendar, Thermometer, Droplets as HumidityIcon, Navigation, RefreshCw, MapPin, X } from "lucide-react"
+import { getErrorMessage } from "@/lib/error-utils"
+import type { User } from "@/lib/types"
+
+interface WeatherLocationInput {
+  lat: number | null
+  lng: number | null
+  city: string
+  state: string
+  country: string
+}
+
+interface WeatherCurrentView {
+  temperature: number
+  humidity: number
+  windSpeed: number
+  description: string
+  weatherIcon: string
+  feelsLike: number
+}
+
+interface WeatherView {
+  location: string
+  current: WeatherCurrentView
+  agriculturalInsights: {
+    plantingRecommendations: string[]
+    harvestingRecommendations: string[]
+    irrigationAdvice: string
+    pestWarnings: string[]
+  }
+}
+
+interface ForecastDay {
+  date?: string | number | Date
+  weatherCondition?: string
+  weatherIcon?: string
+  highTemp?: number
+  lowTemp?: number
+  humidity?: number
+  precipitation?: number
+  temperature?: { max?: number; min?: number }
+}
+
+interface WeatherApiLocation {
+  city?: string
+  state?: string
+  country?: string
+}
+
+interface WeatherApiCurrent {
+  temperature?: number
+  humidity?: number
+  windSpeed?: number
+  weatherCondition?: string
+  condition?: string
+  weatherIcon?: string
+  feelsLike?: number
+}
+
+interface WeatherApiPayload {
+  location?: WeatherApiLocation
+  current?: WeatherApiCurrent
+  agricultural?: {
+    plantingRecommendation?: string
+    irrigationAdvice?: string
+  }
+}
 
 export function WeatherWidget() {
-  const [weather, setWeather] = useState<any>(null)
-  const [forecast, setForecast] = useState<any[]>([])
+  const [weather, setWeather] = useState<WeatherView | null>(null)
+  const [forecast, setForecast] = useState<ForecastDay[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isForecastLoading, setIsForecastLoading] = useState(false)
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
@@ -25,7 +91,7 @@ export function WeatherWidget() {
   const { location: geoLocation, loading: geoLoading, error: geoError, requestLocation } = useGeolocation()
 
   // Helper function to parse and normalize location - ONLY use stored data as last resort
-  const parseLocation = (userObj: any) => {
+  const parseLocation = (userObj: User | string | null | undefined): WeatherLocationInput => {
     // Only use stored location if geolocation completely fails
     let lat: number | null = null
     let lng: number | null = null
@@ -33,7 +99,7 @@ export function WeatherWidget() {
     let state = "Unknown State"
     let country = "Nigeria"
 
-    if (userObj) {
+    if (userObj && typeof userObj === "object") {
       // Priority 1: Check profile.coordinates (most accurate)
       if (userObj.profile?.coordinates?.lat && userObj.profile?.coordinates?.lng) {
         lat = userObj.profile.coordinates.lat
@@ -118,7 +184,7 @@ export function WeatherWidget() {
         setHasAttemptedFetch(true)
 
         // Priority 1: ALWAYS use actual current location from geolocation API
-        let locationData: any = null
+        let locationData: WeatherLocationInput | null = null
 
         if (geoLocation && !geoLoading && !geoError) {
           console.log('🎯 Using actual current location from geolocation:', geoLocation)
@@ -162,6 +228,11 @@ export function WeatherWidget() {
 
         console.log('📍 Final location data:', locationData)
 
+        if (!locationData || locationData.lat == null || locationData.lng == null) {
+          setIsLoading(false)
+          return
+        }
+
         const { lat, lng, city, state, country } = locationData
 
         console.log('🌤️ Fetching weather for:', { lat, lng, city, state, country })
@@ -172,24 +243,24 @@ export function WeatherWidget() {
         const response = await apiService.getCurrentWeather({ lat, lng, city, state, country })
 
         if (response.status === 'success' && response.data) {
-          const d = response.data
+          const d = response.data as WeatherApiPayload
           console.log('🌤️ Weather data received:', d)
 
-        const mapped = {
-          location: `${(d.location as any)?.city || city}, ${(d.location as any)?.state || state}, ${(d.location as any)?.country || country}`,
+        const mapped: WeatherView = {
+          location: `${d.location?.city || city}, ${d.location?.state || state}, ${d.location?.country || country}`,
           current: {
               temperature: Math.round(d.current?.temperature ?? 0),
             humidity: d.current?.humidity ?? 0,
               windSpeed: Math.round(d.current?.windSpeed ?? 0),
-              description: (d.current as any)?.weatherCondition || (d.current as any)?.condition || "Clear",
-              weatherIcon: (d.current as any)?.weatherIcon || "",
-              feelsLike: Math.round((d.current as any)?.feelsLike ?? 0),
+              description: d.current?.weatherCondition || d.current?.condition || "Clear",
+              weatherIcon: d.current?.weatherIcon || "",
+              feelsLike: Math.round(d.current?.feelsLike ?? 0),
           },
           agriculturalInsights: {
-              plantingRecommendations: (d as any).agricultural?.plantingRecommendation ?
-                [(d as any).agricultural.plantingRecommendation] : [],
+              plantingRecommendations: d.agricultural?.plantingRecommendation ?
+                [d.agricultural.plantingRecommendation] : [],
             harvestingRecommendations: [],
-            irrigationAdvice: (d as any).agricultural?.irrigationAdvice || "",
+            irrigationAdvice: d.agricultural?.irrigationAdvice || "",
             pestWarnings: [],
           },
         }
@@ -197,7 +268,7 @@ export function WeatherWidget() {
         } else {
           throw new Error('Weather API returned unsuccessful response')
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('❌ Weather fetch failed:', error)
 
         // Show user-friendly error message
@@ -284,7 +355,7 @@ export function WeatherWidget() {
     setIsForecastLoading(true)
     try {
       // Use same location priority as main weather fetch
-      let locationData: any = null
+      let locationData: WeatherLocationInput | null = null
 
       if (geoLocation && !geoLoading && !geoError) {
         console.log('🎯 Using actual current location for forecast:', geoLocation)
@@ -309,6 +380,11 @@ export function WeatherWidget() {
         locationData = parseLocation(user)
       }
 
+      if (!locationData || locationData.lat == null || locationData.lng == null) {
+        setIsForecastLoading(false)
+        return
+      }
+
       const { lat, lng, city, state, country } = locationData
 
       console.log('🌤️ Fetching forecast for:', { lat, lng, city, state, country })
@@ -317,17 +393,20 @@ export function WeatherWidget() {
 
       if (response.status === 'success' && response.data) {
         console.log('🌤️ Forecast data received:', response.data)
-        const forecastData = response.data.forecast || response.data || []
+        const payload = response.data as { forecast?: ForecastDay[] } | ForecastDay[]
+        const forecastData = Array.isArray(payload)
+          ? payload
+          : (payload.forecast || [])
         setForecast(Array.isArray(forecastData) ? forecastData.slice(0, 5) : [])
       } else {
         throw new Error('Forecast API returned unsuccessful response')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Forecast fetch failed:', error)
       setForecast([]) // Clear any existing forecast data
       toast({
         title: "Forecast Unavailable",
-        description: error.message || "Unable to fetch weather forecast data. Please try again later.",
+        description: getErrorMessage(error, "Unable to fetch weather forecast data. Please try again later."),
         variant: "destructive",
       })
     } finally {
@@ -490,17 +569,17 @@ export function WeatherWidget() {
           <div className="space-y-2">
             <h4 className="font-medium text-xs sm:text-sm">Farming Insights</h4>
             <div className="space-y-1">
-              {weather?.current?.temperature > 0 ? (
+              {(weather?.current?.temperature ?? 0) > 0 ? (
                 // Generate intelligent insights based on real weather data
                 <>
                   <div className="text-xs text-muted-foreground flex items-start space-x-1">
                     <div className="h-1 w-1 rounded-full bg-primary mt-1.5 flex-shrink-0" />
                     <span className="break-words leading-relaxed">
-                      {weather.current.temperature > 30
+                      {(weather?.current?.temperature ?? 0) > 30
                         ? "High temps — provide shade and increase irrigation"
-                        : weather.current.temperature > 25
+                        : (weather?.current?.temperature ?? 0) > 25
                         ? "Warm conditions — monitor heat stress in crops"
-                        : weather.current.temperature < 15
+                        : (weather?.current?.temperature ?? 0) < 15
                         ? "Cool temps — protect frost-sensitive crops"
                         : "Optimal temperatures for crop growth"
                       }
@@ -509,11 +588,11 @@ export function WeatherWidget() {
                   <div className="text-xs text-muted-foreground flex items-start space-x-1">
                     <div className="h-1 w-1 rounded-full bg-primary mt-1.5 flex-shrink-0" />
                     <span className="break-words leading-relaxed">
-                      {weather.current.humidity > 80
+                      {(weather?.current?.humidity ?? 0) > 80
                         ? "High humidity — monitor for fungal diseases"
-                        : weather.current.humidity > 70
+                        : (weather?.current?.humidity ?? 0) > 70
                         ? "Elevated humidity — watch for pest activity"
-                        : weather.current.humidity < 40
+                        : (weather?.current?.humidity ?? 0) < 40
                         ? "Low humidity — increase irrigation frequency"
                         : "Good humidity levels for crop health"
                       }
@@ -522,9 +601,9 @@ export function WeatherWidget() {
                   <div className="text-xs text-muted-foreground flex items-start space-x-1">
                     <div className="h-1 w-1 rounded-full bg-primary mt-1.5 flex-shrink-0" />
                     <span className="break-words leading-relaxed">
-                      {weather.current.windSpeed > 15
+                      {(weather?.current?.windSpeed ?? 0) > 15
                         ? "Strong winds — secure young plants"
-                        : weather.current.windSpeed > 8
+                        : (weather?.current?.windSpeed ?? 0) > 8
                         ? "Moderate winds — good for pest control"
                         : "Light winds — ideal farming conditions"
                       }
@@ -589,8 +668,8 @@ export function WeatherWidget() {
 
               <div className="flex-1 overflow-y-auto px-1">
                 <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 pb-4">
-                {forecast.map((day: any, index: number) => {
-                  const WeatherIcon = getWeatherIcon(day.weatherCondition || day.weatherIcon)
+                {forecast.map((day: ForecastDay, index: number) => {
+                  const WeatherIcon = getWeatherIcon(day.weatherCondition || day.weatherIcon || "")
                   const dayDate = new Date(day.date || Date.now() + index * 24 * 60 * 60 * 1000)
 
                   return (
@@ -623,11 +702,11 @@ export function WeatherWidget() {
                               {day.humidity ?? 0}%
                             </span>
                           </div>
-                          {day.precipitation > 0 && (
+                          {(day.precipitation ?? 0) > 0 && (
                             <div className="flex justify-between items-center text-xs sm:text-sm">
                               <CloudRain className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                               <span className="text-muted-foreground text-xs sm:text-sm">
-                                {Math.round(day.precipitation)}mm
+                                {Math.round(day.precipitation ?? 0)}mm
                               </span>
                             </div>
                           )}

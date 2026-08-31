@@ -11,7 +11,57 @@ import {
   setTokensInStorage,
   setTokenInStorage,
 } from "./auth-storage"
-import type { User } from "./types"
+import { asRecord } from "./error-utils"
+import type { User, UserProfile } from "./types"
+
+const ALLOWED_ROLES = ["farmer", "partner", "admin", "buyer"] as const
+type UserRole = (typeof ALLOWED_ROLES)[number]
+const ALLOWED_STATUSES = ["active", "inactive", "suspended"] as const
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback
+}
+
+function asOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined
+}
+
+function asOptionalNumber(value: unknown): number | undefined {
+  return typeof value === "number" && !Number.isNaN(value) ? value : undefined
+}
+
+function asBool(value: unknown, fallback: boolean): boolean {
+  if (value === undefined || value === null) return fallback
+  return Boolean(value)
+}
+
+function asDate(value: unknown): Date {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value
+  if (typeof value === "string" || typeof value === "number") {
+    const parsed = new Date(value)
+    if (!Number.isNaN(parsed.getTime())) return parsed
+  }
+  return new Date()
+}
+
+function asRole(value: unknown): UserRole {
+  return typeof value === "string" && (ALLOWED_ROLES as readonly string[]).includes(value)
+    ? (value as UserRole)
+    : "farmer"
+}
+
+function asStatus(value: unknown): User["status"] {
+  return typeof value === "string" && (ALLOWED_STATUSES as readonly string[]).includes(value)
+    ? (value as User["status"])
+    : "active"
+}
+
+function pickToken(...candidates: unknown[]): string | undefined {
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate) return candidate
+  }
+  return undefined
+}
 
 const ACCESS_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const REFRESH_COOKIE_MAX_AGE = 60 * 60 * 24 * 30
@@ -38,11 +88,11 @@ interface AuthState {
   refreshToken: string | null
   isAuthenticated: boolean
   isLoading: boolean
-  normalizeUser: (backendUser: any) => User
+  normalizeUser: (backendUser: unknown) => User
   hasHydrated: boolean
   setHasHydrated: (hydrated: boolean) => void
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>
-  register: (userData: any) => Promise<void>
+  register: (userData: { name: string; email: string; phone: string; password: string; role: string; location?: string }) => Promise<{ emailSent?: boolean; message?: string } | void>
   logout: () => void
   refreshAuth: () => Promise<void>
   updateUser: (userData: Partial<User>) => void
@@ -65,37 +115,43 @@ export const useAuthStore = create<AuthState>()(
 
       // Internal helper to normalize backend user shape to frontend User type
       // Ensures id/_id differences and default fields are handled
-      normalizeUser: (backendUser: any): User => {
-        const id = backendUser._id || backendUser.id || ""
-        const backendPrefs = backendUser.notificationPreferences || {}
+      normalizeUser: (backendUser: unknown): User => {
+        const rec = asRecord(backendUser)
+        const id = asString(rec._id) || asString(rec.id)
+        const backendPrefs = asRecord(rec.notificationPreferences)
+        const profileRaw = rec.profile
+        const profile =
+          profileRaw && typeof profileRaw === "object" && !Array.isArray(profileRaw)
+            ? (profileRaw as UserProfile)
+            : {}
         return {
           _id: id,
-          name: backendUser.name || "",
-          email: backendUser.email || "",
-          phone: backendUser.phone || "",
-          role: backendUser.role || "farmer",
-          status: backendUser.status || "active",
-          partner: backendUser.partner,
-          emailVerified: Boolean(backendUser.emailVerified),
-          phoneVerified: Boolean(backendUser.phoneVerified),
-          location: backendUser.location,
-          gender: backendUser.gender,
-          age: backendUser.age,
-          education: backendUser.education,
-          pushToken: backendUser.pushToken,
+          name: asString(rec.name),
+          email: asString(rec.email),
+          phone: asString(rec.phone),
+          role: asRole(rec.role),
+          status: asStatus(rec.status),
+          partner: asOptionalString(rec.partner),
+          emailVerified: Boolean(rec.emailVerified),
+          phoneVerified: Boolean(rec.phoneVerified),
+          location: asOptionalString(rec.location),
+          gender: asOptionalString(rec.gender),
+          age: asOptionalNumber(rec.age),
+          education: asOptionalString(rec.education),
+          pushToken: asOptionalString(rec.pushToken),
           notificationPreferences: {
-            email: backendPrefs.email ?? true,
-            sms: backendPrefs.sms ?? true,
-            push: backendPrefs.push ?? false,
-            marketing: backendPrefs.marketing ?? true,
-            orderUpdates: backendPrefs.transaction ?? true,
-            harvestUpdates: backendPrefs.harvest ?? true,
-            paymentUpdates: backendPrefs.transaction ?? true,
-            weatherAlerts: backendPrefs.weatherAlerts ?? false,
+            email: asBool(backendPrefs.email, true),
+            sms: asBool(backendPrefs.sms, true),
+            push: asBool(backendPrefs.push, false),
+            marketing: asBool(backendPrefs.marketing, true),
+            orderUpdates: asBool(backendPrefs.transaction, true),
+            harvestUpdates: asBool(backendPrefs.harvest, true),
+            paymentUpdates: asBool(backendPrefs.transaction, true),
+            weatherAlerts: asBool(backendPrefs.weatherAlerts, false),
           },
-          profile: backendUser.profile || {}, // Include profile data with avatar
-          createdAt: backendUser.createdAt ? new Date(backendUser.createdAt) : new Date(),
-          updatedAt: backendUser.updatedAt ? new Date(backendUser.updatedAt) : new Date(),
+          profile,
+          createdAt: rec.createdAt ? asDate(rec.createdAt) : new Date(),
+          updatedAt: rec.updatedAt ? asDate(rec.updatedAt) : new Date(),
         }
       },
       
@@ -106,11 +162,15 @@ export const useAuthStore = create<AuthState>()(
 
           const response = await apiService.login(email, password)
           // Support both { data: { accessToken, refreshToken, user } } and top-level fields
-          const envelope: any = (response as any) || {}
-          const data = envelope.data || envelope
-          const accessToken = data.accessToken || data.token || envelope.accessToken || envelope.token
-          const refreshToken = data.refreshToken || envelope.refreshToken
-          const rawUser = data.user || envelope.user
+          const envelope = asRecord(response)
+          const nested = envelope.data
+          const data =
+            nested && typeof nested === "object" && !Array.isArray(nested)
+              ? asRecord(nested)
+              : envelope
+          const accessToken = pickToken(data.accessToken, data.token, envelope.accessToken, envelope.token)
+          const refreshToken = pickToken(data.refreshToken, envelope.refreshToken)
+          const rawUser = data.user ?? envelope.user
 
           if (!accessToken || !refreshToken || !rawUser) {
             throw new Error('Authentication response is missing required fields.')
@@ -121,7 +181,7 @@ export const useAuthStore = create<AuthState>()(
 
           setCookie("auth_token", accessToken, rememberMe)
           setCookie("refresh_token", refreshToken, rememberMe, REFRESH_COOKIE_MAX_AGE)
-          const normalizedUser = (get() as any).normalizeUser(rawUser)
+          const normalizedUser = get().normalizeUser(rawUser)
 
           set({
             user: normalizedUser,
@@ -136,10 +196,10 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (userData: any) => {
+      register: async (userData: { name: string; email: string; phone: string; password: string; role: string; location?: string }) => {
         set({ isLoading: true })
         try {
-          await apiService.register(userData)
+          const response = await apiService.register(userData)
 
           // Registration successful - user needs to verify email
           set({
@@ -149,6 +209,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             isLoading: false,
           })
+          return response
         } catch (error) {
           set({ isLoading: false })
           throw error
@@ -186,10 +247,14 @@ export const useAuthStore = create<AuthState>()(
 
         try {
           const response = await apiService.refreshToken(refreshToken)
-          const envelope: any = (response as any) || {}
-          const data = envelope.data || envelope
-          const newAccessToken = data.accessToken || data.token || envelope.accessToken || envelope.token
-          const newRefreshToken = data.refreshToken || envelope.refreshToken
+          const envelope = asRecord(response)
+          const nested = envelope.data
+          const data =
+            nested && typeof nested === "object" && !Array.isArray(nested)
+              ? asRecord(nested)
+              : envelope
+          const newAccessToken = pickToken(data.accessToken, data.token, envelope.accessToken, envelope.token)
+          const newRefreshToken = pickToken(data.refreshToken, envelope.refreshToken)
 
           if (!newAccessToken || !newRefreshToken) {
             throw new Error('Refresh response is missing required fields.')

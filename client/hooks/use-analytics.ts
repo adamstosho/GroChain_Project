@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { analyticsService, AnalyticsFilters, AnalyticsData } from '@/lib/analytics-service'
+import { getErrorMessage } from '@/lib/error-utils'
 import { useToast } from './use-toast'
 
 interface UseAnalyticsReturn {
@@ -28,8 +29,8 @@ export function useAnalytics(initialFilters: AnalyticsFilters = {}): UseAnalytic
       
       const analyticsData = await analyticsService.getDashboardAnalytics(filters)
       setData(analyticsData)
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to fetch analytics data'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to fetch analytics data'
       setError(errorMessage)
       toast({
         title: "Error loading analytics",
@@ -64,8 +65,8 @@ export function useAnalytics(initialFilters: AnalyticsFilters = {}): UseAnalytic
         title: "Export successful",
         description: `Analytics data exported as ${format.toUpperCase()}`,
       })
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to export data'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to export data'
       toast({
         title: "Export failed",
         description: errorMessage,
@@ -96,8 +97,8 @@ export function useAnalytics(initialFilters: AnalyticsFilters = {}): UseAnalytic
         title: "Report generated",
         description: "Your analytics report is ready for download",
       })
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to generate report'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to generate report'
       toast({
         title: "Report generation failed",
         description: errorMessage,
@@ -143,8 +144,8 @@ export function usePerformanceAnalytics(filters: AnalyticsFilters = {}) {
       
       const performanceData = await analyticsService.getPerformanceAnalytics(filters)
       setData(performanceData)
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to fetch performance analytics'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to fetch performance analytics'
       setError(errorMessage)
       toast({
         title: "Error loading performance data",
@@ -176,8 +177,8 @@ export function useGeographicAnalytics(filters: AnalyticsFilters = {}) {
       
       const geographicData = await analyticsService.getGeographicAnalytics(filters)
       setData(geographicData)
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to fetch geographic analytics'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to fetch geographic analytics'
       setError(errorMessage)
       toast({
         title: "Error loading geographic data",
@@ -209,8 +210,8 @@ export function useFinancialAnalytics(filters: AnalyticsFilters = {}) {
       
       const financialData = await analyticsService.getFinancialAnalytics(filters)
       setData(financialData)
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to fetch financial analytics'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to fetch financial analytics'
       setError(errorMessage)
       toast({
         title: "Error loading financial data",
@@ -242,8 +243,8 @@ export function useTrendAnalytics(filters: AnalyticsFilters = {}) {
       
       const trendData = await analyticsService.getTrendAnalytics(filters)
       setData(trendData)
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to fetch trend analytics'
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err) || 'Failed to fetch trend analytics'
       setError(errorMessage)
       toast({
         title: "Error loading trend data",

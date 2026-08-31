@@ -15,10 +15,24 @@ import {
 } from "lucide-react"
 import { Text } from "@/components/ui/typography"
 
+interface CommissionLike {
+  status: string
+  amount: number
+  rate: number
+  orderAmount: number
+  farmer?: { name?: string; email?: string; phone?: string }
+  order?: { orderNumber?: string; _id?: string; status?: string }
+  listing?: { cropName?: string; price?: number }
+  createdAt: string | Date
+  updatedAt?: string | Date
+  paidAt?: Date | string
+  notes?: string
+}
+
 interface CommissionDetailsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  commission: any
+  commission: CommissionLike | null
 }
 
 const statusConfig = {
@@ -183,7 +197,7 @@ export function CommissionDetailsDialog({ open, onOpenChange, commission }: Comm
                   <div>
                     <p className="text-sm font-medium">Commission Approved</p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(commission.updatedAt).toLocaleString()}
+                      {commission.updatedAt ? new Date(String(commission.updatedAt)).toLocaleString() : "—"}
                     </p>
                   </div>
                 </div>

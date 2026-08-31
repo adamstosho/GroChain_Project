@@ -1,34 +1,59 @@
 const axios = require('axios')
-// crypto is built-in to Node.js, no need to require it
+const crypto = require('crypto')
 
 class FlutterwaveUtil {
   constructor() {
     this.secretKey = process.env.FLUTTERWAVE_SECRET_KEY
     this.publicKey = process.env.FLUTTERWAVE_PUBLIC_KEY
     this.baseURL = 'https://api.flutterwave.com/v3'
-    
+
     if (!this.secretKey) {
       throw new Error('FLUTTERWAVE_SECRET_KEY is required')
     }
-    
+
     this.axiosInstance = axios.create({
       baseURL: this.baseURL,
       headers: {
-        'Authorization': `Bearer ${this.secretKey}`,
+        Authorization: `Bearer ${this.secretKey}`,
         'Content-Type': 'application/json'
-      }
+      },
+      timeout: 30000
     })
   }
-  
-  // Initialize transaction
+
+  // Initialize a hosted payment link.
+  // Callers pass `amount` in naira (Flutterwave's native unit — unlike Paystack kobo).
   async initializeTransaction(data) {
     try {
+      const amountNaira = Number(data.amount)
+      if (!Number.isFinite(amountNaira) || amountNaira <= 0) {
+        return {
+          success: false,
+          message: 'Invalid payment amount'
+        }
+      }
+
+      if (!data.reference) {
+        return {
+          success: false,
+          message: 'Payment reference is required'
+        }
+      }
+
+      if (!data.email) {
+        return {
+          success: false,
+          message: 'Customer email is required'
+        }
+      }
+
+      const callbackUrl = data.callbackUrl || data.callback_url || data.redirect_url
+
       const payload = {
         tx_ref: data.reference,
-        amount: data.amount,
+        amount: amountNaira,
         currency: data.currency || 'NGN',
-        redirect_url: data.callbackUrl,
-        payment_options: 'card,mobilemoney,ussd',
+        payment_options: data.payment_options || 'card,mobilemoney,ussd,banktransfer',
         customer: {
           email: data.email,
           phonenumber: data.phone || '',
@@ -36,42 +61,59 @@ class FlutterwaveUtil {
         },
         customizations: {
           title: 'GroChain Payment',
-          description: `Payment for order ${data.orderId}`,
-          logo: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/logo-icon.png`
+          description: `Payment for order ${data.orderId || data.reference}`,
+          logo: `${process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:3000'}/logo-icon.png`
         },
         meta: {
           order_id: data.orderId,
-          customer_name: data.customerName
+          customer_name: data.customerName,
+          ...(data.metadata || {})
         }
       }
-      
+
+      if (callbackUrl) {
+        payload.redirect_url = callbackUrl
+      }
+
       const response = await this.axiosInstance.post('/payments', payload)
-      
+
       if (response.data.status === 'success') {
         return {
           success: true,
-          data: response.data.data,
+          data: {
+            ...(response.data.data || {}),
+            reference: data.reference
+          },
+          reference: data.reference,
           message: 'Transaction initialized successfully'
         }
-      } else {
-        return {
-          success: false,
-          message: response.data.message || 'Failed to initialize transaction'
-        }
+      }
+
+      return {
+        success: false,
+        message: response.data.message || 'Failed to initialize transaction'
       }
     } catch (error) {
       console.error('Flutterwave initialization error:', error.response?.data || error.message)
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to initialize transaction'
+        message:
+          error.response?.data?.message ||
+          error.response?.data?.data?.message ||
+          error.message ||
+          'Failed to initialize transaction'
       }
     }
   }
-  
+
   // Verify transaction by OUR tx_ref (not Flutterwave's numeric id).
   // Amount is returned in naira.
   async verifyTransaction(reference) {
     try {
+      if (!reference) {
+        return { success: false, paid: false, error: 'Reference is required' }
+      }
+
       const response = await this.axiosInstance.get(
         `/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`
       )
@@ -82,7 +124,7 @@ class FlutterwaveUtil {
           success: true,
           paid: transaction.status === 'successful',
           status: transaction.status,
-          amount: transaction.amount,
+          amount: Number(transaction.amount),
           reference: transaction.tx_ref,
           providerTransactionId: transaction.id,
           channel: transaction.payment_type,
@@ -104,19 +146,34 @@ class FlutterwaveUtil {
       return {
         success: false,
         paid: false,
-        error: error.response?.data?.message || error.message || 'Failed to verify transaction'
+        error:
+          error.response?.data?.message ||
+          error.message ||
+          'Failed to verify transaction'
       }
     }
   }
-  
-  // Refund a transaction (full or partial) — requires Flutterwave's own numeric
-  // transaction id, not our tx_ref.
+
+  // Refund — requires Flutterwave's numeric transaction id, not our tx_ref.
   async refundTransaction(providerTransactionId, amount) {
     try {
-      const payload = {}
-      if (amount != null) payload.amount = amount
+      if (!providerTransactionId) {
+        return { success: false, message: 'Flutterwave transaction id is required for refund' }
+      }
 
-      const response = await this.axiosInstance.post(`/transactions/${providerTransactionId}/refund`, payload)
+      const payload = {}
+      if (amount != null) {
+        const amountNaira = Number(amount)
+        if (!Number.isFinite(amountNaira) || amountNaira <= 0) {
+          return { success: false, message: 'Invalid refund amount' }
+        }
+        payload.amount = amountNaira
+      }
+
+      const response = await this.axiosInstance.post(
+        `/transactions/${providerTransactionId}/refund`,
+        payload
+      )
 
       if (response.data.status === 'success') {
         return {
@@ -138,29 +195,27 @@ class FlutterwaveUtil {
     }
   }
 
-  // Create customer
   async createCustomer(data) {
     try {
       const payload = {
         email: data.email,
-        name: `${data.firstName} ${data.lastName}`,
+        name: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
         phone_number: data.phone,
         meta: data.metadata || {}
       }
-      
+
       const response = await this.axiosInstance.post('/customers', payload)
-      
+
       if (response.data.status === 'success') {
         return {
           success: true,
           data: response.data.data,
           message: 'Customer created successfully'
         }
-      } else {
-        return {
-          success: false,
-          message: response.data.message || 'Failed to create customer'
-        }
+      }
+      return {
+        success: false,
+        message: response.data.message || 'Failed to create customer'
       }
     } catch (error) {
       console.error('Flutterwave customer creation error:', error.response?.data || error.message)
@@ -170,23 +225,21 @@ class FlutterwaveUtil {
       }
     }
   }
-  
-  // Get customer
+
   async getCustomer(customerId) {
     try {
       const response = await this.axiosInstance.get(`/customers/${customerId}`)
-      
+
       if (response.data.status === 'success') {
         return {
           success: true,
           data: response.data.data,
           message: 'Customer retrieved successfully'
         }
-      } else {
-        return {
-          success: false,
-          message: response.data.message || 'Failed to retrieve customer'
-        }
+      }
+      return {
+        success: false,
+        message: response.data.message || 'Failed to retrieve customer'
       }
     } catch (error) {
       console.error('Flutterwave customer retrieval error:', error.response?.data || error.message)
@@ -196,8 +249,7 @@ class FlutterwaveUtil {
       }
     }
   }
-  
-  // Create transfer recipient
+
   async createTransferRecipient(data) {
     try {
       const payload = {
@@ -209,20 +261,19 @@ class FlutterwaveUtil {
         reference: data.reference,
         meta: data.metadata || {}
       }
-      
+
       const response = await this.axiosInstance.post('/transfers', payload)
-      
+
       if (response.data.status === 'success') {
         return {
           success: true,
           data: response.data.data,
           message: 'Transfer initiated successfully'
         }
-      } else {
-        return {
-          success: false,
-          message: response.data.message || 'Failed to initiate transfer'
-        }
+      }
+      return {
+        success: false,
+        message: response.data.message || 'Failed to initiate transfer'
       }
     } catch (error) {
       console.error('Flutterwave transfer initiation error:', error.response?.data || error.message)
@@ -232,23 +283,21 @@ class FlutterwaveUtil {
       }
     }
   }
-  
-  // Get banks list
+
   async getBanks() {
     try {
       const response = await this.axiosInstance.get('/banks/NG')
-      
+
       if (response.data.status === 'success') {
         return {
           success: true,
           data: response.data.data,
           message: 'Banks retrieved successfully'
         }
-      } else {
-        return {
-          success: false,
-          message: response.data.message || 'Failed to retrieve banks'
-        }
+      }
+      return {
+        success: false,
+        message: response.data.message || 'Failed to retrieve banks'
       }
     } catch (error) {
       console.error('Flutterwave banks retrieval error:', error.response?.data || error.message)
@@ -258,28 +307,24 @@ class FlutterwaveUtil {
       }
     }
   }
-  
-  // Verify bank account
+
   async verifyBankAccount(accountNumber, bankCode) {
     try {
-      const payload = {
+      const response = await this.axiosInstance.post('/accounts/resolve', {
         account_number: accountNumber,
         account_bank: bankCode
-      }
-      
-      const response = await this.axiosInstance.post('/accounts/resolve', payload)
-      
+      })
+
       if (response.data.status === 'success') {
         return {
           success: true,
           data: response.data.data,
           message: 'Bank account verified successfully'
         }
-      } else {
-        return {
-          success: false,
-          message: response.data.message || 'Failed to verify bank account'
-        }
+      }
+      return {
+        success: false,
+        message: response.data.message || 'Failed to verify bank account'
       }
     } catch (error) {
       console.error('Flutterwave bank account verification error:', error.response?.data || error.message)
@@ -289,54 +334,52 @@ class FlutterwaveUtil {
       }
     }
   }
-  
-  // Verify webhook signature
+
   // Flutterwave webhooks are NOT HMAC-signed — Flutterwave sends back the exact
-  // static secret hash you configured in your dashboard, in the `verif-hash` header.
-  // Verification is a direct (constant-time) string comparison against that secret.
-  verifyWebhookSignature(verifHashHeader) {
+  // static secret hash configured in the dashboard, in the `verif-hash` header.
+  static verifyWebhookSignature(verifHashHeader, secretOverride) {
     try {
-      const secret = process.env.FLUTTERWAVE_WEBHOOK_SECRET
+      const secret = secretOverride || process.env.FLUTTERWAVE_WEBHOOK_SECRET
       if (!secret || !verifHashHeader) return false
 
-      const crypto = require('crypto')
       const secretBuf = Buffer.from(secret)
       const headerBuf = Buffer.from(String(verifHashHeader))
-      return secretBuf.length === headerBuf.length && crypto.timingSafeEqual(secretBuf, headerBuf)
+      return (
+        secretBuf.length === headerBuf.length &&
+        crypto.timingSafeEqual(secretBuf, headerBuf)
+      )
     } catch (error) {
       console.error('Webhook signature verification error:', error)
       return false
     }
   }
-  
-  // Generate reference
+
+  verifyWebhookSignature(verifHashHeader) {
+    return FlutterwaveUtil.verifyWebhookSignature(verifHashHeader)
+  }
+
   generateReference(prefix = 'GROCHAIN') {
     const timestamp = Date.now()
     const random = Math.random().toString(36).substr(2, 9)
     return `${prefix}_${timestamp}_${random}`.toUpperCase()
   }
-  
-  // Format amount for display
+
   formatAmount(amount, currency = 'NGN') {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
-      currency: currency
+      currency
     }).format(amount)
   }
-  
-  // Get transaction status
+
   getTransactionStatus(status) {
     const statusMap = {
-      'successful': 'completed',
-      'failed': 'failed',
-      'cancelled': 'cancelled',
-      'pending': 'pending'
+      successful: 'completed',
+      failed: 'failed',
+      cancelled: 'cancelled',
+      pending: 'pending'
     }
-    
     return statusMap[status] || 'unknown'
   }
 }
 
 module.exports = FlutterwaveUtil
-
-

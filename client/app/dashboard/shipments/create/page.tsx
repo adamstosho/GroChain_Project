@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import { ShipmentCreationForm } from "@/components/shipment/shipment-creation-form"
 import { apiService } from "@/lib/api"
+import { asRecord } from "@/lib/error-utils"
 import { 
   Package, 
   ArrowLeft,
@@ -101,66 +102,76 @@ function CreateShipmentContent() {
       console.log("📋 Farmer Orders API Response:", response)
       
       if (response?.status === 'success' && response.data) {
-        const data = response.data as any
-        const ordersData = data.orders || []
+        const data = asRecord(response.data)
+        const ordersData = Array.isArray(data.orders) ? data.orders : []
         console.log("✅ Farmer orders data:", ordersData)
         
         // Process and format farmer's orders
-        const processedOrders = ordersData.map((order: any) => ({
-          _id: order._id,
-          orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
+        const processedOrders: Order[] = ordersData.map((orderUnknown) => {
+          const order = asRecord(orderUnknown)
+          const customer = asRecord(order.customer)
+          const products = Array.isArray(order.products) ? order.products : []
+          return {
+          _id: String(order._id ?? ""),
+          orderNumber: typeof order.orderNumber === "string" ? order.orderNumber : `ORD-${String(order._id).slice(-6).toUpperCase()}`,
           buyer: {
-            name: order.customer?.name || 'Unknown Customer',
-            email: order.customer?.email || '',
-            phone: order.customer?.phone || ''
+            name: typeof customer.name === "string" ? customer.name : "Unknown Customer",
+            email: typeof customer.email === "string" ? customer.email : "",
+            phone: typeof customer.phone === "string" ? customer.phone : ""
           },
           seller: { _id: '', name: 'You' },
-          items: order.products?.map((product: any) => ({
+          items: products.map((productUnknown) => {
+            const product = asRecord(productUnknown)
+            return {
             listing: { 
-              _id: product.listingId || '', 
-              cropName: product.cropName || 'Unknown Product', 
+              _id: typeof product.listingId === "string" ? product.listingId : "", 
+              cropName: typeof product.cropName === "string" ? product.cropName : "Unknown Product", 
               images: [] 
             },
             quantity: Number(product.quantity || 0),
             price: Number(product.price || 0),
-            unit: product.unit || 'kg',
+            unit: typeof product.unit === "string" ? product.unit : "kg",
             total: Number(product.quantity || 0) * Number(product.price || 0)
-          })) || [],
-          total: order.total ?? order.totalAmount ?? 0,
-          subtotal: order.subtotal || order.total || order.totalAmount || 0,
-          shipping: order.shipping || 0,
-          shippingMethod: order.shippingMethod || 'road_standard',
+          }}),
+          total: Number(order.total ?? order.totalAmount) || 0,
+          subtotal: Number(order.subtotal || order.total || order.totalAmount) || 0,
+          shipping: Number(order.shipping) || 0,
+          shippingMethod: typeof order.shippingMethod === "string" ? order.shippingMethod : "road_standard",
           discount: 0,
-          status: order.status || 'pending',
-          paymentStatus: order.paymentStatus || 'pending',
+          status: typeof order.status === "string" ? order.status : "pending",
+          paymentStatus: typeof order.paymentStatus === "string" ? order.paymentStatus : "pending",
           paymentMethod: 'paystack',
-          shippingAddress: order.deliveryAddress || {
-            street: '',
-            city: '',
-            state: '',
-            country: 'Nigeria',
-            postalCode: '',
-            phone: ''
-          },
-          deliveryInstructions: order.notes || '',
-          estimatedDelivery: order.expectedDelivery || '',
+          shippingAddress: (() => {
+            const addr = asRecord(order.deliveryAddress)
+            return {
+              street: typeof addr.street === "string" ? addr.street : "",
+              city: typeof addr.city === "string" ? addr.city : "",
+              state: typeof addr.state === "string" ? addr.state : "",
+              country: typeof addr.country === "string" ? addr.country : "Nigeria",
+              postalCode: typeof addr.postalCode === "string" ? addr.postalCode : "",
+              phone: typeof addr.phone === "string" ? addr.phone : "",
+            }
+          })(),
+          deliveryInstructions: typeof order.notes === "string" ? order.notes : "",
+          estimatedDelivery: typeof order.expectedDelivery === "string" ? order.expectedDelivery : "",
           actualDelivery: '',
           trackingNumber: '',
-          notes: order.notes || '',
+          notes: typeof order.notes === "string" ? order.notes : "",
           orderDate: order.orderDate || order.createdAt,
-          createdAt: order.createdAt || new Date().toISOString(),
-          updatedAt: order.updatedAt || new Date().toISOString()
-        }))
+          createdAt: typeof order.createdAt === "string" ? order.createdAt : new Date().toISOString(),
+          updatedAt: typeof order.updatedAt === "string" ? order.updatedAt : new Date().toISOString()
+        } as Order
+        })
         
         // Filter orders that are confirmed/paid and ready for shipment creation
-        const eligibleOrders = processedOrders.filter((order: Order) => 
+        const eligibleOrders = processedOrders.filter((order) => 
           ['confirmed', 'paid', 'processing'].includes(order.status) && 
           order.paymentStatus === 'paid'
         )
         
         console.log("📦 Total processed orders:", processedOrders.length)
         console.log("📦 Eligible orders for shipment:", eligibleOrders.length)
-        console.log("📦 Order statuses:", processedOrders.map((o: Order) => ({ id: o._id, status: o.status, paymentStatus: o.paymentStatus })))
+        console.log("📦 Order statuses:", processedOrders.map((o) => ({ id: o._id, status: o.status, paymentStatus: o.paymentStatus })))
         
         setOrders(eligibleOrders)
       } else {
@@ -189,13 +200,14 @@ function CreateShipmentContent() {
     }
   }, [selectedOrderId, orders])
 
-  const handleShipmentCreated = (shipment: Record<string, unknown>) => {
+  const handleShipmentCreated = (shipment: unknown) => {
     console.log("✅ Shipment created successfully:", shipment)
     toast({
       title: "Success",
       description: "Shipment created successfully!",
     })
-    router.push(`/dashboard/shipments/${shipment._id}`)
+    const rec = asRecord(shipment)
+    router.push(`/dashboard/shipments/${String(rec._id ?? "")}`)
   }
 
   const formatPrice = (price: number) => {
@@ -363,7 +375,7 @@ function CreateShipmentContent() {
               <div>
                 <ShipmentCreationForm
                   orderId={selectedOrderId}
-                  orderData={selectedOrder}
+                  orderData={selectedOrder ?? undefined}
                   onSuccess={handleShipmentCreated}
                   onCancel={() => router.back()}
                 />

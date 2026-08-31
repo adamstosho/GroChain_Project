@@ -11,6 +11,7 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage-header"
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { apiService } from "@/lib/api"
+import { asRecord } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import { 
   ArrowLeft, 
@@ -50,19 +51,35 @@ interface QRCodeData {
   image?: string
   location: string
   farmerName?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   scanHistory?: ScanRecord[]
 }
 
 interface ScanRecord {
   id: string
   timestamp: string
-  location?: string
+  location?: string | { city?: string; state?: string }
   device?: string
   userAgent?: string
   ipAddress?: string
   isValid: boolean
-  verificationResult?: any
+  verificationResult?: unknown
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" && !Number.isNaN(value) ? value : fallback
+}
+
+function formatPlace(location: unknown): string {
+  if (typeof location === "string") return location
+  const loc = asRecord(location)
+  const city = typeof loc.city === "string" ? loc.city : "Unknown"
+  const state = typeof loc.state === "string" ? loc.state : "Unknown State"
+  return `${city}, ${state}`
 }
 
 export default function QRCodeDetailPage() {
@@ -88,36 +105,45 @@ export default function QRCodeDetailPage() {
 
       if (response?.status === 'success' && response?.data) {
         const qrData = response.data
+        const qr = asRecord(qrData)
+        const metadata = asRecord(qr.metadata)
+        const scans = Array.isArray(qr.scans) ? qr.scans : []
         console.log('✅ QR code data:', qrData)
 
         // Format the data to match the interface
         const formattedQRCode: QRCodeData = {
-          _id: (qrData as any).id,
-          batchId: (qrData as any).batchId,
-          harvestId: (qrData as any).harvestId,
-          cropType: (qrData as any).cropType,
-          variety: (qrData as any).metadata?.variety,
-          quantity: (qrData as any).quantity,
-          unit: (qrData as any).unit || 'kg',
-          generatedAt: (qrData as any).createdAt,
-          lastScanned: (qrData as any).lastScanned,
-          scanCount: (qrData as any).scanCount,
-          status: (qrData as any).status,
-          qrData: (qrData as any).qrData,
-          image: (qrData as any).qrImage,
-          location: (qrData as any).location,
-          farmerName: (qrData as any).metadata?.farmName,
-          metadata: (qrData as any).metadata,
-          scanHistory: (qrData as any).scans?.map((scan: any) => ({
-            id: scan._id,
-            timestamp: scan.scannedAt,
-            location: scan.scannedBy?.location,
-            device: scan.deviceInfo?.userAgent?.substring(0, 50),
-            userAgent: scan.deviceInfo?.userAgent,
-            ipAddress: scan.deviceInfo?.ipAddress,
-            isValid: scan.verificationResult === 'success',
-            verificationResult: scan.verificationResult
-          }))
+          _id: asString(qr.id),
+          batchId: asString(qr.batchId),
+          harvestId: asString(qr.harvestId),
+          cropType: asString(qr.cropType),
+          variety: typeof metadata.variety === "string" ? metadata.variety : undefined,
+          quantity: asNumber(qr.quantity),
+          unit: asString(qr.unit, "kg"),
+          generatedAt: asString(qr.createdAt),
+          lastScanned: typeof qr.lastScanned === "string" ? qr.lastScanned : undefined,
+          scanCount: asNumber(qr.scanCount),
+          status: (asString(qr.status) as QRCodeData["status"]),
+          qrData: typeof qr.qrData === "string" ? qr.qrData : undefined,
+          image: typeof qr.qrImage === "string" ? qr.qrImage : undefined,
+          location: typeof qr.location === "string" ? qr.location : formatPlace(qr.location),
+          farmerName: typeof metadata.farmName === "string" ? metadata.farmName : undefined,
+          metadata,
+          scanHistory: scans.map((scanRaw) => {
+            const scan = asRecord(scanRaw)
+            const scannedBy = asRecord(scan.scannedBy)
+            const deviceInfo = asRecord(scan.deviceInfo)
+            const userAgent = typeof deviceInfo.userAgent === "string" ? deviceInfo.userAgent : undefined
+            return {
+              id: asString(scan._id),
+              timestamp: asString(scan.scannedAt),
+              location: scannedBy.location as ScanRecord["location"],
+              device: userAgent?.substring(0, 50),
+              userAgent,
+              ipAddress: typeof deviceInfo.ipAddress === "string" ? deviceInfo.ipAddress : undefined,
+              isValid: scan.verificationResult === "success",
+              verificationResult: scan.verificationResult
+            }
+          })
         }
 
         setQrCode(formattedQRCode)
@@ -376,7 +402,7 @@ export default function QRCodeDetailPage() {
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">Location:</span>
-                <span className="font-medium text-foreground">{typeof qrCode.location === 'string' ? qrCode.location : `${(qrCode.location as any)?.city || 'Unknown'}, ${(qrCode.location as any)?.state || 'Unknown State'}`}</span>
+                <span className="font-medium text-foreground">{formatPlace(qrCode.location)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -454,7 +480,7 @@ export default function QRCodeDetailPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Location:</span>
-                        <span className="font-medium">{typeof qrCode.location === 'string' ? qrCode.location : `${(qrCode.location as any)?.city || 'Unknown'}, ${(qrCode.location as any)?.state || 'Unknown State'}`}</span>
+                        <span className="font-medium">{formatPlace(qrCode.location)}</span>
                       </div>
                     </div>
                   </div>
@@ -524,7 +550,7 @@ export default function QRCodeDetailPage() {
                               {new Date(scan.timestamp).toLocaleString()}
                             </p>
                             {scan.location && (
-                              <p className="text-xs text-muted-foreground">{typeof scan.location === 'string' ? scan.location : `${(scan.location as any)?.city || 'Unknown'}, ${(scan.location as any)?.state || 'Unknown State'}`}</p>
+                              <p className="text-xs text-muted-foreground">{formatPlace(scan.location)}</p>
                             )}
                           </div>
                         </div>

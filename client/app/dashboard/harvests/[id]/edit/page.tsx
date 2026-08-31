@@ -10,6 +10,7 @@ import { DashboardSubpageHeader } from "@/components/dashboard/dashboard-subpage
 import { DashboardPageShell } from "@/components/layout/dashboard-page-shell"
 import { Display } from "@/components/ui/typography"
 import { apiService } from "@/lib/api"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react"
 import { format } from "date-fns"
@@ -32,37 +33,48 @@ export default function EditHarvestPage() {
     try {
       setFetching(true)
       const response = await apiService.getHarvestById(harvestId)
-      const harvest = (response as { harvest?: any; data?: { harvest?: any } })?.harvest || 
-                      (response as { harvest?: any; data?: { harvest?: any } })?.data?.harvest || 
-                      response as any
+      const responseRec = asRecord(response)
+      const nestedData = asRecord(responseRec.data)
+      const harvestCandidate =
+        responseRec.harvest ??
+        nestedData.harvest ??
+        response
 
-      if (harvest) {
+      if (harvestCandidate) {
+        const harvest = asRecord(harvestCandidate)
+        const geoLocation = asRecord(harvest.geoLocation)
+        const coordinates = asRecord(harvest.coordinates)
+        const dateValue = harvest.date ?? harvest.harvestDate
         // Map backend data to our form format with better type safety
         const formData: Partial<HarvestFormData> = {
-          cropType: harvest.cropType || "",
-          variety: harvest.variety || "Standard",
-          harvestDate: harvest.date || harvest.harvestDate
-            ? new Date(harvest.date || harvest.harvestDate)
+          cropType: typeof harvest.cropType === "string" ? harvest.cropType : "",
+          variety: typeof harvest.variety === "string" ? harvest.variety : "Standard",
+          harvestDate: dateValue
+            ? new Date(String(dateValue))
             : new Date(),
           quantity: typeof harvest.quantity === 'number' ? harvest.quantity : 0,
-          unit: harvest.unit || "kg",
-          location: harvest.location || "",
-          quality: harvest.quality || "good",
-          grade: harvest.qualityGrade || "B",
+          unit: (typeof harvest.unit === "string" ? harvest.unit : "kg") as HarvestFormData["unit"],
+          location: typeof harvest.location === "string" ? harvest.location : "",
+          quality: (typeof harvest.quality === "string" ? harvest.quality : "good") as HarvestFormData["quality"],
+          grade: (typeof harvest.qualityGrade === "string" ? harvest.qualityGrade : "B") as HarvestFormData["grade"],
           organic: Boolean(harvest.organic),
           moistureContent: typeof harvest.moistureContent === 'number'
             ? harvest.moistureContent
             : 15,
           price: typeof harvest.price === 'number' ? harvest.price : 0,
-          notes: harvest.description || harvest.notes || "",
-          images: Array.isArray(harvest.images) ? harvest.images : [],
+          notes: (typeof harvest.description === "string" ? harvest.description : undefined)
+            || (typeof harvest.notes === "string" ? harvest.notes : "")
+            || "",
+          images: Array.isArray(harvest.images) ? harvest.images.filter((img): img is string => typeof img === "string") : [],
           coordinates: harvest.geoLocation || harvest.coordinates ? {
-            latitude: harvest.geoLocation?.lat || harvest.coordinates?.latitude || 0,
-            longitude: harvest.geoLocation?.lng || harvest.coordinates?.longitude || 0
+            latitude: typeof geoLocation.lat === "number" ? geoLocation.lat
+              : typeof coordinates.latitude === "number" ? coordinates.latitude : 0,
+            longitude: typeof geoLocation.lng === "number" ? geoLocation.lng
+              : typeof coordinates.longitude === "number" ? coordinates.longitude : 0
           } : undefined,
-          soilType: harvest.soilType || "loam",
-          irrigationType: harvest.irrigationType || "rainfed",
-          pestManagement: harvest.pestManagement || "conventional"
+          soilType: (typeof harvest.soilType === "string" ? harvest.soilType : "loam") as HarvestFormData["soilType"],
+          irrigationType: (typeof harvest.irrigationType === "string" ? harvest.irrigationType : "rainfed") as HarvestFormData["irrigationType"],
+          pestManagement: (typeof harvest.pestManagement === "string" ? harvest.pestManagement : "conventional") as HarvestFormData["pestManagement"]
         }
         setInitialData(formData)
       } else {
@@ -163,7 +175,7 @@ export default function EditHarvestPage() {
       console.error("Failed to update harvest:", error)
       toast({
         title: "Failed to update harvest",
-        description: (error as any)?.message || "Please try again.",
+        description: getErrorMessage(error, "Please try again."),
         variant: "destructive"
       })
     } finally {

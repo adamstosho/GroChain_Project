@@ -17,6 +17,7 @@ import { useAuthStore } from "@/lib/auth"
 import { usePriceAlerts } from "@/hooks/use-price-alerts"
 import { PriceAlertDialog } from "@/components/dialogs/price-alert-dialog"
 import { getExportService } from "@/lib/export-utils"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
 import {
   Heart,
   Search,
@@ -77,6 +78,14 @@ interface FavoriteProduct {
   notes?: string
 }
 
+interface AlertProductSelection {
+  _id: string
+  cropName: string
+  basePrice: number
+  images: string[]
+  category: string
+}
+
 export default function FavoritesPage() {
   const [favorites, setFavorites] = useState<FavoriteProduct[]>([])
   const [filteredFavorites, setFilteredFavorites] = useState<FavoriteProduct[]>([])
@@ -85,7 +94,7 @@ export default function FavoritesPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [alertDialogOpen, setAlertDialogOpen] = useState(false)
-  const [selectedProduct, setSelectedProduct] = useState<any>(null)
+  const [selectedProduct, setSelectedProduct] = useState<AlertProductSelection | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const { toast } = useToast()
   const { addToCart, removeFromFavorites, fetchFavorites } = useBuyerStore()
@@ -114,19 +123,19 @@ export default function FavoritesPage() {
         const storeFavorites = useBuyerStore.getState().favorites
 
         if (Array.isArray(storeFavorites)) {
-          setFavorites(storeFavorites)
-          setFilteredFavorites(storeFavorites)
+          setFavorites(storeFavorites as FavoriteProduct[])
+          setFilteredFavorites(storeFavorites as FavoriteProduct[])
         } else {
           setFavorites([])
           setFilteredFavorites([])
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Don't show error toast for authentication issues, just log them
-        if (error.message === 'User not authenticated') {
+        if (getErrorMessage(error) === 'User not authenticated') {
           setFavorites([])
           setFilteredFavorites([])
         } else {
-          setError(error.message || 'Failed to load favorites')
+          setError(getErrorMessage(error, 'Failed to load favorites'))
           toast({
             title: "Error",
             description: "Failed to load your favorites. Please try again.",
@@ -185,7 +194,7 @@ export default function FavoritesPage() {
         title: "Added to cart",
         description: `${product.listing.cropName} has been added to your cart`,
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error adding to cart:', error)
       toast({
         title: "Error",
@@ -277,25 +286,39 @@ export default function FavoritesPage() {
       const result = await exportService.exportFavorites({
         format: 'csv',
         filename: `favorites-export-${new Date().toISOString().split('T')[0]}.csv`,
-        rows: favorites.map((f: any) => ({
-          listingId: f.listing?._id || f.listingId || f._id,
-          cropName: f.listing?.cropName || f.cropName || '',
-          price: f.listing?.price ?? f.price ?? '',
-          quality: f.listing?.quality || '',
-          farmer: f.listing?.farmer?.name || '',
-          notes: f.notes || '',
-          addedAt: f.createdAt || f.addedAt || '',
-        })),
+        rows: favorites.map((f) => {
+          const extra = asRecord(f)
+          const listing = asRecord(extra.listing)
+          const farmer = asRecord(listing.farmer)
+          return {
+            listingId:
+              (typeof listing._id === "string" ? listing._id : undefined) ||
+              (typeof extra.listingId === "string" ? extra.listingId : undefined) ||
+              f._id,
+            cropName:
+              (typeof listing.cropName === "string" ? listing.cropName : undefined) ||
+              (typeof extra.cropName === "string" ? extra.cropName : "") ||
+              "",
+            price: listing.price ?? extra.price ?? "",
+            quality: typeof listing.quality === "string" ? listing.quality : "",
+            farmer: typeof farmer.name === "string" ? farmer.name : "",
+            notes: typeof extra.notes === "string" ? extra.notes : "",
+            addedAt:
+              (typeof extra.createdAt === "string" ? extra.createdAt : undefined) ||
+              (typeof extra.addedAt === "string" ? extra.addedAt : "") ||
+              "",
+          }
+        }),
       })
 
       if (!result.success) {
         throw new Error(result.error || 'Export failed')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Export error:', error)
       toast({
         title: "Export Failed",
-        description: error.message || "Failed to export favorites. Please try again.",
+        description: getErrorMessage(error, "Failed to export favorites. Please try again."),
         variant: "destructive"
       })
     } finally {

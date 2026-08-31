@@ -20,6 +20,13 @@ import {
   Share2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { asRecord, getErrorMessage } from "@/lib/error-utils"
+
+function locationCity(location: unknown): string {
+  if (typeof location === "string") return location.split(",")[0] || "Unknown"
+  const city = asRecord(location).city
+  return typeof city === "string" ? city : "Unknown"
+}
 import { useBuyerStore } from "@/hooks/use-buyer-store"
 import { useToast } from "@/hooks/use-toast"
 
@@ -93,7 +100,10 @@ export function MarketplaceCard({
   const { toast } = useToast()
 
   // Check if product is in favorites
-  const isWishlisted = Array.isArray(favorites) && favorites.some((fav: any) => fav.listingId === product.id || fav._id === product.id)
+  const isWishlisted = Array.isArray(favorites) && favorites.some((fav) => {
+    const rec = asRecord(fav)
+    return rec.listingId === product.id || rec._id === product.id
+  })
 
 
 
@@ -119,11 +129,11 @@ export function MarketplaceCard({
         })
         onAddToWishlist?.(product.id)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to toggle favorite:', error)
       toast({
         title: "Error",
-        description: error.message || "Failed to update favorites. Please try again.",
+        description: getErrorMessage(error, "Failed to update favorites. Please try again."),
         variant: "destructive",
       })
     } finally {
@@ -200,7 +210,7 @@ export function MarketplaceCard({
               <div className="flex items-center text-xs text-muted-foreground">
                 <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
                 <span className="truncate">
-                  {typeof product.location === 'string' ? product.location.split(',')[0] : (product.location as any)?.city || 'Unknown'}
+                  {locationCity(product.location)}
                 </span>
               </div>
 
@@ -346,7 +356,7 @@ export function MarketplaceCard({
           </div>
           <div className="flex items-center gap-1 min-w-0">
             <MapPin className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
-            <span className="truncate">{typeof product.location === 'string' ? product.location.split(',')[0] : (product.location as any)?.city || 'Unknown'}</span>
+            <span className="truncate">{locationCity(product.location)}</span>
           </div>
         </div>
 

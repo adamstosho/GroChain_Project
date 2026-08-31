@@ -16,6 +16,7 @@ import { Text } from "@/components/ui/typography"
 import { dashboard } from "@/lib/design-system"
 import { apiService } from "@/lib/api"
 import { formatCompactCurrency } from "@/lib/format"
+import { asRecord } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
 import {
   Plus,
@@ -111,39 +112,44 @@ export default function InsuranceClaimsPage() {
       const response = await apiService.getInsuranceClaims()
 
       if (response.status === 'success' && response.data) {
-        const responseData = response.data as any
-        const claimsData = responseData.claims || []
+        const responseData = asRecord(response.data)
+        const claimsData = Array.isArray(responseData.claims) ? responseData.claims : []
 
-        const transformedClaims: InsuranceClaim[] = claimsData.map((claim: any) => ({
-          id: claim._id || claim.id,
-          policyNumber: claim.policy?.policyNumber || 'N/A',
-          claimType: claim.claimType,
-          description: claim.description,
-          incidentDate: claim.incidentDate,
-          reportedDate: claim.reportedDate,
-          estimatedLoss: claim.estimatedLoss || 0,
-          status: claim.status,
-          claimAmount: claim.claimAmount || 0,
-          paidAmount: claim.paidAmount || undefined,
-          documents: (claim.documents || []).map((doc: any) =>
-            typeof doc === 'string' ? { name: doc } : doc
-          ),
-          location: claim.location || '',
-          weatherConditions: claim.weatherConditions,
-          adjusterNotes: claim.adjusterNotes,
-          decisionDate: claim.decisionDate
-        }))
+        const transformedClaims: InsuranceClaim[] = claimsData.map((item) => {
+          const claim = asRecord(item)
+          const policy = asRecord(claim.policy)
+          const docs = Array.isArray(claim.documents) ? claim.documents : []
+          return {
+            id: (claim._id as string) || (claim.id as string),
+            policyNumber: (policy.policyNumber as string) || 'N/A',
+            claimType: claim.claimType as InsuranceClaim['claimType'],
+            description: claim.description as string,
+            incidentDate: claim.incidentDate as string,
+            reportedDate: claim.reportedDate as string,
+            estimatedLoss: (claim.estimatedLoss as number) || 0,
+            status: claim.status as InsuranceClaim['status'],
+            claimAmount: (claim.claimAmount as number) || 0,
+            paidAmount: (claim.paidAmount as number) || undefined,
+            documents: docs.map((doc) =>
+              typeof doc === 'string' ? { name: doc } : asRecord(doc) as InsuranceClaim['documents'][number]
+            ),
+            location: (claim.location as string) || '',
+            weatherConditions: claim.weatherConditions as string | undefined,
+            adjusterNotes: claim.adjusterNotes as string | undefined,
+            decisionDate: claim.decisionDate as string | undefined
+          }
+        })
 
         setClaims(transformedClaims)
 
-        const statsData = responseData.stats || {}
+        const statsData = asRecord(responseData.stats)
         setStats({
-          totalClaims: statsData.totalClaims ?? transformedClaims.length,
-          pendingClaims: statsData.pendingClaims ?? 0,
-          approvedClaims: statsData.approvedClaims ?? 0,
-          totalClaimed: statsData.totalClaimed ?? 0,
-          totalPaid: statsData.totalPaid ?? 0,
-          averageProcessingTime: statsData.averageProcessingTime ?? 0
+          totalClaims: (statsData.totalClaims as number) ?? transformedClaims.length,
+          pendingClaims: (statsData.pendingClaims as number) ?? 0,
+          approvedClaims: (statsData.approvedClaims as number) ?? 0,
+          totalClaimed: (statsData.totalClaimed as number) ?? 0,
+          totalPaid: (statsData.totalPaid as number) ?? 0,
+          averageProcessingTime: (statsData.averageProcessingTime as number) ?? 0
         })
       } else {
         throw new Error(response.message || 'Failed to fetch insurance claims')

@@ -277,7 +277,7 @@ export interface BulkOnboardResponse {
     row: number
     field?: string
     error: string
-    data?: any
+    data?: unknown
   }>
   successfulFarmers: Array<{
     id: string
@@ -416,21 +416,21 @@ export interface ApiError {
   code?: string
   details?: {
     field?: string
-    value?: any
+    value?: unknown
     constraint?: string
   }
   timestamp?: string
 }
 
 // Success Response Types
-export interface ApiSuccess<T = any> {
+export interface ApiSuccess<T = unknown> {
   status: 'success'
   data: T
   message?: string
 }
 
 // Generic API Response
-export type ApiResponse<T = any> = ApiSuccess<T> | ApiError
+export type ApiResponse<T = unknown> = ApiSuccess<T> | ApiError
 
 // Pagination Meta
 export interface PaginationMeta {
